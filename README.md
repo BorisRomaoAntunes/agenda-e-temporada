@@ -2,7 +2,7 @@
 
 Este é um site moderno e otimizado para a visualização da agenda de ensaios e temporada da **Orquestra Experimental de Repertório (OER)**. O sistema foi desenvolvido para ser rápido, intuitivo e ajudar os músicos a identificarem atualizações instantaneamente.
 
-🌐 **Acesse em:** [https://borisromaoantunes.github.io/visualizador-partituras-oer/](https://borisromaoantunes.github.io/visualizador-partituras-oer/)
+🌐 **Acesse em:** [https://borisromaoantunes.github.io/agenda-e-temporada/](https://borisromaoantunes.github.io/agenda-e-temporada/)
 
 ---
 
