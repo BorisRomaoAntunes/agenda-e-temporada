@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 100">
+  <defs>
+    <style>
+      .cls-1 { fill: #8B0000; }
+      .cls-2 { font-size: 60px; font-family: Arial, sans-serif; font-weight: bold; fill: #212529; }
+      .cls-3 { font-size: 18px; font-family: Arial, sans-serif; fill: #6c757d; letter-spacing: 2px; }
+    </style>
+  </defs>
+  <!-- Simbolo abstrato (Arco/Prefeitura estilizado) -->
+  <path class="cls-1" d="M30 20 L30 80 L40 80 L40 30 L60 40 L80 30 L80 80 L90 80 L90 20 L60 30 Z" />
+  
+  <!-- Texto OER -->
+  <text x="110" y="65" class="cls-2">OER</text>
+  
+  <!-- Texto Completo abaixo -->
+  <text x="112" y="88" class="cls-3">FUNDAÇÃO</text>
+</svg>
