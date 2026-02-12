@@ -1,21 +1,46 @@
-# Visualizador de Partituras OER
+# Visualizador de Agenda Digital - OER 🌟
 
-Este é um site simples e moderno para visualização de partituras em PDF, otimizado para músicos da Orquestra Experimental de Repertório.
+Este é um site moderno e otimizado para a visualização da agenda de ensaios e temporada da **Orquestra Experimental de Repertório (OER)**. O sistema foi desenvolvido para ser rápido, intuitivo e ajudar os músicos a identificarem atualizações instantaneamente.
 
 🌐 **Acesse em:** [https://borisromaoantunes.github.io/visualizador-partituras-oer/](https://borisromaoantunes.github.io/visualizador-partituras-oer/)
 
+---
+
+## ✨ Funcionalidades Principais
+
+-   **Carregamento Dinâmico:** Os arquivos PDF são configurados via JSON, facilitando a troca sem mexer no HTML.
+-   **Sistema de Badges Inteligentes (Selo OER):**
+    -   Exibe um "selo" de nova versão (v1.2, v2.0, etc) rotacionado em 25º no estilo carimbo.
+    -   **Remoção Inteligente (Desktop):** O selo desaparece suavemente ao detectar qualquer movimento do mouse ou clique, limpando a visão para o músico.
+    -   **Persistência:** O sistema lembra se o músico já viu aquela versão (usando localStorage), ocultando o badge em acessos futuros.
+-   **Design Premium:** Interface limpa, modo escuro elegante e tipografia moderna (Inter).
+-   **Responsividade:** Otimizado para visualização em tablets/computadores e acesso rápido via botões no celular.
+
+---
+
 ## 🚀 Como Atualizar os PDFs
 
-Para trocar a partitura ou agenda no site:
+Para atualizar a temporada ou agenda no site, siga estes passos:
 
-1.  Coloque o novo arquivo PDF na pasta `assets/files/`.
-2.  O nome deve terminar com a versão, ex: `Arquivo_v2.pdf`.
-3.  Abra o arquivo `pdf-config.json` e atualize o nome do arquivo correspondente.
-4.  Faça o **commit** e **push** para o GitHub.
-5.  O site atualizará automaticamente em 1 minuto!
+1.  **Prepare o arquivo:** Nomeie o PDF terminando com a versão (ex: `Agenda_v4.2.pdf`).
+2.  **Upload:** Coloque o novo arquivo na pasta `assets/files/`.
+3.  **Configuração:** Abra `pdf-config.json` e atualize o campo `arquivo` do PDF correspondente:
+    ```json
+    "agenda": {
+        "arquivo": "Agenda_v4.2.pdf",
+        "titulo": "Agenda de Ensaios"
+    }
+    ```
+4.  **Publicar:** Faça o **commit** e **push** para o GitHub. O site será atualizado automaticamente!
 
-## 🛠 Estrutura
+---
 
--   **index.html**: Interface principal.
--   **pdf-config.json**: Configuração dinâmica de quais arquivos exibir.
--   **assets/js/version-tracker.js**: Sistema inteligente que avisa músicos sobre novas versões ("NOVO").
+## 🛠 Estrutura Técnica
+
+-   `index.html`: Estrutura base e visualizadores.
+-   `pdf-config.json`: "Cérebro" do site, onde se define o que está no ar.
+-   `assets/js/version-tracker.js`: Controla a lógica de versões, selos e interações.
+-   `assets/css/style.css`: Estilização completa e efeitos visuais.
+
+---
+© 2025 Projeto OER. Desenvolvido por Boris Romão Antunes.
