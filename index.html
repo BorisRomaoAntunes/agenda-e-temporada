@@ -1,17 +1,19 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Visualizador de Partituras</title>
     <meta name="description" content="Visualizador simples e rápido de partituras e arquivos PDF para músicos.">
     <link rel="stylesheet" href="assets/css/style.css">
-    
+
     <!-- Google Fonts: Inter para interface limpa e moderna -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
+
 <body>
 
     <header class="main-header">
@@ -24,12 +26,15 @@
     <main class="viewer-container">
         <!-- Visualização Desktop/Tablet -->
         <div class="pdf-wrapper">
-            <object data="assets/files/arquivo.pdf" type="application/pdf" width="100%" height="100%">
-                <div class="pdf-fallback">
-                    <p>Seu navegador não suporta visualização de PDF integrada.</p>
-                    <a href="assets/files/arquivo.pdf" class="btn-download" download>Baixar Arquivo PDF</a>
-                </div>
-            </object>
+            <iframe src="assets/files/arquivo.pdf" title="Visualizador de PDF">
+                <p>Seu navegador não suporta iframes.</p>
+            </iframe>
+        </div>
+
+        <!-- Fallback p/ download se o iframe falhar (controlado via JS ou apenas visível em mobile por CSS) -->
+        <div class="pdf-fallback-container" style="display:none;">
+            <p>Não foi possível carregar a visualização.</p>
+            <a href="assets/files/arquivo.pdf" class="btn-download" download>Baixar Arquivo PDF</a>
         </div>
 
         <!-- Botão Mobile (Visível via CSS em telas pequenas ou como reforço) -->
@@ -44,4 +49,5 @@
     </footer>
 
 </body>
+
 </html>
