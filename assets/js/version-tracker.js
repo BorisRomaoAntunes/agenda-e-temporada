@@ -217,9 +217,10 @@ class PDFVersionTracker {
             // Adiciona listener para marcar como visto ao clicar
             element.addEventListener('click', () => {
                 this.markAsSeen(baseName, version);
-                badge.classList.remove('new');
-                const newLabel = badge.querySelector('.badge-new-label');
-                if (newLabel) newLabel.remove();
+                // Remove o badge inteiro do DOM para não ocupar espaço
+                if (badge && badge.parentNode) {
+                    badge.remove();
+                }
             });
         });
     }
