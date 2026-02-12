@@ -27,25 +27,37 @@
     </header>
 
     <main class="viewer-container">
-        <!-- Visualização Desktop/Tablet -->
-        <div class="pdf-wrapper">
-            <iframe src="assets/files/Temporada 2026 - OER.pdf" title="Visualizador de PDF">
-                <p>Seu navegador não suporta iframes.</p>
-            </iframe>
+        <!-- Grid de Visualizadores (Desktop/Tablet) -->
+        <div class="pdf-grid">
+            <!-- PDF 1: Temporada -->
+            <div class="pdf-wrapper">
+                <h2 class="pdf-title">Temporada 2026</h2>
+                <iframe src="assets/files/Temporada 2026 - OER.pdf" title="Visualizador de PDF - Temporada 2026">
+                    <p>Seu navegador não suporta iframes.</p>
+                </iframe>
+            </div>
+
+            <!-- PDF 2: Agenda de Ensaios -->
+            <div class="pdf-wrapper">
+                <h2 class="pdf-title">Agenda de Ensaios</h2>
+                <iframe src="assets/files/Agenda_Ensaios_2026_OER.pdf" title="Visualizador de PDF - Agenda de Ensaios">
+                    <p>Seu navegador não suporta iframes.</p>
+                </iframe>
+            </div>
         </div>
 
-        <!-- Fallback p/ download se o iframe falhar (controlado via JS ou apenas visível em mobile por CSS) -->
-        <div class="pdf-fallback-container" style="display:none;">
-            <p>Não foi possível carregar a visualização.</p>
-            <a href="assets/files/Temporada 2026 - OER.pdf" class="btn-download" download>Baixar Arquivo PDF</a>
-        </div>
-
-        <!-- Botão Mobile (Visível via CSS em telas pequenas ou como reforço) -->
+        <!-- Botões Mobile (Visíveis em telas pequenas) -->
         <div class="mobile-controls">
             <p>Está no celular ou não consegue visualizar?</p>
-            <a href="assets/files/Temporada 2026 - OER.pdf" class="btn-download primary" target="_blank" download>Abrir
-                PDF em
-                Tela Cheia</a>
+            <div class="mobile-buttons">
+                <a href="assets/files/Temporada 2026 - OER.pdf" class="btn-download primary" target="_blank" download>
+                    📅 Temporada 2026
+                </a>
+                <a href="assets/files/Agenda_Ensaios_2026_OER.pdf" class="btn-download primary" target="_blank"
+                    download>
+                    🎵 Agenda de Ensaios
+                </a>
+            </div>
         </div>
     </main>
 
