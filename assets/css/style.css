@@ -302,13 +302,17 @@ iframe {
 .badge-new-label {
     background: linear-gradient(135deg, #1a1a1a 0%, #333333 100%);
     color: #FFD700;
-    font-size: 0.65rem;
+    font-size: 0.55rem;
     font-weight: bold;
-    padding: 0.2rem 0.5rem;
-    border-radius: 10px;
+    padding: 0.2rem 0.6rem;
+    border-radius: 4px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    width: max-content;
+    display: block;
+    text-align: center;
 }
 
 /* Animação de Pulso para Novos */

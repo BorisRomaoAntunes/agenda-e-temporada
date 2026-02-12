@@ -169,14 +169,18 @@ class PDFVersionTracker {
     /**
      * Cria elemento do badge
      */
-    createBadge(version, isNew) {
+    createBadge(version, isNew, type) {
         const badge = document.createElement('div');
         badge.className = 'version-badge' + (isNew ? ' new' : '');
+
+        // Define o texto do rótulo baseado no tipo
+        const labelText = type === 'temporada' ? 'ATUALIZAÇÃO TEMPORADA' : 'ATUALIZAÇÃO AGENDA';
+
         badge.innerHTML = `
             <div class="badge-star">
                 <span class="badge-version">v${version}</span>
             </div>
-            ${isNew ? '<span class="badge-new-label">NOVO</span>' : ''}
+            ${isNew ? `<span class="badge-new-label">${labelText}</span>` : ''}
         `;
         return badge;
     }
@@ -197,9 +201,11 @@ class PDFVersionTracker {
 
             const baseName = this.getBaseName(filename);
             const isNew = this.isNewVersion(baseName, version);
+            // Tenta obter o tipo do PDF do elemento
+            const type = element.getAttribute('data-pdf-type') || element.getAttribute('data-pdf-button');
 
             // Cria e adiciona badge
-            const badge = this.createBadge(version, isNew);
+            const badge = this.createBadge(version, isNew, type);
             element.appendChild(badge);
 
             // Adiciona listener para marcar como visto ao clicar
