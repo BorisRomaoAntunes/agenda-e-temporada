@@ -214,15 +214,60 @@ class PDFVersionTracker {
             const badge = this.createBadge(version, isNew, type);
             element.appendChild(badge);
 
-            // Adiciona listener para marcar como visto ao clicar
+            // Adiciona listener para marcar como visto ao clicar diretamente
             element.addEventListener('click', () => {
                 this.markAsSeen(baseName, version);
-                // Remove o badge inteiro do DOM para não ocupar espaço
                 if (badge && badge.parentNode) {
                     badge.remove();
                 }
             });
         });
+
+        // Configura remoção por interação global (Desktop)
+        this.setupDesktopInteraction();
+    }
+
+    /**
+     * Remove badges automaticamente ao detectar movimento ou clique no desktop
+     */
+    setupDesktopInteraction() {
+        // Apenas para desktop (largura > 768px)
+        if (window.innerWidth <= 768) return;
+
+        const handleInteraction = () => {
+            const badges = document.querySelectorAll('.version-badge');
+            if (badges.length === 0) return;
+
+            badges.forEach(badge => {
+                const element = badge.closest('[data-pdf-path]');
+                if (element) {
+                    const pdfPath = element.getAttribute('data-pdf-path');
+                    if (pdfPath) {
+                        const filename = pdfPath.split('/').pop();
+                        const version = this.extractVersion(filename);
+                        const baseName = this.getBaseName(filename);
+                        if (version) this.markAsSeen(baseName, version);
+                    }
+                }
+
+                // Efeito suave de saída antes de remover
+                badge.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+                badge.style.opacity = '0';
+                badge.style.transform = 'translateY(-20px) rotate(30deg) scale(0.8)';
+
+                setTimeout(() => {
+                    if (badge.parentNode) badge.remove();
+                }, 500);
+            });
+
+            // Remove os listeners após a primeira interação
+            window.removeEventListener('mousemove', handleInteraction);
+            window.removeEventListener('click', handleInteraction);
+        };
+
+        // Adiciona listeners globais
+        window.addEventListener('mousemove', handleInteraction, { once: false });
+        window.addEventListener('click', handleInteraction, { once: false });
     }
 }
 
