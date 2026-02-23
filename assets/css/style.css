@@ -159,7 +159,7 @@ iframe {
 
 .mobile-controls {
     display: none;
-    margin-top: 1.5rem;
+    margin-bottom: 2rem;
     text-align: center;
     flex-direction: column;
     align-items: center;
@@ -218,9 +218,16 @@ iframe {
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 1.5rem;
+    flex-wrap: wrap;
+    gap: 2rem;
     width: 100%;
     z-index: 10;
+}
+
+.form-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
 }
 
 .form-label {
@@ -233,7 +240,7 @@ iframe {
     transition: color 0.3s ease;
 }
 
-.form-actions:hover .form-label {
+.form-item:hover .form-label {
     color: var(--primary-color);
 }
 
@@ -305,6 +312,23 @@ iframe {
         padding: 1.2rem 2rem;
         font-size: 1rem;
         width: 100%;
+    }
+
+    .form-actions {
+        flex-direction: column;
+        gap: 1.5rem;
+        order: 1;
+    }
+
+    .mobile-controls {
+        display: flex;
+        width: 100%;
+        order: -1;
+    }
+
+    .form-item {
+        width: 100%;
+        justify-content: center;
     }
 }
 
