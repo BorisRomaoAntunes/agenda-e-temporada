@@ -28,6 +28,9 @@ class PDFVersionTracker {
      */
     async start() {
         try {
+            // Detecta tablets e dispositivos móveis para exibir view correta
+            this.handleDeviceLayout();
+
             // Carrega configuração de PDFs
             const config = await this.loadConfig();
 
@@ -36,18 +39,54 @@ class PDFVersionTracker {
 
             // Configura badges após carregar PDFs
             this.setupBadges();
-
-            // Configura lógica de carregamento e iframes
-            this.setupIframeLoading();
-
-            // Detecção especial para Android
-            this.handleAndroidDevice();
         } catch (error) {
             console.error('Erro ao carregar configuração de PDFs:', error);
             // Se falhar, tenta configurar badges com elementos existentes
             this.setupBadges();
         }
     }
+
+    /**
+     * Detecta tablets e dispositivos touch e exibe a interface correta.
+     * Tablets (Android, iPad, etc.) recebem a view mobile (botões de download),
+     * pois navegadores móveis geralmente não renderizam PDFs em iframes.
+     */
+    handleDeviceLayout() {
+        const ua = navigator.userAgent;
+
+        // Detecta tablets Android (tem "Android" mas NÃO tem "Mobile" — indica tablet)
+        const isAndroidTablet = /Android/i.test(ua) && !/Mobile/i.test(ua);
+
+        // Detecta iPad (iOS moderno reporta como "Macintosh" mas tem touch)
+        const isIPad = /iPad/i.test(ua) ||
+            (/Macintosh/i.test(ua) && navigator.maxTouchPoints > 1);
+
+        // Detecta outros tablets genéricos por palavras-chave no UA
+        const isGenericTablet = /Tablet|tablet/i.test(ua);
+
+        const isTablet = isAndroidTablet || isIPad || isGenericTablet;
+
+        if (isTablet) {
+            // Esconde o grid de visualizadores (iframes)
+            const grid = document.querySelector('.pdf-grid');
+            if (grid) grid.style.display = 'none';
+
+            // Exibe os controles mobile com botões de download
+            const mobileControls = document.querySelector('.mobile-controls');
+            if (mobileControls) {
+                mobileControls.style.display = 'flex';
+            }
+
+            // Atualiza o texto para tablet
+            const mobileMsg = mobileControls && mobileControls.querySelector('p');
+            if (mobileMsg) {
+                mobileMsg.textContent = 'Está no tablet? Clique em um dos botões abaixo para abrir o PDF.';
+            }
+
+            console.info('[OER] Tablet detectado — exibindo modo mobile.');
+        }
+    }
+
 
     /**
      * Carrega arquivo de configuração JSON
@@ -87,12 +126,6 @@ class PDFVersionTracker {
             botoes.forEach(botao => {
                 botao.href = caminhoPDF;
                 botao.setAttribute('data-pdf-path', caminhoPDF);
-            });
-
-            // Atualiza links de fallback
-            const fallbacks = document.querySelectorAll(`[data-pdf-fallback="${tipo}"]`);
-            fallbacks.forEach(link => {
-                link.href = caminhoPDF;
             });
         });
     }
@@ -295,61 +328,6 @@ class PDFVersionTracker {
         // Adiciona listeners globais
         window.addEventListener('mousemove', handleInteraction, { once: false });
         window.addEventListener('click', handleInteraction, { once: false });
-    }
-
-    /**
-     * Gerencia o estado de carregamento dos iframes
-     */
-    setupIframeLoading() {
-        const wrappers = document.querySelectorAll('.pdf-wrapper');
-
-        wrappers.forEach(wrapper => {
-            const iframe = wrapper.querySelector('iframe');
-            const overlay = wrapper.querySelector('.pdf-loading-overlay');
-
-            if (!iframe || !overlay) return;
-
-            // Timeout de segurança: se não carregar em 10s, remove o overlay para não travar a tela
-            const safetyTimeout = setTimeout(() => {
-                if (overlay.style.opacity !== '0') {
-                    overlay.style.opacity = '0';
-                    setTimeout(() => overlay.remove(), 300);
-                }
-            }, 10000);
-
-            iframe.addEventListener('load', () => {
-                clearTimeout(safetyTimeout);
-                overlay.style.opacity = '0';
-                setTimeout(() => {
-                    if (overlay.parentNode) overlay.remove();
-                }, 300);
-            });
-        });
-    }
-
-    /**
-     * Ajustes específicos para dispositivos Android
-     */
-    handleAndroidDevice() {
-        const isAndroid = /Android/i.test(navigator.userAgent);
-
-        if (isAndroid) {
-            // Em Android, forçamos a exibição dos botões mobile/tablet
-            // mesmo que a tela seja grande, pois o visualizador inline falha muito
-            const mobileControls = document.querySelector('.mobile-controls');
-            if (mobileControls) {
-                mobileControls.style.display = 'flex';
-                mobileControls.style.marginBottom = '2rem';
-            }
-
-            // Também adicionamos uma classe para garantir que o grid (se visível)
-            // tenha um comportamento aceitável
-            const grid = document.querySelector('.pdf-grid');
-            if (grid && window.innerWidth > 1024) {
-                // No Android grande, mostramos o grid mas avisamos que pode falhar
-                // O fallback link já está lá para ajudar
-            }
-        }
     }
 }
 

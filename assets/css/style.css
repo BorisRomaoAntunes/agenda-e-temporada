@@ -289,23 +289,22 @@ iframe {
     margin-top: auto;
 }
 
-/* Responsividade Mobile e Tablet */
-@media (max-width: 1024px) {
+/* Responsividade Mobile */
+@media (max-width: 768px) {
     .viewer-container {
         height: auto;
         display: flex;
         padding: 2rem 1rem;
-        overflow-y: auto;
     }
 
     .pdf-grid {
         display: none;
-        /* Oculta visualizadores em mobile/tablet por padrão (exibidos se for android grande via JS ou links) */
+        /* Oculta visualizadores em mobile */
     }
 
     .mobile-controls {
         display: flex;
-        /* Exibe botões em mobile/tablet */
+        /* Exibe botões em mobile */
         width: 100%;
     }
 
@@ -451,65 +450,4 @@ iframe {
 .btn-download {
     position: relative;
     /* Para posicionar badge */
-}
-
-/* Indicador de Carregamento e Fallback */
-.pdf-loading-overlay {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    z-index: 5;
-    background-color: #2a2a2a;
-    width: 100%;
-    height: calc(100% - 40px);
-    /* Desconta o título */
-    top: calc(50% + 20px);
-    transition: opacity 0.3s ease;
-}
-
-.spinner {
-    width: 40px;
-    height: 40px;
-    border: 4px solid rgba(255, 255, 255, 0.1);
-    border-left-color: var(--primary-color);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-.pdf-fallback-link {
-    position: absolute;
-    bottom: 20px;
-    left: 0;
-    right: 0;
-    text-align: center;
-    z-index: 6;
-    padding: 0 1rem;
-}
-
-.pdf-fallback-link p {
-    color: #cccccc;
-    font-size: 0.9rem;
-    margin: 0;
-}
-
-.pdf-fallback-link a {
-    color: #FFD700;
-    font-weight: 600;
-    text-decoration: underline;
-}
-
-/* Forçar visualizadores em tablets Android (se injetado via JS) */
-.force-show-grid {
-    display: grid !important;
 }
