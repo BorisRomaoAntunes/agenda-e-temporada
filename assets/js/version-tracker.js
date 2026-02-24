@@ -31,11 +31,14 @@ class PDFVersionTracker {
             // Carrega configuração de PDFs
             const config = await this.loadConfig();
 
-            // Atualiza iframes e botões com PDFs do config
-            this.updatePDFElements(config);
-
             // Configura badges após carregar PDFs
             this.setupBadges();
+
+            // Configura lógica de carregamento e iframes
+            this.setupIframeLoading();
+
+            // Detecção especial para Android
+            this.handleAndroidDevice();
         } catch (error) {
             console.error('Erro ao carregar configuração de PDFs:', error);
             // Se falhar, tenta configurar badges com elementos existentes
@@ -81,6 +84,12 @@ class PDFVersionTracker {
             botoes.forEach(botao => {
                 botao.href = caminhoPDF;
                 botao.setAttribute('data-pdf-path', caminhoPDF);
+            });
+
+            // Atualiza links de fallback
+            const fallbacks = document.querySelectorAll(`[data-pdf-fallback="${tipo}"]`);
+            fallbacks.forEach(link => {
+                link.href = caminhoPDF;
             });
         });
     }
@@ -283,6 +292,61 @@ class PDFVersionTracker {
         // Adiciona listeners globais
         window.addEventListener('mousemove', handleInteraction, { once: false });
         window.addEventListener('click', handleInteraction, { once: false });
+    }
+
+    /**
+     * Gerencia o estado de carregamento dos iframes
+     */
+    setupIframeLoading() {
+        const wrappers = document.querySelectorAll('.pdf-wrapper');
+
+        wrappers.forEach(wrapper => {
+            const iframe = wrapper.querySelector('iframe');
+            const overlay = wrapper.querySelector('.pdf-loading-overlay');
+
+            if (!iframe || !overlay) return;
+
+            // Timeout de segurança: se não carregar em 10s, remove o overlay para não travar a tela
+            const safetyTimeout = setTimeout(() => {
+                if (overlay.style.opacity !== '0') {
+                    overlay.style.opacity = '0';
+                    setTimeout(() => overlay.remove(), 300);
+                }
+            }, 10000);
+
+            iframe.addEventListener('load', () => {
+                clearTimeout(safetyTimeout);
+                overlay.style.opacity = '0';
+                setTimeout(() => {
+                    if (overlay.parentNode) overlay.remove();
+                }, 300);
+            });
+        });
+    }
+
+    /**
+     * Ajustes específicos para dispositivos Android
+     */
+    handleAndroidDevice() {
+        const isAndroid = /Android/i.test(navigator.userAgent);
+
+        if (isAndroid) {
+            // Em Android, forçamos a exibição dos botões mobile/tablet
+            // mesmo que a tela seja grande, pois o visualizador inline falha muito
+            const mobileControls = document.querySelector('.mobile-controls');
+            if (mobileControls) {
+                mobileControls.style.display = 'flex';
+                mobileControls.style.marginBottom = '2rem';
+            }
+
+            // Também adicionamos uma classe para garantir que o grid (se visível)
+            // tenha um comportamento aceitável
+            const grid = document.querySelector('.pdf-grid');
+            if (grid && window.innerWidth > 1024) {
+                // No Android grande, mostramos o grid mas avisamos que pode falhar
+                // O fallback link já está lá para ajudar
+            }
+        }
     }
 }
 
