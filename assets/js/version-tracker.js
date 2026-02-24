@@ -31,6 +31,9 @@ class PDFVersionTracker {
             // Carrega configuração de PDFs
             const config = await this.loadConfig();
 
+            // Atualiza iframes e botões com PDFs do config
+            this.updatePDFElements(config);
+
             // Configura badges após carregar PDFs
             this.setupBadges();
 
