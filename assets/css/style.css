@@ -344,12 +344,12 @@ iframe {
     }
 
     .pdf-grid {
-        display: none;
+        display: none !important;
         /* Oculta visualizadores em mobile */
     }
 
     .mobile-controls {
-        display: flex;
+        display: flex !important;
         /* Exibe botões em mobile */
         width: 100%;
     }
@@ -367,7 +367,7 @@ iframe {
     }
 
     .mobile-controls {
-        display: flex;
+        display: flex !important;
         width: 100%;
         order: -1;
     }
@@ -376,6 +376,40 @@ iframe {
         width: 100%;
         justify-content: center;
     }
+}
+
+/* Forçar Layout Mobile (Samsung Browser) */
+body.force-mobile .viewer-container {
+    height: auto;
+    display: flex;
+    padding: 2rem 1rem;
+}
+
+body.force-mobile .pdf-grid {
+    display: none !important;
+}
+
+body.force-mobile .mobile-controls {
+    display: flex !important;
+    width: 100%;
+    order: -1;
+}
+
+body.force-mobile .btn-download.primary {
+    padding: 1.2rem 2rem;
+    font-size: 1rem;
+    width: 100%;
+}
+
+body.force-mobile .form-actions {
+    flex-direction: column;
+    gap: 1.5rem;
+    order: 1;
+}
+
+body.force-mobile .form-item {
+    width: 100%;
+    justify-content: center;
 }
 
 /* ============================================

@@ -66,6 +66,14 @@ class PDFVersionTracker {
 
         const isTablet = isAndroidTablet || isIPad || isGenericTablet;
 
+        // Detecta Samsung Browser
+        const isSamsungBrowser = navigator.userAgent.includes('SamsungBrowser');
+
+        if (isSamsungBrowser) {
+            document.body.classList.add('force-mobile');
+            console.info('[OER] Samsung Browser detectado — forçando layout mobile via CSS.');
+        }
+
         if (isTablet) {
             // Esconde o grid de visualizadores (iframes)
             const grid = document.querySelector('.pdf-grid');
