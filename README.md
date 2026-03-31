@@ -1,48 +1,59 @@
-# Visualizador de Agenda Digital - OER 🌟
+# Visualizador de Agenda Digital - OER 🎵
 
-Este é um site moderno e otimizado para a visualização da agenda de ensaios e temporada da **Orquestra Experimental de Repertório (OER)**. O sistema foi desenvolvido para ser rápido, intuitivo e ajudar os músicos a identificarem atualizações instantaneamente.
+> Um portal moderno e otimizado para que os músicos da **Orquestra Experimental de Repertório (OER)** acompanhem, de maneira instantânea e clara, as atualizações da Temporada e da Agenda de Ensaios.
 
-🌐 **Acesse em:** [https://borisromaoantunes.github.io/agenda-e-temporada/](https://borisromaoantunes.github.io/agenda-e-temporada/)
-
-🧪 **Site de Teste:** [https://agenda-e-temporada.vercel.app](https://agenda-e-temporada.vercel.app)
-
----
-
-## ✨ Funcionalidades Principais
-
--   **Carregamento Dinâmico:** Os arquivos PDF são configurados via JSON, facilitando a troca sem mexer no HTML.
--   **Sistema de Badges Inteligentes (Selo OER):**
-    -   Exibe um "selo" de nova versão (v1.2, v2.0, etc) rotacionado em 25º no estilo carimbo.
-    -   **Remoção Inteligente (Desktop):** O selo desaparece suavemente ao detectar qualquer movimento do mouse ou clique, limpando a visão para o músico.
-    -   **Persistência:** O sistema lembra se o músico já viu aquela versão (usando localStorage), ocultando o badge em acessos futuros.
--   **Design Premium:** Interface limpa, modo escuro elegante e tipografia moderna (Inter).
--   **Responsividade:** Otimizado para visualização em tablets/computadores e acesso rápido via botões no celular.
+🌐 **Produção:** [https://borisromaoantunes.github.io/agenda-e-temporada/](https://borisromaoantunes.github.io/agenda-e-temporada/)  
+🧪 **Homologação/Testes:** [https://agenda-e-temporada.vercel.app](https://agenda-e-temporada.vercel.app)
 
 ---
 
-## 🚀 Como Atualizar os PDFs
+## ✨ Principais Funcionalidades
 
-Para atualizar a temporada ou agenda no site, siga estes passos:
+- **Gerenciamento Descentralizado:** A troca de arquivos PDF ocorre alterando apenas um arquivo de texto comum (JSON), sem necessidade de editar o código-fonte HTML da plataforma.
+- **Sistema Inteligente de Controle de Versões (Selo OER):**
+  - Rastreador visual de "Selo de Arquivo Novo" estilo carimbo (ex: `v2.0`).
+  - Ocultamento inteligente para não prejudicar a leitura: o selo desaparece em computadores assim que o músico interage (move o mouse ou clica).
+  - Controle de visualização única (`localStorage`): Se o usuário já checou ou fez download de uma versão da agenda, não verá o alerta de notificação até que uma nova versão seja lançada.
+- **Feedback com Contexto do Dispositivo:** Um botão inteligente de reporte de problemas que coleta com precisão a data, o aparelho, o sistema operacional e a resolução do usuário no momento do clique.
+- **Compatibilidade Multiplataforma:** 
+  - Interface desktop em modo leitura imersiva (via iframe).
+  - Experiência fluida garantida com botões de acesso direto e download rápido em dispositivos móveis.
+  - Correção de exibição específica para navegadores nativos restritos, como o Samsung Browser.
+- **Links Úteis Embutidos:** Atalhos rápidos para o Edital do Concurso de Jovens Solistas e o Formulário de Dispensa de Bolsistas.
 
-1.  **Prepare o arquivo:** Nomeie o PDF terminando com a versão (ex: `Agenda_v4.2.pdf`).
-2.  **Upload:** Coloque o novo arquivo na pasta `assets/files/`.
-3.  **Configuração:** Abra `pdf-config.json` e atualize o campo `arquivo` do PDF correspondente:
-    ```json
-    "agenda": {
-        "arquivo": "Agenda_v4.2.pdf",
-        "titulo": "Agenda de Ensaios"
-    }
-    ```
-4.  **Publicar:** Faça o **commit** e **push** para o GitHub. O site será atualizado automaticamente!
+---
+
+## 🚀 Como Atualizar as Informações e PDFs
+
+A manutenção da página foi projetada para não exigir conhecimentos em programação:
+
+1. **Upload:** Salve e envie o novo arquivo PDF (ex: `Temporada_2026_v3.pdf`) para dentro da pasta `assets/files/`.
+2. **Atualização do Controle:** Dê um duplo clique para abrir o arquivo central `pdf-config.json` na raiz do projeto e ajuste apenas o nome do arquivo que foi substituído:
+   ```json
+   "pdfs": {
+     "temporada": {
+       "arquivo": "Temporada_2026_v3.pdf", // <- Altere isso
+       "titulo": "Temporada 2026"
+     }
+   }
+   ```
+3. **Publicar!** Crie o *commit* desse ajuste e envie o *push* para a branch `main`. A integração contínua (GitHub Actions) varrerá e publicará a nova versão automaticamente no ar.
 
 ---
 
-## 🛠 Estrutura Técnica
+## 🛠 Arquitetura do Projeto
 
--   `index.html`: Estrutura base e visualizadores.
--   `pdf-config.json`: "Cérebro" do site, onde se define o que está no ar.
--   `assets/js/version-tracker.js`: Controla a lógica de versões, selos e interações.
--   `assets/css/style.css`: Estilização completa e efeitos visuais.
+Abaixo a disposição do *core* tecnológico da aplicação:
+
+- `index.html`: Fundação estrutural da página e dos grids do projeto.
+- `pdf-config.json`: Ponto focal de configuração das versões na nuvem.
+- `assets/js/version-tracker.js`: Coração lógico do sistema. Renderiza os PDFs, mapeia a indexação de versões via *regex* e controla comportamentos da UI (como layouts do Samsung Browser).
+- `assets/js/feedback.js`: Lógica de injeção dos metadados de acesso (diagnóstico de sistema/resolução/hora/navegador) no botão de feedback por e-mail.
+- `assets/css/style.css`: *Design System* de interface (Tipografia Inter, cores oficiais OER e design responsivo premium).
+- `.github/workflows/static.yml`: Script YAML de automação de *deploy* instantâneo executado via GitHub Actions.
 
 ---
-© 2025 Projeto OER. Desenvolvido por Boris Romão Antunes.
+
+<p align="center">
+  <small>© 2026 Projeto OER. Desenvolvido por Boris Romão Antunes.</small>
+</p>
