@@ -3,7 +3,7 @@
 > Um portal moderno e otimizado para que os músicos da **Orquestra Experimental de Repertório (OER)** acompanhem, de maneira instantânea e clara, as atualizações da Temporada e da Agenda de Ensaios.
 
 🌐 **Produção:** [https://borisromaoantunes.github.io/agenda-e-temporada/](https://borisromaoantunes.github.io/agenda-e-temporada/)  
-🧪 **Homologação/Testes:** [https://agenda-e-temporada.vercel.app](https://agenda-e-temporada.vercel.app)
+
 
 ---
 
