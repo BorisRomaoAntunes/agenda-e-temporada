@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Admin - OER</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="assets/img/favicon-final.png">
+
+    <!-- Apple Touch Icon & PWA Meta Tags -->
+    <link rel="apple-touch-icon" href="assets/img/favicon-final.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Admin OER">
+    
+    <!-- Fonte Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Estilos Base e do Admin -->
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="assets/css/admin.css">
+
+    <!-- Ícones Lucide -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="admin-body">
+
+    <!-- Container de Login -->
+    <div id="login-container" class="admin-container active">
+        <div class="admin-card login-card">
+            <div class="admin-header">
+                <img src="assets/img/logo_oer.png" alt="OER Logo" class="admin-logo">
+                <h2>Acesso Restrito</h2>
+                <p>Faça login para gerenciar os repertórios.</p>
+            </div>
+            <form id="login-form">
+                <div class="input-group">
+                    <label for="email">E-mail</label>
+                    <input type="email" id="email" required placeholder="seu@email.com">
+                </div>
+                <div class="input-group">
+                    <label for="password">Senha</label>
+                    <div class="password-wrapper">
+                        <input type="password" id="password" required placeholder="••••••••">
+                        <button type="button" id="btn-toggle-password" class="btn-toggle-password" aria-label="Mostrar senha">
+                            <i data-lucide="eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary" id="btn-login">
+                    Entrar <i data-lucide="arrow-right"></i>
+                </button>
+                <div id="login-error" class="error-msg"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Container do Dashboard -->
+    <div id="dashboard-container" class="admin-container">
+        <!-- Header do Dashboard -->
+        <header class="dash-header">
+            <div class="dash-header-content">
+                <div class="brand">
+                    <img src="assets/img/logo_oer.png" alt="OER Logo" class="dash-logo">
+                    <div>
+                        <h1>Painel de Controle</h1>
+                        <p id="user-email">admin@email.com</p>
+                    </div>
+                </div>
+                <button id="btn-logout" class="btn-outline">
+                    <i data-lucide="log-out"></i> Sair
+                </button>
+            </div>
+        </header>
+
+        <main class="dash-main">
+            <div class="notification-area" id="notification-area"></div>
+
+            <div class="upload-grid">
+                <!-- Card Temporada -->
+                <div class="upload-card">
+                    <div class="card-icon" style="background: rgba(255, 215, 0, 0.1); color: #B8860B;">
+                        <i data-lucide="book-open"></i>
+                    </div>
+                    <h3>Temporada</h3>
+                    <p>Atualize o livro da Temporada.</p>
+                    
+                    <div class="file-upload-wrapper">
+                        <input type="file" id="file-temporada" accept="application/pdf" class="file-input">
+                        <div class="file-drop-area">
+                            <i data-lucide="upload-cloud"></i>
+                            <span class="file-msg">Clique ou arraste o PDF aqui</span>
+                        </div>
+                    </div>
+
+                    <button class="btn-primary btn-upload" data-type="temporada" disabled style="margin-bottom: 2rem;">
+                        <i data-lucide="send"></i> Enviar novo PDF
+                    </button>
+                    <div class="progress-bar-container" style="margin-top: -1.5rem; margin-bottom: 2rem;"><div class="progress-bar" id="progress-temporada"></div></div>
+
+                    <div class="version-input-wrapper" style="border-top: 1px solid #eee; padding-top: 1.5rem;">
+                        <label for="version-temporada">Atualizar apenas a Versão da estrela (Ex: 1.1)</label>
+                        <div class="version-input-group">
+                            <input type="text" id="version-temporada" class="version-input" placeholder="Apenas números e pontos" pattern="[\d\.]*">
+                            <button class="btn-outline btn-update-version" data-type="temporada">
+                                <i data-lucide="refresh-cw"></i> Atualizar Versão
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card Agenda -->
+                <div class="upload-card">
+                    <div class="card-icon" style="background: rgba(139, 0, 0, 0.1); color: var(--primary-color);">
+                        <i data-lucide="calendar"></i>
+                    </div>
+                    <h3>Agenda</h3>
+                    <p>Atualize a programação da semana.</p>
+                    
+                    <div class="file-upload-wrapper">
+                        <input type="file" id="file-agenda" accept="application/pdf" class="file-input">
+                        <div class="file-drop-area">
+                            <i data-lucide="upload-cloud"></i>
+                            <span class="file-msg">Clique ou arraste o PDF aqui</span>
+                        </div>
+                    </div>
+
+                    <button class="btn-primary btn-upload" data-type="agenda" disabled style="margin-bottom: 2rem;">
+                        <i data-lucide="send"></i> Enviar novo PDF
+                    </button>
+                    <div class="progress-bar-container" style="margin-top: -1.5rem; margin-bottom: 2rem;"><div class="progress-bar" id="progress-agenda"></div></div>
+                    
+                    <div class="version-input-wrapper" style="border-top: 1px solid #eee; padding-top: 1.5rem;">
+                        <label for="version-agenda">Atualizar apenas a Versão da estrela (Ex: 1.1)</label>
+                        <div class="version-input-group">
+                            <input type="text" id="version-agenda" class="version-input" placeholder="Apenas números e pontos" pattern="[\d\.]*">
+                            <button class="btn-outline btn-update-version" data-type="agenda">
+                                <i data-lucide="refresh-cw"></i> Atualizar Versão
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Firebase SDKs (Compat / v8 style for simplicity or Modular v9) -->
+    <!-- Vamos usar a API Modular V9, que é mais rápida e moderna -->
+    <script type="module" src="assets/js/admin.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+</body>
+</html>

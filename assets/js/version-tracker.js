@@ -1,7 +1,22 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+const firebaseConfig = {
+    apiKey: "AIzaSyA_exFw1oK-xGsksVaNTr1lAYHKswzYhGM",
+    authDomain: "oer-agenda.firebaseapp.com",
+    projectId: "oer-agenda",
+    storageBucket: "oer-agenda.firebasestorage.app",
+    messagingSenderId: "1020948916905",
+    appId: "1:1020948916905:web:0fe90eb1fb1b7f183c17b8"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
 /**
  * Sistema de Rastreamento de Versões de PDFs
  * Extrai versão do nome do arquivo e exibe badges com indicador "NOVO"
- * Carrega PDFs dinamicamente a partir de pdf-config.json
+ * Carrega PDFs dinamicamente a partir do Firebase Firestore
  */
 
 class PDFVersionTracker {
@@ -31,18 +46,42 @@ class PDFVersionTracker {
             // Detecta tablets e dispositivos móveis para exibir view correta
             this.handleDeviceLayout();
 
-            // Carrega configuração de PDFs
-            const config = await this.loadConfig();
-
-            // Atualiza iframes e botões com PDFs do config
-            this.updatePDFElements(config);
-
-            // Configura badges após carregar PDFs
-            this.setupBadges();
+            // Ouve as mudanças do Firestore em tempo real
+            this.listenToFirestore();
         } catch (error) {
-            console.error('Erro ao carregar configuração de PDFs:', error);
-            // Se falhar, tenta configurar badges com elementos existentes
+            console.error('Erro na inicialização:', error);
+            // Fallback para o arquivo local caso falhe
+            this.fallbackToLocalConfig();
+        }
+    }
+
+    /**
+     * Escuta atualizações do Firestore em tempo real
+     */
+    listenToFirestore() {
+        const docRef = doc(db, 'config', 'pdfs');
+        onSnapshot(docRef, async (docSnap) => {
+            if (docSnap.exists()) {
+                const config = docSnap.data();
+                this.updatePDFElements(config);
+                this.setupBadges();
+            } else {
+                console.warn('Documento não existe no Firestore, caindo para config local');
+                this.fallbackToLocalConfig();
+            }
+        }, (error) => {
+            console.error('Erro ao escutar Firestore:', error);
+            this.fallbackToLocalConfig();
+        });
+    }
+
+    async fallbackToLocalConfig() {
+        try {
+            const config = await this.loadConfig();
+            this.updatePDFElements(config);
             this.setupBadges();
+        } catch (e) {
+            console.error('Falha crítica ao carregar PDFs', e);
         }
     }
 
@@ -97,7 +136,7 @@ class PDFVersionTracker {
 
 
     /**
-     * Carrega arquivo de configuração JSON
+     * Carrega arquivo de configuração JSON (Fallback)
      */
     async loadConfig() {
         const response = await fetch(this.configPath);
@@ -116,7 +155,12 @@ class PDFVersionTracker {
         // Atualiza cada tipo de PDF
         Object.keys(pdfs).forEach(tipo => {
             const pdfInfo = pdfs[tipo];
-            const caminhoPDF = `assets/files/${pdfInfo.arquivo}`;
+            // Se vier do Firestore tem .url, se vier do local é apenas o path relativo
+            const caminhoPDF = pdfInfo.url || `assets/files/${pdfInfo.arquivo}`;
+            // O nome do arquivo real para controle de versão
+            const nomeArquivo = pdfInfo.arquivo;
+            // Versão de exibição customizada vinda do banco de dados (ex: 1.1)
+            const displayVersion = pdfInfo.displayVersion;
 
             // Atualiza iframes (desktop)
             const iframes = document.querySelectorAll(`[data-pdf-type="${tipo}"]`);
@@ -125,7 +169,8 @@ class PDFVersionTracker {
                 // Atualiza também o wrapper para badges
                 const wrapper = iframe.closest('.pdf-wrapper');
                 if (wrapper) {
-                    wrapper.setAttribute('data-pdf-path', caminhoPDF);
+                    wrapper.setAttribute('data-pdf-path', nomeArquivo);
+                    if (displayVersion) wrapper.setAttribute('data-pdf-version', displayVersion);
                 }
             });
 
@@ -133,7 +178,8 @@ class PDFVersionTracker {
             const botoes = document.querySelectorAll(`[data-pdf-button="${tipo}"]`);
             botoes.forEach(botao => {
                 botao.href = caminhoPDF;
-                botao.setAttribute('data-pdf-path', caminhoPDF);
+                botao.setAttribute('data-pdf-path', nomeArquivo);
+                if (displayVersion) botao.setAttribute('data-pdf-version', displayVersion);
             });
         });
     }
@@ -259,10 +305,12 @@ class PDFVersionTracker {
 
         pdfElements.forEach(element => {
             const pdfPath = element.getAttribute('data-pdf-path');
+            const displayVersion = element.getAttribute('data-pdf-version');
             const filename = pdfPath.split('/').pop();
 
-            const version = this.extractVersion(filename);
-            if (!version) return; // Sem versão no nome
+            // Pega a versão do atributo customizado (Firestore) ou extrai do arquivo antigo
+            const version = displayVersion || this.extractVersion(filename);
+            if (!version) return; // Sem versão no nome ou no bd
 
             const baseName = this.getBaseName(filename);
             const isNew = this.isNewVersion(baseName, version);
