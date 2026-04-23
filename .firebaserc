@@ -1,5 +1,7 @@
 {
-  "projects": {},
+  "projects": {
+    "default": "oer-agenda"
+  },
   "targets": {},
   "etags": {}
 }
