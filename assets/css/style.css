@@ -363,13 +363,13 @@ iframe {
     .form-actions {
         flex-direction: column;
         gap: 1.5rem;
-        order: 1;
+        order: -1;
     }
 
     .mobile-controls {
         display: flex !important;
         width: 100%;
-        order: -1;
+        order: 1;
     }
 
     .form-item {
@@ -392,7 +392,7 @@ body.force-mobile .pdf-grid {
 body.force-mobile .mobile-controls {
     display: flex !important;
     width: 100%;
-    order: -1;
+    order: 1;
 }
 
 body.force-mobile .btn-download.primary {
@@ -404,7 +404,7 @@ body.force-mobile .btn-download.primary {
 body.force-mobile .form-actions {
     flex-direction: column;
     gap: 1.5rem;
-    order: 1;
+    order: -1;
 }
 
 body.force-mobile .form-item {
