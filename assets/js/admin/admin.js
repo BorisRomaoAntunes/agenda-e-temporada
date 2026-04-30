@@ -21,7 +21,8 @@ import {
     setDoc, 
     getDoc,
     collection,
-    addDoc
+    addDoc,
+    onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { 
     getStorage, 
@@ -44,6 +45,8 @@ const notificationArea = document.getElementById('notification-area');
 
 // ================= AUTHENTICATION =================
 
+let unsubscribeToggle = null; // Guarda o listener do toggle para poder cancelar no logout
+
 // Observador de estado de autenticação
 onAuthStateChanged(auth, (user) => {
     if (user) {
@@ -51,10 +54,12 @@ onAuthStateChanged(auth, (user) => {
         loginContainer.classList.remove('active');
         dashboardContainer.classList.add('active');
         document.getElementById('user-email').textContent = user.email;
+        initToggleListener(); // Inicia o toggle só após autenticação
     } else {
         // Não logado
         dashboardContainer.classList.remove('active');
         loginContainer.classList.add('active');
+        if (unsubscribeToggle) { unsubscribeToggle(); unsubscribeToggle = null; }
     }
 });
 
@@ -323,6 +328,51 @@ function showNotification(message, type = 'success') {
         alertDiv.style.opacity = '0';
         setTimeout(() => alertDiv.remove(), 300);
     }, 5000);
+}
+
+// ================= TOGGLE VISIBILIDADE NOTIFICAÇÕES =================
+
+const toggleNotifBtn = document.getElementById('toggle-notif-btn');
+const toggleStatusText = document.getElementById('toggle-status-text');
+const settingsRef = doc(db, 'config', 'settings');
+
+function initToggleListener() {
+    // Cancela listener anterior se já existir
+    if (unsubscribeToggle) unsubscribeToggle();
+
+    // Escuta em tempo real o estado do toggle
+    unsubscribeToggle = onSnapshot(settingsRef, (snap) => {
+        const enabled = snap.exists() ? (snap.data().notificationsEnabled === true) : false;
+        if (toggleNotifBtn) {
+            toggleNotifBtn.checked = enabled;
+        }
+        if (toggleStatusText) {
+            toggleStatusText.textContent = enabled
+                ? '✅ Botão de notificação ATIVO no site dos músicos.'
+                : '🔕 Botão de notificação DESATIVADO no site dos músicos.';
+            toggleStatusText.style.color = enabled ? '#2E8B57' : '#888';
+        }
+    }, (err) => {
+        console.error('[Toggle] Erro ao ouvir config/settings:', err);
+        if (toggleStatusText) {
+            toggleStatusText.textContent = '⚠️ Erro ao carregar estado.';
+            toggleStatusText.style.color = '#dc3545';
+        }
+    });
+
+    // Ao clicar no toggle: grava novo estado no Firestore
+    if (toggleNotifBtn && !toggleNotifBtn._listenerAdded) {
+        toggleNotifBtn._listenerAdded = true;
+        toggleNotifBtn.addEventListener('change', async () => {
+            const newState = toggleNotifBtn.checked;
+            try {
+                await setDoc(settingsRef, { notificationsEnabled: newState }, { merge: true });
+            } catch (err) {
+                showNotification('Erro ao salvar configuração: ' + err.message, 'error');
+                toggleNotifBtn.checked = !newState;
+            }
+        });
+    }
 }
 
 // Inicializa os uploaders

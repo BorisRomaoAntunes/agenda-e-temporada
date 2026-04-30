@@ -122,19 +122,35 @@
     <!-- Sistema de Rastreamento de Versões -->
     <script type="module" src="assets/js/public/version-tracker.js"></script>
 
-    <!-- [DESATIVADO] Configuração e Controle do Firebase (Push Notifications) -->
-    <!-- <script type="module" src="assets/js/public/notifications.js"></script> -->
+    <!-- Configuração e Controle do Firebase (Push Notifications) -->
+    <script type="module" src="assets/js/public/notifications.js"></script>
 
 
-    <!-- [DESATIVADO] Botão de Notificações -->
+    <!-- Botão de Notificações (visibilidade controlada via Firestore pelo admin) -->
     <div class="notification-container" hidden>
         <!-- Painel de Convite Flutuante -->
         <div class="notification-panel" id="notificationPanel">
             <div class="panel-header">🔔 Fique por dentro!</div>
-            <p>Deseja receber notificações sobre novos cronogramas de ensaio?</p>
-            <div class="panel-actions">
-                <button class="btn-panel btn-no" id="btnNotifNo">Agora não</button>
-                <button class="btn-panel btn-yes" id="btnNotifYes">Sim</button>
+            
+            <div id="notif-step-1">
+                <p>Deseja receber notificações sobre novos cronogramas de ensaio?</p>
+                <div class="panel-actions">
+                    <button class="btn-panel btn-no" id="btnNotifNo">Agora não</button>
+                    <button class="btn-panel btn-yes" id="btnNotifYes">Sim</button>
+                </div>
+            </div>
+
+            <!-- Passo a passo iOS (escondido inicialmente) -->
+            <div id="notif-ios-guide" style="display: none;">
+                <p>Para ativar no iPhone/iPad, instale primeiro:</p>
+                <ol style="text-align: left; margin: 10px 0; padding-left: 20px; font-size: 0.9rem; line-height: 1.4;">
+                    <li>Toque em "Compartilhar" (na aba de baixo do Safari).</li>
+                    <li>Selecione <strong>"Adicionar à Tela de Início"</strong></li>
+                    <li>Abra o <strong>Agenda OER</strong> a partir da sua Tela de Início!</li>
+                </ol>
+                <div class="panel-actions">
+                    <button class="btn-panel btn-no" id="btnNotifCloseIos" style="width: 100%;">Entendi</button>
+                </div>
             </div>
         </div>
 
