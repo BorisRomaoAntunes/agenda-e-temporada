@@ -19,7 +19,9 @@ import {
     getFirestore, 
     doc, 
     setDoc, 
-    getDoc 
+    getDoc,
+    collection,
+    addDoc
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { 
     getStorage, 
@@ -259,6 +261,50 @@ async function updateFirestoreVersionOnly(type, displayVersion) {
     currentData.pdfs[type].updatedAt = new Date().toISOString();
 
     await setDoc(configRef, currentData);
+}
+
+// ================= NOTIFICAÇÕES PUSH =================
+
+const btnSendNotif = document.getElementById('btn-send-notif');
+const inputNotifTitle = document.getElementById('notif-title');
+const inputNotifMessage = document.getElementById('notif-message');
+
+if (btnSendNotif) {
+    btnSendNotif.addEventListener('click', async () => {
+        const title = inputNotifTitle.value.trim();
+        const message = inputNotifMessage.value.trim();
+
+        if (!title || !message) {
+            showNotification('Por favor, preencha o título e a mensagem do aviso.', 'error');
+            return;
+        }
+
+        btnSendNotif.disabled = true;
+        const originalText = btnSendNotif.innerHTML;
+        btnSendNotif.innerHTML = '<i data-lucide="loader"></i> Enviando...';
+        lucide.createIcons();
+
+        try {
+            const notifRef = collection(db, 'adminNotifications');
+            await addDoc(notifRef, {
+                title: title,
+                message: message,
+                createdAt: new Date().toISOString(),
+                sentBy: auth.currentUser ? auth.currentUser.email : 'admin'
+            });
+
+            showNotification('Aviso enviado para a fila de disparo! Os músicos receberão em instantes.', 'success');
+            inputNotifTitle.value = '';
+            inputNotifMessage.value = '';
+        } catch (error) {
+            showNotification(`Erro ao enviar aviso: ${error.message}`, 'error');
+            console.error('Erro:', error);
+        } finally {
+            btnSendNotif.disabled = false;
+            btnSendNotif.innerHTML = originalText;
+            lucide.createIcons();
+        }
+    });
 }
 
 // ================= UTILIDADES =================

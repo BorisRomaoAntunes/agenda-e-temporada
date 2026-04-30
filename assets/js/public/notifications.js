@@ -12,6 +12,7 @@
 
 import { app, VAPID_KEY } from "../firebase-config.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging.js";
+import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 const messaging = getMessaging(app);
 
@@ -37,6 +38,19 @@ window.requestFirebaseNotificationPermission = async () => {
             
             if (currentToken) {
                 console.log('[Firebase] Sucesso! Token gerado:', currentToken);
+                
+                // Salva o token no Firestore para conseguirmos enviar mensagens para ele depois
+                const db = getFirestore(app);
+                try {
+                    await setDoc(doc(db, "fcmTokens", currentToken), {
+                        token: currentToken,
+                        updatedAt: new Date().toISOString()
+                    }, { merge: true });
+                    console.log('[Firebase] Token salvo com sucesso no banco de dados.');
+                } catch (dbError) {
+                    console.error('[Firebase] Erro ao salvar token no banco:', dbError);
+                }
+
                 alert("🎉 Pronto! Você será avisado sempre que novos cronogramas forem disponibilizados.");
                 
                 // Grava no localStorage que o usuário já aceitou, para esconder o painel

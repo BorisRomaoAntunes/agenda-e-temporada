@@ -5,7 +5,8 @@
       "firebase.json",
       "**/.*",
       "**/node_modules/**",
-      "firebase/**"
+      "firebase/**",
+      "functions/**"
     ]
   },
   "firestore": {
@@ -16,5 +17,18 @@
   },
   "storage": {
     "rules": "firebase/storage.rules"
-  }
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        "*.local"
+      ]
+    }
+  ]
 }

@@ -89,6 +89,35 @@
         <main class="dash-main">
             <div class="notification-area" id="notification-area"></div>
 
+            <div class="notification-section" style="margin-bottom: 2rem;">
+                <!-- Card Enviar Notificação -->
+                <div class="upload-card" style="max-width: 800px; margin: 0 auto;">
+                    <div class="card-icon" style="background: rgba(0, 128, 0, 0.1); color: #2E8B57;">
+                        <i data-lucide="bell-ring"></i>
+                    </div>
+                    <h3>Avisar Músicos</h3>
+                    <p>Envie uma notificação push para todos.</p>
+                    
+                    <div class="version-input-wrapper" style="padding-top: 0.5rem; margin-bottom: 1rem;">
+                        <label for="notif-title">Título do Aviso</label>
+                        <div class="version-input-group">
+                            <input type="text" id="notif-title" class="version-input" placeholder="Ex: Novo Cronograma Disponível" style="width: 100%;">
+                        </div>
+                    </div>
+
+                    <div class="version-input-wrapper" style="margin-bottom: 1.5rem;">
+                        <label for="notif-message">Mensagem Adicional</label>
+                        <div class="version-input-group">
+                            <textarea id="notif-message" class="version-input" placeholder="Digite os detalhes aqui..." rows="3" style="width: 100%; border-radius: 8px; border: 1px solid #e0e0e0; padding: 0.8rem; font-family: inherit; font-size: 0.95rem; resize: vertical;"></textarea>
+                        </div>
+                    </div>
+
+                    <button class="btn-primary" id="btn-send-notif">
+                        <i data-lucide="megaphone"></i> Disparar Aviso
+                    </button>
+                </div>
+            </div>
+
             <div class="upload-grid">
                 <!-- Card Temporada -->
                 <div class="upload-card">
@@ -152,33 +181,6 @@
                             </button>
                         </div>
                     </div>
-                </div>
-
-                <!-- Card Enviar Notificação -->
-                <div class="upload-card">
-                    <div class="card-icon" style="background: rgba(0, 128, 0, 0.1); color: #2E8B57;">
-                        <i data-lucide="bell-ring"></i>
-                    </div>
-                    <h3>Avisar Músicos</h3>
-                    <p>Envie uma notificação push para todos.</p>
-                    
-                    <div class="version-input-wrapper" style="padding-top: 0.5rem; margin-bottom: 1rem;">
-                        <label for="notif-title">Título do Aviso</label>
-                        <div class="version-input-group">
-                            <input type="text" id="notif-title" class="version-input" placeholder="Ex: Novo Cronograma Disponível" style="width: 100%;">
-                        </div>
-                    </div>
-
-                    <div class="version-input-wrapper" style="margin-bottom: 1.5rem;">
-                        <label for="notif-message">Mensagem Adicional</label>
-                        <div class="version-input-group">
-                            <textarea id="notif-message" class="version-input" placeholder="Digite os detalhes aqui..." rows="3" style="width: 100%; border-radius: 8px; border: 1px solid #e0e0e0; padding: 0.8rem; font-family: inherit; font-size: 0.95rem; resize: vertical;"></textarea>
-                        </div>
-                    </div>
-
-                    <button class="btn-primary" id="btn-send-notif">
-                        <i data-lucide="megaphone"></i> Disparar Aviso
-                    </button>
                 </div>
             </div>
         </main>
