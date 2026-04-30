@@ -122,11 +122,11 @@
     <!-- Sistema de Rastreamento de Versões -->
     <script type="module" src="assets/js/public/version-tracker.js"></script>
 
-    <!-- Configuração e Controle do Firebase (Push Notifications) -->
-    <script type="module" src="assets/js/public/notifications.js"></script>
+    <!-- [DESATIVADO] Configuração e Controle do Firebase (Push Notifications) -->
+    <!-- <script type="module" src="assets/js/public/notifications.js"></script> -->
 
-    <!-- Modal Instruções iOS (Adicionar à Tela de Início) -->
-    <div id="iosInstallModal" class="ios-modal-overlay">
+    <!-- [DESATIVADO] Modal Instruções iOS -->
+    <div id="iosInstallModal" class="ios-modal-overlay" hidden>
         <div class="ios-modal-content">
             <button id="closeIosModal" class="ios-modal-close" aria-label="Fechar">&times;</button>
             <h3 class="ios-modal-title">Avisos da Produção</h3>
@@ -149,8 +149,8 @@
         </div>
     </div>
 
-    <!-- Botão de Notificações -->
-    <div class="notification-container">
+    <!-- [DESATIVADO] Botão de Notificações -->
+    <div class="notification-container" hidden>
         <!-- Painel de Convite Flutuante -->
         <div class="notification-panel" id="notificationPanel">
             <div class="panel-header">🔔 Fique por dentro!</div>
