@@ -116,24 +116,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // Modal iOS - Eventos de Fechamento
-    const iosModal = document.getElementById('iosInstallModal');
-    const closeIosBtn = document.getElementById('closeIosModal');
-
-    if (closeIosBtn && iosModal) {
-        // Fechar popup iOS no botão X
-        closeIosBtn.addEventListener('click', () => {
-            iosModal.classList.remove('show');
-        });
-        
-        // Fechar popup iOS se clicar no fundo fora da caixinha
-        iosModal.addEventListener('click', (e) => {
-            if (e.target === iosModal) {
-                iosModal.classList.remove('show');
-            }
-        });
-    }
-
     // Ações dos botões (Sim / Agora não)
     const handleChoice = () => {
         panel.classList.remove('show');
@@ -148,28 +130,11 @@ document.addEventListener('DOMContentLoaded', () => {
         btnYes.addEventListener('click', () => {
             handleChoice(); // Sempre removemos o balãozinho e paramos o tremer do sino
             
-            // ----------------------------------------------------
-            // Lógica Específica: Detecção de iOS para Web App (PWA)
-            // ----------------------------------------------------
-            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-            
-            // Verifica se o usuário já adicionou o site na tela inicial (App Mode)
-            const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
-
-            if (isIOS && !isStandalone) {
-                // É celular da Apple e está usando no modo navegador (Safari normal)?
-                // Abrimos o popup ensinando o passo-a-passo no iPhone/iPad
-                if (iosModal) {
-                    iosModal.classList.add('show');
-                }
+            // Chama a solicitação real de Push Notifications do Firebase
+            if (window.requestFirebaseNotificationPermission) {
+                window.requestFirebaseNotificationPermission();
             } else {
-                // Outro sistema (Android/PC) ou OER App já instalado (iOS Standalone).
-                // Chama a solicitação real de Push Notifications do Firebase
-                if (window.requestFirebaseNotificationPermission) {
-                    window.requestFirebaseNotificationPermission();
-                } else {
-                    console.warn("Firebase não inicializado a tempo.");
-                }
+                console.warn("Firebase não inicializado a tempo.");
             }
         });
     }
