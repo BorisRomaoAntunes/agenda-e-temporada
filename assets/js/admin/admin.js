@@ -318,15 +318,22 @@ function showNotification(message, type = 'success') {
     const alertDiv = document.createElement('div');
     alertDiv.className = `alert alert-${type}`;
     const icon = type === 'success' ? 'check-circle' : 'alert-circle';
-    alertDiv.innerHTML = `<i data-lucide="${icon}"></i> <span>${message}</span>`;
     
-    notificationArea.innerHTML = '';
+    alertDiv.innerHTML = `
+        <div class="alert-content">
+            <i data-lucide="${icon}"></i>
+            <span>${message}</span>
+        </div>
+        <div class="alert-timer-text">Fechando em 5 segundos...</div>
+    `;
+    
+    // Anexa a nova notificação sem apagar as antigas (Toast)
     notificationArea.appendChild(alertDiv);
     lucide.createIcons();
 
     setTimeout(() => {
-        alertDiv.style.opacity = '0';
-        setTimeout(() => alertDiv.remove(), 300);
+        alertDiv.classList.add('fade-out');
+        setTimeout(() => alertDiv.remove(), 400); // Aguarda o fim da animação
     }, 5000);
 }
 
