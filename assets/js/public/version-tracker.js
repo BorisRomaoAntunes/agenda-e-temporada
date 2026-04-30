@@ -1,23 +1,15 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+/**
+ * version-tracker.js — Sistema de Rastreamento de Versões de PDFs
+ * Localização: assets/js/public/
+ * 
+ * Extrai versão do nome do arquivo e exibe badges com indicador "NOVO"
+ * Carrega PDFs dinamicamente a partir do Firebase Firestore (real-time)
+ */
+
+import { app } from "../firebase-config.js";
 import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-const firebaseConfig = {
-    apiKey: "AIzaSyA_exFw1oK-xGsksVaNTr1lAYHKswzYhGM",
-    authDomain: "oer-agenda.firebaseapp.com",
-    projectId: "oer-agenda",
-    storageBucket: "oer-agenda.firebasestorage.app",
-    messagingSenderId: "1020948916905",
-    appId: "1:1020948916905:web:0fe90eb1fb1b7f183c17b8"
-};
-
-const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-
-/**
- * Sistema de Rastreamento de Versões de PDFs
- * Extrai versão do nome do arquivo e exibe badges com indicador "NOVO"
- * Carrega PDFs dinamicamente a partir do Firebase Firestore
- */
 
 class PDFVersionTracker {
     constructor() {

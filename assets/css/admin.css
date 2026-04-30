@@ -1,4 +1,7 @@
-/* admin.css - Estilos específicos para o Painel Administrativo */
+/* ============================================
+   ADMIN.CSS — Estilos do Painel Administrativo
+   Requer: common.css carregado antes
+   ============================================ */
 
 :root {
     --admin-bg: var(--surface-color); /* Fica #f8f9fa para alinhar com o site */

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="192" height="192" viewBox="0 0 192 192">
+  <rect width="192" height="192" fill="#8B0000" rx="36"/>
+  <path d="M50,105 L50,55 L96,35 L142,55 L142,105 L126,105 L126,62 L96,49 L66,62 L66,105 Z" fill="#FFFFFF"/>
+  <text x="96" y="150" font-family="-apple-system, BlinkMacSystemFont, 'Inter', sans-serif" font-weight="700" font-size="34" fill="#FFFFFF" text-anchor="middle" letter-spacing="1">OER</text>
+</svg>

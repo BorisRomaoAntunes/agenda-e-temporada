@@ -1,0 +1,39 @@
+/* ============================================
+   COMMON.CSS — Estilos Base Compartilhados
+   Importado tanto pelo site público quanto pelo admin
+   ============================================ */
+
+:root {
+    --bg-color: #ffffff;
+    --surface-color: #f8f9fa;
+    --primary-color: #8B0000;
+    /* Vinho escuro (Dark Red) */
+    --secondary-color: #A52A2A;
+    /* Marrom/Vinho secundário */
+    --text-primary: #212529;
+    --text-secondary: #6c757d;
+    --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    --spacing-unit: 1rem;
+    --header-height: 80px;
+    /* Aumentado para caber o logo */
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html,
+body {
+    min-height: 100%;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    font-family: var(--font-family);
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+}

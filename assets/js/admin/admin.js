@@ -1,4 +1,14 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+/**
+ * admin.js — Painel Administrativo OER
+ * Localização: assets/js/admin/
+ * 
+ * Responsável por:
+ * - Autenticação (login/logout)
+ * - Upload de PDFs para Firebase Storage
+ * - Atualização de versões no Firestore
+ */
+
+import { app } from "../firebase-config.js";
 import { 
     getAuth, 
     signInWithEmailAndPassword, 
@@ -18,18 +28,7 @@ import {
     getDownloadURL 
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
-// ====== CONFIGURAÇÃO DO FIREBASE ======
-const firebaseConfig = {
-    apiKey: "AIzaSyA_exFw1oK-xGsksVaNTr1lAYHKswzYhGM",
-    authDomain: "oer-agenda.firebaseapp.com",
-    projectId: "oer-agenda",
-    storageBucket: "oer-agenda.firebasestorage.app",
-    messagingSenderId: "1020948916905",
-    appId: "1:1020948916905:web:0fe90eb1fb1b7f183c17b8"
-};
-
-// Inicializa Firebase
-const app = initializeApp(firebaseConfig);
+// Inicializa serviços Firebase a partir da instância centralizada
 const auth = getAuth(app);
 const db = getFirestore(app);
 const storage = getStorage(app);
