@@ -22,7 +22,12 @@ import {
     getDoc,
     collection,
     addDoc,
-    onSnapshot
+    onSnapshot,
+    query,
+    orderBy,
+    limit,
+    startAfter,
+    getDocs
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { 
     getStorage, 
@@ -55,6 +60,7 @@ onAuthStateChanged(auth, (user) => {
         dashboardContainer.classList.add('active');
         document.getElementById('user-email').textContent = user.email;
         initToggleListener(); // Inicia o toggle só após autenticação
+        loadLogs(); // Carrega o histórico de logs ao logar
     } else {
         // Não logado
         dashboardContainer.classList.remove('active');
@@ -251,6 +257,9 @@ async function updateFirestoreData(type, url, filename, timestamp, displayVersio
 
     // Grava de volta
     await setDoc(configRef, currentData);
+    
+    // Grava no Log Histórico
+    await saveLog('pdf', `Novo PDF enviado para ${type.toUpperCase()}: v${currentData.pdfs[type].displayVersion}`);
 }
 
 async function updateFirestoreVersionOnly(type, displayVersion) {
@@ -266,6 +275,9 @@ async function updateFirestoreVersionOnly(type, displayVersion) {
     currentData.pdfs[type].updatedAt = new Date().toISOString();
 
     await setDoc(configRef, currentData);
+    
+    // Grava no Log Histórico
+    await saveLog('pdf', `Versão de ${type.toUpperCase()} atualizada manualmente para v${displayVersion}`);
 }
 
 // ================= NOTIFICAÇÕES PUSH =================
@@ -297,6 +309,9 @@ if (btnSendNotif) {
                 createdAt: new Date().toISOString(),
                 sentBy: auth.currentUser ? auth.currentUser.email : 'admin'
             });
+
+            // Grava no Log Histórico
+            await saveLog('aviso', `Notificação push enviada: "${title}"`);
 
             showNotification('Aviso enviado para a fila de disparo! Os músicos receberão em instantes.', 'success');
             inputNotifTitle.value = '';
@@ -385,3 +400,146 @@ function initToggleListener() {
 // Inicializa os uploaders
 setupUploader('agenda');
 setupUploader('temporada');
+
+// ================= LOGS / HISTÓRICO =================
+
+async function saveLog(type, message) {
+    try {
+        const logsRef = collection(db, 'adminLogs');
+        await addDoc(logsRef, {
+            type: type,
+            message: message,
+            createdAt: new Date().toISOString(),
+            user: auth.currentUser ? auth.currentUser.email : 'sistema'
+        });
+        
+        // Recarrega logs para aparecer imediatamente
+        loadLogs();
+    } catch (e) {
+        console.error("Erro ao salvar log: ", e);
+    }
+}
+
+let lastVisibleLog = null; // Para paginação futura
+
+async function loadLogs() {
+    const listEl = document.getElementById('log-list');
+    if (!listEl) return;
+    
+    listEl.innerHTML = '<div class="loading-logs"><i data-lucide="loader"></i> Carregando histórico...</div>';
+    lucide.createIcons();
+    
+    try {
+        const logsRef = collection(db, 'adminLogs');
+        const q = query(logsRef, orderBy('createdAt', 'desc'), limit(50));
+        const querySnapshot = await getDocs(q);
+        
+        listEl.innerHTML = ''; // Limpa "Carregando"
+        
+        if (querySnapshot.empty) {
+            listEl.innerHTML = '<div style="text-align:center; padding:2rem; color:#888;">Nenhum histórico registrado ainda.</div>';
+            if(document.getElementById('btn-load-more-logs')) document.getElementById('btn-load-more-logs').style.display = 'none';
+            return;
+        }
+
+        lastVisibleLog = querySnapshot.docs[querySnapshot.docs.length - 1];
+        
+        // Mostrar o botão de ver mais apenas se vieram 50 (pode haver mais)
+        const btnMore = document.getElementById('btn-load-more-logs');
+        if (btnMore) {
+            btnMore.style.display = querySnapshot.docs.length === 50 ? 'inline-block' : 'none';
+        }
+
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            const dateObj = new Date(data.createdAt);
+            const formattedDate = dateObj.toLocaleDateString('pt-BR');
+            const formattedTime = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            
+            const iconName = data.type === 'aviso' ? 'bell-ring' : 'folder-up';
+            
+            const li = document.createElement('li');
+            li.className = 'log-item';
+            li.innerHTML = `
+                <div class="log-icon type-${data.type}">
+                    <i data-lucide="${iconName}"></i>
+                </div>
+                <div class="log-content">
+                    <p>${data.message}</p>
+                    <span>Enviado por: ${data.user}</span>
+                </div>
+                <div class="log-time">
+                    <i data-lucide="clock"></i> ${formattedDate} às ${formattedTime}
+                </div>
+            `;
+            listEl.appendChild(li);
+        });
+        
+        lucide.createIcons();
+        
+    } catch (e) {
+        console.error("Erro ao carregar logs: ", e);
+        listEl.innerHTML = '<div style="color:red; padding:1rem; text-align:center;">Erro ao carregar histórico.</div>';
+    }
+}
+
+const btnLoadMoreLogs = document.getElementById('btn-load-more-logs');
+if (btnLoadMoreLogs) {
+    btnLoadMoreLogs.addEventListener('click', async () => {
+        if (!lastVisibleLog) return;
+        
+        btnLoadMoreLogs.innerHTML = '<i data-lucide="loader"></i> Carregando...';
+        lucide.createIcons();
+        
+        try {
+            const logsRef = collection(db, 'adminLogs');
+            const q = query(logsRef, orderBy('createdAt', 'desc'), startAfter(lastVisibleLog), limit(50));
+            const querySnapshot = await getDocs(q);
+            
+            if (querySnapshot.empty) {
+                btnLoadMoreLogs.style.display = 'none';
+                return;
+            }
+
+            lastVisibleLog = querySnapshot.docs[querySnapshot.docs.length - 1];
+
+            const listEl = document.getElementById('log-list');
+            querySnapshot.forEach((doc) => {
+                const data = doc.data();
+                const dateObj = new Date(data.createdAt);
+                const formattedDate = dateObj.toLocaleDateString('pt-BR');
+                const formattedTime = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                
+                const iconName = data.type === 'aviso' ? 'bell-ring' : 'folder-up';
+                
+                const li = document.createElement('li');
+                li.className = 'log-item';
+                li.innerHTML = `
+                    <div class="log-icon type-${data.type}">
+                        <i data-lucide="${iconName}"></i>
+                    </div>
+                    <div class="log-content">
+                        <p>${data.message}</p>
+                        <span>Enviado por: ${data.user}</span>
+                    </div>
+                    <div class="log-time">
+                        <i data-lucide="clock"></i> ${formattedDate} às ${formattedTime}
+                    </div>
+                `;
+                listEl.appendChild(li);
+            });
+            
+            lucide.createIcons();
+            btnLoadMoreLogs.innerHTML = 'Ver mais antigos';
+            
+            // Se vieram menos de 50, significa que acabou
+            if (querySnapshot.docs.length < 50) {
+                btnLoadMoreLogs.style.display = 'none';
+            }
+            
+        } catch (e) {
+            console.error("Erro ao carregar mais logs: ", e);
+            btnLoadMoreLogs.innerHTML = 'Erro. Tentar novamente';
+        }
+    });
+}

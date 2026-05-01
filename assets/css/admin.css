@@ -678,3 +678,161 @@
     }
 }
 
+/* ================= HISTÓRICO DE LOGS ================= */
+
+.logs-wrapper {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: var(--card-shadow);
+    max-width: 800px;
+    margin: 0 auto 2rem auto;
+}
+
+.logs-header {
+    border-bottom: 1px solid #eee;
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.logs-header h3 {
+    margin: 0 0 0.3rem 0;
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.logs-header p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.log-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.log-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 1rem;
+    background: #fdfdfd;
+    border: 1px solid #f0f0f0;
+    border-radius: 8px;
+    gap: 1rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.log-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.log-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.log-icon.type-aviso {
+    background: rgba(46, 139, 87, 0.1);
+    color: #2E8B57;
+}
+
+.log-icon.type-pdf {
+    background: rgba(184, 134, 11, 0.1);
+    color: #B8860B;
+}
+
+.log-content {
+    flex-grow: 1;
+}
+
+.log-content p {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.log-content span {
+    display: block;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-top: 0.3rem;
+}
+
+.log-time {
+    font-size: 0.8rem;
+    color: #999;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.log-time svg {
+    width: 14px;
+    height: 14px;
+}
+
+.loading-logs {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-secondary);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.loading-logs svg {
+    animation: spin 2s linear infinite;
+    color: var(--primary-color);
+}
+
+@keyframes spin {
+    100% { transform: rotate(360deg); }
+}
+
+.load-more-container {
+    text-align: center;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px dashed #eee;
+}
+
+.load-more-container button {
+    font-size: 0.9rem;
+    padding: 0.5rem 1.2rem;
+}
+
+@media (max-width: 768px) {
+    .logs-wrapper {
+        padding: 1.2rem;
+    }
+    
+    .log-item {
+        flex-direction: column;
+        gap: 0.5rem;
+        position: relative;
+    }
+
+    .log-time {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+    }
+}
+
+
