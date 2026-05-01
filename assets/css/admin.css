@@ -772,6 +772,24 @@
     margin-top: 0.3rem;
 }
 
+.log-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    margin-top: 0.5rem;
+    font-size: 0.85rem;
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+
+.log-link:hover {
+    color: var(--hover-color);
+    text-decoration: underline;
+}
+
+
 .log-time {
     font-size: 0.8rem;
     color: #999;

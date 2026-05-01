@@ -259,7 +259,7 @@ async function updateFirestoreData(type, url, filename, timestamp, displayVersio
     await setDoc(configRef, currentData);
     
     // Grava no Log Histórico
-    await saveLog('pdf', `Novo PDF enviado para ${type.toUpperCase()}: v${currentData.pdfs[type].displayVersion}`);
+    await saveLog('pdf', `Novo PDF enviado para ${type.toUpperCase()}: v${currentData.pdfs[type].displayVersion}`, url);
 }
 
 async function updateFirestoreVersionOnly(type, displayVersion) {
@@ -403,15 +403,21 @@ setupUploader('temporada');
 
 // ================= LOGS / HISTÓRICO =================
 
-async function saveLog(type, message) {
+async function saveLog(type, message, link = null) {
     try {
         const logsRef = collection(db, 'adminLogs');
-        await addDoc(logsRef, {
+        const logData = {
             type: type,
             message: message,
             createdAt: new Date().toISOString(),
             user: auth.currentUser ? auth.currentUser.email : 'sistema'
-        });
+        };
+        
+        if (link) {
+            logData.link = link;
+        }
+
+        await addDoc(logsRef, logData);
         
         // Recarrega logs para aparecer imediatamente
         loadLogs();
@@ -458,6 +464,11 @@ async function loadLogs() {
             
             const iconName = data.type === 'aviso' ? 'bell-ring' : 'folder-up';
             
+            let linkHtml = '';
+            if (data.link) {
+                linkHtml = `<a href="${data.link}" target="_blank" class="log-link"><i data-lucide="external-link"></i> Ver Arquivo</a>`;
+            }
+            
             const li = document.createElement('li');
             li.className = 'log-item';
             li.innerHTML = `
@@ -467,6 +478,7 @@ async function loadLogs() {
                 <div class="log-content">
                     <p>${data.message}</p>
                     <span>Enviado por: ${data.user}</span>
+                    ${linkHtml}
                 </div>
                 <div class="log-time">
                     <i data-lucide="clock"></i> ${formattedDate} às ${formattedTime}
@@ -512,6 +524,11 @@ if (btnLoadMoreLogs) {
                 
                 const iconName = data.type === 'aviso' ? 'bell-ring' : 'folder-up';
                 
+                let linkHtml = '';
+                if (data.link) {
+                    linkHtml = `<a href="${data.link}" target="_blank" class="log-link"><i data-lucide="external-link"></i> Ver Arquivo</a>`;
+                }
+                
                 const li = document.createElement('li');
                 li.className = 'log-item';
                 li.innerHTML = `
@@ -521,6 +538,7 @@ if (btnLoadMoreLogs) {
                     <div class="log-content">
                         <p>${data.message}</p>
                         <span>Enviado por: ${data.user}</span>
+                        ${linkHtml}
                     </div>
                     <div class="log-time">
                         <i data-lucide="clock"></i> ${formattedDate} às ${formattedTime}
