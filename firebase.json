@@ -7,6 +7,17 @@
       "**/node_modules/**",
       "firebase/**",
       "functions/**"
+    ],
+    "headers": [
+      {
+        "source": "**/admin.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
+          }
+        ]
+      }
     ]
   },
   "firestore": {

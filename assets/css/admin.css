@@ -525,6 +525,10 @@
         align-items: stretch;
     }
 
+    .version-input {
+        flex: 1 1 auto;
+    }
+
     .btn-update-version {
         width: 100%;
     }

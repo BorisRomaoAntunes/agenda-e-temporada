@@ -12,10 +12,6 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- Meta Tags Anti-Cache para iOS PWA -->
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
     <title>Painel Admin - OER</title>
 
     <!-- Favicon -->
@@ -35,7 +31,7 @@
     
     <!-- Estilos Base + Admin -->
     <link rel="stylesheet" href="assets/css/common.css">
-    <link rel="stylesheet" href="assets/css/admin.css?v=3">
+    <link rel="stylesheet" href="assets/css/admin.css?v=2">
 
     <!-- Ícones Lucide -->
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -240,11 +236,42 @@
             </section>
         </main>
     </div>
-    <!-- Firebase SDKs (Compat / v8 style for simplicity or Modular v9) -->
-    <!-- Vamos usar a API Modular V9, que é mais rápida e moderna -->
-    <script type="module" src="assets/js/admin/admin.js?v=5"></script>
+    <!-- Mock Script para Preview Local -->
     <script>
         lucide.createIcons();
+
+        // Lógica de Login Falso
+        document.getElementById('login-form').addEventListener('submit', (e) => {
+            e.preventDefault(); // Impede o envio do formulário
+
+            const btnLogin = document.getElementById('btn-login');
+            btnLogin.innerHTML = '<i data-lucide="loader" class="spin"></i> Autenticando...';
+            lucide.createIcons();
+
+            // Simula um atraso de rede (1 segundo)
+            setTimeout(() => {
+                // Obter o email digitado (opcional, apenas para mostrar no dashboard)
+                const email = document.getElementById('email').value;
+                document.getElementById('user-email').innerText = email || 'admin@email.com';
+
+                // Ocultar login e mostrar dashboard
+                document.getElementById('login-container').classList.remove('active');
+                document.getElementById('dashboard-container').classList.add('active');
+            }, 1000);
+        });
+
+        // Alternar visualização de senha
+        const togglePassword = document.getElementById('btn-toggle-password');
+        const passwordInput = document.getElementById('password');
+        if (togglePassword && passwordInput) {
+            togglePassword.addEventListener('click', function() {
+                const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                passwordInput.setAttribute('type', type);
+                const iconName = type === 'password' ? 'eye' : 'eye-off';
+                this.innerHTML = `<i data-lucide="${iconName}"></i>`;
+                lucide.createIcons();
+            });
+        }
 
         // Lógica de Navegação por Abas
         document.addEventListener('DOMContentLoaded', () => {
@@ -253,16 +280,48 @@
 
             tabs.forEach(tab => {
                 tab.addEventListener('click', () => {
-                    // Remover classe active de todas as abas e conteúdos
                     tabs.forEach(t => t.classList.remove('active'));
                     contents.forEach(c => c.classList.remove('active'));
 
-                    // Adicionar classe active na aba clicada e no conteúdo alvo
                     tab.classList.add('active');
                     const targetId = tab.getAttribute('data-target');
                     document.getElementById(targetId).classList.add('active');
                 });
             });
+
+            // Gerar Logs Fakes
+            const listEl = document.getElementById('log-list');
+            const fakeLogs = [
+                { type: 'aviso', message: 'Notificação push enviada: "Novo Cronograma Disponível"', user: 'admin@email.com', date: '01/05/2026', time: '17:15' },
+                { type: 'pdf', message: 'Versão de AGENDA atualizada manualmente para v1.2', user: 'diretor@email.com', date: '30/04/2026', time: '10:30' },
+                { type: 'pdf', message: 'Novo PDF enviado para TEMPORADA: v1714523000', user: 'admin@email.com', date: '29/04/2026', time: '14:22' },
+                { type: 'aviso', message: 'Notificação push enviada: "Atenção ao ensaio geral"', user: 'admin@email.com', date: '28/04/2026', time: '09:00' },
+                { type: 'aviso', message: 'Notificação push enviada: "Edital atualizado"', user: 'admin@email.com', date: '25/04/2026', time: '16:45' }
+            ];
+
+            listEl.innerHTML = '';
+            fakeLogs.forEach(data => {
+                const iconName = data.type === 'aviso' ? 'bell-ring' : 'folder-up';
+                const li = document.createElement('li');
+                li.className = 'log-item';
+                li.innerHTML = `
+                    <div class="log-icon type-${data.type}">
+                        <i data-lucide="${iconName}"></i>
+                    </div>
+                    <div class="log-content">
+                        <p>${data.message}</p>
+                        <span>Enviado por: ${data.user}</span>
+                    </div>
+                    <div class="log-time">
+                        <i data-lucide="clock"></i> ${data.date} às ${data.time}
+                    </div>
+                `;
+                listEl.appendChild(li);
+            });
+            lucide.createIcons();
+            
+            // Mostrar botão de carregar mais falso
+            document.getElementById('btn-load-more-logs').style.display = 'inline-block';
         });
     </script>
 </body>
