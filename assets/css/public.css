@@ -240,11 +240,12 @@ iframe {
 .btn-form svg {
     width: 28px;
     height: 28px;
+    transition: transform 0.4s ease;
 }
 
-.btn-form svg {
-    width: 28px;
-    height: 28px;
+/* Animação extra para o ícone de atualização girar */
+.btn-form.btn-update:hover svg {
+    transform: rotate(180deg);
 }
 
 /* Floating Feedback Button */
@@ -333,6 +334,7 @@ iframe {
         flex-direction: column;
         gap: 1.5rem;
         order: -1;
+        align-items: center;
     }
 
     .mobile-controls {
@@ -342,8 +344,9 @@ iframe {
     }
 
     .form-item {
-        width: 100%;
-        justify-content: center;
+        width: 320px;
+        max-width: 90vw;
+        justify-content: flex-start;
     }
 }
 
@@ -374,11 +377,13 @@ body.force-mobile .form-actions {
     flex-direction: column;
     gap: 1.5rem;
     order: -1;
+    align-items: center;
 }
 
 body.force-mobile .form-item {
-    width: 100%;
-    justify-content: center;
+    width: 320px;
+    max-width: 90vw;
+    justify-content: flex-start;
 }
 
 /* ============================================
