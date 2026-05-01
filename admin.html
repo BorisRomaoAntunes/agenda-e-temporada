@@ -89,7 +89,19 @@
         <main class="dash-main">
             <div class="notification-area" id="notification-area"></div>
 
-            <div class="notification-section" style="margin-bottom: 2rem;">
+            <!-- Abas de Navegação -->
+            <nav class="admin-tabs">
+                <button class="tab-btn active" data-target="section-notif">
+                    <i data-lucide="bell-ring"></i> Avisos & Notificações
+                </button>
+                <button class="tab-btn" data-target="section-arquivos">
+                    <i data-lucide="folder"></i> Temporada & Agenda
+                </button>
+            </nav>
+
+            <!-- Seção 1: Notificações -->
+            <section id="section-notif" class="tab-content active">
+                <div class="notification-section" style="margin-bottom: 2rem;">
                 <!-- Card Enviar Notificação -->
                 <div class="upload-card" style="max-width: 800px; margin: 0 auto;">
                     <div class="card-icon" style="background: rgba(0, 128, 0, 0.1); color: #2E8B57;">
@@ -131,11 +143,13 @@
                         <i data-lucide="megaphone"></i> Disparar Aviso
                     </button>
                 </div>
-            </div>
+                </div>
+            </section>
 
-
-            <div class="upload-grid">
-                <!-- Card Temporada -->
+            <!-- Seção 2: Arquivos (Temporada & Agenda) -->
+            <section id="section-arquivos" class="tab-content">
+                <div class="upload-grid">
+                    <!-- Card Temporada -->
                 <div class="upload-card">
                     <div class="card-icon" style="background: rgba(255, 215, 0, 0.1); color: #B8860B;">
                         <i data-lucide="book-open"></i>
@@ -198,15 +212,34 @@
                         </div>
                     </div>
                 </div>
-            </div>
+                </div>
+            </section>
         </main>
     </div>
-
     <!-- Firebase SDKs (Compat / v8 style for simplicity or Modular v9) -->
     <!-- Vamos usar a API Modular V9, que é mais rápida e moderna -->
     <script type="module" src="assets/js/admin/admin.js?v=4"></script>
     <script>
         lucide.createIcons();
+
+        // Lógica de Navegação por Abas
+        document.addEventListener('DOMContentLoaded', () => {
+            const tabs = document.querySelectorAll('.tab-btn');
+            const contents = document.querySelectorAll('.tab-content');
+
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // Remover classe active de todas as abas e conteúdos
+                    tabs.forEach(t => t.classList.remove('active'));
+                    contents.forEach(c => c.classList.remove('active'));
+
+                    // Adicionar classe active na aba clicada e no conteúdo alvo
+                    tab.classList.add('active');
+                    const targetId = tab.getAttribute('data-target');
+                    document.getElementById(targetId).classList.add('active');
+                });
+            });
+        });
     </script>
 </body>
 </html>

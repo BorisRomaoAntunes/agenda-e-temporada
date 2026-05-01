@@ -78,8 +78,8 @@ loginForm.addEventListener('submit', async (e) => {
     try {
         await signInWithEmailAndPassword(auth, email, password);
     } catch (error) {
-        errorMsg.textContent = 'Erro de acesso. Verifique e-mail e senha.';
-        console.error("Login erro:", error);
+        errorMsg.textContent = 'Erro: ' + (error.code || error.message);
+        console.error("Login erro completo:", error);
     } finally {
         btn.disabled = false;
         btn.innerHTML = 'Entrar <i data-lucide="arrow-right"></i>';
