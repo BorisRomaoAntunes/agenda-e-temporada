@@ -128,7 +128,8 @@
 
             <!-- Seção 1: Notificações -->
             <section id="section-notif" class="tab-content">
-                <div class="notification-section" style="margin-bottom: 2rem;">
+
+
                 <!-- Card Enviar Notificação -->
                 <div class="upload-card" style="max-width: 800px; margin: 0 auto;">
                     <div class="card-icon" style="background: rgba(0, 128, 0, 0.1); color: #2E8B57;">
@@ -185,7 +186,18 @@
                         <i data-lucide="megaphone"></i> Disparar Aviso
                     </button>
                 </div>
+
+                <!-- Lista de Avisos Ativos (Movida para depois do card) -->
+                <div id="admin-notifications-list-wrapper" class="admin-notif-wrapper">
+                    <div class="logs-header" style="margin-top: 2rem; margin-bottom: 1.5rem; max-width: 800px; margin-left: auto; margin-right: auto;">
+                        <h3><i data-lucide="list"></i> Avisos Ativos no Site</h3>
+                        <p>Gerencie os comunicados que estão sendo exibidos atualmente no letreiro e no histórico dos músicos.</p>
+                    </div>
+                    <div id="admin-notifications-list" class="notif-scroll-container">
+                        <!-- Conteúdo inserido via JS -->
+                    </div>
                 </div>
+
             </section>
 
             <!-- Seção 2: Arquivos (Temporada & Agenda) -->

@@ -22,6 +22,7 @@ import {
     getDoc,
     collection,
     addDoc,
+    deleteDoc,
     onSnapshot,
     query,
     orderBy,
@@ -61,6 +62,7 @@ onAuthStateChanged(auth, (user) => {
         document.getElementById('user-email').textContent = user.email;
         initToggleListener(); // Inicia o toggle só após autenticação
         loadLogs(); // Carrega o histórico de logs ao logar
+        loadAdminNotifications(); // Carrega a lista de notificações ativas
     } else {
         // Não logado
         dashboardContainer.classList.remove('active');
@@ -310,8 +312,8 @@ if (btnSendNotif) {
                 sentBy: auth.currentUser ? auth.currentUser.email : 'admin'
             });
 
-            // Grava no Log Histórico
-            await saveLog('aviso', `Notificação push enviada: "${title}"`);
+            // Grava no Log Histórico (incluindo o detalhamento)
+            await saveLog('aviso', `Notificação push enviada: "${title}"`, null, message);
 
             showNotification('Aviso enviado para a fila de disparo! Os músicos receberão em instantes.', 'success');
             inputNotifTitle.value = '';
@@ -428,8 +430,81 @@ setupUploader('agenda');
 setupUploader('temporada');
 
 // ================= LOGS / HISTÓRICO =================
+// ================= GERENCIAMENTO DE NOTIFICAÇÕES (ADMIN) =================
 
-async function saveLog(type, message, link = null) {
+async function loadAdminNotifications() {
+    const listEl = document.getElementById('admin-notifications-list');
+    if (!listEl) return;
+
+    // Escuta em tempo real a coleção de notificações
+    const notificationsRef = collection(db, 'adminNotifications');
+    const q = query(notificationsRef, orderBy('createdAt', 'desc'), limit(15));
+
+    onSnapshot(q, (snapshot) => {
+        if (snapshot.empty) {
+            listEl.innerHTML = '<div class="admin-notif-empty">Nenhum comunicado ativo no site no momento.</div>';
+            return;
+        }
+
+        listEl.innerHTML = ''; 
+        
+        snapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            const id = docSnap.id;
+            const dateObj = new Date(data.createdAt);
+            const formattedDate = dateObj.toLocaleDateString('pt-BR') + ' às ' + dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+            const item = document.createElement('div');
+            item.className = 'admin-notif-item';
+            item.innerHTML = `
+                <div class="admin-notif-content">
+                    <h4 class="admin-notif-title">${data.title}</h4>
+                    <p class="admin-notif-message">${data.message}</p>
+                    <div class="admin-notif-meta">
+                        <i data-lucide="clock" style="width: 12px; height: 12px;"></i> Enviado em ${formattedDate}
+                    </div>
+                </div>
+                <button class="btn-delete-notif" title="Apagar comunicado do site" data-id="${id}" data-title="${data.title}">
+                    <i data-lucide="trash-2"></i>
+                </button>
+            `;
+            listEl.appendChild(item);
+        });
+
+        // Adiciona listeners para os botões de deletar
+        listEl.querySelectorAll('.btn-delete-notif').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const docId = btn.getAttribute('data-id');
+                const title = btn.getAttribute('data-title');
+                await deleteNotification(docId, title);
+            });
+        });
+
+        lucide.createIcons();
+    });
+}
+
+async function deleteNotification(docId, title) {
+    if (!confirm(`Tem certeza que deseja apagar o comunicado "${title}"?\n\nEle desaparecerá instantaneamente do letreiro e do histórico no site dos músicos.`)) {
+        return;
+    }
+
+    try {
+        const notifRef = doc(db, 'adminNotifications', docId);
+        await deleteDoc(notifRef);
+        showNotification(`Comunicado "${title}" removido com sucesso.`, 'success');
+        
+        // Opcional: Grava no log que foi removido
+        await saveLog('aviso', `Comunicado removido: "${title}"`, null, `O administrador removeu este aviso que estava ativo no site.`);
+    } catch (error) {
+        console.error("Erro ao deletar:", error);
+        showNotification("Erro ao remover comunicado: " + error.message, 'error');
+    }
+}
+
+// ================= LOGS / HISTÓRICO =================
+
+async function saveLog(type, message, link = null, details = null) {
     try {
         const logsRef = collection(db, 'adminLogs');
         const logData = {
@@ -439,9 +514,8 @@ async function saveLog(type, message, link = null) {
             user: auth.currentUser ? auth.currentUser.email : 'sistema'
         };
         
-        if (link) {
-            logData.link = link;
-        }
+        if (link) logData.link = link;
+        if (details) logData.details = details;
 
         await addDoc(logsRef, logData);
         
@@ -503,6 +577,7 @@ async function loadLogs() {
                 </div>
                 <div class="log-content">
                     <p>${data.message}</p>
+                    ${data.details ? `<p class="log-details">${data.details}</p>` : ''}
                     <span>Enviado por: ${data.user}</span>
                     ${linkHtml}
                 </div>
@@ -563,6 +638,7 @@ if (btnLoadMoreLogs) {
                     </div>
                     <div class="log-content">
                         <p>${data.message}</p>
+                        ${data.details ? `<p class="log-details" style="font-size: 0.85rem; color: #666; margin-top: 4px; font-weight: normal; font-style: italic; background: #f0f0f0; padding: 6px 10px; border-radius: 6px; border-left: 2px solid #ccc;">${data.details}</p>` : ''}
                         <span>Enviado por: ${data.user}</span>
                         ${linkHtml}
                     </div>
