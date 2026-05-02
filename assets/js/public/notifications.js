@@ -51,7 +51,8 @@ onSnapshot(settingsRef, (snap) => {
             historyPanel.classList.remove('open');
             historyPanel.style.display = 'none';
         } else {
-            historyPanel.style.display = 'flex'; // Volta ao padrão flex do CSS
+            // Apenas removemos o 'none' para permitir que o CSS (display: none / display: block na classe .open) controle a visibilidade
+            historyPanel.style.removeProperty('display');
         }
     }
 });
