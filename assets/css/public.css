@@ -155,7 +155,7 @@ iframe {
     background-color: var(--surface-color);
     color: var(--primary-color);
     text-decoration: none;
-    border-radius: 6px;
+    border-radius: 50px;
     font-weight: 600;
     border: 1px solid var(--primary-color);
     transition: all 0.2s ease;
@@ -192,13 +192,54 @@ iframe {
     z-index: 10;
 }
 
-.form-item {
+/* Botão com ícone + texto — toda a linha é clicável */
+.btn-form {
     display: flex;
     align-items: center;
     gap: 1rem;
+    text-decoration: none;
+    cursor: pointer;
+    padding: 0.4rem;
+    border-radius: 8px;
+    transition: background-color 0.2s ease;
 }
 
-.form-label {
+.btn-form:hover {
+    background-color: transparent;
+}
+
+/* Ícone circular (design original mantido) */
+.btn-form-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 60px;
+    height: 60px;
+    background-color: var(--primary-color);
+    color: #ffffff;
+    border-radius: 50%;
+    box-shadow: 0 4px 15px rgba(139, 0, 0, 0.4);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border: 2px solid transparent;
+    flex-shrink: 0;
+}
+
+.btn-form:hover .btn-form-icon {
+    transform: scale(1.15) rotate(5deg);
+    background-color: #FFD700;
+    color: var(--primary-color);
+    box-shadow: 0 8px 25px rgba(255, 215, 0, 0.6);
+    border-color: var(--primary-color);
+}
+
+.btn-form-icon svg {
+    width: 28px;
+    height: 28px;
+    transition: transform 0.4s ease;
+}
+
+/* Texto do botão (design original mantido) */
+.btn-form-label {
     text-align: left;
     color: var(--text-primary);
     font-weight: 700;
@@ -208,43 +249,12 @@ iframe {
     transition: color 0.3s ease;
 }
 
-.form-item:hover .form-label {
+.btn-form:hover .btn-form-label {
     color: var(--primary-color);
-}
-
-.btn-form {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 60px;
-    height: 60px;
-    background-color: var(--primary-color);
-    color: #ffffff;
-    border-radius: 50%;
-    text-decoration: none;
-    box-shadow: 0 4px 15px rgba(139, 0, 0, 0.4);
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    position: relative;
-    border: 2px solid transparent;
-}
-
-.btn-form:hover {
-    transform: scale(1.15) rotate(5deg);
-    background-color: #FFD700;
-    color: var(--primary-color);
-    box-shadow: 0 8px 25px rgba(255, 215, 0, 0.6);
-    border-color: var(--primary-color);
-}
-
-.btn-form i,
-.btn-form svg {
-    width: 28px;
-    height: 28px;
-    transition: transform 0.4s ease;
 }
 
 /* Animação extra para o ícone de atualização girar */
-.btn-form.btn-update:hover svg {
+.btn-form.btn-update:hover .btn-form-icon svg {
     transform: rotate(180deg);
 }
 
@@ -328,6 +338,7 @@ iframe {
         padding: 1.2rem 2rem;
         font-size: 1rem;
         width: 100%;
+        border-radius: 50px;
     }
 
     .form-actions {
@@ -343,10 +354,9 @@ iframe {
         order: 1;
     }
 
-    .form-item {
+    .btn-form {
         width: 320px;
         max-width: 90vw;
-        justify-content: flex-start;
     }
 }
 
@@ -380,10 +390,9 @@ body.force-mobile .form-actions {
     align-items: center;
 }
 
-body.force-mobile .form-item {
+body.force-mobile .btn-form {
     width: 320px;
     max-width: 90vw;
-    justify-content: flex-start;
 }
 
 /* ============================================
