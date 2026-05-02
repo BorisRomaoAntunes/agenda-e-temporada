@@ -42,17 +42,13 @@ onSnapshot(settingsRef, (snap) => {
     const tickerEnabled = data.tickerEnabled === true;
 
     if (newsTicker) {
-        newsTicker.style.display = tickerEnabled ? 'block' : 'none';
+        newsTicker.style.display = tickerEnabled ? 'flex' : 'none';
     }
     
     if (historyPanel) {
-        // Se desativar o letreiro, garantimos que o painel de histórico também feche/suma
+        // Se o administrador desativar o letreiro, fechamos o painel de histórico
         if (!tickerEnabled) {
             historyPanel.classList.remove('open');
-            historyPanel.style.display = 'none';
-        } else {
-            // Apenas removemos o 'none' para permitir que o CSS (display: none / display: block na classe .open) controle a visibilidade
-            historyPanel.style.removeProperty('display');
         }
     }
 });

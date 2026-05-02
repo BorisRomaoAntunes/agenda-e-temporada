@@ -66,7 +66,7 @@
     top: var(--header-height);
     z-index: 99;
     white-space: nowrap;
-    display: flex;
+    display: none; /* Escondido por padrão para evitar flicker */
     align-items: center;
     cursor: pointer;
     transition: background-color 0.2s ease;
