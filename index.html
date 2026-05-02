@@ -48,6 +48,44 @@
         </div>
     </header>
 
+    <!-- Letreiro de Notificações (News Ticker) -->
+    <div class="news-ticker" id="newsTicker" title="Clique para ver o histórico de avisos">
+        <div class="ticker-content">
+            <!-- Grupo 1 -->
+            <div class="ticker-group">
+                <span class="ticker-item">
+                    <span class="ticker-prefix">📢 Últimos Comunicados:</span>
+                    <span class="ticker-text" id="tickerText">Carregando aviso...</span>
+                </span>
+            </div>
+            <!-- Grupo 2 (Cópia Exata para o Loop Contínuo) -->
+            <div class="ticker-group" aria-hidden="true">
+                <span class="ticker-item">
+                    <span class="ticker-prefix">📢 Últimos Comunicados:</span>
+                    <span class="ticker-text" id="tickerTextClone">Carregando aviso...</span>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Painel de Histórico de Notificações -->
+    <div class="history-panel" id="historyPanel">
+        <div class="container" style="flex-direction: column; align-items: stretch;">
+            <div class="history-header">
+                <h2>Histórico de Avisos</h2>
+                <button class="btn-close-history" id="btnCloseHistory" aria-label="Fechar histórico" title="Fechar histórico">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="history-list" id="historyList">
+                <div class="history-empty">Carregando histórico...</div>
+            </div>
+        </div>
+    </div>
+
     <main class="viewer-container">
         <!-- Botões Mobile (Visíveis em telas pequenas) -->
         <div class="mobile-controls">

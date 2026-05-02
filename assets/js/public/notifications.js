@@ -12,7 +12,7 @@
 
 import { app, VAPID_KEY } from "../firebase-config.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging.js";
-import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getFirestore, doc, setDoc, onSnapshot, collection, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 const messaging = getMessaging(app);
 const db = getFirestore(app);
@@ -22,14 +22,111 @@ const db = getFirestore(app);
 const notifContainer = document.querySelector('.notification-container');
 const settingsRef = doc(db, 'config', 'settings');
 
-// Escuta em tempo real: mostra/oculta o container do sino conforme o admin configurar
+// Escuta em tempo real: mostra/oculta elementos conforme o admin configurar
 onSnapshot(settingsRef, (snap) => {
-    if (!notifContainer) return;
-    const enabled = snap.exists() ? (snap.data().notificationsEnabled === true) : false;
-    if (enabled) {
-        notifContainer.removeAttribute('hidden');
-    } else {
-        notifContainer.setAttribute('hidden', '');
+    const data = snap.exists() ? snap.data() : {};
+    
+    // 1. Controle do Botão de Notificação (Sino)
+    if (notifContainer) {
+        const notifEnabled = data.notificationsEnabled === true;
+        if (notifEnabled) {
+            notifContainer.removeAttribute('hidden');
+        } else {
+            notifContainer.setAttribute('hidden', '');
+        }
+    }
+
+    // 2. Controle do Letreiro de Comunicados e Painel de Histórico
+    const newsTicker = document.getElementById('newsTicker');
+    const historyPanel = document.getElementById('historyPanel');
+    const tickerEnabled = data.tickerEnabled === true;
+
+    if (newsTicker) {
+        newsTicker.style.display = tickerEnabled ? 'block' : 'none';
+    }
+    
+    if (historyPanel) {
+        // Se desativar o letreiro, garantimos que o painel de histórico também feche/suma
+        if (!tickerEnabled) {
+            historyPanel.classList.remove('open');
+            historyPanel.style.display = 'none';
+        } else {
+            historyPanel.style.display = 'flex'; // Volta ao padrão flex do CSS
+        }
+    }
+});
+
+// ====== LETREIRO E HISTÓRICO DE NOTIFICAÇÕES ======
+const notificationsRef = collection(db, 'adminNotifications');
+const qNotifications = query(notificationsRef, orderBy('createdAt', 'desc'), limit(10));
+
+onSnapshot(qNotifications, (snapshot) => {
+    const tickerText = document.getElementById('tickerText');
+    const tickerTextClone = document.getElementById('tickerTextClone');
+    const historyList = document.getElementById('historyList');
+
+    if (!tickerText || !historyList) return;
+
+    if (snapshot.empty) {
+        const emptyMsg = "Nenhum comunicado no momento.";
+        tickerText.textContent = emptyMsg;
+        if (tickerTextClone) tickerTextClone.textContent = emptyMsg;
+        historyList.innerHTML = '<div class="history-empty">Nenhum aviso encontrado.</div>';
+        return;
+    }
+
+    const notifications = [];
+    snapshot.forEach((doc) => {
+        notifications.push(doc.data());
+    });
+
+    // 1. Atualiza o Letreiro com a notificação mais recente
+    const latest = notifications[0];
+    let tickerMsg = latest.title;
+    if (latest.message) {
+        // Trunca a mensagem para o letreiro
+        const shortMessage = latest.message.length > 80 ? latest.message.substring(0, 80) + "..." : latest.message;
+        tickerMsg += `: ${shortMessage}`;
+    }
+    tickerText.textContent = tickerMsg;
+    if (tickerTextClone) tickerTextClone.textContent = tickerMsg;
+
+    // 2. Preenche o Histórico
+    historyList.innerHTML = ''; // Limpa o estado de "Carregando..."
+    notifications.forEach(notif => {
+        const card = document.createElement('div');
+        card.className = 'history-card';
+        
+        // Formatar data
+        let dateStr = "Data não informada";
+        if (notif.createdAt) {
+            let dateObj;
+            if (typeof notif.createdAt.toDate === 'function') {
+                dateObj = notif.createdAt.toDate();
+            } else {
+                dateObj = new Date(notif.createdAt);
+            }
+            dateStr = dateObj.toLocaleDateString('pt-BR') + ' às ' + dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        card.innerHTML = `
+            <div class="history-card-meta">
+                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                ${dateStr}
+            </div>
+            <div class="history-card-title">${notif.title || 'Aviso'}</div>
+            <div class="history-card-body">${notif.message || ''}</div>
+        `;
+        historyList.appendChild(card);
+    });
+}, (error) => {
+    console.error("[Firebase] Erro ao buscar histórico de notificações:", error);
+    const historyList = document.getElementById('historyList');
+    if(historyList) {
+        historyList.innerHTML = '<div class="history-empty" style="color: red;">Erro ao carregar avisos. Tente novamente mais tarde.</div>';
     }
 });
 
@@ -126,6 +223,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const badge = document.getElementById('notificationBadge');
 
     if (!trigger || !panel) return;
+
+    // ====== INTERAÇÃO DO PAINEL DE HISTÓRICO ======
+    const newsTicker = document.getElementById('newsTicker');
+    const historyPanel = document.getElementById('historyPanel');
+    const btnCloseHistory = document.getElementById('btnCloseHistory');
+
+    if (newsTicker && historyPanel && btnCloseHistory) {
+        // Abrir o painel
+        newsTicker.addEventListener('click', () => {
+            historyPanel.classList.add('open');
+        });
+
+        // Fechar o painel (botão X)
+        btnCloseHistory.addEventListener('click', (e) => {
+            e.stopPropagation(); // Evita reativar o letreiro ao fechar
+            historyPanel.classList.remove('open');
+        });
+    }
+
+    // ====== LÓGICA DO SINO DE NOTIFICAÇÕES ======
 
     // Função centralizada para verificar o estado e parar a animação
     const updateNotificationBellState = () => {

@@ -356,33 +356,45 @@ function showNotification(message, type = 'success') {
 
 const toggleNotifBtn = document.getElementById('toggle-notif-btn');
 const toggleStatusText = document.getElementById('toggle-status-text');
+const toggleTickerBtn = document.getElementById('toggle-ticker-btn');
+const toggleTickerStatusText = document.getElementById('toggle-ticker-status-text');
 const settingsRef = doc(db, 'config', 'settings');
 
 function initToggleListener() {
     // Cancela listener anterior se já existir
     if (unsubscribeToggle) unsubscribeToggle();
 
-    // Escuta em tempo real o estado do toggle
+    // Escuta em tempo real o estado dos toggles
     unsubscribeToggle = onSnapshot(settingsRef, (snap) => {
-        const enabled = snap.exists() ? (snap.data().notificationsEnabled === true) : false;
-        if (toggleNotifBtn) {
-            toggleNotifBtn.checked = enabled;
-        }
+        const data = snap.exists() ? snap.data() : {};
+        
+        // Estado do Botão de Notificação
+        const notifEnabled = data.notificationsEnabled === true;
+        if (toggleNotifBtn) toggleNotifBtn.checked = notifEnabled;
         if (toggleStatusText) {
-            toggleStatusText.textContent = enabled
+            toggleStatusText.textContent = notifEnabled
                 ? '✅ Botão de notificação ATIVO no site dos músicos.'
                 : '🔕 Botão de notificação DESATIVADO no site dos músicos.';
-            toggleStatusText.style.color = enabled ? '#2E8B57' : '#888';
+            toggleStatusText.style.color = notifEnabled ? '#2E8B57' : '#888';
+        }
+
+        // Estado do Letreiro de Comunicados
+        const tickerEnabled = data.tickerEnabled === true;
+        if (toggleTickerBtn) toggleTickerBtn.checked = tickerEnabled;
+        if (toggleTickerStatusText) {
+            toggleTickerStatusText.textContent = tickerEnabled
+                ? '✅ Letreiro de comunicados ATIVO no site dos músicos.'
+                : '🔕 Letreiro de comunicados DESATIVADO no site dos músicos.';
+            toggleTickerStatusText.style.color = tickerEnabled ? '#2E8B57' : '#888';
         }
     }, (err) => {
         console.error('[Toggle] Erro ao ouvir config/settings:', err);
-        if (toggleStatusText) {
-            toggleStatusText.textContent = '⚠️ Erro ao carregar estado.';
-            toggleStatusText.style.color = '#dc3545';
-        }
+        const errorMsg = '⚠️ Erro ao carregar estado.';
+        if (toggleStatusText) toggleStatusText.textContent = errorMsg;
+        if (toggleTickerStatusText) toggleTickerStatusText.textContent = errorMsg;
     });
 
-    // Ao clicar no toggle: grava novo estado no Firestore
+    // Evento para o Toggle de Notificações
     if (toggleNotifBtn && !toggleNotifBtn._listenerAdded) {
         toggleNotifBtn._listenerAdded = true;
         toggleNotifBtn.addEventListener('change', async () => {
@@ -392,6 +404,20 @@ function initToggleListener() {
             } catch (err) {
                 showNotification('Erro ao salvar configuração: ' + err.message, 'error');
                 toggleNotifBtn.checked = !newState;
+            }
+        });
+    }
+
+    // Evento para o Toggle do Letreiro
+    if (toggleTickerBtn && !toggleTickerBtn._listenerAdded) {
+        toggleTickerBtn._listenerAdded = true;
+        toggleTickerBtn.addEventListener('change', async () => {
+            const newState = toggleTickerBtn.checked;
+            try {
+                await setDoc(settingsRef, { tickerEnabled: newState }, { merge: true });
+            } catch (err) {
+                showNotification('Erro ao salvar configuração: ' + err.message, 'error');
+                toggleTickerBtn.checked = !newState;
             }
         });
     }
