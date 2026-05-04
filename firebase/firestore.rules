@@ -23,6 +23,7 @@ service cloud.firestore {
     // Leitura não é necessária para o público
     // Escrita é permitida para qualquer um poder se registrar
     match /fcmTokens/{document} {
+      allow read: if request.auth != null;
       allow write: if true;
     }
 
