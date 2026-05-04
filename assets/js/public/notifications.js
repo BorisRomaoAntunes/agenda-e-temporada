@@ -62,7 +62,7 @@ onSnapshot(settingsRef, (snap) => {
     // 2. Controle do Letreiro de Comunicados e Painel de Histórico
     const newsTicker = document.getElementById('newsTicker');
     const historyPanel = document.getElementById('historyPanel');
-    const tickerEnabled = data.tickerEnabled === true;
+    const tickerEnabled = lastAdminSettings.tickerEnabled === true;
 
     if (newsTicker) {
         newsTicker.style.display = tickerEnabled ? 'flex' : 'none';
