@@ -60,6 +60,7 @@
     background-color: #fff9c4; /* Amarelo post-it suave para destaque */
     border-bottom: 1px solid #fceb8b;
     padding: 0.5rem 0;
+    font-size: 0.95rem;
     width: 100%;
     overflow: hidden;
     position: sticky;
@@ -680,6 +681,15 @@ iframe {
         height: auto;
         display: flex;
         padding: 2rem 1rem;
+    }
+
+    .news-ticker {
+        font-size: 0.85rem;
+        padding: 0.4rem 0;
+    }
+
+    .ticker-item {
+        padding-right: 60px;
     }
 
     .pdf-grid {
