@@ -129,6 +129,23 @@
             <!-- Seção 1: Notificações -->
             <section id="section-notif" class="tab-content">
 
+                <!-- Contador de Assinantes em Tempo Real -->
+                <div class="subscriber-count-card" id="subscriber-count-card">
+                    <div class="subscriber-info">
+                        <div class="subscriber-icon-bg">
+                            <i data-lucide="users"></i>
+                        </div>
+                        <div>
+                            <p class="subscriber-count-label">Musicos Inscritos</p>
+                            <h4 class="subscriber-count-value" id="subscriber-count-value">... <span>assinantes</span></h4>
+                        </div>
+                    </div>
+                    <div class="live-indicator">
+                        <span class="live-dot"></span>
+                        AO VIVO
+                    </div>
+                </div>
+
 
                 <!-- Card Enviar Notificação -->
                 <div class="upload-card" style="max-width: 800px; margin: 0 auto;">
@@ -289,6 +306,12 @@
             </section>
         </main>
     </div>
+    <!-- Modal para Imagens -->
+    <div id="image-modal" class="image-modal" onclick="if(event.target === this) closeImageModal()">
+        <span class="close-modal" onclick="closeImageModal()">&times;</span>
+        <img class="modal-content" id="modal-img">
+    </div>
+
     <!-- Firebase SDKs (Compat / v8 style for simplicity or Modular v9) -->
     <!-- Vamos usar a API Modular V9, que é mais rápida e moderna -->
     <script type="module" src="assets/js/admin/admin.js?v=5"></script>

@@ -61,6 +61,7 @@ let selectedNotifImage = null;
 // ================= AUTHENTICATION =================
 
 let unsubscribeToggle = null; // Guarda o listener do toggle para poder cancelar no logout
+let unsubscribeSubscribers = null; // Guarda o listener de assinantes
 
 // Observador de estado de autenticação
 onAuthStateChanged(auth, (user) => {
@@ -70,6 +71,7 @@ onAuthStateChanged(auth, (user) => {
         dashboardContainer.classList.add('active');
         document.getElementById('user-email').textContent = user.email;
         initToggleListener(); // Inicia o toggle só após autenticação
+        initSubscriberCounter(); // Inicia o contador de assinantes
         loadLogs(); // Carrega o histórico de logs ao logar
         loadAdminNotifications(); // Carrega a lista de notificações ativas
     } else {
@@ -77,6 +79,7 @@ onAuthStateChanged(auth, (user) => {
         dashboardContainer.classList.remove('active');
         loginContainer.classList.add('active');
         if (unsubscribeToggle) { unsubscribeToggle(); unsubscribeToggle = null; }
+        if (unsubscribeSubscribers) { unsubscribeSubscribers(); unsubscribeSubscribers = null; }
     }
 });
 
@@ -371,8 +374,8 @@ if (btnSendNotif) {
 
             await addDoc(notifRef, notifData);
 
-            // Grava no Log Histórico (incluindo o detalhamento)
-            await saveLog('aviso', `Notificação push enviada: "${title}"`, null, message);
+            // Grava no Log Histórico (incluindo o detalhamento e imagem)
+            await saveLog('aviso', `Notificação push enviada: "${title}"`, null, message, imageUrl);
 
             showNotification('Aviso enviado para a fila de disparo! Os músicos receberão em instantes.', 'success');
             inputNotifTitle.value = '';
@@ -487,6 +490,32 @@ function initToggleListener() {
     }
 }
 
+// ================= CONTADOR DE ASSINANTES (REAL-TIME) =================
+
+function initSubscriberCounter() {
+    const counterEl = document.getElementById('subscriber-count-value');
+    if (!counterEl) return;
+
+    // Cancela listener anterior se já existir
+    if (unsubscribeSubscribers) unsubscribeSubscribers();
+
+    const tokensRef = collection(db, 'fcmTokens');
+    
+    // Escuta em tempo real a coleção de tokens
+    unsubscribeSubscribers = onSnapshot(tokensRef, (snapshot) => {
+        const count = snapshot.size;
+        
+        // Atualiza o DOM com animação simples
+        counterEl.innerHTML = `${count} <span>assinantes</span>`;
+        
+        // Log discreto para debug
+        console.log(`[Admin] Contador de assinantes atualizado: ${count}`);
+    }, (err) => {
+        console.error('[Admin] Erro ao monitorar assinantes:', err);
+        counterEl.innerHTML = `Erro <span>na contagem</span>`;
+    });
+}
+
 // Inicializa os uploaders
 setupUploader('agenda');
 setupUploader('temporada');
@@ -566,7 +595,7 @@ async function deleteNotification(docId, title) {
 
 // ================= LOGS / HISTÓRICO =================
 
-async function saveLog(type, message, link = null, details = null) {
+async function saveLog(type, message, link = null, details = null, imageUrl = null) {
     try {
         const logsRef = collection(db, 'adminLogs');
         const logData = {
@@ -578,6 +607,7 @@ async function saveLog(type, message, link = null, details = null) {
         
         if (link) logData.link = link;
         if (details) logData.details = details;
+        if (imageUrl) logData.imageUrl = imageUrl;
 
         await addDoc(logsRef, logData);
         
@@ -632,6 +662,16 @@ async function loadLogs() {
             if (data.link) {
                 linkHtml = `<a href="${data.link}" target="_blank" class="log-link"><i data-lucide="external-link"></i> Ver Arquivo</a>`;
             }
+
+            // HTML da miniatura se houver imagem
+            let imageHtml = '';
+            if (data.imageUrl) {
+                imageHtml = `
+                    <div class="log-thumbnail-wrapper">
+                        <img src="${data.imageUrl}" class="log-thumbnail" alt="Miniatura" onclick="window.openImageModal('${data.imageUrl}')">
+                    </div>
+                `;
+            }
             
             const li = document.createElement('li');
             li.className = `log-item log-type-${data.type}`;
@@ -645,8 +685,11 @@ async function loadLogs() {
                     <span>Enviado por: ${data.user}</span>
                     ${linkHtml}
                 </div>
-                <div class="log-time">
-                    <i data-lucide="clock"></i> ${formattedDate} às ${formattedTime}
+                <div class="log-right-area">
+                    <div class="log-time">
+                        <i data-lucide="clock"></i> ${formattedDate} às ${formattedTime}
+                    </div>
+                    ${imageHtml}
                 </div>
             `;
             listEl.appendChild(li);
@@ -695,6 +738,16 @@ if (btnLoadMoreLogs) {
                 if (data.link) {
                     linkHtml = `<a href="${data.link}" target="_blank" class="log-link"><i data-lucide="external-link"></i> Ver Arquivo</a>`;
                 }
+
+                // HTML da miniatura se houver imagem
+                let imageHtml = '';
+                if (data.imageUrl) {
+                    imageHtml = `
+                        <div class="log-thumbnail-wrapper">
+                            <img src="${data.imageUrl}" class="log-thumbnail" alt="Miniatura" onclick="window.openImageModal('${data.imageUrl}')">
+                        </div>
+                    `;
+                }
                 
                 const li = document.createElement('li');
                 li.className = `log-item log-type-${data.type}`;
@@ -704,12 +757,15 @@ if (btnLoadMoreLogs) {
                     </div>
                     <div class="log-content">
                         <p>${data.message}</p>
-                        ${data.details ? `<p class="log-details" style="font-size: 0.85rem; color: #666; margin-top: 4px; font-weight: normal; font-style: italic; background: #f0f0f0; padding: 6px 10px; border-radius: 6px; border-left: 2px solid #ccc;">${data.details}</p>` : ''}
+                        ${data.details ? `<p class="log-details">${data.details}</p>` : ''}
                         <span>Enviado por: ${data.user}</span>
                         ${linkHtml}
                     </div>
-                    <div class="log-time">
-                        <i data-lucide="clock"></i> ${formattedDate} às ${formattedTime}
+                    <div class="log-right-area">
+                        <div class="log-time">
+                            <i data-lucide="clock"></i> ${formattedDate} às ${formattedTime}
+                        </div>
+                        ${imageHtml}
                     </div>
                 `;
                 listEl.appendChild(li);
@@ -729,3 +785,28 @@ if (btnLoadMoreLogs) {
         }
     });
 }
+
+// ================= MODAL DE IMAGEM =================
+
+window.openImageModal = function(src) {
+    const modal = document.getElementById('image-modal');
+    const modalImg = document.getElementById('modal-img');
+    if (modal && modalImg) {
+        modal.style.display = "block";
+        modalImg.src = src;
+        document.body.style.overflow = 'hidden'; // Trava scroll
+    }
+}
+
+window.closeImageModal = function() {
+    const modal = document.getElementById('image-modal');
+    if (modal) {
+        modal.style.display = "none";
+        document.body.style.overflow = 'auto'; // Destrava scroll
+    }
+}
+
+// Fecha modal com ESC
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeImageModal();
+});
