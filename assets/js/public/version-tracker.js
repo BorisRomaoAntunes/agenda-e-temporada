@@ -317,7 +317,10 @@ class PDFVersionTracker {
 
             // Cria e adiciona badge
             const badge = this.createBadge(version, isNew, type);
-            element.appendChild(badge);
+            
+            // Se houver um título (desktop), anexa a ele para ficar "preso" à barra vinho
+            const target = element.querySelector('.pdf-title') || element;
+            target.appendChild(badge);
 
             // Adiciona listener para marcar como visto ao clicar diretamente
             element.addEventListener('click', () => {

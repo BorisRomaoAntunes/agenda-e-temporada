@@ -17,24 +17,47 @@ import { getFirestore, doc, setDoc, onSnapshot, collection, query, orderBy, limi
 const messaging = getMessaging(app);
 const db = getFirestore(app);
 
-// ====== CONTROLE DE VISIBILIDADE (via Firestore em tempo real) ======
-
 const notifContainer = document.querySelector('.notification-container');
 const settingsRef = doc(db, 'config', 'settings');
 
+// Variável para rastrear o estado global do admin
+let lastAdminSettings = {};
+
+// Função centralizada para verificar o estado e visibilidade
+window.updateNotificationBellState = () => {
+    const trigger = document.getElementById('btnNotificationTrigger');
+    const badge = document.getElementById('notificationBadge');
+    if (!notifContainer || !trigger) return;
+
+    const adminEnabled = lastAdminSettings.notificationsEnabled === true;
+    const hasNotificationApi = "Notification" in window;
+    const userGranted = hasNotificationApi && Notification.permission === "granted";
+
+    // O botão (container) só deve aparecer se o admin habilitou E o usuário NÃO habilitou ainda
+    if (adminEnabled && !userGranted) {
+        notifContainer.removeAttribute('hidden');
+        notifContainer.style.display = 'block';
+
+        // Garante que as animações e badge estejam ativos (conforme pedido: balançando e widget +1)
+        trigger.classList.remove('no-anim');
+        trigger.classList.add('shake');
+        if (badge) {
+            badge.style.display = 'flex';
+            badge.textContent = '1';
+        }
+    } else {
+        // Se o admin desligou OU o usuário já habilitou, escondemos tudo
+        notifContainer.setAttribute('hidden', '');
+        notifContainer.style.display = 'none';
+    }
+};
+
 // Escuta em tempo real: mostra/oculta elementos conforme o admin configurar
 onSnapshot(settingsRef, (snap) => {
-    const data = snap.exists() ? snap.data() : {};
+    lastAdminSettings = snap.exists() ? snap.data() : {};
     
     // 1. Controle do Botão de Notificação (Sino)
-    if (notifContainer) {
-        const notifEnabled = data.notificationsEnabled === true;
-        if (notifEnabled) {
-            notifContainer.removeAttribute('hidden');
-        } else {
-            notifContainer.setAttribute('hidden', '');
-        }
-    }
+    window.updateNotificationBellState();
 
     // 2. Controle do Letreiro de Comunicados e Painel de Histórico
     const newsTicker = document.getElementById('newsTicker');
@@ -79,14 +102,23 @@ onSnapshot(qNotifications, (snapshot) => {
 
     // 1. Atualiza o Letreiro com a notificação mais recente
     const latest = notifications[0];
-    let tickerMsg = latest.title;
-    if (latest.message) {
-        // Trunca a mensagem para o letreiro
-        const shortMessage = latest.message.length > 80 ? latest.message.substring(0, 80) + "..." : latest.message;
-        tickerMsg += `: ${shortMessage}`;
-    }
-    tickerText.textContent = tickerMsg;
-    if (tickerTextClone) tickerTextClone.textContent = tickerMsg;
+    const shortMessage = latest.message ? (latest.message.length > 80 ? latest.message.substring(0, 80) + "..." : latest.message) : "";
+    
+    // Ícone de imagem se houver imageUrl
+    const imageIconHtml = latest.imageUrl ? `
+        <span class="ticker-image-icon" title="Contém imagem">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect>
+                <circle cx="9" cy="9" r="2"></circle>
+                <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path>
+            </svg>
+        </span>
+    ` : '';
+
+    const tickerHtml = `<strong>${latest.title}</strong>${shortMessage ? ': ' + shortMessage : ''}${imageIconHtml}`;
+    
+    tickerText.innerHTML = tickerHtml;
+    if (tickerTextClone) tickerTextClone.innerHTML = tickerHtml;
 
     // 2. Preenche o Histórico
     historyList.innerHTML = ''; // Limpa o estado de "Carregando..."
@@ -106,6 +138,12 @@ onSnapshot(qNotifications, (snapshot) => {
             dateStr = dateObj.toLocaleDateString('pt-BR') + ' às ' + dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
         }
 
+        const imageHtml = notif.imageUrl ? `
+            <div class="history-card-image-container" onclick="openImageModal('${notif.imageUrl}')">
+                <img src="${notif.imageUrl}${notif.imageUrl.includes('?') ? '&' : '?'}v=${Date.now()}" alt="Imagem do aviso">
+            </div>
+        ` : '';
+
         card.innerHTML = `
             <div class="history-card-meta">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -114,8 +152,13 @@ onSnapshot(qNotifications, (snapshot) => {
                 </svg>
                 ${dateStr}
             </div>
-            <div class="history-card-title">${notif.title || 'Aviso'}</div>
-            <div class="history-card-body">${notif.message || ''}</div>
+            <div class="history-card-content">
+                ${imageHtml}
+                <div class="history-card-text">
+                    <div class="history-card-title">${notif.title || 'Aviso'}</div>
+                    <div class="history-card-body">${notif.message || ''}</div>
+                </div>
+            </div>
         `;
         historyList.appendChild(card);
     });
@@ -186,6 +229,9 @@ window.requestFirebaseNotificationPermission = async () => {
                 
                 // Grava no localStorage que o usuário já aceitou, para esconder o painel
                 localStorage.setItem("oer_notification_responded", "true");
+
+                // Faz o botão desaparecer imediatamente
+                if (window.updateNotificationBellState) window.updateNotificationBellState();
                 return true;
             } else {
                 console.warn('[Firebase] Não foi possível gerar um token.');
@@ -227,9 +273,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnCloseHistory = document.getElementById('btnCloseHistory');
 
     if (newsTicker && historyPanel && btnCloseHistory) {
-        // Abrir o painel
+        // Alternar visibilidade (Toggle)
         newsTicker.addEventListener('click', () => {
-            historyPanel.classList.add('open');
+            historyPanel.classList.toggle('open');
         });
 
         // Fechar o painel (botão X)
@@ -241,31 +287,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ====== LÓGICA DO SINO DE NOTIFICAÇÕES ======
 
-    // Função centralizada para verificar o estado e parar a animação
-    const updateNotificationBellState = () => {
-        // Verifica se a API Notification é suportada
-        const hasNotificationApi = "Notification" in window;
-        const permission = hasNotificationApi ? Notification.permission : "default";
-
-        // Paramos a animação (tremor e pulso) se o usuário:
-        // 1. Já concedeu permissão nativa
-        // 2. Já negou a permissão nativa
-        // 3. Já clicou em "Não" na nossa UI (salvo no localStorage)
-        // 4. Já clicou em "Sim" na nossa UI e finalizou o fluxo (salvo no localStorage)
-        if (
-            permission === "granted" ||
-            permission === "denied" ||
-            localStorage.getItem("oer_notification_responded") ||
-            localStorage.getItem("oer_notification_declined")
-        ) {
-            trigger.classList.remove('shake');
-            trigger.classList.add('no-anim'); // Remove também o pulso, deixando "paradinho"
-            if (badge) badge.style.display = 'none';
-        }
-    };
-
     // Aplica o estado ao carregar a página
-    updateNotificationBellState();
+    if (window.updateNotificationBellState) window.updateNotificationBellState();
 
     // Abrir/Fechar painel ao clicar no sino
     trigger.addEventListener('click', (e) => {
@@ -301,7 +324,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Ações dos botões (Sim / Agora não)
     const handleChoice = () => {
         panel.classList.remove('show');
-        updateNotificationBellState(); // Aplica a lógica de estado estático
+        if (window.updateNotificationBellState) window.updateNotificationBellState(); // Aplica a lógica de estado
     };
 
     if (btnNo) btnNo.addEventListener('click', handleChoice);
@@ -335,4 +358,77 @@ document.addEventListener('DOMContentLoaded', () => {
             trigger.classList.remove('shake');
         });
     }
+
+    // ====== LÓGICA DO MODAL DE IMAGEM ======
+    
+    if (!document.getElementById('imageModal')) {
+        const modalDiv = document.createElement('div');
+        modalDiv.id = 'imageModal';
+        modalDiv.className = 'image-modal';
+        modalDiv.innerHTML = `
+            <div class="image-modal-content">
+                <button class="image-modal-close" id="closeImageModal" aria-label="Fechar visualização">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+                <img id="modalImage" src="" alt="Imagem ampliada">
+            </div>
+        `;
+        document.body.appendChild(modalDiv);
+        
+        // Tenta criar os ícones (caso existam outros na página), mas sem travar
+        try {
+            if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
+                lucide.createIcons();
+            }
+        } catch (e) {
+            // Silencioso
+        }
+        
+        // Fechar no botão X ou clicando no fundo escuro
+        const closeModal = () => {
+            modalDiv.classList.remove('show');
+            // Pequeno delay para a animação de fade
+            setTimeout(() => {
+                if (!modalDiv.classList.contains('show')) {
+                    modalDiv.style.display = 'none';
+                }
+            }, 300);
+        };
+
+        document.getElementById('closeImageModal').addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            closeModal();
+        });
+
+        modalDiv.addEventListener('click', (e) => {
+            // Se clicar no overlay (fundo) ou no container (se a imagem falhar), fecha
+            if (e.target === modalDiv || e.target.id === 'imageModal') {
+                closeModal();
+            }
+        });
+
+        // Fechar com a tecla ESC
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modalDiv.classList.contains('show')) {
+                closeModal();
+            }
+        });
+    }
 });
+
+// Função global para abrir o modal
+window.openImageModal = (url) => {
+    const modal = document.getElementById('imageModal');
+    const modalImg = document.getElementById('modalImage');
+    if (modal && modalImg) {
+        modal.style.display = 'flex';
+        // Força reflow para animação
+        modal.offsetHeight;
+        modalImg.src = url;
+        modal.classList.add('show');
+    }
+};

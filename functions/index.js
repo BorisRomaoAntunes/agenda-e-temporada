@@ -34,6 +34,7 @@ exports.sendPushNotification = onDocumentCreated("adminNotifications/{notificati
         notification: {
             title: title || "Novo aviso",
             body: message || "",
+            image: data.imageUrl || undefined,
         },
         tokens: tokens,
     };

@@ -57,8 +57,8 @@
 
 /* Letreiro Animado (News Ticker) */
 .news-ticker {
-    background-color: rgba(139, 0, 0, 0.05); /* Fundo sutil avermelhado baseado na primary color */
-    border-bottom: 1px solid rgba(139, 0, 0, 0.15);
+    background-color: #fff9c4; /* Amarelo post-it suave para destaque */
+    border-bottom: 1px solid #fceb8b;
     padding: 0.5rem 0;
     width: 100%;
     overflow: hidden;
@@ -75,7 +75,7 @@
 }
 
 .news-ticker:hover {
-    background-color: rgba(139, 0, 0, 0.1);
+    background-color: #fef08a; /* Tom levemente mais saturado no hover */
 }
 
 .ticker-content {
@@ -104,6 +104,33 @@
 .ticker-text {
     font-weight: 500;
     color: var(--text-primary);
+}
+
+.ticker-text strong {
+    font-weight: 800;
+}
+
+.ticker-image-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 12px;
+    color: var(--primary-color);
+    background: rgba(139, 0, 0, 0.08);
+    padding: 5px;
+    border-radius: 6px;
+    vertical-align: middle;
+    transition: transform 0.3s ease;
+}
+
+.ticker-item:hover .ticker-image-icon {
+    transform: scale(1.1);
+}
+
+.ticker-image-icon svg {
+    width: 16px;
+    height: 16px;
+    display: block;
 }
 
 @keyframes ticker-scroll {
@@ -235,7 +262,7 @@
 
 .history-card-title {
     font-size: 1.1rem;
-    font-weight: 600;
+    font-weight: 800;
     color: var(--text-primary);
     margin-bottom: 0.75rem;
     line-height: 1.3;
@@ -246,6 +273,135 @@
     color: var(--text-secondary);
     line-height: 1.5;
     white-space: pre-wrap;
+}
+
+/* Novo Layout Flexível para Card com Imagem */
+.history-card-content {
+    display: flex;
+    gap: 1.2rem;
+    align-items: flex-start;
+}
+
+.history-card-text {
+    flex: 1;
+}
+
+/* Miniatura da Imagem no Card (Lado Esquerdo) */
+.history-card-image-container {
+    flex-shrink: 0;
+    width: 110px;
+    height: 110px;
+    border-radius: 8px;
+    overflow: hidden;
+    cursor: zoom-in;
+    border: 1px solid rgba(0,0,0,0.05);
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.history-card-image-container:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.history-card-image-container img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+}
+
+/* Modal de Visualização Ampliada */
+.image-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.85);
+    z-index: 2000;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+}
+
+.image-modal.show {
+    display: flex;
+    opacity: 1;
+}
+
+.image-modal-content {
+    position: relative;
+    max-width: 90%;
+    max-height: 90%;
+}
+
+.image-modal-content img {
+    max-width: 100%;
+    max-height: 90vh;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    display: block;
+}
+
+.image-modal-close {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: var(--primary-color);
+    color: #ffffff;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 10;
+}
+
+.image-modal-close:hover {
+    transform: scale(1.1) rotate(90deg);
+    background-color: var(--primary-color);
+    filter: brightness(1.2);
+}
+
+.image-modal-close:active {
+    transform: scale(0.9) rotate(0deg);
+}
+
+.image-modal-close svg {
+    display: block;
+    width: 20px;
+    height: 20px;
+}
+
+@media (max-width: 768px) {
+    .image-modal-content {
+        max-width: 95%;
+    }
+    .history-card-content {
+        flex-direction: row-reverse;
+        justify-content: space-between;
+        gap: 0.8rem;
+    }
+    .history-card-image-container {
+        width: 80px;
+        height: 80px;
+    }
+    .image-modal-close {
+        top: 10px;
+        right: 10px;
+        width: 40px; /* Um pouco maior no mobile para facilitar o toque */
+        height: 40px;
+    }
 }
 
 /* Estado vazio */
@@ -301,6 +457,8 @@
     font-weight: 600;
     text-align: center;
     border-radius: 8px 8px 0 0;
+    position: relative; /* Para posicionar o badge de versão */
+    overflow: visible;
 }
 
 object,
@@ -602,9 +760,9 @@ body.force-mobile .btn-form {
 
 .version-badge {
     position: absolute;
-    top: -10px;
-    right: -10px;
-    z-index: 100;
+    top: -15px; /* Ajustado para alinhar melhor com a barra */
+    right: -15px;
+    z-index: 10; /* Menor que o letreiro (99) e header (100) para passar por baixo no scroll */
     display: flex;
     flex-direction: column;
     align-items: center;

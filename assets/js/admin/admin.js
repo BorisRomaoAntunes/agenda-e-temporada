@@ -49,6 +49,15 @@ const loginForm = document.getElementById('login-form');
 const btnLogout = document.getElementById('btn-logout');
 const notificationArea = document.getElementById('notification-area');
 
+// Novas referências para imagem na notificação
+const inputNotifImage = document.getElementById('notif-image');
+const notifImagePreviewContainer = document.getElementById('notif-image-preview-container');
+const notifImagePreview = document.getElementById('notif-image-preview');
+const btnRemoveNotifImage = document.getElementById('btn-remove-notif-image');
+const notifImageDropArea = document.getElementById('notif-image-drop-area');
+
+let selectedNotifImage = null;
+
 // ================= AUTHENTICATION =================
 
 let unsubscribeToggle = null; // Guarda o listener do toggle para poder cancelar no logout
@@ -288,6 +297,38 @@ const btnSendNotif = document.getElementById('btn-send-notif');
 const inputNotifTitle = document.getElementById('notif-title');
 const inputNotifMessage = document.getElementById('notif-message');
 
+// Lógica de Prévia da Imagem da Notificação
+if (inputNotifImage) {
+    inputNotifImage.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            selectedNotifImage = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                if (notifImagePreview) notifImagePreview.src = event.target.result;
+                if (notifImagePreviewContainer) notifImagePreviewContainer.style.display = 'block';
+                if (notifImageDropArea) {
+                    notifImageDropArea.classList.add('has-file');
+                    notifImageDropArea.querySelector('.file-msg').textContent = selectedNotifImage.name;
+                }
+            };
+            reader.readAsDataURL(selectedNotifImage);
+        }
+    });
+}
+
+if (btnRemoveNotifImage) {
+    btnRemoveNotifImage.addEventListener('click', () => {
+        selectedNotifImage = null;
+        if (inputNotifImage) inputNotifImage.value = '';
+        if (notifImagePreview) notifImagePreview.src = '';
+        if (notifImagePreviewContainer) notifImagePreviewContainer.style.display = 'none';
+        if (notifImageDropArea) {
+            notifImageDropArea.classList.remove('has-file');
+            notifImageDropArea.querySelector('.file-msg').textContent = 'Adicionar uma imagem ao aviso';
+        }
+    });
+}
+
 if (btnSendNotif) {
     btnSendNotif.addEventListener('click', async () => {
         const title = inputNotifTitle.value.trim();
@@ -304,13 +345,31 @@ if (btnSendNotif) {
         lucide.createIcons();
 
         try {
+            let imageUrl = null;
+            if (selectedNotifImage) {
+                const timestamp = Date.now();
+                const ext = selectedNotifImage.name.split('.').pop();
+                const fileName = `notif_${timestamp}.${ext}`;
+                const storageRef = ref(storage, `notification_images/${fileName}`);
+                
+                // Upload da imagem
+                const uploadTask = await uploadBytesResumable(storageRef, selectedNotifImage);
+                imageUrl = await getDownloadURL(uploadTask.ref);
+            }
+
             const notifRef = collection(db, 'adminNotifications');
-            await addDoc(notifRef, {
+            const notifData = {
                 title: title,
                 message: message,
                 createdAt: new Date().toISOString(),
                 sentBy: auth.currentUser ? auth.currentUser.email : 'admin'
-            });
+            };
+
+            if (imageUrl) {
+                notifData.imageUrl = imageUrl;
+            }
+
+            await addDoc(notifRef, notifData);
 
             // Grava no Log Histórico (incluindo o detalhamento)
             await saveLog('aviso', `Notificação push enviada: "${title}"`, null, message);
@@ -318,6 +377,9 @@ if (btnSendNotif) {
             showNotification('Aviso enviado para a fila de disparo! Os músicos receberão em instantes.', 'success');
             inputNotifTitle.value = '';
             inputNotifMessage.value = '';
+            
+            // Limpa a imagem após enviar
+            if (btnRemoveNotifImage) btnRemoveNotifImage.click();
         } catch (error) {
             showNotification(`Erro ao enviar aviso: ${error.message}`, 'error');
             console.error('Erro:', error);
@@ -495,7 +557,7 @@ async function deleteNotification(docId, title) {
         showNotification(`Comunicado "${title}" removido com sucesso.`, 'success');
         
         // Opcional: Grava no log que foi removido
-        await saveLog('aviso', `Comunicado removido: "${title}"`, null, `O administrador removeu este aviso que estava ativo no site.`);
+        await saveLog('aviso-removido', `Comunicado removido: "${title}"`, null, `O administrador removeu este aviso que estava ativo no site.`);
     } catch (error) {
         console.error("Erro ao deletar:", error);
         showNotification("Erro ao remover comunicado: " + error.message, 'error');
@@ -562,7 +624,9 @@ async function loadLogs() {
             const formattedDate = dateObj.toLocaleDateString('pt-BR');
             const formattedTime = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
             
-            const iconName = data.type === 'aviso' ? 'bell-ring' : 'folder-up';
+            let iconName = 'folder-up';
+            if (data.type === 'aviso') iconName = 'bell-ring';
+            if (data.type === 'aviso-removido') iconName = 'bell-off';
             
             let linkHtml = '';
             if (data.link) {
@@ -570,7 +634,7 @@ async function loadLogs() {
             }
             
             const li = document.createElement('li');
-            li.className = 'log-item';
+            li.className = `log-item log-type-${data.type}`;
             li.innerHTML = `
                 <div class="log-icon type-${data.type}">
                     <i data-lucide="${iconName}"></i>
@@ -623,7 +687,9 @@ if (btnLoadMoreLogs) {
                 const formattedDate = dateObj.toLocaleDateString('pt-BR');
                 const formattedTime = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                 
-                const iconName = data.type === 'aviso' ? 'bell-ring' : 'folder-up';
+                let iconName = 'folder-up';
+                if (data.type === 'aviso') iconName = 'bell-ring';
+                if (data.type === 'aviso-removido') iconName = 'bell-off';
                 
                 let linkHtml = '';
                 if (data.link) {
@@ -631,7 +697,7 @@ if (btnLoadMoreLogs) {
                 }
                 
                 const li = document.createElement('li');
-                li.className = 'log-item';
+                li.className = `log-item log-type-${data.type}`;
                 li.innerHTML = `
                     <div class="log-icon type-${data.type}">
                         <i data-lucide="${iconName}"></i>

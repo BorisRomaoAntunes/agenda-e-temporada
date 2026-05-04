@@ -152,6 +152,24 @@
                         </div>
                     </div>
 
+                    <!-- Upload de Imagem (Opcional) -->
+                    <div class="version-input-wrapper" style="margin-bottom: 1.5rem;">
+                        <label>Imagem (Opcional)</label>
+                        <div class="file-upload-wrapper">
+                            <input type="file" id="notif-image" accept="image/*" class="file-input">
+                            <div class="file-drop-area" id="notif-image-drop-area">
+                                <i data-lucide="image"></i>
+                                <span class="file-msg">Adicionar uma imagem ao aviso</span>
+                            </div>
+                        </div>
+                        <div id="notif-image-preview-container" style="display: none; margin-top: 1rem; position: relative; width: 100%; max-width: 200px; margin-left: auto; margin-right: auto;">
+                            <img id="notif-image-preview" src="" alt="Preview" style="width: 100%; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                            <button id="btn-remove-notif-image" style="position: absolute; top: -10px; right: -10px; background: #dc3545; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+                                <i data-lucide="x" style="width: 14px; height: 14px;"></i>
+                            </button>
+                        </div>
+                    </div>
+
                     <!-- Toggle: Habilitar/Desabilitar botão de notificação no site -->
                     <div style="width:100%; border-top: 1px solid #eee; padding-top: 1.2rem; margin-top: 0.5rem;">
                         <div class="toggle-row">
