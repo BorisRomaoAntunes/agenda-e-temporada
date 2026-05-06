@@ -12,7 +12,7 @@
 
 import { app, VAPID_KEY } from "../firebase-config.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging.js";
-import { getFirestore, doc, setDoc, onSnapshot, collection, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getFirestore, doc, setDoc, onSnapshot, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 const messaging = getMessaging(app);
 const db = getFirestore(app);
@@ -76,35 +76,24 @@ onSnapshot(settingsRef, (snap) => {
     }
 });
 
-// ====== LETREIRO E HISTÓRICO DE NOTIFICAÇÕES ======
-const notificationsRef = collection(db, 'adminNotifications');
-const qNotifications = query(notificationsRef, orderBy('createdAt', 'desc'), limit(10));
+// ====== LETREIRO (OUVINTE OTIMIZADO) ======
+const latestNoticeRef = doc(db, 'config', 'latestNotice');
 
-onSnapshot(qNotifications, (snapshot) => {
+onSnapshot(latestNoticeRef, (snap) => {
     const tickerText = document.getElementById('tickerText');
     const tickerTextClone = document.getElementById('tickerTextClone');
-    const historyList = document.getElementById('historyList');
+    if (!tickerText) return;
 
-    if (!tickerText || !historyList) return;
-
-    if (snapshot.empty) {
+    if (!snap.exists()) {
         const emptyMsg = "Nenhum comunicado no momento.";
         tickerText.textContent = emptyMsg;
         if (tickerTextClone) tickerTextClone.textContent = emptyMsg;
-        historyList.innerHTML = '<div class="history-empty">Nenhum aviso encontrado.</div>';
         return;
     }
 
-    const notifications = [];
-    snapshot.forEach((doc) => {
-        notifications.push(doc.data());
-    });
-
-    // 1. Atualiza o Letreiro com a notificação mais recente
-    const latest = notifications[0];
+    const latest = snap.data();
     const shortMessage = latest.message ? (latest.message.length > 80 ? latest.message.substring(0, 80) + "..." : latest.message) : "";
     
-    // Ícone de imagem se houver imageUrl
     const imageIconHtml = latest.imageUrl ? `
         <span class="ticker-image-icon" title="Contém imagem">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -119,56 +108,72 @@ onSnapshot(qNotifications, (snapshot) => {
     
     tickerText.innerHTML = tickerHtml;
     if (tickerTextClone) tickerTextClone.innerHTML = tickerHtml;
+});
 
-    // 2. Preenche o Histórico
-    historyList.innerHTML = ''; // Limpa o estado de "Carregando..."
-    notifications.forEach(notif => {
-        const card = document.createElement('div');
-        card.className = 'history-card';
-        
-        // Formatar data
-        let dateStr = "Data não informada";
-        if (notif.createdAt) {
-            let dateObj;
-            if (typeof notif.createdAt.toDate === 'function') {
-                dateObj = notif.createdAt.toDate();
-            } else {
-                dateObj = new Date(notif.createdAt);
-            }
-            dateStr = dateObj.toLocaleDateString('pt-BR') + ' às ' + dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+// ====== HISTÓRICO DE NOTIFICAÇÕES (CARREGAMENTO SOB DEMANDA) ======
+let historyLoaded = false;
+
+window.loadNotificationHistory = async () => {
+    // Evita carregar múltiplas vezes se já estiver aberto
+    if (historyLoaded) return;
+    
+    const historyList = document.getElementById('historyList');
+    if (!historyList) return;
+
+    historyList.innerHTML = '<div class="history-loading">Carregando histórico...</div>';
+
+    try {
+        const notificationsRef = collection(db, 'adminNotifications');
+        const qNotifications = query(notificationsRef, orderBy('createdAt', 'desc'), limit(10));
+        const snapshot = await getDocs(qNotifications);
+
+        if (snapshot.empty) {
+            historyList.innerHTML = '<div class="history-empty">Nenhum aviso encontrado.</div>';
+            return;
         }
 
-        const imageHtml = notif.imageUrl ? `
-            <div class="history-card-image-container" onclick="openImageModal('${notif.imageUrl}')">
-                <img src="${notif.imageUrl}${notif.imageUrl.includes('?') ? '&' : '?'}v=${Date.now()}" alt="Imagem do aviso">
-            </div>
-        ` : '';
+        historyList.innerHTML = '';
+        snapshot.forEach((docSnap) => {
+            const notif = docSnap.data();
+            const card = document.createElement('div');
+            card.className = 'history-card';
+            
+            let dateStr = "Data não informada";
+            if (notif.createdAt) {
+                let dateObj = typeof notif.createdAt.toDate === 'function' ? notif.createdAt.toDate() : new Date(notif.createdAt);
+                dateStr = dateObj.toLocaleDateString('pt-BR') + ' às ' + dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            }
 
-        card.innerHTML = `
-            <div class="history-card-meta">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <polyline points="12 6 12 12 16 14"></polyline>
-                </svg>
-                ${dateStr}
-            </div>
-            <div class="history-card-content">
-                ${imageHtml}
-                <div class="history-card-text">
-                    <div class="history-card-title">${notif.title || 'Aviso'}</div>
-                    <div class="history-card-body">${notif.message || ''}</div>
+            const imageHtml = notif.imageUrl ? `
+                <div class="history-card-image-container" onclick="openImageModal('${notif.imageUrl}')">
+                    <img src="${notif.imageUrl}${notif.imageUrl.includes('?') ? '&' : '?'}v=${Date.now()}" alt="Imagem do aviso">
                 </div>
-            </div>
-        `;
-        historyList.appendChild(card);
-    });
-}, (error) => {
-    console.error("[Firebase] Erro ao buscar histórico de notificações:", error);
-    const historyList = document.getElementById('historyList');
-    if(historyList) {
-        historyList.innerHTML = '<div class="history-empty" style="color: red;">Erro ao carregar avisos. Tente novamente mais tarde.</div>';
+            ` : '';
+
+            card.innerHTML = `
+                <div class="history-card-meta">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                    </svg>
+                    ${dateStr}
+                </div>
+                <div class="history-card-content">
+                    ${imageHtml}
+                    <div class="history-card-text">
+                        <div class="history-card-title">${notif.title || 'Aviso'}</div>
+                        <div class="history-card-body">${notif.message || ''}</div>
+                    </div>
+                </div>
+            `;
+            historyList.appendChild(card);
+        });
+        historyLoaded = true;
+    } catch (error) {
+        console.error("[Firebase] Erro ao buscar histórico:", error);
+        historyList.innerHTML = '<div class="history-empty" style="color: red;">Erro ao carregar avisos.</div>';
     }
-});
+};
 
 
 // ====== PERMISSÃO DE NOTIFICAÇÕES ======
@@ -275,7 +280,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (newsTicker && historyPanel && btnCloseHistory) {
         // Alternar visibilidade (Toggle)
         newsTicker.addEventListener('click', () => {
-            historyPanel.classList.toggle('open');
+            const isOpen = historyPanel.classList.toggle('open');
+            if (isOpen) {
+                window.loadNotificationHistory(); // Dispara o carregamento apenas ao abrir
+            }
         });
 
         // Fechar o painel (botão X)

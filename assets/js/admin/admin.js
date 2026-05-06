@@ -373,6 +373,10 @@ if (btnSendNotif) {
             }
 
             await addDoc(notifRef, notifData);
+            
+            // Grava o aviso mais recente em um documento específico para o letreiro (Otimização de Leituras)
+            const latestRef = doc(db, 'config', 'latestNotice');
+            await setDoc(latestRef, notifData);
 
             // Grava no Log Histórico (incluindo o detalhamento e imagem)
             await saveLog('aviso', `Notificação push enviada: "${title}"`, null, message, imageUrl);
@@ -499,19 +503,20 @@ function initSubscriberCounter() {
     // Cancela listener anterior se já existir
     if (unsubscribeSubscribers) unsubscribeSubscribers();
 
-    const tokensRef = collection(db, 'fcmTokens');
+    const statsRef = doc(db, 'config', 'stats');
     
-    // Escuta em tempo real a coleção de tokens
-    unsubscribeSubscribers = onSnapshot(tokensRef, (snapshot) => {
-        const count = snapshot.size;
+    // Escuta em tempo real o documento de estatísticas (apenas 1 leitura)
+    unsubscribeSubscribers = onSnapshot(statsRef, (snapshot) => {
+        const data = snapshot.exists() ? snapshot.data() : { subscriberCount: 0 };
+        const count = data.subscriberCount || 0;
         
         // Atualiza o DOM com animação simples
         counterEl.innerHTML = `${count} <span>assinantes</span>`;
         
         // Log discreto para debug
-        console.log(`[Admin] Contador de assinantes atualizado: ${count}`);
+        console.log(`[Admin] Contador de assinantes otimizado: ${count}`);
     }, (err) => {
-        console.error('[Admin] Erro ao monitorar assinantes:', err);
+        console.error('[Admin] Erro ao monitorar estatísticas:', err);
         counterEl.innerHTML = `Erro <span>na contagem</span>`;
     });
 }

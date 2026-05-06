@@ -1,4 +1,5 @@
-const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onDocumentCreated, onDocumentDeleted } = require("firebase-functions/v2/firestore");
+const { FieldValue } = require("firebase-admin/firestore");
 const admin = require("firebase-admin");
 
 admin.initializeApp();
@@ -72,3 +73,33 @@ exports.sendPushNotification = onDocumentCreated("adminNotifications/{notificati
         console.error("Erro crítico ao enviar mensagens multicast:", error);
     }
 });
+
+/**
+ * Mantém o contador de inscritos atualizado no documento config/stats
+ */
+exports.incrementSubscriberCount = onDocumentCreated("fcmTokens/{tokenId}", async (event) => {
+    const statsRef = admin.firestore().collection("config").doc("stats");
+    try {
+        await statsRef.set({
+            subscriberCount: FieldValue.increment(1),
+            updatedAt: FieldValue.serverTimestamp()
+        }, { merge: true });
+        console.log("Contador de inscritos incrementado (+1)");
+    } catch (error) {
+        console.error("Erro ao incrementar contador:", error);
+    }
+});
+
+exports.decrementSubscriberCount = onDocumentDeleted("fcmTokens/{tokenId}", async (event) => {
+    const statsRef = admin.firestore().collection("config").doc("stats");
+    try {
+        await statsRef.set({
+            subscriberCount: FieldValue.increment(-1),
+            updatedAt: FieldValue.serverTimestamp()
+        }, { merge: true });
+        console.log("Contador de inscritos decrementado (-1)");
+    } catch (error) {
+        console.error("Erro ao decrementar contador:", error);
+    }
+});
+
