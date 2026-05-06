@@ -93,11 +93,19 @@ exports.incrementSubscriberCount = onDocumentCreated("fcmTokens/{tokenId}", asyn
 exports.decrementSubscriberCount = onDocumentDeleted("fcmTokens/{tokenId}", async (event) => {
     const statsRef = admin.firestore().collection("config").doc("stats");
     try {
-        await statsRef.set({
-            subscriberCount: FieldValue.increment(-1),
-            updatedAt: FieldValue.serverTimestamp()
-        }, { merge: true });
-        console.log("Contador de inscritos decrementado (-1)");
+        await admin.firestore().runTransaction(async (transaction) => {
+            const statsSnap = await transaction.get(statsRef);
+            if (statsSnap.exists()) {
+                const currentCount = statsSnap.data().subscriberCount || 0;
+                // Garante que o contador nunca seja menor que zero
+                const newCount = Math.max(0, currentCount - 1);
+                transaction.update(statsRef, { 
+                    subscriberCount: newCount,
+                    updatedAt: FieldValue.serverTimestamp()
+                });
+            }
+        });
+        console.log("Contador de inscritos decrementado com proteção contra valores negativos.");
     } catch (error) {
         console.error("Erro ao decrementar contador:", error);
     }
