@@ -28,7 +28,9 @@ import {
     orderBy,
     limit,
     startAfter,
-    getDocs
+    getDocs,
+    updateDoc,
+    serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { 
     getStorage, 
@@ -62,6 +64,7 @@ let selectedNotifImage = null;
 
 let unsubscribeToggle = null; // Guarda o listener do toggle para poder cancelar no logout
 let unsubscribeSubscribers = null; // Guarda o listener de assinantes
+let unsubscribeLinks = null; // Guarda o listener de links temporários
 
 // Observador de estado de autenticação
 onAuthStateChanged(auth, (user) => {
@@ -74,12 +77,14 @@ onAuthStateChanged(auth, (user) => {
         initSubscriberCounter(); // Inicia o contador de assinantes
         loadLogs(); // Carrega o histórico de logs ao logar
         loadAdminNotifications(); // Carrega a lista de notificações ativas
+        setupLinks(); // Inicia configurações e listagem dos links temporários
     } else {
         // Não logado
         dashboardContainer.classList.remove('active');
         loginContainer.classList.add('active');
         if (unsubscribeToggle) { unsubscribeToggle(); unsubscribeToggle = null; }
         if (unsubscribeSubscribers) { unsubscribeSubscribers(); unsubscribeSubscribers = null; }
+        if (unsubscribeLinks) { unsubscribeLinks(); unsubscribeLinks = null; }
     }
 });
 
@@ -662,6 +667,9 @@ async function loadLogs() {
             let iconName = 'folder-up';
             if (data.type === 'aviso') iconName = 'bell-ring';
             if (data.type === 'aviso-removido') iconName = 'bell-off';
+            if (data.type === 'link-criado') iconName = 'link';
+            if (data.type === 'link-alterado') iconName = 'refresh-cw';
+            if (data.type === 'link-removido') iconName = 'trash-2';
             
             let linkHtml = '';
             if (data.link) {
@@ -738,6 +746,9 @@ if (btnLoadMoreLogs) {
                 let iconName = 'folder-up';
                 if (data.type === 'aviso') iconName = 'bell-ring';
                 if (data.type === 'aviso-removido') iconName = 'bell-off';
+                if (data.type === 'link-criado') iconName = 'link';
+                if (data.type === 'link-alterado') iconName = 'refresh-cw';
+                if (data.type === 'link-removido') iconName = 'trash-2';
                 
                 let linkHtml = '';
                 if (data.link) {
@@ -815,3 +826,165 @@ window.closeImageModal = function() {
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') closeImageModal();
 });
+
+// ================= LINKS TEMPORÁRIOS =================
+
+function setupLinks() {
+    const btnCreate = document.getElementById('btn-create-link');
+    if (!btnCreate) return;
+
+    const nameInputCounter = document.getElementById('link-name');
+    const counterSpan = document.getElementById('link-name-counter');
+    if (nameInputCounter && counterSpan) {
+        nameInputCounter.addEventListener('input', (e) => {
+            const length = e.target.value.length;
+            counterSpan.textContent = `${length}/30`;
+            if (length >= 30) {
+                counterSpan.style.color = '#ff4444';
+            } else {
+                counterSpan.style.color = 'var(--text-secondary)';
+            }
+        });
+    }
+
+    btnCreate.addEventListener('click', async () => {
+        const nameInput = document.getElementById('link-name');
+        const urlInput = document.getElementById('link-url');
+        
+        const name = nameInput.value.trim();
+        const url = urlInput.value.trim();
+
+        if (!name || !url) {
+            showNotification('Preencha o nome e a URL do link.', 'error');
+            return;
+        }
+
+        if (name.length > 30) {
+            showNotification('O nome do botão não pode ter mais de 30 caracteres.', 'error');
+            return;
+        }
+
+        try {
+            btnCreate.disabled = true;
+            btnCreate.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Criando...';
+
+            await addDoc(collection(db, 'dynamicLinks'), {
+                name: name,
+                url: url,
+                active: true,
+                createdAt: serverTimestamp()
+            });
+
+            nameInput.value = '';
+            urlInput.value = '';
+            if (counterSpan) {
+                counterSpan.textContent = '0/30';
+                counterSpan.style.color = 'var(--text-secondary)';
+            }
+            showNotification('Link criado com sucesso!', 'success');
+            await saveLog('link-criado', `Link temporário criado: "${name}"`, null, `O administrador criou um novo link temporário.`);
+        } catch (error) {
+            console.error('Erro ao criar link:', error);
+            showNotification('Erro ao criar link.', 'error');
+        } finally {
+            btnCreate.disabled = false;
+            btnCreate.innerHTML = '<i data-lucide="plus"></i> Criar Botão';
+            lucide.createIcons();
+        }
+    });
+
+    loadAdminLinks();
+}
+
+function loadAdminLinks() {
+    const listEl = document.getElementById('admin-links-list');
+    if (!listEl) return;
+
+    const linksRef = collection(db, 'dynamicLinks');
+    const q = query(linksRef, orderBy('createdAt', 'desc'));
+
+    unsubscribeLinks = onSnapshot(q, (snapshot) => {
+        if (snapshot.empty) {
+            listEl.innerHTML = '<div class="admin-notif-empty">Nenhum link temporário criado.</div>';
+            return;
+        }
+
+        listEl.innerHTML = '';
+
+        snapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            const id = docSnap.id;
+            const dateObj = data.createdAt ? data.createdAt.toDate() : new Date();
+            const formattedDate = dateObj.toLocaleDateString('pt-BR') + ' às ' + dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+
+            const item = document.createElement('div');
+            item.className = 'admin-notif-item';
+            
+            // Checkbox value
+            const isChecked = data.active ? 'checked' : '';
+            
+            item.innerHTML = `
+                <div class="admin-notif-content">
+                    <h4 class="admin-notif-title">${data.name}</h4>
+                    <p class="admin-notif-message"><a href="${data.url}" target="_blank" style="color: #2E8B57; text-decoration: none;">${data.url}</a></p>
+                    <div class="admin-notif-meta">
+                        <i data-lucide="clock" style="width: 12px; height: 12px;"></i> Criado em ${formattedDate}
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <label class="toggle-switch">
+                        <input type="checkbox" class="toggle-link-status" data-id="${id}" data-name="${data.name}" ${isChecked}>
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <button class="btn-delete-notif" title="Apagar Link" data-id="${id}" data-name="${data.name}">
+                        <i data-lucide="trash-2"></i>
+                    </button>
+                </div>
+            `;
+            listEl.appendChild(item);
+        });
+
+        // Eventos
+        listEl.querySelectorAll('.toggle-link-status').forEach(checkbox => {
+            checkbox.addEventListener('change', async (e) => {
+                const docId = e.target.getAttribute('data-id');
+                const name = e.target.getAttribute('data-name');
+                const newState = e.target.checked;
+                
+                try {
+                    await updateDoc(doc(db, 'dynamicLinks', docId), {
+                        active: newState
+                    });
+                    const stateText = newState ? 'ativado' : 'desativado';
+                    showNotification(`Link "${name}" ${stateText}.`, 'success');
+                    await saveLog('link-alterado', `Link "${name}" foi ${stateText}.`);
+                } catch (error) {
+                    console.error("Erro ao atualizar link:", error);
+                    e.target.checked = !newState; // reverte visualmente
+                    showNotification("Erro ao atualizar status do link.", 'error');
+                }
+            });
+        });
+
+        listEl.querySelectorAll('.btn-delete-notif').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const docId = btn.getAttribute('data-id');
+                const name = btn.getAttribute('data-name');
+                
+                if (confirm('Tem certeza que deseja excluir o link "'+name+'"?')) {
+                    try {
+                        await deleteDoc(doc(db, 'dynamicLinks', docId));
+                        showNotification('Link "'+name+'" excluído.', 'success');
+                        await saveLog('link-removido', 'Link temporário excluído: "'+name+'"');
+                    } catch (error) {
+                        console.error("Erro ao excluir link:", error);
+                        showNotification("Erro ao excluir o link.", 'error');
+                    }
+                }
+            });
+        });
+
+        lucide.createIcons();
+    });
+}
+

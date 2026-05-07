@@ -104,6 +104,9 @@
                 <button class="tab-btn" data-target="section-arquivos">
                     <i data-lucide="folder"></i> Temporada & Agenda
                 </button>
+                <button class="tab-btn" data-target="section-links">
+                    <i data-lucide="link"></i> Links Temporários
+                </button>
                 <button class="tab-btn" onclick="window.open('https://docs.google.com/document/d/1LZcA7TGbL2J_O8Y8H7JUKAauF8B1PAElbnSDqjodTQw/edit?usp=sharing', '_blank'); document.querySelector('[data-target=\'section-logs\']').click();">
                     <i data-lucide="file-text"></i> Instrumentação
                 </button>
@@ -226,7 +229,7 @@
 
                 <!-- Lista de Avisos Ativos (Movida para depois do card) -->
                 <div id="admin-notifications-list-wrapper" class="admin-notif-wrapper">
-                    <div class="logs-header" style="margin-top: 2rem; margin-bottom: 1.5rem; max-width: 800px; margin-left: auto; margin-right: auto;">
+                    <div class="logs-header">
                         <h3><i data-lucide="list"></i> Avisos Ativos no Site</h3>
                         <p>Gerencie os comunicados que estão sendo exibidos atualmente no letreiro e no histórico dos músicos.</p>
                     </div>
@@ -304,6 +307,46 @@
                     </div>
                 </div>
 
+                </div>
+            </section>
+
+            <!-- Seção 3: Links Temporários -->
+            <section id="section-links" class="tab-content">
+                <div class="upload-card" style="max-width: 800px; margin: 0 auto;">
+                    <div class="card-icon" style="background: rgba(138, 43, 226, 0.1); color: #8A2BE2;">
+                        <i data-lucide="link"></i>
+                    </div>
+                    <h3>Criar Link Temporário</h3>
+                    <p>Adicione um novo botão no site dos músicos.</p>
+                    
+                    <div class="version-input-wrapper" style="padding-top: 0.5rem; margin-bottom: 1rem;">
+                        <label for="link-name">Nome do Botão (máx. 30 caracteres)</label>
+                        <div class="version-input-group" style="position: relative;">
+                            <input type="text" id="link-name" class="version-input" maxlength="30" placeholder="Ex: Pesquisa de Satisfação" style="width: 100%; padding-right: 45px;">
+                            <span id="link-name-counter" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 0.75rem; color: var(--text-secondary); pointer-events: none;">0/30</span>
+                        </div>
+                    </div>
+
+                    <div class="version-input-wrapper" style="margin-bottom: 1.5rem;">
+                        <label for="link-url">URL de Destino</label>
+                        <div class="version-input-group">
+                            <input type="url" id="link-url" class="version-input" placeholder="https://..." style="width: 100%;">
+                        </div>
+                    </div>
+
+                    <button class="btn-primary" id="btn-create-link" style="margin-top: 0.5rem;">
+                        <i data-lucide="plus"></i> Criar Botão
+                    </button>
+                </div>
+
+                <div id="admin-links-list-wrapper" class="admin-notif-wrapper">
+                    <div class="logs-header">
+                        <h3><i data-lucide="list"></i> Links Criados</h3>
+                        <p>Gerencie os botões extras. Ative ou desative sua exibição no site.</p>
+                    </div>
+                    <div id="admin-links-list" class="notif-scroll-container">
+                        <!-- Conteúdo inserido via JS -->
+                    </div>
                 </div>
             </section>
         </main>

@@ -103,6 +103,9 @@
 
         <!-- Botão de Formulário -->
         <div class="form-actions">
+            <!-- Container para Links Temporários (Dinâmico) - Aparece agora no topo para maior destaque -->
+            <div id="dynamic-links-container"></div>
+
             <!-- Formulário 1 -->
             <a href="https://forms.office.com/Pages/ResponsePage.aspx?id=nN-Y8wz9KUigA8dwocSgY_4kygpNx5FImT_LCLvUtWVUOFhXRTFTUkVSOFEyNlE1NTY0UVlKN0VFVy4u"
                 class="btn-form" target="_blank" title="Formulário pedido de Dispensa Bolsistas OER">
@@ -119,18 +122,6 @@
                 <span class="btn-form-label">Formulário pedido de Dispensa Bolsistas OER</span>
             </a>
 
-            <!-- Formulário 2 -->
-            <a href="https://cloudprodamazhotmail-my.sharepoint.com/:b:/g/personal/borisantunes_prefeitura_sp_gov_br/IQBdcxgcY2J1T40YEby9b3M8AZar6Ge2mcdTaHrJ7gS_1FI?e=I6su0J"
-                class="btn-form" target="_blank" title="Edital - Concurso Jovens Solista 2026">
-                <span class="btn-form-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="8" r="7"></circle>
-                        <polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline>
-                    </svg>
-                </span>
-                <span class="btn-form-label">Edital - Concurso Jovens Solista 2026</span>
-            </a>
 
             <!-- Formulário 3 -->
             <a href="https://forms.cloud.microsoft/r/dh1TJk6XAW"
@@ -179,6 +170,8 @@
     <!-- Configuração e Controle do Firebase (Push Notifications) -->
     <script type="module" src="assets/js/public/notifications.js"></script>
 
+    <!-- Controle de Links Temporários -->
+    <script type="module" src="assets/js/public/dynamic-links.js"></script>
 
     <!-- Botão de Notificações (visibilidade controlada via Firestore pelo admin) -->
     <div class="notification-container" hidden>

@@ -618,6 +618,93 @@ iframe {
     transform: rotate(180deg);
 }
 
+/* ===== Links Dinâmicos Temporários ===== */
+
+/* Animação de brilho dourado envolvente para links temporários */
+@keyframes dynamic-link-pulse {
+    0% { 
+        box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+        transform: scale(1);
+    }
+    50% { 
+        box-shadow: 0 4px 25px rgba(255, 215, 0, 0.7), 0 0 20px rgba(255, 215, 0, 0.4);
+        transform: scale(1.05);
+    }
+    100% { 
+        box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
+        transform: scale(1);
+    }
+}
+
+@keyframes dynamic-link-entrance {
+    0% { opacity: 0; transform: translateY(10px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+
+#dynamic-links-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1.5rem;
+    width: 100%;
+    margin-bottom: 1rem;
+}
+
+.btn-form.btn-dynamic-link {
+    animation: dynamic-link-entrance 0.5s ease-out;
+    background-color: rgba(255, 215, 0, 0.12); /* Fundo Dourado Suave */
+    border: 2px solid #FFD700; /* Borda Dourada Vibrante */
+    padding: 0.8rem 1.2rem;
+    border-radius: 12px;
+    flex: 0 1 auto;
+    min-width: 320px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.btn-form.btn-dynamic-link:hover {
+    background-color: rgba(255, 215, 0, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 215, 0, 0.3);
+}
+
+.btn-form.btn-dynamic-link .btn-form-icon {
+    animation: dynamic-link-pulse 2.5s ease-in-out infinite;
+    background-color: var(--primary-color);
+    width: 55px;
+    height: 55px;
+    border: 2px solid #FFD700;
+}
+
+.btn-form.btn-dynamic-link:hover .btn-form-icon {
+    animation: none;
+    transform: scale(1.1) rotate(5deg);
+    background-color: #FFD700;
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-form.btn-dynamic-link .btn-form-label {
+    color: var(--primary-color);
+    font-weight: 800;
+    font-size: 1.1rem;
+    line-height: 1.2;
+    flex: 1;
+}
+
+@media (max-width: 768px) {
+    #dynamic-links-container {
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .btn-form.btn-dynamic-link {
+        width: 100%;
+        max-width: 350px;
+        min-width: unset;
+    }
+}
+
 /* Floating Feedback Button */
 .btn-feedback {
     position: fixed;
@@ -680,7 +767,7 @@ iframe {
     .viewer-container {
         height: auto;
         display: flex;
-        padding: 2rem 1rem;
+        padding: 2rem 1rem 120px 1rem; /* Adicionado padding bottom para evitar sobreposição dos botões flutuantes */
     }
 
     .news-ticker {
@@ -733,7 +820,7 @@ iframe {
 body.force-mobile .viewer-container {
     height: auto;
     display: flex;
-    padding: 2rem 1rem;
+    padding: 2rem 1rem 120px 1rem;
 }
 
 body.force-mobile .pdf-grid {
