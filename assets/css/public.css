@@ -58,8 +58,9 @@
 /* Letreiro Animado (News Ticker) */
 .news-ticker {
     background-color: #fff9c4; /* Amarelo post-it suave para destaque */
-    border-bottom: 1px solid #fceb8b;
-    padding: 0.5rem 0;
+    border-bottom: 1px solid #fde047;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    padding: 0.6rem 0;
     font-size: 0.95rem;
     width: 100%;
     overflow: hidden;
@@ -71,8 +72,6 @@
     align-items: center;
     cursor: pointer;
     transition: background-color 0.2s ease;
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
 }
 
 .news-ticker:hover {
@@ -82,16 +81,17 @@
 .ticker-content {
     display: flex;
     width: max-content;
-    animation: ticker-scroll 25s linear infinite;
+    animation: ticker-scroll 30s linear infinite;
 }
 
 .ticker-group {
     display: flex;
-    /* Removido min-width: 100vw para evitar buracos quando o texto é curto */
+    flex-shrink: 0;
+    min-width: 100%; /* FUNDAMENTAL: Garante que o conteúdo ocupe toda a tela antes de clonar, evitando vácuos */
 }
 
 .ticker-item {
-    padding-right: 100px; /* Espaço fixo e elegante entre o fim de um texto e o início do próximo */
+    padding-right: 120px; /* Espaço generoso entre as repetições no loop */
     display: flex;
     align-items: center;
 }
@@ -143,7 +143,7 @@
     }
 }
 
-/* Pause animation on hover for better readability */
+/* Pausar animação no hover para melhor leitura */
 .news-ticker:hover .ticker-content {
     animation-play-state: paused;
 }
