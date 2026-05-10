@@ -221,6 +221,65 @@
     max-height: 60vh;
     overflow-y: auto;
     padding-right: 0.5rem;
+    position: relative;
+}
+
+/* Indicador de "Carregando mais..." no final da lista */
+.history-load-more-status {
+    padding: 1.5rem;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.history-load-more-status.hidden {
+    display: none;
+}
+
+.history-load-more-status .spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid rgba(139, 0, 0, 0.1);
+    border-top: 2px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Convite Visual para Rolagem */
+.history-scroll-hint {
+    text-align: center;
+    padding: 0.8rem;
+    background: linear-gradient(to top, rgba(255, 215, 0, 0.1), transparent);
+    color: var(--primary-color);
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    border-top: 1px dashed rgba(255, 215, 0, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    animation: bounceDown 2s infinite;
+}
+
+@keyframes bounceDown {
+    0%, 20%, 50%, 80%, 100% {transform: translateY(0);}
+    40% {transform: translateY(5px);}
+    60% {transform: translateY(3px);}
+}
+
+.history-scroll-hint.hidden {
+    display: none;
 }
 
 /* Scrollbar do painel */
@@ -642,12 +701,7 @@ iframe {
 }
 
 #dynamic-links-container {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 1.5rem;
-    width: 100%;
-    margin-bottom: 1rem;
+    display: contents; /* No desktop, os links se misturam aos botões estáticos */
 }
 
 .btn-form.btn-dynamic-link {
@@ -693,9 +747,12 @@ iframe {
 
 @media (max-width: 768px) {
     #dynamic-links-container {
+        display: flex; /* No mobile, volta a ser um container flex para forçar ordem/estilo */
         flex-direction: column;
         align-items: center;
         gap: 1rem;
+        width: 100%;
+        margin-bottom: 1rem;
     }
 
     .btn-form.btn-dynamic-link {

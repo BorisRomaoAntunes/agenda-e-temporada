@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <!-- Redirecionamento automático e transparente para o Firebase -->
     <script>
@@ -27,19 +28,21 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Admin OER">
-    
+
     <!-- Fonte Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    
+
     <!-- Estilos Base + Admin -->
     <link rel="stylesheet" href="assets/css/common.css">
-    <link rel="stylesheet" href="assets/css/admin.css?v=3">
+    <link rel="stylesheet" href="assets/css/admin.css?v=7">
 
     <!-- Ícones Lucide -->
     <script src="https://unpkg.com/lucide@latest"></script>
+
 </head>
+
 <body class="admin-body">
 
     <!-- Container de Login -->
@@ -59,7 +62,8 @@
                     <label for="password">Senha</label>
                     <div class="password-wrapper">
                         <input type="password" id="password" required placeholder="••••••••">
-                        <button type="button" id="btn-toggle-password" class="btn-toggle-password" aria-label="Mostrar senha">
+                        <button type="button" id="btn-toggle-password" class="btn-toggle-password"
+                            aria-label="Mostrar senha">
                             <i data-lucide="eye"></i>
                         </button>
                     </div>
@@ -84,9 +88,18 @@
                         <p id="user-email">admin@email.com</p>
                     </div>
                 </div>
-                <button id="btn-logout" class="btn-outline">
-                    <i data-lucide="log-out"></i> Sair
-                </button>
+                <div class="header-actions">
+                    <div id="env-selector" class="env-selector" style="display: none;">
+                        <span id="env-label" class="env-label">Produção</span>
+                        <label class="env-switch">
+                            <input type="checkbox" id="toggle-emulator">
+                            <span class="env-slider"></span>
+                        </label>
+                    </div>
+                    <button id="btn-logout" class="btn-outline">
+                        <i data-lucide="log-out"></i> Sair
+                    </button>
+                </div>
             </div>
         </header>
 
@@ -107,7 +120,8 @@
                 <button class="tab-btn" data-target="section-links">
                     <i data-lucide="link"></i> Links Temporários
                 </button>
-                <button class="tab-btn" onclick="window.open('https://docs.google.com/document/d/1LZcA7TGbL2J_O8Y8H7JUKAauF8B1PAElbnSDqjodTQw/edit?usp=sharing', '_blank'); document.querySelector('[data-target=\'section-logs\']').click();">
+                <button class="tab-btn"
+                    onclick="window.open('https://docs.google.com/document/d/1LZcA7TGbL2J_O8Y8H7JUKAauF8B1PAElbnSDqjodTQw/edit?usp=sharing', '_blank'); document.querySelector('[data-target=\'section-logs\']').click();">
                     <i data-lucide="file-text"></i> Instrumentação
                 </button>
             </nav>
@@ -122,7 +136,8 @@
                         </div>
                         <div>
                             <p class="subscriber-count-label">Musicos Inscritos</p>
-                            <h4 class="subscriber-count-value" id="subscriber-count-value">... <span>assinantes</span></h4>
+                            <h4 class="subscriber-count-value" id="subscriber-count-value">... <span>assinantes</span>
+                            </h4>
                         </div>
                     </div>
                     <div class="live-indicator">
@@ -136,13 +151,19 @@
                         <h3><i data-lucide="history"></i> Últimas Atualizações</h3>
                         <p>Acompanhe o histórico de avisos e uploads.</p>
                     </div>
+
+                    <div class="log-filters" id="log-filters">
+                        <button class="filter-btn active" data-filter="all">Tudo</button>
+                        <button class="filter-btn" data-filter="pdf">Arquivos</button>
+                        <button class="filter-btn" data-filter="aviso">Avisos</button>
+                        <button class="filter-btn" data-filter="links">Links</button>
+                        <button class="filter-btn" data-filter="bot">Sistema</button>
+                    </div>
                     <ul class="log-list" id="log-list">
                         <!-- Logs serão inseridos aqui via JS -->
                         <div class="loading-logs"><i data-lucide="loader"></i> Carregando histórico...</div>
                     </ul>
-                    <div class="load-more-container">
-                        <button id="btn-load-more-logs" class="btn-outline" style="display: none;">Ver mais antigos</button>
-                    </div>
+                    <div class="scroll-indicator-mask"></div>
                 </div>
             </section>
 
@@ -159,18 +180,31 @@
                     </div>
                     <h3>Avisar Músicos</h3>
                     <p>Envie uma notificação push para todos.</p>
-                    
+
                     <div class="version-input-wrapper" style="padding-top: 0.5rem; margin-bottom: 1rem;">
                         <label for="notif-title">Título do Aviso</label>
                         <div class="version-input-group">
-                            <input type="text" id="notif-title" class="version-input" placeholder="Ex: Novo Cronograma Disponível" style="width: 100%;">
+                            <input type="text" id="notif-title" class="version-input"
+                                placeholder="Ex: Novo Cronograma Disponível" style="flex: 1;">
+                            <button class="btn-robot-ai" id="btn-ai-robot" title="Gerar sugestão de aviso com IA">
+                                <span class="btn-robot-ai__idle">
+                                    <i data-lucide="sparkles"></i>
+                                    <span>Robô OER</span>
+                                </span>
+                                <span class="btn-robot-ai__loading">
+                                    <i data-lucide="loader-2"></i>
+                                    <span>Gerando...</span>
+                                </span>
+                            </button>
                         </div>
                     </div>
 
                     <div class="version-input-wrapper" style="margin-bottom: 1.5rem;">
                         <label for="notif-message">Mensagem Adicional</label>
                         <div class="version-input-group">
-                            <textarea id="notif-message" class="version-input" placeholder="Digite os detalhes aqui..." rows="3" style="width: 100%; border-radius: 8px; border: 1px solid #e0e0e0; padding: 0.8rem; font-family: inherit; font-size: 0.95rem; resize: vertical;"></textarea>
+                            <textarea id="notif-message" class="version-input" placeholder="Digite os detalhes aqui..."
+                                rows="3"
+                                style="width: 100%; border-radius: 8px; border: 1px solid #e0e0e0; padding: 0.8rem; font-family: inherit; font-size: 0.95rem; resize: vertical;"></textarea>
                         </div>
                     </div>
 
@@ -184,9 +218,12 @@
                                 <span class="file-msg">Adicionar uma imagem ao aviso</span>
                             </div>
                         </div>
-                        <div id="notif-image-preview-container" style="display: none; margin-top: 1rem; position: relative; width: 100%; max-width: 200px; margin-left: auto; margin-right: auto;">
-                            <img id="notif-image-preview" src="" alt="Preview" style="width: 100%; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
-                            <button id="btn-remove-notif-image" style="position: absolute; top: -10px; right: -10px; background: #dc3545; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
+                        <div id="notif-image-preview-container"
+                            style="display: none; margin-top: 1rem; position: relative; width: 100%; max-width: 200px; margin-left: auto; margin-right: auto;">
+                            <img id="notif-image-preview" src="" alt="Preview"
+                                style="width: 100%; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+                            <button id="btn-remove-notif-image"
+                                style="position: absolute; top: -10px; right: -10px; background: #dc3545; color: white; border: none; border-radius: 50%; width: 24px; height: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2);">
                                 <i data-lucide="x" style="width: 14px; height: 14px;"></i>
                             </button>
                         </div>
@@ -231,7 +268,8 @@
                 <div id="admin-notifications-list-wrapper" class="admin-notif-wrapper">
                     <div class="logs-header">
                         <h3><i data-lucide="list"></i> Avisos Ativos no Site</h3>
-                        <p>Gerencie os comunicados que estão sendo exibidos atualmente no letreiro e no histórico dos músicos.</p>
+                        <p>Gerencie os comunicados que estão sendo exibidos atualmente no letreiro e no histórico dos
+                            músicos.</p>
                     </div>
                     <div id="admin-notifications-list" class="notif-scroll-container">
                         <!-- Conteúdo inserido via JS -->
@@ -244,68 +282,75 @@
             <section id="section-arquivos" class="tab-content">
                 <div class="upload-grid">
                     <!-- Card Temporada -->
-                <div class="upload-card">
-                    <div class="card-icon" style="background: rgba(255, 215, 0, 0.1); color: #B8860B;">
-                        <i data-lucide="book-open"></i>
-                    </div>
-                    <h3>Temporada</h3>
-                    <p>Atualize o livro da Temporada.</p>
-                    
-                    <div class="file-upload-wrapper">
-                        <input type="file" id="file-temporada" accept="application/pdf" class="file-input">
-                        <div class="file-drop-area">
-                            <i data-lucide="upload-cloud"></i>
-                            <span class="file-msg">Clique ou arraste o PDF aqui</span>
+                    <div class="upload-card">
+                        <div class="card-icon" style="background: rgba(255, 215, 0, 0.1); color: #B8860B;">
+                            <i data-lucide="book-open"></i>
+                        </div>
+                        <h3>Temporada</h3>
+                        <p>Atualize o PDF da Temporada.</p>
+
+                        <div class="file-upload-wrapper">
+                            <input type="file" id="file-temporada" accept="application/pdf" class="file-input">
+                            <div class="file-drop-area">
+                                <i data-lucide="upload-cloud"></i>
+                                <span class="file-msg">Clique ou arraste o PDF aqui</span>
+                            </div>
+                        </div>
+
+                        <button class="btn-primary btn-upload" data-type="temporada" disabled
+                            style="margin-bottom: 2rem;">
+                            <i data-lucide="send"></i> Enviar novo PDF
+                        </button>
+                        <div class="progress-bar-container" style="margin-top: -1.5rem; margin-bottom: 2rem;">
+                            <div class="progress-bar" id="progress-temporada"></div>
+                        </div>
+
+                        <div class="version-input-wrapper" style="border-top: 1px solid #eee; padding-top: 1.5rem;">
+                            <label for="version-temporada">Atualizar apenas a Versão da estrela (Ex: 1.1)</label>
+                            <div class="version-input-group">
+                                <input type="text" id="version-temporada" class="version-input"
+                                    placeholder="Apenas números e pontos" pattern="[\d\.]*" inputmode="decimal">
+                                <button class="btn-outline btn-update-version" data-type="temporada">
+                                    <i data-lucide="refresh-cw"></i> Atualizar Versão
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    <button class="btn-primary btn-upload" data-type="temporada" disabled style="margin-bottom: 2rem;">
-                        <i data-lucide="send"></i> Enviar novo PDF
-                    </button>
-                    <div class="progress-bar-container" style="margin-top: -1.5rem; margin-bottom: 2rem;"><div class="progress-bar" id="progress-temporada"></div></div>
+                    <!-- Card Agenda -->
+                    <div class="upload-card">
+                        <div class="card-icon" style="background: rgba(139, 0, 0, 0.1); color: var(--primary-color);">
+                            <i data-lucide="calendar"></i>
+                        </div>
+                        <h3>Agenda</h3>
+                        <p>Atualize a Agenda de Ensaios e Apresentações.</p>
 
-                    <div class="version-input-wrapper" style="border-top: 1px solid #eee; padding-top: 1.5rem;">
-                        <label for="version-temporada">Atualizar apenas a Versão da estrela (Ex: 1.1)</label>
-                        <div class="version-input-group">
-                            <input type="text" id="version-temporada" class="version-input" placeholder="Apenas números e pontos" pattern="[\d\.]*">
-                            <button class="btn-outline btn-update-version" data-type="temporada">
-                                <i data-lucide="refresh-cw"></i> Atualizar Versão
-                            </button>
+                        <div class="file-upload-wrapper">
+                            <input type="file" id="file-agenda" accept="application/pdf" class="file-input">
+                            <div class="file-drop-area">
+                                <i data-lucide="upload-cloud"></i>
+                                <span class="file-msg">Clique ou arraste o PDF aqui</span>
+                            </div>
+                        </div>
+
+                        <button class="btn-primary btn-upload" data-type="agenda" disabled style="margin-bottom: 2rem;">
+                            <i data-lucide="send"></i> Enviar novo PDF
+                        </button>
+                        <div class="progress-bar-container" style="margin-top: -1.5rem; margin-bottom: 2rem;">
+                            <div class="progress-bar" id="progress-agenda"></div>
+                        </div>
+
+                        <div class="version-input-wrapper" style="border-top: 1px solid #eee; padding-top: 1.5rem;">
+                            <label for="version-agenda">Atualizar apenas a Versão da estrela (Ex: 1.1)</label>
+                            <div class="version-input-group">
+                                <input type="text" id="version-agenda" class="version-input"
+                                    placeholder="Apenas números e pontos" pattern="[\d\.]*" inputmode="decimal">
+                                <button class="btn-outline btn-update-version" data-type="agenda">
+                                    <i data-lucide="refresh-cw"></i> Atualizar Versão
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-
-                <!-- Card Agenda -->
-                <div class="upload-card">
-                    <div class="card-icon" style="background: rgba(139, 0, 0, 0.1); color: var(--primary-color);">
-                        <i data-lucide="calendar"></i>
-                    </div>
-                    <h3>Agenda</h3>
-                    <p>Atualize a programação da semana.</p>
-                    
-                    <div class="file-upload-wrapper">
-                        <input type="file" id="file-agenda" accept="application/pdf" class="file-input">
-                        <div class="file-drop-area">
-                            <i data-lucide="upload-cloud"></i>
-                            <span class="file-msg">Clique ou arraste o PDF aqui</span>
-                        </div>
-                    </div>
-
-                    <button class="btn-primary btn-upload" data-type="agenda" disabled style="margin-bottom: 2rem;">
-                        <i data-lucide="send"></i> Enviar novo PDF
-                    </button>
-                    <div class="progress-bar-container" style="margin-top: -1.5rem; margin-bottom: 2rem;"><div class="progress-bar" id="progress-agenda"></div></div>
-                    
-                    <div class="version-input-wrapper" style="border-top: 1px solid #eee; padding-top: 1.5rem;">
-                        <label for="version-agenda">Atualizar apenas a Versão da estrela (Ex: 1.1)</label>
-                        <div class="version-input-group">
-                            <input type="text" id="version-agenda" class="version-input" placeholder="Apenas números e pontos" pattern="[\d\.]*">
-                            <button class="btn-outline btn-update-version" data-type="agenda">
-                                <i data-lucide="refresh-cw"></i> Atualizar Versão
-                            </button>
-                        </div>
-                    </div>
-                </div>
 
                 </div>
             </section>
@@ -318,19 +363,54 @@
                     </div>
                     <h3>Criar Link Temporário</h3>
                     <p>Adicione um novo botão no site dos músicos.</p>
-                    
+
                     <div class="version-input-wrapper" style="padding-top: 0.5rem; margin-bottom: 1rem;">
-                        <label for="link-name">Nome do Botão (máx. 30 caracteres)</label>
-                        <div class="version-input-group" style="position: relative;">
-                            <input type="text" id="link-name" class="version-input" maxlength="30" placeholder="Ex: Pesquisa de Satisfação" style="width: 100%; padding-right: 45px;">
-                            <span id="link-name-counter" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 0.75rem; color: var(--text-secondary); pointer-events: none;">0/30</span>
+                        <label for="link-name">Ícone e Nome do Botão (máx. 30 caracteres)</label>
+                        <div class="version-input-group icon-picker-group"
+                            style="position: relative; display: flex; gap: 0.5rem;">
+                            <!-- Seletor de Ícone -->
+                            <div class="icon-picker-container">
+                                <button type="button" class="btn-icon-picker" id="btn-icon-picker"
+                                    title="Escolher Ícone">
+                                    <i data-lucide="link" id="selected-icon-preview"></i>
+                                    <i data-lucide="chevron-down" class="chevron"></i>
+                                </button>
+                                <div class="icon-picker-dropdown" id="icon-picker-dropdown">
+                                    <div class="icon-option active" data-icon="link" title="Link">
+                                        <i data-lucide="link"></i>
+                                    </div>
+                                    <div class="icon-option" data-icon="file-text" title="Formulário">
+                                        <i data-lucide="file-text"></i>
+                                    </div>
+                                    <div class="icon-option" data-icon="ticket" title="Ingresso/Ticket">
+                                        <i data-lucide="ticket"></i>
+                                    </div>
+                                    <div class="icon-option" data-icon="bell" title="Aviso">
+                                        <i data-lucide="bell"></i>
+                                    </div>
+                                    <div class="icon-option" data-icon="file-digit" title="PDF/Partitura">
+                                        <i data-lucide="file-digit"></i>
+                                    </div>
+                                    <div class="icon-option" data-icon="external-link" title="Link Externo">
+                                        <i data-lucide="external-link"></i>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="position: relative; flex: 1;">
+                                <input type="text" id="link-name" class="version-input" maxlength="30"
+                                    placeholder="Ex: Pesquisa de Satisfação" style="width: 100%; padding-right: 45px;">
+                                <span id="link-name-counter"
+                                    style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 0.75rem; color: var(--text-secondary); pointer-events: none;">0/30</span>
+                            </div>
                         </div>
                     </div>
 
                     <div class="version-input-wrapper" style="margin-bottom: 1.5rem;">
                         <label for="link-url">URL de Destino</label>
                         <div class="version-input-group">
-                            <input type="url" id="link-url" class="version-input" placeholder="https://..." style="width: 100%;">
+                            <input type="url" id="link-url" class="version-input" placeholder="https://..."
+                                style="width: 100%;">
                         </div>
                     </div>
 
@@ -359,14 +439,36 @@
 
     <!-- Firebase SDKs (Compat / v8 style for simplicity or Modular v9) -->
     <!-- Vamos usar a API Modular V9, que é mais rápida e moderna -->
-    <script type="module" src="assets/js/admin/admin.js?v=5"></script>
+    <script type="module" src="assets/js/admin/admin.js?v=9"></script>
     <script>
         lucide.createIcons();
 
+        // Lógica de Seleção de Ambiente (Produção / Emulador)
+        const emulatorToggle = document.getElementById('toggle-emulator');
+        const envLabel = document.getElementById('env-label');
+        const isEmulator = localStorage.getItem('USE_EMULATORS') === 'true';
+
+        // Inicializar estado
+        emulatorToggle.checked = isEmulator;
+        envLabel.textContent = isEmulator ? 'Emuladores' : 'Produção';
+        if (isEmulator) document.body.classList.add('mode-emulator');
+
+        emulatorToggle.addEventListener('change', () => {
+            localStorage.setItem('USE_EMULATORS', emulatorToggle.checked);
+            // Mostrar aviso antes de recarregar
+            const msg = emulatorToggle.checked
+                ? "Alterando para modo EMULADOR (Desenvolvimento). A página será recarregada."
+                : "Alterando para modo PRODUÇÃO (Real). A página será recarregada.";
+            alert(msg);
+            location.reload();
+        });
+
         // Lógica de Navegação por Abas
-        document.addEventListener('DOMContentLoaded', () => {
+        function initTabs() {
             const tabs = document.querySelectorAll('.tab-btn');
             const contents = document.querySelectorAll('.tab-content');
+
+            if (tabs.length === 0) return;
 
             tabs.forEach(tab => {
                 tab.addEventListener('click', () => {
@@ -377,10 +479,18 @@
                     // Adicionar classe active na aba clicada e no conteúdo alvo
                     tab.classList.add('active');
                     const targetId = tab.getAttribute('data-target');
-                    document.getElementById(targetId).classList.add('active');
+                    const targetSection = document.getElementById(targetId);
+                    if (targetSection) targetSection.classList.add('active');
                 });
             });
-        });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initTabs);
+        } else {
+            initTabs();
+        }
     </script>
 </body>
+
 </html>

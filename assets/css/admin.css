@@ -237,6 +237,229 @@
     border-color: #bbb;
 }
 
+/* ================= ROBÔ OER — BOTÃO IA ================= */
+.btn-robot-ai {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.8rem 1.1rem;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: 0.02em;
+    color: #fff;
+    background: linear-gradient(135deg, #8B0000 0%, #a0522d 50%, #b8860b 100%);
+    background-size: 200% 200%;
+    box-shadow: 
+        0 2px 8px rgba(139, 0, 0, 0.25),
+        0 0 0 0 rgba(184, 134, 11, 0);
+    transition: 
+        transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1),
+        box-shadow 0.3s ease,
+        background-position 0.4s ease,
+        filter 0.3s ease;
+    overflow: hidden;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Brilho de shimmer — efeito sutil de "magia" */
+.btn-robot-ai::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 60%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.2),
+        transparent
+    );
+    transition: left 0.6s ease;
+    pointer-events: none;
+}
+
+.btn-robot-ai:hover::before {
+    left: 120%;
+}
+
+.btn-robot-ai:hover {
+    transform: translateY(-2px) scale(1.03);
+    background-position: 100% 0%;
+    box-shadow: 
+        0 4px 16px rgba(139, 0, 0, 0.3),
+        0 0 20px rgba(184, 134, 11, 0.15);
+    filter: brightness(1.08);
+}
+
+.btn-robot-ai:active {
+    transform: translateY(0px) scale(0.98);
+    box-shadow: 0 1px 4px rgba(139, 0, 0, 0.2);
+}
+
+.btn-robot-ai:disabled {
+    cursor: not-allowed;
+    opacity: 0.8;
+    filter: saturate(0.6);
+}
+
+/* Ícone dentro do botão */
+.btn-robot-ai svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+/* Layout dos spans idle/loading */
+.btn-robot-ai__idle,
+.btn-robot-ai__loading {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.btn-robot-ai__loading {
+    display: none;
+}
+
+/* Estado de Loading */
+.btn-robot-ai.loading .btn-robot-ai__idle {
+    display: none;
+}
+
+.btn-robot-ai.loading .btn-robot-ai__loading {
+    display: flex;
+}
+
+.btn-robot-ai.loading {
+    background: linear-gradient(135deg, #5a0000 0%, #704020 50%, #8a6508 100%);
+    background-size: 300% 300%;
+    animation: robotGradientPulse 2s ease-in-out infinite;
+    pointer-events: none;
+}
+
+.btn-robot-ai.loading svg {
+    animation: robotSpin 1s linear infinite;
+}
+
+@keyframes robotGradientPulse {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+@keyframes robotSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* ================= AMBIENTE (PROD/EMU) ================= */
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.env-selector {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    background: #f0f0f0;
+    padding: 0.4rem 0.8rem;
+    border-radius: 20px;
+    border: 1px solid #ddd;
+}
+
+.env-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+}
+
+.env-switch {
+    position: relative;
+    display: inline-block;
+    width: 36px;
+    height: 20px;
+}
+
+.env-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.env-slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #999;
+    border-radius: 20px;
+    transition: 0.3s;
+}
+
+.env-slider::before {
+    content: "";
+    position: absolute;
+    height: 14px;
+    width: 14px;
+    left: 3px;
+    bottom: 3px;
+    background: white;
+    border-radius: 50%;
+    transition: 0.3s;
+}
+
+.env-switch input:checked + .env-slider {
+    background: #6f42c1; /* Roxo para Emulador */
+}
+
+.env-switch input:checked + .env-slider::before {
+    transform: translateX(16px);
+}
+
+/* Alterações visuais quando em modo emulador */
+.mode-emulator .dash-header {
+    border-bottom-color: #6f42c1;
+}
+
+.mode-emulator .env-selector {
+    background: #f5f0ff;
+    border-color: #d1c4e9;
+}
+
+.mode-emulator .env-label {
+    color: #6f42c1;
+}
+
+.mode-emulator .subscriber-count-card {
+    border: 2px dashed #6f42c1;
+}
+
+.mode-emulator .subscriber-count-card::after {
+    content: "AMBIENTE DE TESTE";
+    position: absolute;
+    top: -12px;
+    right: 20px;
+    background: #6f42c1;
+    color: white;
+    font-size: 0.65rem;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-weight: 800;
+    box-shadow: 0 2px 8px rgba(111, 66, 193, 0.4);
+    z-index: 10;
+    white-space: nowrap;
+    border: 2px solid white;
+}
+
 .dash-main {
     width: 100%;
     max-width: 1200px;
@@ -520,9 +743,22 @@
         font-size: 0.8rem;
     }
 
+    .btn-robot-ai {
+        width: 100%;
+        justify-content: center;
+        padding: 0.6rem 1rem;
+        font-size: 0.82rem;
+    }
+
     .version-input-group {
         flex-direction: column;
         align-items: stretch;
+    }
+
+    /* Mantém o grupo do icon picker sempre em linha, mesmo no mobile */
+    .version-input-group.icon-picker-group {
+        flex-direction: row;
+        align-items: center;
     }
 
     .version-input {
@@ -691,6 +927,7 @@
     box-shadow: var(--card-shadow);
     max-width: 800px;
     margin: 0 auto 2rem auto;
+    position: relative;
 }
 
 .logs-header {
@@ -721,6 +958,40 @@
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    max-height: 520px; /* Suficiente para cerca de 5 itens */
+    overflow-y: auto;
+    padding-right: 10px; /* espaço pro scrollbar */
+    position: relative;
+    scroll-behavior: smooth;
+}
+
+/* Customização do Scrollbar para a lista de logs */
+.log-list::-webkit-scrollbar {
+    width: 6px;
+}
+.log-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+.log-list::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 4px;
+}
+.log-list::-webkit-scrollbar-thumb:hover {
+    background: #aaa;
+}
+
+/* Máscara de gradiente no fundo para indicar rolagem */
+.scroll-indicator-mask {
+    position: absolute;
+    bottom: 2rem;
+    left: 2rem;
+    right: 2rem;
+    height: 40px;
+    background: linear-gradient(transparent, white);
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+    border-radius: 0 0 12px 12px;
 }
 
 .log-item {
@@ -784,6 +1055,11 @@
     color: #dc3545;
 }
 
+.log-icon.type-bot {
+    background: rgba(138, 43, 226, 0.1);
+    color: #8A2BE2;
+}
+
 .log-content {
     flex-grow: 1;
 }
@@ -817,6 +1093,13 @@
 .log-link:hover {
     color: var(--hover-color);
     text-decoration: underline;
+}
+
+/* Quando o link está na área direita (mesma posição da imagem) */
+.log-right-area .log-link {
+    margin-top: 0;
+    justify-content: flex-end;
+    text-align: right;
 }
 
 
@@ -858,11 +1141,24 @@
     margin-top: 1.5rem;
     padding-top: 1rem;
     border-top: 1px dashed #eee;
+    display: none;
 }
 
-.load-more-container button {
+.scroll-loading {
+    text-align: center;
+    padding: 1rem;
+    color: var(--text-secondary);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
     font-size: 0.9rem;
-    padding: 0.5rem 1.2rem;
+}
+.scroll-loading svg {
+    animation: spin 2s linear infinite;
+    color: var(--primary-color);
+    width: 18px;
+    height: 18px;
 }
 
 @media (max-width: 768px) {
@@ -1144,7 +1440,7 @@
     margin-right: auto;
     border: 1px solid #eee;
     position: relative;
-    overflow: hidden;
+    /* overflow: hidden;  <-- Removido para permitir o badge externo */
     animation: slideInFromTop 0.5s ease-out;
 }
 
@@ -1255,3 +1551,148 @@
         padding: 0.3rem 0.6rem;
     }
 }
+
+/* ================= FILTROS DE LOGS ================= */
+.log-filters {
+    display: flex;
+    gap: 0.8rem;
+    margin: 1.5rem auto;
+    max-width: 800px;
+    padding: 0 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.filter-btn {
+    background: white;
+    border: 1px solid #e0e0e0;
+    padding: 0.5rem 1.2rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+}
+
+.filter-btn:hover {
+    background: #f9f9f9;
+    border-color: #ccc;
+    transform: translateY(-1px);
+}
+
+.filter-btn.active {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+    box-shadow: 0 4px 10px rgba(139, 0, 0, 0.2);
+}
+
+@media (max-width: 600px) {
+    .log-filters {
+        gap: 0.5rem;
+    }
+    .filter-btn {
+        padding: 0.4rem 1rem;
+        font-size: 0.8rem;
+    }
+}
+
+/* ================= ICON PICKER (Links Temporários) ================= */
+.icon-picker-container {
+    position: relative;
+    user-select: none;
+}
+
+.btn-icon-picker {
+    height: 48px; /* Mesma altura do .version-input */
+    width: 60px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    color: var(--text-primary);
+    transition: var(--transition);
+}
+
+.btn-icon-picker:hover {
+    border-color: var(--primary-color);
+    background: #fdfdfd;
+}
+
+.btn-icon-picker svg {
+    width: 18px;
+    height: 18px;
+}
+
+.btn-icon-picker .chevron {
+    width: 12px;
+    height: 12px;
+    opacity: 0.5;
+    transition: transform 0.3s ease;
+}
+
+.icon-picker-container.open .chevron {
+    transform: rotate(180deg);
+}
+
+.icon-picker-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    padding: 10px;
+    display: none;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    z-index: 100;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.icon-picker-container.open .icon-picker-dropdown {
+    display: grid;
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.icon-option {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+}
+
+.icon-option:hover {
+    background: #f0f0f0;
+    color: var(--primary-color);
+}
+
+.icon-option.active {
+    background: rgba(139, 0, 0, 0.05);
+    color: var(--primary-color);
+    border-color: rgba(139, 0, 0, 0.2);
+}
+
+.icon-option svg {
+    width: 20px;
+    height: 20px;
+}
+

@@ -8,15 +8,14 @@
  * - Atualização de versões no Firestore
  */
 
-import { app } from "../firebase-config.js";
+import { app, auth, db, functions, storage } from "../firebase-config.js";
 import { 
-    getAuth, 
     signInWithEmailAndPassword, 
     onAuthStateChanged, 
     signOut 
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
+
 import { 
-    getFirestore, 
     doc, 
     setDoc, 
     getDoc,
@@ -30,7 +29,8 @@ import {
     startAfter,
     getDocs,
     updateDoc,
-    serverTimestamp
+    serverTimestamp,
+    where
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { 
     getStorage, 
@@ -38,11 +38,12 @@ import {
     uploadBytesResumable, 
     getDownloadURL 
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
+import { 
+    httpsCallable 
+} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-functions.js";
 
 // Inicializa serviços Firebase a partir da instância centralizada
-const auth = getAuth(app);
-const db = getFirestore(app);
-const storage = getStorage(app);
+// O storage já é importado do firebase-config.js
 
 // Referências DOM
 const loginContainer = document.getElementById('login-container');
@@ -78,6 +79,8 @@ onAuthStateChanged(auth, (user) => {
         loadLogs(); // Carrega o histórico de logs ao logar
         loadAdminNotifications(); // Carrega a lista de notificações ativas
         setupLinks(); // Inicia configurações e listagem dos links temporários
+        initManualRobot(); // Inicia o Robô OER Manual
+        initLogFilters(); // Inicia os filtros do histórico
     } else {
         // Não logado
         dashboardContainer.classList.remove('active');
@@ -163,7 +166,7 @@ const setupUploader = (type) => {
         if (!selectedFile) return;
 
         let displayVersion = versionInput.value.trim();
-        displayVersion = displayVersion.replace(/[^\d\.]/g, '');
+        displayVersion = displayVersion.replace(',', '.').replace(/[^\d\.]/g, '');
         
         if (!displayVersion) {
             showNotification('Por favor, informe a versão (ex: 1.1) contendo apenas números e pontos.', 'error');
@@ -218,7 +221,7 @@ const setupUploader = (type) => {
     // Quando clica no botão de Atualizar Versão (Apenas Versão)
     btnUpdateVersion.addEventListener('click', async () => {
         let displayVersion = versionInput.value.trim();
-        displayVersion = displayVersion.replace(/[^\d\.]/g, '');
+        displayVersion = displayVersion.replace(',', '.').replace(/[^\d\.]/g, '');
         
         if (!displayVersion) {
             showNotification('Por favor, informe a versão (ex: 1.1) contendo apenas números e pontos.', 'error');
@@ -279,6 +282,10 @@ async function updateFirestoreData(type, url, filename, timestamp, displayVersio
     
     // Grava no Log Histórico
     await saveLog('pdf', `Novo PDF enviado para ${type.toUpperCase()}: v${currentData.pdfs[type].displayVersion}`, url);
+
+    // Robô OER: Removido gatilho automático para evitar interrupções
+    console.log(`🤖 [Robô OER] Upload de ${type} concluído. O Robô aguarda acionamento manual.`);
+    // await triggerAISuggestion(type === 'agenda' ? 'Agenda' : 'Temporada', currentData.pdfs[type].displayVersion);
 }
 
 async function updateFirestoreVersionOnly(type, displayVersion) {
@@ -297,6 +304,148 @@ async function updateFirestoreVersionOnly(type, displayVersion) {
     
     // Grava no Log Histórico
     await saveLog('pdf', `Versão de ${type.toUpperCase()} atualizada manualmente para v${displayVersion}`);
+
+    // Robô OER: Removido gatilho automático para evitar interrupções
+    console.log(`🤖 [Robô OER] Atualização de versão de ${type} concluída. O Robô aguarda acionamento manual.`);
+    // await triggerAISuggestion(type === 'agenda' ? 'Agenda' : 'Temporada', displayVersion);
+}
+
+/**
+ * Robô OER: Sugere uma notificação com IA após alteração de sistema.
+ */
+async function triggerAISuggestion(type, version) {
+    console.log("🤖 [Robô OER] Iniciando triggerAISuggestion...", { type, version });
+    
+    const titleInput = document.getElementById('notif-title');
+    const messageInput = document.getElementById('notif-message');
+    const btnRobot = document.getElementById('btn-ai-robot');
+
+    if (!titleInput || !messageInput) {
+        console.error("🤖 [Robô OER] Inputs de notificação não encontrados no DOM.");
+        return;
+    }
+
+    // 1. Estado de carregamento visual no botão
+    if (btnRobot) {
+        btnRobot.classList.add('loading');
+        btnRobot.disabled = true;
+    }
+
+    // 2. Rola até o formulário e foca
+    setTimeout(() => {
+        titleInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        titleInput.focus();
+    }, 300);
+
+    // 3. Estado de carregamento nos campos
+    const originalTitlePlaceholder = titleInput.placeholder;
+    const originalMessagePlaceholder = messageInput.placeholder;
+    
+    titleInput.value = '';
+    messageInput.value = '';
+    titleInput.placeholder = "🤖 Robô OER: Gerando sugestão com IA...";
+    messageInput.placeholder = "Aguarde um instante, estou afinando as palavras...";
+    titleInput.disabled = true;
+    messageInput.disabled = true;
+
+    try {
+        console.log("🤖 [Robô OER] Chamando Cloud Function suggestNotificationText...");
+        const suggestText = httpsCallable(functions, 'suggestNotificationText');
+        const result = await suggestText({ type, version });
+        
+        console.log("🤖 [Robô OER] Resposta da IA recebida com sucesso.");
+        const { title, message } = result.data;
+        
+        // 4. Preenche os campos
+        titleInput.value = title || "";
+        messageInput.value = message || "";
+        
+        showNotification('O Robô OER sugeriu um aviso baseado na última atualização!', 'success');
+    } catch (error) {
+        console.error("🤖 [Robô OER] Erro crítico na sugestão de IA:", error);
+        
+        let errorUserMsg = 'Não foi possível gerar a sugestão automática.';
+        if (error.message.includes('unauthenticated')) errorUserMsg += ' (Erro de Autenticação)';
+        
+        showNotification(errorUserMsg, 'error');
+
+        // Fallback
+        titleInput.value = `Atualização: ${type} v${version}`;
+        messageInput.value = `A ${type} foi atualizada para a versão v${version}. Confira os detalhes no site!`;
+    } finally {
+        titleInput.disabled = false;
+        messageInput.disabled = false;
+        titleInput.placeholder = originalTitlePlaceholder;
+        messageInput.placeholder = originalMessagePlaceholder;
+        
+        if (btnRobot) {
+            btnRobot.classList.remove('loading');
+            btnRobot.disabled = false;
+        }
+        console.log("🤖 [Robô OER] Fluxo finalizado.");
+    }
+}
+
+/**
+ * Busca a atualização mais recente nos logs para o Robô OER
+ */
+async function getLatestUpdateInfo() {
+    try {
+        const logsRef = collection(db, 'adminLogs');
+        // Busca o log de PDF mais recente
+        const q = query(logsRef, orderBy('createdAt', 'desc'), limit(10));
+        const querySnapshot = await getDocs(q);
+        
+        let latestPdfLog = null;
+        querySnapshot.forEach(doc => {
+            if (!latestPdfLog && (doc.data().type === 'pdf')) {
+                latestPdfLog = doc.data();
+            }
+        });
+
+        if (!latestPdfLog) return null;
+
+        // Extrai Tipo e Versão usando Regex
+        const msg = latestPdfLog.message;
+        const typeMatch = msg.match(/(AGENDA|TEMPORADA)/i);
+        const versionMatch = msg.match(/v([\d\.]+)/);
+
+        if (typeMatch && versionMatch) {
+            return {
+                type: typeMatch[1].charAt(0).toUpperCase() + typeMatch[1].slice(1).toLowerCase(),
+                version: versionMatch[1]
+            };
+        }
+        return null;
+    } catch (err) {
+        console.error("Erro ao buscar logs para o Robô:", err);
+        return null;
+    }
+}
+
+/**
+ * Inicializa o acionamento manual do Robô OER
+ */
+function initManualRobot() {
+    const btnRobot = document.getElementById('btn-ai-robot');
+    if (!btnRobot) return;
+
+    btnRobot.addEventListener('click', async () => {
+        console.log("🤖 [Robô OER] Acionamento manual detectado.");
+        
+        btnRobot.classList.add('loading');
+        btnRobot.disabled = true;
+
+        const info = await getLatestUpdateInfo();
+        
+        if (info) {
+            await triggerAISuggestion(info.type, info.version);
+        } else {
+            showNotification('Não encontrei atualizações recentes para basear a sugestão.', 'warning');
+            btnRobot.classList.remove('loading');
+            btnRobot.disabled = false;
+        }
+    });
 }
 
 // ================= NOTIFICAÇÕES PUSH =================
@@ -629,35 +778,53 @@ async function saveLog(type, message, link = null, details = null, imageUrl = nu
 }
 
 let lastVisibleLog = null; // Para paginação futura
+let isLoadingLogs = false;
+let hasMoreLogs = true;
 
-async function loadLogs() {
+let currentLogFilter = 'all';
+
+async function loadLogs(filterType = 'all') {
     const listEl = document.getElementById('log-list');
     if (!listEl) return;
+    
+    currentLogFilter = filterType;
+    
+    // Remove listener antigo se existir para evitar múltiplos disparos
+    listEl.removeEventListener('scroll', handleLogScroll);
     
     listEl.innerHTML = '<div class="loading-logs"><i data-lucide="loader"></i> Carregando histórico...</div>';
     lucide.createIcons();
     
     try {
         const logsRef = collection(db, 'adminLogs');
-        const q = query(logsRef, orderBy('createdAt', 'desc'), limit(50));
+        
+        let q;
+        if (filterType === 'all') {
+            q = query(logsRef, orderBy('createdAt', 'desc'), limit(10));
+        } else if (filterType === 'aviso') {
+            // Filtra por aviso OU aviso-removido usando o operador 'in'
+            q = query(logsRef, where('type', 'in', ['aviso', 'aviso-removido']), orderBy('createdAt', 'desc'), limit(10));
+        } else if (filterType === 'links') {
+            // Filtra por ações de links temporários
+            q = query(logsRef, where('type', 'in', ['link-criado', 'link-alterado', 'link-removido']), orderBy('createdAt', 'desc'), limit(10));
+        } else {
+            // Filtra por tipo específico (pdf, bot, etc)
+            q = query(logsRef, where('type', '==', filterType), orderBy('createdAt', 'desc'), limit(10));
+        }
+        
         const querySnapshot = await getDocs(q);
         
         listEl.innerHTML = ''; // Limpa "Carregando"
         
         if (querySnapshot.empty) {
             listEl.innerHTML = '<div style="text-align:center; padding:2rem; color:#888;">Nenhum histórico registrado ainda.</div>';
-            if(document.getElementById('btn-load-more-logs')) document.getElementById('btn-load-more-logs').style.display = 'none';
+            hasMoreLogs = false;
             return;
         }
 
         lastVisibleLog = querySnapshot.docs[querySnapshot.docs.length - 1];
+        hasMoreLogs = querySnapshot.docs.length === 10;
         
-        // Mostrar o botão de ver mais apenas se vieram 50 (pode haver mais)
-        const btnMore = document.getElementById('btn-load-more-logs');
-        if (btnMore) {
-            btnMore.style.display = querySnapshot.docs.length === 50 ? 'inline-block' : 'none';
-        }
-
         querySnapshot.forEach((doc) => {
             const data = doc.data();
             const dateObj = new Date(data.createdAt);
@@ -670,10 +837,14 @@ async function loadLogs() {
             if (data.type === 'link-criado') iconName = 'link';
             if (data.type === 'link-alterado') iconName = 'refresh-cw';
             if (data.type === 'link-removido') iconName = 'trash-2';
+            if (data.type === 'bot') iconName = 'bot';
             
             let linkHtml = '';
             if (data.link) {
-                linkHtml = `<a href="${data.link}" target="_blank" class="log-link"><i data-lucide="external-link"></i> Ver Arquivo</a>`;
+                const isLinkType = data.type && data.type.startsWith('link-');
+                const btnLabel = isLinkType ? 'Acessar Link' : 'Ver Arquivo';
+                const btnIcon = isLinkType ? 'external-link' : 'file-text';
+                linkHtml = `<a href="${data.link}" target="_blank" class="log-link"><i data-lucide="${btnIcon}"></i> ${btnLabel}</a>`;
             }
 
             // HTML da miniatura se houver imagem
@@ -696,13 +867,13 @@ async function loadLogs() {
                     <p>${data.message}</p>
                     ${data.details ? `<p class="log-details">${data.details}</p>` : ''}
                     <span>Enviado por: ${data.user}</span>
-                    ${linkHtml}
                 </div>
                 <div class="log-right-area">
                     <div class="log-time">
                         <i data-lucide="clock"></i> ${formattedDate} às ${formattedTime}
                     </div>
                     ${imageHtml}
+                    ${linkHtml}
                 </div>
             `;
             listEl.appendChild(li);
@@ -710,95 +881,178 @@ async function loadLogs() {
         
         lucide.createIcons();
         
+        const wrapper = listEl.closest('.logs-wrapper');
+        const mask = wrapper ? wrapper.querySelector('.scroll-indicator-mask') : null;
+
+        // Se há mais logs para carregar, inicia o listener de scroll e exibe a máscara
+        if (hasMoreLogs) {
+            listEl.addEventListener('scroll', handleLogScroll);
+            if (mask) mask.style.opacity = '1';
+        } else {
+            if (mask) mask.style.opacity = '0';
+        }
+        
     } catch (e) {
         console.error("Erro ao carregar logs: ", e);
         listEl.innerHTML = '<div style="color:red; padding:1rem; text-align:center;">Erro ao carregar histórico.</div>';
     }
 }
 
-const btnLoadMoreLogs = document.getElementById('btn-load-more-logs');
-if (btnLoadMoreLogs) {
-    btnLoadMoreLogs.addEventListener('click', async () => {
-        if (!lastVisibleLog) return;
+async function handleLogScroll() {
+    const listEl = document.getElementById('log-list');
+    if (!listEl || isLoadingLogs || !hasMoreLogs) return;
+
+    // Detecta se a rolagem chegou a 50px do final da lista
+    if (listEl.scrollTop + listEl.clientHeight >= listEl.scrollHeight - 50) {
+        loadMoreLogs();
+    }
+}
+
+async function loadMoreLogs() {
+    if (!lastVisibleLog || isLoadingLogs || !hasMoreLogs) return;
+    
+    isLoadingLogs = true;
+    const listEl = document.getElementById('log-list');
+    
+    // Mostra indicador de carregamento
+    const loadingLi = document.createElement('li');
+    loadingLi.className = 'scroll-loading';
+    loadingLi.innerHTML = '<i data-lucide="loader"></i> Carregando...';
+    listEl.appendChild(loadingLi);
+    lucide.createIcons();
+
+    // Oculta temporariamente a máscara indicativa para não ficar sobre o loader
+    const wrapper = listEl.closest('.logs-wrapper');
+    const mask = wrapper ? wrapper.querySelector('.scroll-indicator-mask') : null;
+    if (mask) mask.style.opacity = '0';
+    
+    try {
+        const logsRef = collection(db, 'adminLogs');
+        let q;
+        if (currentLogFilter === 'all') {
+            q = query(logsRef, orderBy('createdAt', 'desc'), startAfter(lastVisibleLog), limit(10));
+        } else if (currentLogFilter === 'aviso') {
+            q = query(logsRef, where('type', 'in', ['aviso', 'aviso-removido']), orderBy('createdAt', 'desc'), startAfter(lastVisibleLog), limit(10));
+        } else if (currentLogFilter === 'links') {
+            q = query(logsRef, where('type', 'in', ['link-criado', 'link-alterado', 'link-removido']), orderBy('createdAt', 'desc'), startAfter(lastVisibleLog), limit(10));
+        } else {
+            q = query(logsRef, where('type', '==', currentLogFilter), orderBy('createdAt', 'desc'), startAfter(lastVisibleLog), limit(10));
+        }
         
-        btnLoadMoreLogs.innerHTML = '<i data-lucide="loader"></i> Carregando...';
-        lucide.createIcons();
+        const querySnapshot = await getDocs(q);
         
-        try {
-            const logsRef = collection(db, 'adminLogs');
-            const q = query(logsRef, orderBy('createdAt', 'desc'), startAfter(lastVisibleLog), limit(50));
-            const querySnapshot = await getDocs(q);
+        // Remove loader
+        if (listEl.contains(loadingLi)) listEl.removeChild(loadingLi);
+        
+        if (querySnapshot.empty) {
+            hasMoreLogs = false;
+            const endLi = document.createElement('li');
+            endLi.style.textAlign = 'center';
+            endLi.style.color = '#888';
+            endLi.style.padding = '1rem';
+            endLi.style.fontSize = '0.9rem';
+            endLi.textContent = 'Fim do histórico.';
+            listEl.appendChild(endLi);
+            return;
+        }
+
+        lastVisibleLog = querySnapshot.docs[querySnapshot.docs.length - 1];
+        hasMoreLogs = querySnapshot.docs.length === 10;
+        
+        querySnapshot.forEach((doc) => {
+            const data = doc.data();
+            const dateObj = new Date(data.createdAt);
+            const formattedDate = dateObj.toLocaleDateString('pt-BR');
+            const formattedTime = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
             
-            if (querySnapshot.empty) {
-                btnLoadMoreLogs.style.display = 'none';
-                return;
+            let iconName = 'folder-up';
+            if (data.type === 'aviso') iconName = 'bell-ring';
+            if (data.type === 'aviso-removido') iconName = 'bell-off';
+            if (data.type === 'link-criado') iconName = 'link';
+            if (data.type === 'link-alterado') iconName = 'refresh-cw';
+            if (data.type === 'link-removido') iconName = 'trash-2';
+            if (data.type === 'bot') iconName = 'bot';
+            
+            let linkHtml = '';
+            if (data.link) {
+                const isLinkType = data.type && data.type.startsWith('link-');
+                const btnLabel = isLinkType ? 'Acessar Link' : 'Ver Arquivo';
+                const btnIcon = isLinkType ? 'external-link' : 'file-text';
+                linkHtml = `<a href="${data.link}" target="_blank" class="log-link"><i data-lucide="${btnIcon}"></i> ${btnLabel}</a>`;
             }
 
-            lastVisibleLog = querySnapshot.docs[querySnapshot.docs.length - 1];
-
-            const listEl = document.getElementById('log-list');
-            querySnapshot.forEach((doc) => {
-                const data = doc.data();
-                const dateObj = new Date(data.createdAt);
-                const formattedDate = dateObj.toLocaleDateString('pt-BR');
-                const formattedTime = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                
-                let iconName = 'folder-up';
-                if (data.type === 'aviso') iconName = 'bell-ring';
-                if (data.type === 'aviso-removido') iconName = 'bell-off';
-                if (data.type === 'link-criado') iconName = 'link';
-                if (data.type === 'link-alterado') iconName = 'refresh-cw';
-                if (data.type === 'link-removido') iconName = 'trash-2';
-                
-                let linkHtml = '';
-                if (data.link) {
-                    linkHtml = `<a href="${data.link}" target="_blank" class="log-link"><i data-lucide="external-link"></i> Ver Arquivo</a>`;
-                }
-
-                // HTML da miniatura se houver imagem
-                let imageHtml = '';
-                if (data.imageUrl) {
-                    imageHtml = `
-                        <div class="log-thumbnail-wrapper">
-                            <img src="${data.imageUrl}" class="log-thumbnail" alt="Miniatura" onclick="window.openImageModal('${data.imageUrl}')">
-                        </div>
-                    `;
-                }
-                
-                const li = document.createElement('li');
-                li.className = `log-item log-type-${data.type}`;
-                li.innerHTML = `
-                    <div class="log-icon type-${data.type}">
-                        <i data-lucide="${iconName}"></i>
-                    </div>
-                    <div class="log-content">
-                        <p>${data.message}</p>
-                        ${data.details ? `<p class="log-details">${data.details}</p>` : ''}
-                        <span>Enviado por: ${data.user}</span>
-                        ${linkHtml}
-                    </div>
-                    <div class="log-right-area">
-                        <div class="log-time">
-                            <i data-lucide="clock"></i> ${formattedDate} às ${formattedTime}
-                        </div>
-                        ${imageHtml}
+            let imageHtml = '';
+            if (data.imageUrl) {
+                imageHtml = `
+                    <div class="log-thumbnail-wrapper">
+                        <img src="${data.imageUrl}" class="log-thumbnail" alt="Miniatura" onclick="window.openImageModal('${data.imageUrl}')">
                     </div>
                 `;
-                listEl.appendChild(li);
-            });
-            
-            lucide.createIcons();
-            btnLoadMoreLogs.innerHTML = 'Ver mais antigos';
-            
-            // Se vieram menos de 50, significa que acabou
-            if (querySnapshot.docs.length < 50) {
-                btnLoadMoreLogs.style.display = 'none';
             }
             
-        } catch (e) {
-            console.error("Erro ao carregar mais logs: ", e);
-            btnLoadMoreLogs.innerHTML = 'Erro. Tentar novamente';
+            const li = document.createElement('li');
+            li.className = `log-item log-type-${data.type}`;
+            li.innerHTML = `
+                <div class="log-icon type-${data.type}">
+                    <i data-lucide="${iconName}"></i>
+                </div>
+                <div class="log-content">
+                    <p>${data.message}</p>
+                    ${data.details ? `<p class="log-details">${data.details}</p>` : ''}
+                    <span>Enviado por: ${data.user}</span>
+                </div>
+                <div class="log-right-area">
+                    <div class="log-time">
+                        <i data-lucide="clock"></i> ${formattedDate} às ${formattedTime}
+                    </div>
+                    ${imageHtml}
+                    ${linkHtml}
+                </div>
+            `;
+            listEl.appendChild(li);
+        });
+        
+        lucide.createIcons();
+        
+        if (!hasMoreLogs) {
+            const endLi = document.createElement('li');
+            endLi.style.textAlign = 'center';
+            endLi.style.color = '#888';
+            endLi.style.padding = '1rem';
+            endLi.style.fontSize = '0.9rem';
+            endLi.textContent = 'Fim do histórico.';
+            listEl.appendChild(endLi);
+        } else {
+             // Retorna a máscara se tiver mais
+             if (mask) mask.style.opacity = '1';
         }
+        
+    } catch (e) {
+        console.error("Erro ao carregar mais logs: ", e);
+        if (listEl.contains(loadingLi)) listEl.removeChild(loadingLi);
+    } finally {
+        isLoadingLogs = false;
+    }
+}
+
+// ================= FILTROS DO HISTÓRICO =================
+
+function initLogFilters() {
+    const filterButtons = document.querySelectorAll('#log-filters .filter-btn');
+    if (!filterButtons.length) return;
+
+    filterButtons.forEach(btn => {
+        btn.addEventListener('click', () => {
+            // Remove classe active de todos os botões
+            filterButtons.forEach(b => b.classList.remove('active'));
+            // Adiciona ao botão clicado
+            btn.classList.add('active');
+            // Carrega os logs com o filtro selecionado
+            const filterType = btn.getAttribute('data-filter');
+            lastVisibleLog = null;
+            hasMoreLogs = true;
+            loadLogs(filterType);
+        });
     });
 }
 
@@ -832,6 +1086,46 @@ document.addEventListener('keydown', (e) => {
 function setupLinks() {
     const btnCreate = document.getElementById('btn-create-link');
     if (!btnCreate) return;
+
+    // Lógica do Seletor de Ícones
+    let selectedIcon = 'link';
+    const btnIconPicker = document.getElementById('btn-icon-picker');
+    const iconPickerContainer = btnIconPicker ? btnIconPicker.parentElement : null;
+    const iconOptions = document.querySelectorAll('.icon-option');
+    const selectedIconPreview = document.getElementById('selected-icon-preview');
+
+    if (btnIconPicker && iconPickerContainer) {
+        btnIconPicker.addEventListener('click', (e) => {
+            e.stopPropagation();
+            iconPickerContainer.classList.toggle('open');
+        });
+
+        // Fechar ao clicar fora
+        document.addEventListener('click', (e) => {
+            if (!iconPickerContainer.contains(e.target)) {
+                iconPickerContainer.classList.remove('open');
+            }
+        });
+
+        iconOptions.forEach(opt => {
+            opt.addEventListener('click', (e) => {
+                e.stopPropagation();
+                selectedIcon = opt.getAttribute('data-icon');
+                
+                // Atualiza visual no seletor
+                iconOptions.forEach(o => o.classList.remove('active'));
+                opt.classList.add('active');
+                
+                // Atualiza preview no botão
+                if (selectedIconPreview) {
+                    selectedIconPreview.setAttribute('data-lucide', selectedIcon);
+                    lucide.createIcons();
+                }
+                
+                iconPickerContainer.classList.remove('open');
+            });
+        });
+    }
 
     const nameInputCounter = document.getElementById('link-name');
     const counterSpan = document.getElementById('link-name-counter');
@@ -871,6 +1165,7 @@ function setupLinks() {
             await addDoc(collection(db, 'dynamicLinks'), {
                 name: name,
                 url: url,
+                icon: selectedIcon,
                 active: true,
                 createdAt: serverTimestamp()
             });
@@ -881,8 +1176,18 @@ function setupLinks() {
                 counterSpan.textContent = '0/30';
                 counterSpan.style.color = 'var(--text-secondary)';
             }
+
+            // Reseta ícone para o padrão
+            selectedIcon = 'link';
+            if (selectedIconPreview) {
+                selectedIconPreview.setAttribute('data-lucide', 'link');
+            }
+            iconOptions.forEach(o => {
+                o.classList.remove('active');
+                if (o.getAttribute('data-icon') === 'link') o.classList.add('active');
+            });
             showNotification('Link criado com sucesso!', 'success');
-            await saveLog('link-criado', `Link temporário criado: "${name}"`, null, `O administrador criou um novo link temporário.`);
+            await saveLog('link-criado', `Link temporário criado: "${name}"`, url, `O administrador criou um novo link temporário.`);
         } catch (error) {
             console.error('Erro ao criar link:', error);
             showNotification('Erro ao criar link.', 'error');
@@ -923,9 +1228,14 @@ function loadAdminLinks() {
             // Checkbox value
             const isChecked = data.active ? 'checked' : '';
             
+            const iconName = data.icon || 'link';
+            
             item.innerHTML = `
                 <div class="admin-notif-content">
-                    <h4 class="admin-notif-title">${data.name}</h4>
+                    <h4 class="admin-notif-title" style="display: flex; align-items: center; gap: 0.5rem;">
+                        <i data-lucide="${iconName}" style="width: 18px; height: 18px; color: #8A2BE2;"></i>
+                        ${data.name}
+                    </h4>
                     <p class="admin-notif-message"><a href="${data.url}" target="_blank" style="color: #2E8B57; text-decoration: none;">${data.url}</a></p>
                     <div class="admin-notif-meta">
                         <i data-lucide="clock" style="width: 12px; height: 12px;"></i> Criado em ${formattedDate}
@@ -933,10 +1243,10 @@ function loadAdminLinks() {
                 </div>
                 <div style="display: flex; align-items: center; gap: 1rem;">
                     <label class="toggle-switch">
-                        <input type="checkbox" class="toggle-link-status" data-id="${id}" data-name="${data.name}" ${isChecked}>
+                        <input type="checkbox" class="toggle-link-status" data-id="${id}" data-name="${data.name}" data-url="${data.url}" ${isChecked}>
                         <span class="toggle-slider"></span>
                     </label>
-                    <button class="btn-delete-notif" title="Apagar Link" data-id="${id}" data-name="${data.name}">
+                    <button class="btn-delete-notif" title="Apagar Link" data-id="${id}" data-name="${data.name}" data-url="${data.url}">
                         <i data-lucide="trash-2"></i>
                     </button>
                 </div>
@@ -949,6 +1259,7 @@ function loadAdminLinks() {
             checkbox.addEventListener('change', async (e) => {
                 const docId = e.target.getAttribute('data-id');
                 const name = e.target.getAttribute('data-name');
+                const url = e.target.getAttribute('data-url');
                 const newState = e.target.checked;
                 
                 try {
@@ -957,7 +1268,7 @@ function loadAdminLinks() {
                     });
                     const stateText = newState ? 'ativado' : 'desativado';
                     showNotification(`Link "${name}" ${stateText}.`, 'success');
-                    await saveLog('link-alterado', `Link "${name}" foi ${stateText}.`);
+                    await saveLog('link-alterado', `Link "${name}" foi ${stateText}.`, url);
                 } catch (error) {
                     console.error("Erro ao atualizar link:", error);
                     e.target.checked = !newState; // reverte visualmente
@@ -970,12 +1281,13 @@ function loadAdminLinks() {
             btn.addEventListener('click', async () => {
                 const docId = btn.getAttribute('data-id');
                 const name = btn.getAttribute('data-name');
+                const url = btn.getAttribute('data-url');
                 
                 if (confirm('Tem certeza que deseja excluir o link "'+name+'"?')) {
                     try {
                         await deleteDoc(doc(db, 'dynamicLinks', docId));
                         showNotification('Link "'+name+'" excluído.', 'success');
-                        await saveLog('link-removido', 'Link temporário excluído: "'+name+'"');
+                        await saveLog('link-removido', 'Link temporário excluído: "'+name+'"', url);
                     } catch (error) {
                         console.error("Erro ao excluir link:", error);
                         showNotification("Erro ao excluir o link.", 'error');
@@ -988,3 +1300,20 @@ function loadAdminLinks() {
     });
 }
 
+
+// ================= CONVERSÃO DE VÍRGULA PARA PONTO =================
+// Garante que se o usuário digitar vírgula (teclado PT-BR), ela vire ponto instantaneamente
+document.addEventListener('input', (e) => {
+    if (e.target && e.target.classList.contains('version-input')) {
+        const start = e.target.selectionStart;
+        const end = e.target.selectionEnd;
+        const oldValue = e.target.value;
+        const newValue = oldValue.replace(',', '.');
+        
+        if (oldValue !== newValue) {
+            e.target.value = newValue;
+            // Mantém a posição do cursor após a substituição
+            e.target.setSelectionRange(start, end);
+        }
+    }
+});

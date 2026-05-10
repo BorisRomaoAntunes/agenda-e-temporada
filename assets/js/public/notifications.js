@@ -12,7 +12,7 @@
 
 import { app, VAPID_KEY } from "../firebase-config.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging.js";
-import { getFirestore, doc, setDoc, onSnapshot, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getFirestore, doc, setDoc, onSnapshot, collection, query, orderBy, limit, getDocs, startAfter } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 const messaging = getMessaging(app);
 const db = getFirestore(app);
@@ -110,29 +110,106 @@ onSnapshot(latestNoticeRef, (snap) => {
     if (tickerTextClone) tickerTextClone.innerHTML = tickerHtml;
 });
 
-// ====== HISTÓRICO DE NOTIFICAÇÕES (CARREGAMENTO SOB DEMANDA) ======
-let historyLoaded = false;
+// ====== HISTÓRICO DE NOTIFICAÇÕES (CARREGAMENTO SOB DEMANDA / PAGINAÇÃO) ======
+let lastHistoryDoc = null;
+let isHistoryLoading = false;
+let hasMoreHistory = true;
+let historyObserver = null;
 
-window.loadNotificationHistory = async () => {
-    // Evita carregar múltiplas vezes se já estiver aberto
-    if (historyLoaded) return;
+window.loadNotificationHistory = async (isInitial = true) => {
+    // Bloqueia se já estiver carregando ou se não houver mais e for scroll
+    if (isHistoryLoading) return;
+    if (!hasMoreHistory && !isInitial) return;
     
     const historyList = document.getElementById('historyList');
+    let sentinel = document.getElementById('historySentinel');
+    let statusIndicator = document.getElementById('historyLoadStatus');
+    
     if (!historyList) return;
 
-    historyList.innerHTML = '<div class="history-loading">Carregando histórico...</div>';
+    // Garantia de existência e posicionamento do sentinela
+    if (!sentinel) {
+        sentinel = document.createElement('div');
+        sentinel.id = 'historySentinel';
+        sentinel.style.height = '10px';
+        sentinel.style.marginTop = '10px';
+        historyList.appendChild(sentinel);
+    }
+
+    // Garantia de existência do indicador de status (spinner)
+    if (!statusIndicator) {
+        statusIndicator = document.createElement('div');
+        statusIndicator.id = 'historyLoadStatus';
+        statusIndicator.className = 'history-load-more-status';
+        statusIndicator.innerHTML = '<div class="spinner"></div><span>Carregando mais...</span>';
+        historyList.insertBefore(statusIndicator, sentinel);
+    }
+
+    // Função auxiliar para limpar conteúdo mantendo os elementos de controle
+    const clearContent = () => {
+        Array.from(historyList.childNodes).forEach(node => {
+            if (node !== sentinel && node !== statusIndicator) {
+                node.remove();
+            }
+        });
+    };
+
+    isHistoryLoading = true;
+
+    // Se for o carregamento inicial, limpamos a lista e mostramos feedback
+    if (isInitial) {
+        clearContent();
+        
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'history-loading';
+        loadingDiv.textContent = 'Carregando histórico...';
+        historyList.insertBefore(loadingDiv, statusIndicator);
+
+        lastHistoryDoc = null;
+        hasMoreHistory = true;
+    }
+
+    statusIndicator.classList.remove('hidden');
+
+    // Remove o convite de scroll se existir
+    const oldHint = document.getElementById('historyScrollHint');
+    if (oldHint) oldHint.remove();
 
     try {
         const notificationsRef = collection(db, 'adminNotifications');
-        const qNotifications = query(notificationsRef, orderBy('createdAt', 'desc'), limit(10));
-        const snapshot = await getDocs(qNotifications);
+        const pageSize = isInitial ? 2 : 5;
+        
+        let q;
+        if (isInitial) {
+            q = query(notificationsRef, orderBy('createdAt', 'desc'), limit(pageSize));
+        } else {
+            q = query(notificationsRef, orderBy('createdAt', 'desc'), startAfter(lastHistoryDoc), limit(pageSize));
+        }
+
+        const snapshot = await getDocs(q);
+
+        if (isInitial) {
+            clearContent(); // Remove o "Carregando..."
+        }
 
         if (snapshot.empty) {
-            historyList.innerHTML = '<div class="history-empty">Nenhum aviso encontrado.</div>';
+            hasMoreHistory = false;
+            statusIndicator.classList.add('hidden');
+            if (isInitial) {
+                const emptyMsg = document.createElement('div');
+                emptyMsg.className = 'history-empty';
+                emptyMsg.textContent = 'Nenhum aviso encontrado.';
+                historyList.insertBefore(emptyMsg, statusIndicator);
+            }
+            isHistoryLoading = false;
             return;
         }
 
-        historyList.innerHTML = '';
+        lastHistoryDoc = snapshot.docs[snapshot.docs.length - 1];
+        if (snapshot.docs.length < pageSize) {
+            hasMoreHistory = false;
+        }
+
         snapshot.forEach((docSnap) => {
             const notif = docSnap.data();
             const card = document.createElement('div');
@@ -166,14 +243,69 @@ window.loadNotificationHistory = async () => {
                     </div>
                 </div>
             `;
-            historyList.appendChild(card);
+            historyList.insertBefore(card, statusIndicator);
         });
-        historyLoaded = true;
+
+        statusIndicator.classList.add('hidden');
+
+        if (typeof lucide !== 'undefined') {
+            lucide.createIcons();
+        }
+
+        if (hasMoreHistory) {
+            const scrollHint = document.createElement('div');
+            scrollHint.id = 'historyScrollHint';
+            scrollHint.className = 'history-scroll-hint';
+            scrollHint.innerHTML = `
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m7 13 5 5 5-5"/><path d="m7 6 5 5 5-5"/></svg>
+                <span>Role para ver mais avisos</span>
+            `;
+            scrollHint.onclick = () => window.loadNotificationHistory(false);
+            historyList.insertBefore(scrollHint, statusIndicator);
+            
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }
+
+        if (isInitial) {
+            initHistoryObserver();
+        }
+
     } catch (error) {
         console.error("[Firebase] Erro ao buscar histórico:", error);
-        historyList.innerHTML = '<div class="history-empty" style="color: red;">Erro ao carregar avisos.</div>';
+        if (isInitial) {
+            clearContent();
+            const errorMsg = document.createElement('div');
+            errorMsg.className = 'history-empty';
+            errorMsg.style.color = 'red';
+            errorMsg.textContent = 'Erro ao carregar avisos.';
+            historyList.insertBefore(errorMsg, statusIndicator);
+        }
+    } finally {
+        isHistoryLoading = false;
     }
 };
+
+function initHistoryObserver() {
+    const sentinel = document.getElementById('historySentinel');
+    if (!sentinel) return;
+
+    if (historyObserver) historyObserver.disconnect();
+
+    historyObserver = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && !isHistoryLoading && hasMoreHistory) {
+            console.log("[History] Sentinela visível, carregando mais...");
+            window.loadNotificationHistory(false);
+        }
+    }, {
+        root: document.getElementById('historyList'),
+        rootMargin: '100px', // Carrega um pouco antes de chegar ao fim
+        threshold: 0.1
+    });
+
+    historyObserver.observe(sentinel);
+}
 
 
 // ====== PERMISSÃO DE NOTIFICAÇÕES ======
