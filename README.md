@@ -1,61 +1,66 @@
-# Visualizador de Agenda Digital - OER 🎵
+# Agenda Digital OER 🎵
 
-> Um portal moderno e otimizado para que os músicos da **Orquestra Experimental de Repertório (OER)** acompanhem, de maneira instantânea e clara, as atualizações da Temporada e da Agenda de Ensaios.
-
-🌐 **Site Principal (Músicos):** [https://oer-agenda.web.app/](https://oer-agenda.web.app/)  
-🔒 **Painel Administrativo:** [https://oer-agenda.web.app/admin.html](https://oer-agenda.web.app/admin.html)  
-🔗 **GitHub Pages (legado):** [https://borisromaoantunes.github.io/agenda-e-temporada/](https://borisromaoantunes.github.io/agenda-e-temporada/)
-
+> Um ecossistema moderno e robusto desenvolvido para a **Orquestra Experimental de Repertório (OER)**, permitindo que músicos acompanhem atualizações de cronogramas e avisos em tempo real, com gestão simplificada via painel administrativo.
 
 ---
 
-## ✨ Principais Funcionalidades
+## 🌐 Endereços Oficiais
 
-- **Gerenciamento Descentralizado:** A troca de arquivos PDF ocorre alterando apenas um arquivo de texto comum (JSON), sem necessidade de editar o código-fonte HTML da plataforma.
-- **Sistema Inteligente de Controle de Versões (Selo OER):**
-  - Rastreador visual de "Selo de Arquivo Novo" estilo carimbo (ex: `v2.0`).
-  - Ocultamento inteligente para não prejudicar a leitura: o selo desaparece em computadores assim que o músico interage (move o mouse ou clica).
-  - Controle de visualização única (`localStorage`): Se o usuário já checou ou fez download de uma versão da agenda, não verá o alerta de notificação até que uma nova versão seja lançada.
-- **Feedback com Contexto do Dispositivo:** Um botão inteligente de reporte de problemas que coleta com precisão a data, o aparelho, o sistema operacional e a resolução do usuário no momento do clique.
-- **Compatibilidade Multiplataforma:** 
-  - Interface desktop em modo leitura imersiva (via iframe).
-  - Experiência fluida garantida com botões de acesso direto e download rápido em dispositivos móveis.
-  - Correção de exibição específica para navegadores nativos restritos, como o Samsung Browser.
-- **Links Úteis Embutidos:** Atalhos rápidos para o Edital do Concurso de Jovens Solistas e o Formulário de Dispensa de Bolsistas.
+*   **Público (Músicos):** [oer-agenda.web.app](https://oer-agenda.web.app/)
+*   **Gestão (Painel Admin):** [oer-agenda.web.app/admin.html](https://oer-agenda.web.app/admin.html)
 
 ---
 
-## 🚀 Como Atualizar as Informações e PDFs
+## ✨ Funcionalidades Principais
 
-A manutenção da página foi projetada para não exigir conhecimentos em programação:
+### 📱 Para os Músicos (Site Público)
+*   **Visualização Instantânea:** Acesso direto à Agenda de Ensaios e Temporada 2026 via navegadores ou PWA.
+*   **PWA (Progressive Web App):** Instale o site como um aplicativo no celular para acesso rápido e offline básico.
+*   **Notificações Push:** Sistema de alertas para novos arquivos ou comunicados urgentes (suporta iOS e Android).
+*   **Letreiro Dinâmico (Ticker):** Exibição de mensagens rápidas e avisos importantes no topo do site.
+*   **Histórico de Avisos:** Central de comunicados passados com suporte a imagens e carregamento sob demanda (*lazy loading*).
+*   **Links Dinâmicos:** Botões configuráveis para formulários, editais e recursos externos com ícones personalizados.
 
-1. **Upload:** Salve e envie o novo arquivo PDF (ex: `Temporada_2026_v3.pdf`) para dentro da pasta `assets/files/`.
-2. **Atualização do Controle:** Dê um duplo clique para abrir o arquivo central `pdf-config.json` na raiz do projeto e ajuste apenas o nome do arquivo que foi substituído:
-   ```json
-   "pdfs": {
-     "temporada": {
-       "arquivo": "Temporada_2026_v3.pdf", // <- Altere isso
-       "titulo": "Temporada 2026"
-     }
-   }
-   ```
-3. **Publicar!** Crie o *commit* desse ajuste e envie o *push* para a branch `main`. A integração contínua (GitHub Actions) varrerá e publicará a nova versão automaticamente no ar.
+### 🔐 Para a Administração (Painel Admin)
+*   **Dashboard em Tempo Real:** Monitoramento do número de músicos inscritos para notificações.
+*   **Gestão de Arquivos:** Upload de novos PDFs diretamente para a nuvem (Firebase Storage) com atualização instantânea para todos os usuários.
+*   **Disparo de Comunicados:** Envio de notificações push com títulos, mensagens e imagens opcionais.
+*   **Robô OER (IA):** Integração com inteligência artificial para sugerir textos criativos e profissionais para os avisos.
+*   **Histórico de Atividade:** Log detalhado de todas as alterações feitas no sistema (Uploads, Avisos, Mudanças de Links).
+*   **Controle de Links:** Adição, edição e remoção de botões extras no site público com seletor de ícones intuitivo.
+*   **Ambiente de Testes:** Alternância rápida entre modo Produção e Emuladores para desenvolvimento seguro.
 
 ---
 
-## 🛠 Arquitetura do Projeto
+## 🛠️ Tecnologia e Arquitetura
 
-Abaixo a disposição do *core* tecnológico da aplicação:
+O projeto utiliza o estado da arte em serviços de nuvem:
 
-- `index.html`: Fundação estrutural da página e dos grids do projeto.
-- `pdf-config.json`: Ponto focal de configuração das versões na nuvem.
-- `assets/js/version-tracker.js`: Coração lógico do sistema. Renderiza os PDFs, mapeia a indexação de versões via *regex* e controla comportamentos da UI (como layouts do Samsung Browser).
-- `assets/js/feedback.js`: Lógica de injeção dos metadados de acesso (diagnóstico de sistema/resolução/hora/navegador) no botão de feedback por e-mail.
-- `assets/css/style.css`: *Design System* de interface (Tipografia Inter, cores oficiais OER e design responsivo premium).
-- `.github/workflows/static.yml`: Script YAML de automação de *deploy* instantâneo executado via GitHub Actions.
+*   **Frontend:** HTML5, Vanilla CSS3 (Design System Premium), JavaScript (ES6+ Modular).
+*   **Banco de Dados:** **Firebase Firestore** para sincronização em tempo real.
+*   **Hospedagem:** **Firebase Hosting** com certificação SSL automática.
+*   **Backend:** **Cloud Functions (Node.js 22)** para tarefas automatizadas e integração com IA.
+*   **Notificações:** **Firebase Cloud Messaging (FCM)**.
+*   **Armazenamento:** **Firebase Storage** para os arquivos PDF e imagens.
+*   **IA:** **Google Gemini API** alimentando as sugestões do Robô OER.
+*   **Ícones:** **Lucide Icons** para uma interface limpa e moderna.
+
+---
+
+## 🚀 Guia de Manutenção (Admin)
+
+A gestão do site não exige mais edição de códigos ou commits manuais para conteúdo:
+
+1.  **Login:** Acesse o `/admin.html` com suas credenciais.
+2.  **Arquivos:** Arraste o novo PDF para a área de upload na aba "Temporada & Agenda" e clique em enviar.
+3.  **Notificações:** Use a aba "Avisos" para disparar alertas. Experimente o **Robô OER** para ajuda com o texto.
+4.  **Links:** Na aba "Links Temporários", você pode criar botões para pesquisas ou formulários externos que aparecem no topo do site dos músicos.
 
 ---
 
 <p align="center">
+  <img src="assets/img/logo_oer.png" alt="OER Logo" width="100">
+  <br>
   <small>© 2026 Projeto OER. Desenvolvido por Boris Romão Antunes.</small>
 </p>
+
