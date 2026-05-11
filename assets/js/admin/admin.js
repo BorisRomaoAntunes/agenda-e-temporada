@@ -770,40 +770,53 @@ setupUploader('temporada');
 // ================= LOGS / HISTÓRICO =================
 // ================= GERENCIAMENTO DE NOTIFICAÇÕES (ADMIN) =================
 
+let activeNotifications = [];
+let scheduledNotifications = [];
+
 async function loadAdminNotifications() {
     const listEl = document.getElementById('admin-notifications-list');
     if (!listEl) return;
 
-    // Escuta em tempo real a coleção de notificações
-    const notificationsRef = collection(db, 'adminNotifications');
-    const q = query(notificationsRef, orderBy('createdAt', 'desc'), limit(15));
+    const renderUnifiedList = () => {
+        // Combina as listas
+        const combined = [
+            ...activeNotifications.map(n => ({ ...n, status: 'sent' })),
+            ...scheduledNotifications.map(n => ({ ...n, status: 'pending' }))
+        ];
 
-    onSnapshot(q, (snapshot) => {
-        if (snapshot.empty) {
-            listEl.innerHTML = '<div class="admin-notif-empty">Nenhum comunicado ativo no site no momento.</div>';
+        // Ordena por data (os agendados usam scheduledAt, os enviados usam createdAt)
+        combined.sort((a, b) => {
+            const dateA = new Date(a.status === 'pending' ? a.scheduledAt : a.createdAt);
+            const dateB = new Date(b.status === 'pending' ? b.scheduledAt : b.createdAt);
+            return dateB - dateA;
+        });
+
+        if (combined.length === 0) {
+            listEl.innerHTML = '<div class="admin-notif-empty">Nenhum comunicado ativo no site ou agendado no momento.</div>';
             return;
         }
 
-        listEl.innerHTML = ''; 
-        
-        snapshot.forEach((docSnap) => {
-            const data = docSnap.data();
-            const id = docSnap.id;
-            const dateObj = new Date(data.createdAt);
+        listEl.innerHTML = '';
+        combined.forEach((data) => {
+            const isPending = data.status === 'pending';
+            const dateObj = new Date(isPending ? data.scheduledAt : data.createdAt);
             const formattedDate = dateObj.toLocaleDateString('pt-BR') + ' às ' + dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+            const metaLabel = isPending ? 'Agendado para ' : 'Enviado em ';
+            const collectionName = isPending ? 'scheduledNotifications' : 'adminNotifications';
 
             const item = document.createElement('div');
-            item.className = 'admin-notif-item';
+            item.className = `admin-notif-item ${isPending ? 'is-pending' : ''}`;
             item.innerHTML = `
                 <div class="admin-notif-content">
                     <h4 class="admin-notif-title">${data.title}</h4>
                     <p class="admin-notif-message">${data.message}</p>
                     <div class="admin-notif-meta">
-                        <i data-lucide="clock" style="width: 12px; height: 12px;"></i> Enviado em ${formattedDate}
+                        <i data-lucide="${isPending ? 'calendar' : 'clock'}" style="width: 12px; height: 12px;"></i> ${metaLabel} ${formattedDate}
                     </div>
                 </div>
-                <button class="btn-delete-notif" title="Apagar comunicado do site" data-id="${id}" data-title="${data.title}">
-                    <i data-lucide="trash-2"></i>
+                <button class="btn-delete-notif" title="${isPending ? 'Cancelar agendamento' : 'Apagar comunicado do site'}" 
+                        data-id="${data.id}" data-title="${data.title}" data-collection="${collectionName}">
+                    <i data-lucide="${isPending ? 'x-circle' : 'trash-2'}"></i>
                 </button>
             `;
             listEl.appendChild(item);
@@ -814,29 +827,63 @@ async function loadAdminNotifications() {
             btn.addEventListener('click', async () => {
                 const docId = btn.getAttribute('data-id');
                 const title = btn.getAttribute('data-title');
-                await deleteNotification(docId, title);
+                const collectionName = btn.getAttribute('data-collection');
+                await deleteNotification(docId, title, collectionName);
             });
         });
 
         lucide.createIcons();
+    };
+
+    // Escuta em tempo real a coleção de notificações ATIVAS
+    const activeRef = collection(db, 'adminNotifications');
+    const qActive = query(activeRef, orderBy('createdAt', 'desc'), limit(15));
+    onSnapshot(qActive, (snapshot) => {
+        activeNotifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderUnifiedList();
+    });
+
+    // Escuta em tempo real a coleção de notificações AGENDADAS (apenas as pendentes)
+    const scheduledRef = collection(db, 'scheduledNotifications');
+    const qScheduled = query(scheduledRef, where('status', '==', 'pending'), limit(10));
+    
+    onSnapshot(qScheduled, (snapshot) => {
+        scheduledNotifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderUnifiedList();
+    }, (error) => {
+        console.error("❌ Erro ao escutar agendamentos:", error);
     });
 }
 
-async function deleteNotification(docId, title) {
-    if (!confirm(`Tem certeza que deseja apagar o comunicado "${title}"?\n\nEle desaparecerá instantaneamente do letreiro e do histórico no site dos músicos.`)) {
+async function deleteNotification(docId, title, collectionName = 'adminNotifications') {
+    const isScheduled = collectionName === 'scheduledNotifications';
+    const confirmMsg = isScheduled
+        ? `Tem certeza que deseja cancelar o agendamento do comunicado "${title}"?\n\nEle não será enviado aos músicos.`
+        : `Tem certeza que deseja apagar o comunicado "${title}"?\n\nEle desaparecerá instantaneamente do letreiro e do histórico no site dos músicos.`;
+
+    if (!confirm(confirmMsg)) {
         return;
     }
 
     try {
-        const notifRef = doc(db, 'adminNotifications', docId);
+        const notifRef = doc(db, collectionName, docId);
         await deleteDoc(notifRef);
-        showNotification(`Comunicado "${title}" removido com sucesso.`, 'success');
         
-        // Opcional: Grava no log que foi removido
-        await saveLog('aviso-removido', `Comunicado removido: "${title}"`, null, `O administrador removeu este aviso que estava ativo no site.`);
+        const successMsg = isScheduled 
+            ? `Agendamento "${title}" cancelado com sucesso.`
+            : `Comunicado "${title}" removido com sucesso.`;
+            
+        showNotification(successMsg, 'success');
+        
+        // Grava log da remoção
+        const logType = isScheduled ? 'aviso-cancelado' : 'aviso-removido';
+        const logMsg = isScheduled ? `Agendamento cancelado: "${title}"` : `Comunicado removido: "${title}"`;
+        const logDetails = isScheduled ? `O administrador cancelou um envio programado.` : `O administrador removeu este aviso que estava ativo no site.`;
+        
+        await saveLog(logType, logMsg, null, logDetails);
     } catch (error) {
         console.error("Erro ao deletar:", error);
-        showNotification("Erro ao remover comunicado: " + error.message, 'error');
+        showNotification("Erro ao remover/cancelar: " + error.message, 'error');
     }
 }
 
@@ -1217,6 +1264,17 @@ function initScheduleUI() {
         const isEnabled = toggleSchedule.checked;
         if (scheduleInputs)  scheduleInputs.style.display  = isEnabled ? 'flex'  : 'none';
         if (scheduleStatus)  scheduleStatus.style.display  = isEnabled ? 'block' : 'none';
+
+        // Atualiza o texto do botão principal de envio
+        const btnSend = document.getElementById('btn-send-notif');
+        if (btnSend) {
+            if (isEnabled) {
+                btnSend.innerHTML = '<i data-lucide="calendar-clock"></i> Agendamento Aviso';
+            } else {
+                btnSend.innerHTML = '<i data-lucide="megaphone"></i> Disparar Aviso';
+            }
+            if (window.lucide) lucide.createIcons();
+        }
 
         // Define a data mínima como hoje ao abrir pela primeira vez
         const dateInput = document.getElementById('schedule-date');

@@ -1343,7 +1343,41 @@
     border-left: 4px solid #2E8B57;
     animation: fadeIn 0.3s ease-out;
     min-height: auto; /* Garante que não haja altura fixa */
+    transition: all 0.2s ease;
 }
+
+.admin-notif-item:hover {
+    box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+    transform: translateY(-2px);
+}
+
+/* Estilo para Avisos Agendados (Pendentes) */
+.admin-notif-item.is-pending {
+    background: #fffbeb; /* Fundo âmbar bem leve */
+    border-left-color: #d97706; /* Borda esquerda dourada */
+    border-right: 1px solid rgba(217, 119, 6, 0.1);
+    border-top: 1px solid rgba(217, 119, 6, 0.1);
+    border-bottom: 1px solid rgba(217, 119, 6, 0.1);
+}
+
+.admin-notif-item.is-pending:hover {
+    background: #fff9db;
+    box-shadow: 0 6px 20px rgba(217, 119, 6, 0.12);
+}
+
+.admin-notif-item.is-pending .admin-notif-title::after {
+    content: 'AGENDADO';
+    font-size: 0.65rem;
+    background: #d97706;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-left: 10px;
+    vertical-align: middle;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
 
 .admin-notif-content {
     flex-grow: 1;
@@ -1656,51 +1690,6 @@
     justify-content: center;
 }
 
-.admin-notif-item {
-    background: white;
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 1.25rem;
-    margin-bottom: 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
-    position: relative;
-    overflow: hidden;
-}
-
-.admin-notif-item:hover {
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-    transform: translateY(-2px);
-    border-color: var(--primary-color);
-}
-
-/* Estilo para Avisos Agendados (Pendentes) */
-.admin-notif-item.is-pending {
-    background: #fffbeb; /* Fundo levemente amarelado */
-    border-color: #fde68a; /* Borda dourada/amarela */
-    border-left: 4px solid #f59e0b; /* Destaque lateral */
-}
-
-.admin-notif-item.is-pending:hover {
-    border-color: #f59e0b;
-    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.1);
-}
-
-.admin-notif-item.is-pending .admin-notif-title::after {
-    content: 'AGENDADO';
-    font-size: 0.65rem;
-    background: #f59e0b;
-    color: white;
-    padding: 2px 6px;
-    border-radius: 4px;
-    margin-left: 8px;
-    vertical-align: middle;
-    letter-spacing: 0.5px;
-    font-weight: 700;
-}
 
 .filter-btn {
     background: white;

@@ -201,7 +201,7 @@ exports.dailySubscriberCheck = onSchedule({
 exports.suggestNotificationText = onCall({
     region: "us-central1", // Ou sua região padrão
     maxInstances: 10,
-    memory: "256MiB"
+    memory: "512MiB"
 }, async (request) => {
     // Verificar autenticação (apenas admins podem chamar)
     if (!request.auth) {
@@ -282,10 +282,24 @@ exports.scheduledNotificationHandler = onSchedule({
         .where("status", "==", "pending")
         .get();
 
-    if (snap.empty) { console.log("Sem notificacoes pendentes."); return; }
+    if (snap.empty) {
+        return; 
+    }
 
-    const dueDocs = snap.docs.filter(d => new Date(d.data().scheduledAt) <= now);
-    if (dueDocs.length === 0) { console.log("Nenhuma notificacao vencida."); return; }
+    console.log(`[Agendamento] Verificando ${snap.size} notificações pendentes...`);
+
+    const dueDocs = snap.docs.filter(d => {
+        const scheduledDate = new Date(d.data().scheduledAt);
+        const isDue = scheduledDate <= now;
+        if (!isDue) {
+            console.log(`- Notificação "${d.data().title}" ainda não venceu (Agendado: ${d.data().scheduledAt}, Agora: ${now.toISOString()})`);
+        }
+        return isDue;
+    });
+
+    if (dueDocs.length === 0) { return; }
+
+    console.log(`[Agendamento] Processando ${dueDocs.length} notificações vencidas.`);
 
     const tokensSnap = await db.collection("fcmTokens").get();
     const tokens = [];
@@ -306,6 +320,17 @@ exports.scheduledNotificationHandler = onSchedule({
                 });
             }
             await docSnap.ref.update({ status: "sent", sentAt: now.toISOString() });
+
+            // NOVO: Adiciona ao histórico de avisos do site e atualiza o letreiro
+            const notifData = {
+                title: data.title || "Novo aviso",
+                message: data.message || "",
+                createdAt: now.toISOString(),
+                sentBy: data.createdBy || 'agendamento',
+                ...(data.imageUrl ? { imageUrl: data.imageUrl } : {})
+            };
+            await db.collection("adminNotifications").add(notifData);
+            await db.collection("config").doc("latestNotice").set(notifData);
             await db.collection("adminLogs").add({
                 type: "aviso",
                 message: "Aviso agendado enviado: " + data.title,
@@ -327,7 +352,7 @@ exports.scheduledNotificationHandler = onSchedule({
 exports.scheduleNotification = onCall({
     region: "us-central1",
     maxInstances: 5,
-    memory: "128MiB"
+    memory: "256MiB"
 }, async (request) => {
     if (!request.auth) {
         throw new HttpsError("unauthenticated", "Autenticacao obrigatoria.");
@@ -337,7 +362,10 @@ exports.scheduleNotification = onCall({
         throw new HttpsError("invalid-argument", "Os campos title e scheduledAt sao obrigatorios.");
     }
     const scheduled = new Date(scheduledAt);
-    if (isNaN(scheduled.getTime()) || scheduled <= new Date()) {
+    // Margem de 1 minuto para evitar erros por pequenos atrasos de rede/relógio
+    const oneMinuteAgo = new Date(Date.now() - 60000);
+    
+    if (isNaN(scheduled.getTime()) || scheduled <= oneMinuteAgo) {
         throw new HttpsError("invalid-argument", "A data deve ser no futuro.");
     }
     const docRef = await admin.firestore().collection("scheduledNotifications").add({
