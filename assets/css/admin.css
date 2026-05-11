@@ -1297,14 +1297,14 @@
 }
 
 .notif-scroll-container {
-    max-height: 450px;
+    max-height: 650px; /* Aumentado de 450px para exibir mais cards */
     overflow-y: auto;
     padding: 0.5rem;
     padding-right: 0.8rem;
     border-radius: 12px;
     display: flex;
     flex-direction: column;
-    gap: 1rem;
+    gap: 1.2rem; /* Aumentado o gap entre cards */
     max-width: 800px;
     margin: 0 auto;
 }
@@ -1335,13 +1335,14 @@
 .admin-notif-item {
     background: white;
     border-radius: 12px;
-    padding: 1.2rem;
+    padding: 1.5rem; /* Aumentado de 1.2rem para dar mais espaço */
     box-shadow: 0 4px 15px rgba(0,0,0,0.05);
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start; /* Alterado de center para flex-start para melhor suporte a textos longos */
     border-left: 4px solid #2E8B57;
     animation: fadeIn 0.3s ease-out;
+    min-height: auto; /* Garante que não haja altura fixa */
 }
 
 .admin-notif-content {
@@ -1356,10 +1357,11 @@
 }
 
 .admin-notif-message {
-    margin: 0.3rem 0 0.5rem 0;
-    font-size: 0.9rem;
+    margin: 0.5rem 0 0.8rem 0;
+    font-size: 0.95rem; /* Ligeiramente aumentado para melhor leitura */
     color: var(--text-secondary);
-    line-height: 1.4;
+    line-height: 1.5; /* Aumentado para melhor legibilidade */
+    word-break: break-word; /* Garante que palavras longas não quebrem o layout */
 }
 
 .admin-notif-meta {
@@ -1652,6 +1654,52 @@
     padding: 0 0.5rem;
     flex-wrap: wrap;
     justify-content: center;
+}
+
+.admin-notif-item {
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+    position: relative;
+    overflow: hidden;
+}
+
+.admin-notif-item:hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    transform: translateY(-2px);
+    border-color: var(--primary-color);
+}
+
+/* Estilo para Avisos Agendados (Pendentes) */
+.admin-notif-item.is-pending {
+    background: #fffbeb; /* Fundo levemente amarelado */
+    border-color: #fde68a; /* Borda dourada/amarela */
+    border-left: 4px solid #f59e0b; /* Destaque lateral */
+}
+
+.admin-notif-item.is-pending:hover {
+    border-color: #f59e0b;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.1);
+}
+
+.admin-notif-item.is-pending .admin-notif-title::after {
+    content: 'AGENDADO';
+    font-size: 0.65rem;
+    background: #f59e0b;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 8px;
+    vertical-align: middle;
+    letter-spacing: 0.5px;
+    font-weight: 700;
 }
 
 .filter-btn {
