@@ -18,7 +18,8 @@
 *   **Performance & UX:** Uso de *Skeleton Screens* para carregamento visual suave e pré-carregamento preditivo em desktops.
 *   **PWA (Progressive Web App):** Instale o site como um aplicativo no celular para acesso rápido e offline básico.
 *   **Gestão de Cache Inteligente:** O sistema gerencia automaticamente o armazenamento do celular, removendo versões antigas de PDFs para economizar memória.
-*   **Notificações Push:** Sistema de alertas para novos arquivos ou comunicados urgentes (suporta iOS e Android).
+*   **Acessibilidade & UI:** Botão de Feedback integrado ao rodapé e alternador de temas (Claro/Escuro/Sistema).
+*   **Notificações Push:** Sistema de alertas para novos arquivos ou comunicados urgentes (suporta iOS e Android), com botão de fácil acesso posicionado para não obstruir o conteúdo.
 *   **Letreiro Dinâmico (Ticker):** Exibição de mensagens rápidas e avisos importantes no topo do site.
 *   **Histórico de Avisos:** Central de comunicados passados com suporte a imagens e carregamento sob demanda (*lazy loading*).
 *   **Links Dinâmicos:** Botões configuráveis para formulários, editais e recursos externos com ícones personalizados.

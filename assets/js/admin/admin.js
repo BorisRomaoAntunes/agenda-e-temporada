@@ -636,24 +636,37 @@ function showNotification(message, type = 'success') {
 // ================= MODAL DE AJUSTES =================
 
 function initSettingsModal() {
-    if (!btnSettings || !settingsModal || !btnCloseSettings) return;
+    // Busca referências novamente caso tenham sido capturadas como null no carregamento inicial
+    const btn = btnSettings || document.getElementById('btn-settings');
+    const modal = settingsModal || document.getElementById('settings-modal');
+    const closeBtn = btnCloseSettings || document.getElementById('btn-close-settings');
 
-    btnSettings.addEventListener('click', () => {
-        settingsModal.style.display = 'flex';
+    if (!btn || !modal || !closeBtn) {
+        console.warn('[Settings] Alguns elementos do modal não foram encontrados:', { btn, modal, closeBtn });
+        return;
+    }
+
+    // Evita adicionar múltiplos listeners se a função for chamada novamente
+    if (btn._listenerAdded) return;
+    btn._listenerAdded = true;
+
+    btn.addEventListener('click', () => {
+        console.log('[Settings] Abrindo modal de ajustes...');
+        modal.style.display = 'flex';
         document.body.style.overflow = 'hidden'; // Previne scroll ao fundo
-        lucide.createIcons(); // Garante que os ícones do modal sejam renderizados
+        if (typeof lucide !== 'undefined') lucide.createIcons();
     });
 
     const closeModal = () => {
-        settingsModal.style.display = 'none';
+        modal.style.display = 'none';
         document.body.style.overflow = '';
     };
 
-    btnCloseSettings.addEventListener('click', closeModal);
+    closeBtn.addEventListener('click', closeModal);
 
     // Fechar ao clicar fora do card
-    settingsModal.addEventListener('click', (e) => {
-        if (e.target === settingsModal) closeModal();
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
     });
 }
 

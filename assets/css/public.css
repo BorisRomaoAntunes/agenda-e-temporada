@@ -31,6 +31,10 @@ body.modo-concerto .main-header {
     border-bottom-color: #440000;
 }
 
+body.modo-concerto .logo-oer {
+    content: url('../img/logo_oer_white.png');
+}
+
 body.modo-concerto .main-header h1 {
     color: #aa0000;
 }
@@ -914,52 +918,46 @@ iframe {
     }
 }
 
-/* Floating Feedback Button */
-.btn-feedback {
-    position: fixed;
-    bottom: 2rem;
-    left: 2rem;
-    width: 65px;
-    height: 65px;
-    background-color: var(--primary-color);
-    color: #ffffff;
+/* Footer Actions */
+.footer-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.btn-footer-secondary {
+    background: rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    color: var(--text-primary);
+    width: 42px;
+    height: 42px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     text-decoration: none;
-    box-shadow: 0 4px 15px rgba(139, 0, 0, 0.4);
-    z-index: 1000;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    border: 3px solid transparent;
 }
 
-.btn-feedback svg {
-    width: 32px;
-    height: 32px;
+.btn-footer-secondary:hover {
+    background: rgba(0, 0, 0, 0.08);
+    transform: scale(1.08);
+    border-color: rgba(0, 0, 0, 0.15);
 }
 
-.btn-feedback:hover {
-    transform: scale(1.15);
-    background-color: #FFD700;
-    color: var(--primary-color);
-    box-shadow: 0 8px 25px rgba(255, 215, 0, 0.6);
-    border-color: var(--primary-color);
+body.modo-concerto .btn-footer-secondary {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #888;
 }
 
-@media (max-width: 768px) {
-    .btn-feedback {
-        bottom: 1.5rem;
-        left: 1.5rem;
-        width: 55px;
-        height: 55px;
-    }
-    
-    .btn-feedback svg {
-        width: 28px;
-        height: 28px;
-    }
+body.modo-concerto .btn-footer-secondary:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+    color: #eee;
 }
+
 
 /* Footer */
 .main-footer {
@@ -1345,10 +1343,11 @@ body.force-mobile .btn-form {
 
 .notification-container {
     position: fixed;
-    bottom: 102px; /* Feedback bottom(32px) + height(65px) + 5px */
-    left: 2rem;
+    bottom: 120px;
+    right: 2rem;
     z-index: 1000;
 }
+
 
 .notification-trigger {
     width: 65px;
@@ -1444,7 +1443,7 @@ body.force-mobile .btn-form {
 .notification-panel {
     position: absolute;
     bottom: 80px;
-    left: 0;
+    right: 0;
     width: 250px;
     background-color: #ffffff;
     border-radius: 12px;
@@ -1457,7 +1456,7 @@ body.force-mobile .btn-form {
     opacity: 0;
     visibility: hidden;
     transform: translateY(15px) scale(0.95);
-    transform-origin: bottom left;
+    transform-origin: bottom right;
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     z-index: 1001;
 }
@@ -1522,7 +1521,7 @@ body.force-mobile .btn-form {
     content: '';
     position: absolute;
     bottom: -8px;
-    left: 25px;
+    right: 25px;
     width: 0;
     height: 0;
     border-left: 8px solid transparent;
@@ -1550,9 +1549,8 @@ body.force-mobile .btn-form {
     }
 
     .notification-container {
-        /* Feedback bottom(24px) + height(55px) + 5px */
-        bottom: 84px;
-        left: 1.5rem;
+        bottom: 130px;
+        right: 1.5rem;
     }
     
     .notification-trigger {

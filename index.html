@@ -172,20 +172,27 @@
         <div class="container footer-container">
             <p>&copy; 2026 Projeto OER. Desenvolvido por Boris Romão Antunes.</p>
             
-            <div class="theme-selector-wrapper">
-                <button id="btn-theme-selector" class="btn-theme-selector" title="Alterar Tema">
-                    <i data-lucide="sun" id="current-theme-icon"></i>
-                </button>
-                <div id="theme-dropdown" class="theme-dropdown">
-                    <button class="theme-option" data-theme="light" title="Tema Claro">
-                        <i data-lucide="sun"></i> <span>Tema claro</span>
+            <div class="footer-actions">
+                <a href="mailto:borisantunes@prefeitura.sp.gov.br?subject=Feedback%20-%20Agenda%20da%20OER&body=Ol%C3%A1%20meu%20nome%20%C3%A9%20%3A%20%0D%0Aestou%20tendo%20essa%20dificuldade%20%3A"
+                    class="btn-footer-secondary" title="Dúvidas e Feedback">
+                    <i data-lucide="help-circle"></i>
+                </a>
+
+                <div class="theme-selector-wrapper">
+                    <button id="btn-theme-selector" class="btn-theme-selector" title="Alterar Tema">
+                        <i data-lucide="sun" id="current-theme-icon"></i>
                     </button>
-                    <button class="theme-option" data-theme="dark" title="Tema Escuro">
-                        <i data-lucide="moon"></i> <span>Tema escuro</span>
-                    </button>
-                    <button class="theme-option" data-theme="system" title="Padrão do Dispositivo">
-                        <i data-lucide="monitor"></i> <span>Padrão do dispositivo</span>
-                    </button>
+                    <div id="theme-dropdown" class="theme-dropdown">
+                        <button class="theme-option" data-theme="light" title="Tema Claro">
+                            <i data-lucide="sun"></i> <span>Tema claro</span>
+                        </button>
+                        <button class="theme-option" data-theme="dark" title="Tema Escuro">
+                            <i data-lucide="moon"></i> <span>Tema escuro</span>
+                        </button>
+                        <button class="theme-option" data-theme="system" title="Padrão do Dispositivo">
+                            <i data-lucide="monitor"></i> <span>Padrão do dispositivo</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -238,16 +245,7 @@
         </button>
     </div>
 
-    <!-- Botão de Feedback -->
-    <a href="mailto:borisantunes@prefeitura.sp.gov.br?subject=Feedback%20-%20Agenda%20da%20OER&body=Ol%C3%A1%20meu%20nome%20%C3%A9%20%3A%20%0D%0Aestou%20tendo%20essa%20dificuldade%20%3A"
-        class="btn-feedback" title="Enviar Feedback">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
-            <line x1="12" y1="17" x2="12.01" y2="17"></line>
-        </svg>
-    </a>
+
 
     <!-- Script de Controle de UI: Modo Concerto e Animações -->
     <script>
@@ -301,11 +299,15 @@
                 effectiveTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
             }
 
+            const logoOer = document.querySelector('.logo-oer');
+
             if (effectiveTheme === 'dark') {
                 body.classList.add('modo-concerto');
                 currentThemeIcon.setAttribute('data-lucide', 'moon');
+                if (logoOer) logoOer.src = 'assets/img/logo_oer_white.png';
             } else {
                 currentThemeIcon.setAttribute('data-lucide', 'sun');
+                if (logoOer) logoOer.src = 'assets/img/logo_oer.png';
             }
 
             // Atualizar ícones do Lucide

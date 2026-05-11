@@ -1,7 +1,7 @@
 const { onDocumentCreated, onDocumentDeleted } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
-const { onObjectFinalized } = require("firebase-functions/v2/storage");
+const functions = require("firebase-functions");
 const { FieldValue } = require("firebase-admin/firestore");
 const admin = require("firebase-admin");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
@@ -353,16 +353,12 @@ exports.scheduleNotification = onCall({
 });
 
 /**
- * Otimiza PDFs recém-carregados no Storage.
- * Detecta arquivos na pasta 'pdfs/', remove objetos desnecessários e 
- * marca como otimizado para evitar loops de recursão.
+ * Otimiza PDFs recém-carregados no Storage (Versão v1 para evitar problemas de IAM).
  */
-exports.onPDFUpload = onObjectFinalized({
-    cpu: 1,
-    memory: "512MiB",
-    timeoutSeconds: 300
-}, async (event) => {
-    const object = event.data;
+exports.onPDFUpload = functions.runWith({
+    timeoutSeconds: 300,
+    memory: "512MB"
+}).storage.object().onFinalize(async (object) => {
     const filePath = object.name;
     const contentType = object.contentType;
 
