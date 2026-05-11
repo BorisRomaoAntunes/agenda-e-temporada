@@ -44,8 +44,21 @@
 }
 
 .admin-header {
-    text-align: center;
     margin-bottom: 2rem;
+}
+
+.header-brand {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+}
+
+.header-separator {
+    width: 1px;
+    height: 35px;
+    background-color: rgba(0, 0, 0, 0.15);
+    display: block;
 }
 
 .admin-logo {
@@ -197,7 +210,7 @@
 .brand {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 1.5rem;
 }
 
 .dash-logo {
@@ -1941,6 +1954,18 @@
     .settings-modal-card .modal-body,
     .settings-modal-card .modal-footer {
         padding: 1.5rem;
+    }
+
+    .brand, .header-brand {
+        gap: 0.8rem;
+    }
+
+    .header-separator {
+        height: 25px;
+    }
+
+    .brand h1 {
+        font-size: 1rem;
     }
 }
 
