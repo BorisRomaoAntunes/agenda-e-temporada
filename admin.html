@@ -148,8 +148,14 @@
 
                 <div class="logs-wrapper">
                     <div class="logs-header">
-                        <h3><i data-lucide="history"></i> Últimas Atualizações</h3>
-                        <p>Acompanhe o histórico de avisos e uploads.</p>
+                        <div class="logs-header-info">
+                            <h3><i data-lucide="history"></i> Últimas Atualizações</h3>
+                            <p>Acompanhe o histórico de avisos e uploads.</p>
+                        </div>
+                        <div class="search-box">
+                            <i data-lucide="search"></i>
+                            <input type="text" id="log-search" placeholder="Pesquisar no histórico (ex: nome, data, categoria)...">
+                        </div>
                     </div>
 
                     <div class="log-filters" id="log-filters">
@@ -233,8 +239,33 @@
                         <i data-lucide="megaphone"></i> Disparar Aviso
                     </button>
 
+                    <!-- Agendamento de Notificação -->
+                    <div id="scheduling-section" style="width:100%; border-top: 1px solid #eee; padding-top: 1.2rem; margin-top: 1.5rem;">
+                        <div class="toggle-row" style="margin-bottom: 0.8rem;">
+                            <span class="toggle-label">
+                                <i data-lucide="calendar-clock"></i>
+                                Agendar envio futuro (opcional)
+                            </span>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="toggle-schedule">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
+                        <div id="schedule-inputs" style="display:none; gap: 1rem; flex-wrap: wrap;">
+                            <div class="version-input-wrapper" style="flex:1; min-width: 160px; margin-bottom: 0;">
+                                <label for="schedule-date"><i data-lucide="calendar" style="width:14px;height:14px;"></i> Data</label>
+                                <input type="date" id="schedule-date" class="version-input" style="width:100%;">
+                            </div>
+                            <div class="version-input-wrapper" style="flex:1; min-width: 120px; margin-bottom: 0;">
+                                <label for="schedule-time"><i data-lucide="clock" style="width:14px;height:14px;"></i> Hora</label>
+                                <input type="time" id="schedule-time" class="version-input" style="width:100%;">
+                            </div>
+                        </div>
+                        <p id="schedule-status-text" class="toggle-status" style="display:none; margin-top: 0.5rem;">Escolha a data e hora para o envio agendado.</p>
+                    </div>
+
                     <!-- Toggle: Habilitar/Desabilitar botão de notificação no site -->
-                    <div style="width:100%; border-top: 1px solid #eee; padding-top: 1.2rem; margin-top: 1.5rem;">
+                    <div style="width:100%; border-top: 1px solid #eee; padding-top: 1.2rem; margin-top: 0.5rem;">
                         <div class="toggle-row">
                             <span class="toggle-label">
                                 <i data-lucide="bell"></i>
@@ -441,6 +472,15 @@
     <!-- Vamos usar a API Modular V9, que é mais rápida e moderna -->
     <script type="module" src="assets/js/admin/admin.js?v=9"></script>
     <script>
+        // Registro do Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('SW Admin registrado!', reg))
+                    .catch(err => console.log('Erro SW Admin:', err));
+            });
+        }
+
         lucide.createIcons();
 
         // Lógica de Seleção de Ambiente (Produção / Emulador)

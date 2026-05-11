@@ -935,6 +935,10 @@
     padding-bottom: 1rem;
     margin: 2rem auto 1.5rem auto;
     max-width: 800px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
 }
 
 .logs-header h3 {
@@ -949,6 +953,50 @@
     margin: 0;
     color: var(--text-secondary);
     font-size: 0.9rem;
+}
+
+.search-box {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 1.5rem;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+    background: #fdfdfd;
+    border: 1px solid #eee;
+    border-radius: 10px;
+    padding: 0 1rem;
+    transition: all 0.2s ease;
+}
+
+/* Quando a busca está dentro do header de logs */
+.logs-header .search-box {
+    margin: 0;
+    flex: 1;
+    max-width: 320px;
+}
+
+.search-box:focus-within {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 4px rgba(139, 0, 0, 0.05);
+    background: white;
+}
+
+.search-box i {
+    color: #999;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.search-box input {
+    width: 100%;
+    padding: 0.8rem 0;
+    border: none;
+    background: transparent;
+    font-size: 0.95rem;
+    outline: none;
 }
 
 .log-list {
@@ -1162,6 +1210,17 @@
 }
 
 @media (max-width: 768px) {
+    .logs-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .logs-header .search-box {
+        max-width: 100%;
+        width: 100%;
+    }
+
     .logs-wrapper {
         padding: 1.2rem;
     }
@@ -1694,5 +1753,16 @@
 .icon-option svg {
     width: 20px;
     height: 20px;
+}
+
+/* ========== SKELETON SCREENS (AJUSTES ESPECÍFICOS ADMIN) ========== */
+
+.log-skeleton {
+    pointer-events: none;
+    opacity: 0.85;
+}
+
+.log-skeleton .log-icon.skeleton-box {
+    border: none;
 }
 

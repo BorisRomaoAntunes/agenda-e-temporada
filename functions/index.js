@@ -238,3 +238,89 @@ exports.suggestNotificationText = onCall({
         };
     }
 });
+
+/**
+ * [BASE] Handler de Notificações Agendadas
+ * Roda a cada minuto e verifica scheduledNotifications com status='pending'.
+ */
+exports.scheduledNotificationHandler = onSchedule({
+    schedule: "* * * * *",
+    timeZone: "America/Sao_Paulo",
+    memory: "256MiB"
+}, async (event) => {
+    const now = new Date();
+    const db  = admin.firestore();
+
+    const snap = await db.collection("scheduledNotifications")
+        .where("status", "==", "pending")
+        .get();
+
+    if (snap.empty) { console.log("Sem notificacoes pendentes."); return; }
+
+    const dueDocs = snap.docs.filter(d => new Date(d.data().scheduledAt) <= now);
+    if (dueDocs.length === 0) { console.log("Nenhuma notificacao vencida."); return; }
+
+    const tokensSnap = await db.collection("fcmTokens").get();
+    const tokens = [];
+    tokensSnap.forEach(d => { if (d.data().token) tokens.push(d.data().token); });
+
+    for (const docSnap of dueDocs) {
+        const data = docSnap.data();
+        await docSnap.ref.update({ status: "processing" });
+        try {
+            if (tokens.length > 0) {
+                await admin.messaging().sendEachForMulticast({
+                    notification: {
+                        title: data.title || "Novo aviso",
+                        body: data.message || "",
+                        ...(data.imageUrl ? { image: data.imageUrl } : {})
+                    },
+                    tokens
+                });
+            }
+            await docSnap.ref.update({ status: "sent", sentAt: now.toISOString() });
+            await db.collection("adminLogs").add({
+                type: "aviso",
+                message: "Aviso agendado enviado: " + data.title,
+                details: "Agendado para " + data.scheduledAt + ". Enviado para " + tokens.length + " musico(s).",
+                user: data.createdBy || "agendamento",
+                ...(data.imageUrl ? { imageUrl: data.imageUrl } : {}),
+                createdAt: now.toISOString()
+            });
+        } catch (err) {
+            console.error("Erro ao processar notificacao agendada:", err);
+            await docSnap.ref.update({ status: "error", errorMsg: String(err) });
+        }
+    }
+});
+
+/**
+ * [BASE] Callable: Cria uma notificacao agendada via Admin.
+ */
+exports.scheduleNotification = onCall({
+    region: "us-central1",
+    maxInstances: 5,
+    memory: "128MiB"
+}, async (request) => {
+    if (!request.auth) {
+        throw new HttpsError("unauthenticated", "Autenticacao obrigatoria.");
+    }
+    const { title, message, imageUrl, scheduledAt } = request.data;
+    if (!title || !scheduledAt) {
+        throw new HttpsError("invalid-argument", "Os campos title e scheduledAt sao obrigatorios.");
+    }
+    const scheduled = new Date(scheduledAt);
+    if (isNaN(scheduled.getTime()) || scheduled <= new Date()) {
+        throw new HttpsError("invalid-argument", "A data deve ser no futuro.");
+    }
+    const docRef = await admin.firestore().collection("scheduledNotifications").add({
+        title,
+        message: message || "",
+        ...(imageUrl ? { imageUrl } : {}),
+        scheduledAt: scheduled.toISOString(),
+        status: "pending",
+        createdBy: request.auth.token.email || request.auth.uid,
+        createdAt: new Date().toISOString()
+    });
+    return { id: docRef.id, message: "Notificacao agendada com sucesso." };
+});

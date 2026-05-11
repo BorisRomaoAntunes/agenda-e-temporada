@@ -81,6 +81,8 @@ onAuthStateChanged(auth, (user) => {
         setupLinks(); // Inicia configurações e listagem dos links temporários
         initManualRobot(); // Inicia o Robô OER Manual
         initLogFilters(); // Inicia os filtros do histórico
+        initLogSearch();  // Inicia o campo de busca no histórico
+        initScheduleUI(); // Inicia a UI de agendamento de notificações
     } else {
         // Não logado
         dashboardContainer.classList.remove('active');
@@ -488,7 +490,7 @@ if (btnRemoveNotifImage) {
 
 if (btnSendNotif) {
     btnSendNotif.addEventListener('click', async () => {
-        const title = inputNotifTitle.value.trim();
+        const title   = inputNotifTitle.value.trim();
         const message = inputNotifMessage.value.trim();
 
         if (!title || !message) {
@@ -496,57 +498,89 @@ if (btnSendNotif) {
             return;
         }
 
+        // Verifica se o agendamento está ativo
+        const scheduleData = getScheduleData();
+        const isScheduled  = scheduleData !== null;
+
         btnSendNotif.disabled = true;
         const originalText = btnSendNotif.innerHTML;
-        btnSendNotif.innerHTML = '<i data-lucide="loader"></i> Enviando...';
+        btnSendNotif.innerHTML = isScheduled
+            ? '<i data-lucide="loader"></i> Agendando...'
+            : '<i data-lucide="loader"></i> Enviando...';
         lucide.createIcons();
 
         try {
+            // Upload de imagem (comum a ambos os fluxos)
             let imageUrl = null;
             if (selectedNotifImage) {
                 const timestamp = Date.now();
-                const ext = selectedNotifImage.name.split('.').pop();
-                const fileName = `notif_${timestamp}.${ext}`;
+                const ext       = selectedNotifImage.name.split('.').pop();
+                const fileName  = `notif_${timestamp}.${ext}`;
                 const storageRef = ref(storage, `notification_images/${fileName}`);
-                
-                // Upload da imagem
                 const uploadTask = await uploadBytesResumable(storageRef, selectedNotifImage);
                 imageUrl = await getDownloadURL(uploadTask.ref);
             }
 
-            const notifRef = collection(db, 'adminNotifications');
-            const notifData = {
-                title: title,
-                message: message,
-                createdAt: new Date().toISOString(),
-                sentBy: auth.currentUser ? auth.currentUser.email : 'admin'
-            };
+            if (isScheduled) {
+                // ── FLUXO DE AGENDAMENTO ──────────────────────────────────
+                const fnSchedule = httpsCallable(functions, 'scheduleNotification');
+                const result = await fnSchedule({
+                    title,
+                    message,
+                    ...(imageUrl ? { imageUrl } : {}),
+                    scheduledAt: scheduleData.scheduledAt
+                });
 
-            if (imageUrl) {
-                notifData.imageUrl = imageUrl;
+                // Grava log de agendamento
+                const scheduledDate = new Date(scheduleData.scheduledAt);
+                const dateStr = scheduledDate.toLocaleDateString('pt-BR');
+                const timeStr = scheduledDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                await saveLog(
+                    'aviso',
+                    `Aviso agendado: "${title}"`,
+                    null,
+                    `Agendado para ${dateStr} às ${timeStr}. ID: ${result.data.id}`,
+                    imageUrl
+                );
+
+                showNotification(`Aviso agendado para ${dateStr} às ${timeStr}! ✅`, 'success');
+
+                // Reseta o toggle de agendamento
+                const toggleSchedule = document.getElementById('toggle-schedule');
+                if (toggleSchedule) { toggleSchedule.checked = false; toggleSchedule.dispatchEvent(new Event('change')); }
+
+            } else {
+                // ── FLUXO DE ENVIO IMEDIATO ───────────────────────────────
+                const notifData = {
+                    title,
+                    message,
+                    createdAt: new Date().toISOString(),
+                    sentBy: auth.currentUser ? auth.currentUser.email : 'admin',
+                    ...(imageUrl ? { imageUrl } : {})
+                };
+
+                await addDoc(collection(db, 'adminNotifications'), notifData);
+
+                // Atualiza letreiro (latestNotice)
+                await setDoc(doc(db, 'config', 'latestNotice'), notifData);
+
+                // Log histórico
+                await saveLog('aviso', `Notificação push enviada: "${title}"`, null, message, imageUrl);
+
+                showNotification('Aviso enviado para a fila de disparo! Os músicos receberão em instantes.', 'success');
             }
 
-            await addDoc(notifRef, notifData);
-            
-            // Grava o aviso mais recente em um documento específico para o letreiro (Otimização de Leituras)
-            const latestRef = doc(db, 'config', 'latestNotice');
-            await setDoc(latestRef, notifData);
-
-            // Grava no Log Histórico (incluindo o detalhamento e imagem)
-            await saveLog('aviso', `Notificação push enviada: "${title}"`, null, message, imageUrl);
-
-            showNotification('Aviso enviado para a fila de disparo! Os músicos receberão em instantes.', 'success');
-            inputNotifTitle.value = '';
+            // Limpa campos
+            inputNotifTitle.value   = '';
             inputNotifMessage.value = '';
-            
-            // Limpa a imagem após enviar
             if (btnRemoveNotifImage) btnRemoveNotifImage.click();
+
         } catch (error) {
-            showNotification(`Erro ao enviar aviso: ${error.message}`, 'error');
-            console.error('Erro:', error);
+            showNotification(`Erro: ${error.message}`, 'error');
+            console.error('Erro ao processar aviso:', error);
         } finally {
-            btnSendNotif.disabled = false;
-            btnSendNotif.innerHTML = originalText;
+            btnSendNotif.disabled    = false;
+            btnSendNotif.innerHTML   = originalText;
             lucide.createIcons();
         }
     });
@@ -792,7 +826,19 @@ async function loadLogs(filterType = 'all') {
     // Remove listener antigo se existir para evitar múltiplos disparos
     listEl.removeEventListener('scroll', handleLogScroll);
     
-    listEl.innerHTML = '<div class="loading-logs"><i data-lucide="loader"></i> Carregando histórico...</div>';
+    // Skeleton Screens: exibe placeholders animados enquanto carrega
+    listEl.innerHTML = Array(4).fill(`
+        <li class="log-item log-skeleton">
+            <div class="log-icon skeleton-box" style="width:40px;height:40px;border-radius:50%;"></div>
+            <div class="log-content" style="flex:1;">
+                <div class="skeleton-box" style="height:14px;width:70%;margin-bottom:8px;border-radius:6px;"></div>
+                <div class="skeleton-box" style="height:11px;width:45%;border-radius:6px;"></div>
+            </div>
+            <div class="log-right-area">
+                <div class="skeleton-box" style="height:12px;width:80px;border-radius:6px;"></div>
+            </div>
+        </li>
+    `).join('');
     lucide.createIcons();
     
     try {
@@ -1056,6 +1102,97 @@ function initLogFilters() {
     });
 }
 
+// ================= BUSCA NO HISTÓRICO =================
+
+function initLogSearch() {
+    const searchInput = document.getElementById('log-search');
+    if (!searchInput) return;
+
+    let debounceTimer;
+
+    searchInput.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            const term = searchInput.value.trim().toLowerCase();
+            const listEl = document.getElementById('log-list');
+            if (!listEl) return;
+
+            const items = listEl.querySelectorAll('.log-item:not(.log-skeleton)');
+
+            if (!term) {
+                // Sem busca: mostra tudo
+                items.forEach(item => item.style.display = '');
+                return;
+            }
+
+            let anyVisible = false;
+            items.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                const match = text.includes(term);
+                item.style.display = match ? '' : 'none';
+                if (match) anyVisible = true;
+            });
+
+            // Mostra mensagem se nenhum resultado
+            const emptyMsg = listEl.querySelector('.log-search-empty');
+            if (!anyVisible) {
+                if (!emptyMsg) {
+                    const div = document.createElement('div');
+                    div.className = 'log-search-empty';
+                    div.style.cssText = 'text-align:center;padding:2rem;color:#888;';
+                    div.innerHTML = `<i data-lucide="search-x" style="display:block;margin:0 auto 0.5rem;"></i> Nenhum resultado para "${searchInput.value}"`;
+                    listEl.appendChild(div);
+                    lucide.createIcons();
+                }
+            } else {
+                if (emptyMsg) emptyMsg.remove();
+            }
+        }, 300);
+    });
+}
+
+// ================= AGENDAMENTO DE NOTIFICAÇÕES =================
+
+function initScheduleUI() {
+    const toggleSchedule = document.getElementById('toggle-schedule');
+    const scheduleInputs  = document.getElementById('schedule-inputs');
+    const scheduleStatus  = document.getElementById('schedule-status-text');
+    if (!toggleSchedule) return;
+
+    toggleSchedule.addEventListener('change', () => {
+        const isEnabled = toggleSchedule.checked;
+        if (scheduleInputs)  scheduleInputs.style.display  = isEnabled ? 'flex'  : 'none';
+        if (scheduleStatus)  scheduleStatus.style.display  = isEnabled ? 'block' : 'none';
+
+        // Define a data mínima como hoje ao abrir pela primeira vez
+        const dateInput = document.getElementById('schedule-date');
+        if (dateInput && isEnabled && !dateInput.value) {
+            const today = new Date().toISOString().split('T')[0];
+            dateInput.min   = today;
+            dateInput.value = today;
+        }
+    });
+}
+
+/**
+ * Retorna os dados de agendamento se o toggle estiver ativo, ou null.
+ */
+function getScheduleData() {
+    const toggle = document.getElementById('toggle-schedule');
+    if (!toggle || !toggle.checked) return null;
+
+    const date = document.getElementById('schedule-date')?.value;
+    const time = document.getElementById('schedule-time')?.value;
+    if (!date || !time) return null;
+
+    const scheduledAt = new Date(`${date}T${time}:00`);
+    return {
+        scheduledAt: scheduledAt.toISOString(),
+        status: 'pending'
+    };
+}
+
+
 // ================= MODAL DE IMAGEM =================
 
 window.openImageModal = function(src) {
@@ -1117,8 +1254,12 @@ function setupLinks() {
                 opt.classList.add('active');
                 
                 // Atualiza preview no botão
-                if (selectedIconPreview) {
-                    selectedIconPreview.setAttribute('data-lucide', selectedIcon);
+                const currentPreview = document.getElementById('selected-icon-preview');
+                if (currentPreview) {
+                    const newIcon = document.createElement('i');
+                    newIcon.id = 'selected-icon-preview';
+                    newIcon.setAttribute('data-lucide', selectedIcon);
+                    currentPreview.parentNode.replaceChild(newIcon, currentPreview);
                     lucide.createIcons();
                 }
                 
@@ -1179,8 +1320,13 @@ function setupLinks() {
 
             // Reseta ícone para o padrão
             selectedIcon = 'link';
-            if (selectedIconPreview) {
-                selectedIconPreview.setAttribute('data-lucide', 'link');
+            const resetPreview = document.getElementById('selected-icon-preview');
+            if (resetPreview) {
+                const newIcon = document.createElement('i');
+                newIcon.id = 'selected-icon-preview';
+                newIcon.setAttribute('data-lucide', 'link');
+                resetPreview.parentNode.replaceChild(newIcon, resetPreview);
+                lucide.createIcons();
             }
             iconOptions.forEach(o => {
                 o.classList.remove('active');

@@ -37,3 +37,40 @@ body {
     display: flex;
     flex-direction: column;
 }
+
+/* ========== ANIMAÇÕES COMUNS ========== */
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in {
+    animation: fadeInUp 0.4s ease-out forwards;
+}
+
+/* ========== SKELETON SCREENS ========== */
+
+@keyframes skeleton-shimmer {
+    0% { background-position: -600px 0; }
+    100% { background-position: 600px 0; }
+}
+
+.skeleton-box {
+    background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+    background-size: 600px 100%;
+    animation: skeleton-shimmer 1.4s infinite linear;
+    display: block;
+}
+
+/* Ajuste para modo escuro/concerto se necessário */
+body.modo-concerto .skeleton-box {
+    background: linear-gradient(90deg, #1a1a1a 25%, #2a2a2a 50%, #1a1a1a 75%);
+    background-size: 600px 100%;
+}

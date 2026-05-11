@@ -160,10 +160,22 @@ window.loadNotificationHistory = async (isInitial = true) => {
     if (isInitial) {
         clearContent();
         
-        const loadingDiv = document.createElement('div');
-        loadingDiv.className = 'history-loading';
-        loadingDiv.textContent = 'Carregando histórico...';
-        historyList.insertBefore(loadingDiv, statusIndicator);
+        // Injeta Skeletons (3 itens)
+        for (let i = 0; i < 3; i++) {
+            const skel = document.createElement('div');
+            skel.className = 'history-card skeleton-item';
+            skel.innerHTML = `
+                <div class="history-card-meta skeleton-box" style="width: 120px; height: 14px; border-radius: 4px;"></div>
+                <div class="history-card-content">
+                    <div class="history-card-text" style="width: 100%;">
+                        <div class="history-card-title skeleton-box" style="width: 60%; height: 20px; border-radius: 4px; margin-bottom: 8px;"></div>
+                        <div class="history-card-body skeleton-box" style="width: 100%; height: 16px; border-radius: 4px; margin-bottom: 4px;"></div>
+                        <div class="history-card-body skeleton-box" style="width: 80%; height: 16px; border-radius: 4px;"></div>
+                    </div>
+                </div>
+            `;
+            historyList.insertBefore(skel, statusIndicator);
+        }
 
         lastHistoryDoc = null;
         hasMoreHistory = true;
@@ -213,7 +225,7 @@ window.loadNotificationHistory = async (isInitial = true) => {
         snapshot.forEach((docSnap) => {
             const notif = docSnap.data();
             const card = document.createElement('div');
-            card.className = 'history-card';
+            card.className = 'history-card animate-fade-in';
             
             let dateStr = "Data não informada";
             if (notif.createdAt) {

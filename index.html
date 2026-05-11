@@ -42,11 +42,14 @@
 
     <header class="main-header">
         <div class="container">
-            <div class="header-text">
                 <h1>Agenda Digital</h1>
-
             </div>
-            <img src="assets/img/logo_oer.png" alt="Logo Orquestra Experimental de Repertório" class="logo-oer">
+            <div class="header-actions-public">
+                <button id="btn-modo-concerto" class="btn-icon-top" title="Modo Concerto (OLED Dark)">
+                    <i data-lucide="moon"></i>
+                </button>
+                <img src="assets/img/logo_oer.png" alt="Logo Orquestra Experimental de Repertório" class="logo-oer">
+            </div>
         </div>
     </header>
 
@@ -223,6 +226,62 @@
             <line x1="12" y1="17" x2="12.01" y2="17"></line>
         </svg>
     </a>
+
+    <!-- Script de Controle de UI: Modo Concerto e Animações -->
+    <script>
+        // Registro do Service Worker para suporte Offline
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('Service Worker registrado!', reg))
+                    .catch(err => console.log('Erro ao registrar SW:', err));
+            });
+        }
+
+        // Modo Concerto
+        const btnModoConcerto = document.getElementById('btn-modo-concerto');
+        const body = document.body;
+
+        const isModoConcerto = localStorage.getItem('MODO_CONCERTO') === 'true';
+        if (isModoConcerto) {
+            body.classList.add('modo-concerto');
+            updateIcon();
+        }
+
+        btnModoConcerto.addEventListener('click', () => {
+            body.classList.toggle('modo-concerto');
+            const enabled = body.classList.contains('modo-concerto');
+            localStorage.setItem('MODO_CONCERTO', enabled);
+            updateIcon();
+        });
+
+        function updateIcon() {
+            const icon = btnModoConcerto.querySelector('i');
+            if (body.classList.contains('modo-concerto')) {
+                icon.setAttribute('data-lucide', 'sun');
+            } else {
+                icon.setAttribute('data-lucide', 'moon');
+            }
+            lucide.createIcons();
+        }
+
+        // Aplicar animações de entrada
+        document.addEventListener('DOMContentLoaded', () => {
+            const elements = [
+                '.main-header',
+                '.news-ticker',
+                '.form-actions',
+                '.pdf-grid'
+            ];
+            elements.forEach((selector, index) => {
+                const el = document.querySelector(selector);
+                if (el) {
+                    el.classList.add('animate-in');
+                    el.classList.add(`delay-${index + 1}`);
+                }
+            });
+        });
+    </script>
 
 </body>
 
