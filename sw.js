@@ -40,15 +40,63 @@ self.addEventListener('activate', (event) => {
     self.clients.claim();
 });
 
-// Estratégia Stale-while-revalidate
+// Estratégia Stale-while-revalidate + Cache Inteligente para PDFs
 self.addEventListener('fetch', (event) => {
+    const url = event.request.url;
+
     // Ignorar requisições para o Firebase (Firestore/Auth/Functions) para evitar problemas de dados estáticos
-    if (event.request.url.includes('firestore.googleapis.com') || 
-        event.request.url.includes('firebaseinstallations.googleapis.com') ||
-        event.request.url.includes('firebaselogging.googleapis.com')) {
+    if (url.includes('firestore.googleapis.com') || 
+        url.includes('firebaseinstallations.googleapis.com') ||
+        url.includes('firebaselogging.googleapis.com')) {
         return;
     }
 
+    // Lógica especial para PDFs do Firebase Storage
+    if (url.includes('firebasestorage.googleapis.com') && url.toLowerCase().includes('.pdf')) {
+        event.respondWith(
+            caches.open(CACHE_NAME).then(async (cache) => {
+                const cachedResponse = await cache.match(event.request);
+                
+                // Se já estiver no cache, retorna imediatamente (performance máxima)
+                if (cachedResponse) {
+                    return cachedResponse;
+                }
+                
+                // Se não está no cache, busca na rede
+                try {
+                    const networkResponse = await fetch(event.request);
+                    if (networkResponse.status === 200) {
+                        // Limpeza Inteligente: Remove versões antigas do mesmo tipo de PDF para economizar espaço
+                        const isAgenda = url.includes('agenda');
+                        const isTemporada = url.includes('temporada');
+                        const typeKey = isAgenda ? 'agenda' : (isTemporada ? 'temporada' : null);
+
+                        if (typeKey) {
+                            const cachedRequests = await cache.keys();
+                            for (const req of cachedRequests) {
+                                // Se for do storage, do mesmo tipo (agenda/temporada) mas URL diferente (versão antiga)
+                                if (req.url.includes('firebasestorage.googleapis.com') && 
+                                    req.url.includes(typeKey) && 
+                                    req.url !== url) {
+                                    console.log('[SW] Removendo versão antiga do PDF do cache:', typeKey);
+                                    await cache.delete(req);
+                                }
+                            }
+                        }
+                        
+                        // Salva a nova versão no cache
+                        cache.put(event.request, networkResponse.clone());
+                    }
+                    return networkResponse;
+                } catch (err) {
+                    console.error('[SW] Erro ao buscar PDF:', err);
+                }
+            })
+        );
+        return;
+    }
+
+    // Estratégia padrão para outros ativos: Stale-while-revalidate
     event.respondWith(
         caches.open(CACHE_NAME).then((cache) => {
             return cache.match(event.request).then((cachedResponse) => {
@@ -58,7 +106,6 @@ self.addEventListener('fetch', (event) => {
                     }
                     return networkResponse;
                 }).catch(() => {
-                    // Se falhar a rede (offline), retorna o que está no cache
                     return cachedResponse;
                 });
 

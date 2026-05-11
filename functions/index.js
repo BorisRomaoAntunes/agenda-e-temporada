@@ -1,9 +1,14 @@
 const { onDocumentCreated, onDocumentDeleted } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onObjectFinalized } = require("firebase-functions/v2/storage");
 const { FieldValue } = require("firebase-admin/firestore");
 const admin = require("firebase-admin");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { PDFDocument } = require("pdf-lib");
+const path = require("path");
+const os = require("os");
+const fs = require("fs");
 
 admin.initializeApp();
 
@@ -345,4 +350,83 @@ exports.scheduleNotification = onCall({
         createdAt: new Date().toISOString()
     });
     return { id: docRef.id, message: "Notificacao agendada com sucesso." };
+});
+
+/**
+ * Otimiza PDFs recém-carregados no Storage.
+ * Detecta arquivos na pasta 'pdfs/', remove objetos desnecessários e 
+ * marca como otimizado para evitar loops de recursão.
+ */
+exports.onPDFUpload = onObjectFinalized({
+    cpu: 1,
+    memory: "512MiB",
+    timeoutSeconds: 300
+}, async (event) => {
+    const object = event.data;
+    const filePath = object.name;
+    const contentType = object.contentType;
+
+    // 1. Validar se é um PDF na pasta correta e se não foi otimizado
+    if (!contentType || !contentType.includes("pdf") || !filePath.startsWith("pdfs/")) {
+        return console.log("Arquivo ignorado (não é PDF ou não está na pasta 'pdfs/')");
+    }
+
+    if (object.metadata && object.metadata.optimized === "true") {
+        return console.log("Arquivo já otimizado. Ignorando para evitar loop.");
+    }
+
+    const bucket = admin.storage().bucket(object.bucket);
+    const tempFilePath = path.join(os.tmpdir(), path.basename(filePath));
+    const outputFilePath = path.join(os.tmpdir(), `opt_${path.basename(filePath)}`);
+
+    try {
+        console.log(`Iniciando otimização: ${filePath}`);
+
+        // 2. Download do arquivo original
+        await bucket.file(filePath).download({ destination: tempFilePath });
+
+        // 3. Processar com pdf-lib
+        const existingPdfBytes = fs.readFileSync(tempFilePath);
+        const pdfDoc = await PDFDocument.load(existingPdfBytes);
+        
+        // A compressão básica ocorre ao salvar (remove lixo estrutural)
+        // Nota: pdf-lib não lineariza por padrão, mas limpa referências órfãs.
+        const pdfBytes = await pdfDoc.save({ useObjectStreams: true });
+
+        fs.writeFileSync(outputFilePath, pdfBytes);
+
+        // 4. Upload de volta com metadados de controle
+        await bucket.upload(outputFilePath, {
+            destination: filePath,
+            metadata: {
+                contentType: "application/pdf",
+                metadata: {
+                    optimized: "true",
+                    originalSize: object.size,
+                    optimizedAt: new Date().toISOString()
+                }
+            }
+        });
+
+        const newSize = fs.statSync(outputFilePath).size;
+        const reduction = ((1 - (newSize / parseInt(object.size))) * 100).toFixed(2);
+
+        console.log(`Otimização concluída. Tamanho: ${object.size} -> ${newSize} (${reduction}% de redução)`);
+
+        // 5. Registrar log no sistema
+        await admin.firestore().collection("adminLogs").add({
+            type: "sistema",
+            message: "Otimização automática de PDF realizada",
+            details: `Arquivo: ${path.basename(filePath)}. Redução de ${reduction}%.`,
+            user: "Sistema",
+            createdAt: new Date().toISOString()
+        });
+
+    } catch (error) {
+        console.error("Erro durante a otimização do PDF:", error);
+    } finally {
+        // Limpeza dos arquivos temporários
+        if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+        if (fs.existsSync(outputFilePath)) fs.unlinkSync(outputFilePath);
+    }
 });

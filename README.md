@@ -14,8 +14,10 @@
 ## ✨ Funcionalidades Principais
 
 ### 📱 Para os Músicos (Site Público)
-*   **Visualização Instantânea:** Acesso direto à Agenda de Ensaios e Temporada 2026 via navegadores ou PWA.
+*   **Visualização Instantânea:** Acesso direto à Agenda de Ensaios e Temporada 2026 com carregamento otimizado.
+*   **Performance & UX:** Uso de *Skeleton Screens* para carregamento visual suave e pré-carregamento preditivo em desktops.
 *   **PWA (Progressive Web App):** Instale o site como um aplicativo no celular para acesso rápido e offline básico.
+*   **Gestão de Cache Inteligente:** O sistema gerencia automaticamente o armazenamento do celular, removendo versões antigas de PDFs para economizar memória.
 *   **Notificações Push:** Sistema de alertas para novos arquivos ou comunicados urgentes (suporta iOS e Android).
 *   **Letreiro Dinâmico (Ticker):** Exibição de mensagens rápidas e avisos importantes no topo do site.
 *   **Histórico de Avisos:** Central de comunicados passados com suporte a imagens e carregamento sob demanda (*lazy loading*).
@@ -23,10 +25,11 @@
 
 ### 🔐 Para a Administração (Painel Admin)
 *   **Dashboard em Tempo Real:** Monitoramento do número de músicos inscritos para notificações.
-*   **Gestão de Arquivos:** Upload de novos PDFs diretamente para a nuvem (Firebase Storage) com atualização instantânea para todos os usuários.
+*   **Gestão de Arquivos:** Upload de novos PDFs com validação automática de tamanho e otimização estrutural no servidor.
+*   **Otimização de Servidor:** Cloud Functions processam PDFs recém-carregados para reduzir o peso e melhorar a velocidade de download.
 *   **Disparo de Comunicados:** Envio de notificações push com títulos, mensagens e imagens opcionais.
 *   **Robô OER (IA):** Integração com inteligência artificial para sugerir textos criativos e profissionais para os avisos.
-*   **Histórico de Atividade:** Log detalhado de todas as alterações feitas no sistema (Uploads, Avisos, Mudanças de Links).
+*   **Histórico de Atividade:** Log detalhado de todas as alterações feitas no sistema (Uploads, Avisos, Mudanças de Links, Otimizações).
 *   **Controle de Links:** Adição, edição e remoção de botões extras no site público com seletor de ícones intuitivo.
 *   **Ambiente de Testes:** Alternância rápida entre modo Produção e Emuladores para desenvolvimento seguro.
 

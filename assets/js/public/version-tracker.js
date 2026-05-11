@@ -154,10 +154,31 @@ class PDFVersionTracker {
             // Versão de exibição customizada vinda do banco de dados (ex: 1.1)
             const displayVersion = pdfInfo.displayVersion;
 
+            // Pré-carregamento Inteligente (apenas se for desktop/tablet que usa iframe)
+            // No mobile, o PDF só é baixado ao clicar no botão para economizar dados e memória.
+            const isMobile = window.innerWidth <= 768;
+            if (!isMobile) {
+                this.preloadPDF(caminhoPDF);
+            }
+
             // Atualiza iframes (desktop)
-            const iframes = document.querySelectorAll(`[data-pdf-type="${tipo}"]`);
+            const iframes = document.querySelectorAll(`iframe[data-pdf-type="${tipo}"]`);
             iframes.forEach(iframe => {
-                iframe.src = caminhoPDF;
+                const skeleton = document.getElementById(`skeleton-${tipo}`);
+                
+                // Se a URL mudou, mostra o skeleton
+                if (iframe.src !== caminhoPDF) {
+                    if (skeleton) skeleton.classList.remove('hidden');
+                    iframe.src = caminhoPDF;
+                }
+
+                // Evento de carregamento do iframe para esconder o skeleton
+                iframe.onload = () => {
+                    if (skeleton) {
+                        skeleton.classList.add('hidden');
+                    }
+                };
+
                 // Atualiza também o wrapper para badges
                 const wrapper = iframe.closest('.pdf-wrapper');
                 if (wrapper) {
@@ -174,6 +195,24 @@ class PDFVersionTracker {
                 if (displayVersion) botao.setAttribute('data-pdf-version', displayVersion);
             });
         });
+    }
+
+    /**
+     * Pré-carregamento silencioso de PDF para o cache do Service Worker
+     */
+    preloadPDF(url) {
+        if (!url || url.includes('blob:')) return;
+        
+        // Evita duplicar preloads
+        if (document.querySelector(`link[href="${url}"]`)) return;
+
+        const link = document.createElement('link');
+        link.rel = 'preload';
+        link.as = 'fetch';
+        link.href = url;
+        link.crossOrigin = 'anonymous';
+        document.head.appendChild(link);
+        console.info(`[OER] Pré-carregando PDF: ${url}`);
     }
 
     /**

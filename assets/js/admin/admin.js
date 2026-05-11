@@ -59,6 +59,15 @@ const notifImagePreview = document.getElementById('notif-image-preview');
 const btnRemoveNotifImage = document.getElementById('btn-remove-notif-image');
 const notifImageDropArea = document.getElementById('notif-image-drop-area');
 
+// Referências para o Modal de Ajustes
+const btnSettings = document.getElementById('btn-settings');
+const settingsModal = document.getElementById('settings-modal');
+const btnCloseSettings = document.getElementById('btn-close-settings');
+const toggleNotifBtn = document.getElementById('toggle-notif-btn');
+const toggleStatusText = document.getElementById('toggle-status-text');
+const toggleTickerBtn = document.getElementById('toggle-ticker-btn');
+const toggleTickerStatusText = document.getElementById('toggle-ticker-status-text');
+
 let selectedNotifImage = null;
 
 // ================= AUTHENTICATION =================
@@ -83,6 +92,7 @@ onAuthStateChanged(auth, (user) => {
         initLogFilters(); // Inicia os filtros do histórico
         initLogSearch();  // Inicia o campo de busca no histórico
         initScheduleUI(); // Inicia a UI de agendamento de notificações
+        initSettingsModal(); // Inicia a lógica do modal de ajustes
     } else {
         // Não logado
         dashboardContainer.classList.remove('active');
@@ -151,7 +161,16 @@ const setupUploader = (type) => {
     // Quando um arquivo for selecionado
     fileInput.addEventListener('change', (e) => {
         if (e.target.files.length > 0) {
-            selectedFile = e.target.files[0];
+            const file = e.target.files[0];
+            const MAX_SIZE_MB = 5;
+            const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
+
+            if (file.size > MAX_SIZE_BYTES) {
+                const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
+                showNotification(`Atenção: O arquivo é grande (${sizeMB}MB). O limite ideal é ${MAX_SIZE_MB}MB para garantir a performance nos celulares dos músicos. Considere otimizar o PDF antes de enviar.`, 'warning');
+            }
+
+            selectedFile = file;
             msgElement.textContent = selectedFile.name;
             dropArea.classList.add('has-file');
             btnUpload.disabled = false;
@@ -591,7 +610,10 @@ if (btnSendNotif) {
 function showNotification(message, type = 'success') {
     const alertDiv = document.createElement('div');
     alertDiv.className = `alert alert-${type}`;
-    const icon = type === 'success' ? 'check-circle' : 'alert-circle';
+    
+    let icon = 'check-circle';
+    if (type === 'error') icon = 'alert-circle';
+    if (type === 'warning') icon = 'alert-triangle';
     
     alertDiv.innerHTML = `
         <div class="alert-content">
@@ -611,12 +633,31 @@ function showNotification(message, type = 'success') {
     }, 5000);
 }
 
-// ================= TOGGLE VISIBILIDADE NOTIFICAÇÕES =================
+// ================= MODAL DE AJUSTES =================
 
-const toggleNotifBtn = document.getElementById('toggle-notif-btn');
-const toggleStatusText = document.getElementById('toggle-status-text');
-const toggleTickerBtn = document.getElementById('toggle-ticker-btn');
-const toggleTickerStatusText = document.getElementById('toggle-ticker-status-text');
+function initSettingsModal() {
+    if (!btnSettings || !settingsModal || !btnCloseSettings) return;
+
+    btnSettings.addEventListener('click', () => {
+        settingsModal.style.display = 'flex';
+        document.body.style.overflow = 'hidden'; // Previne scroll ao fundo
+        lucide.createIcons(); // Garante que os ícones do modal sejam renderizados
+    });
+
+    const closeModal = () => {
+        settingsModal.style.display = 'none';
+        document.body.style.overflow = '';
+    };
+
+    btnCloseSettings.addEventListener('click', closeModal);
+
+    // Fechar ao clicar fora do card
+    settingsModal.addEventListener('click', (e) => {
+        if (e.target === settingsModal) closeModal();
+    });
+}
+
+// ================= TOGGLE VISIBILIDADE NOTIFICAÇÕES =================
 const settingsRef = doc(db, 'config', 'settings');
 
 function initToggleListener() {

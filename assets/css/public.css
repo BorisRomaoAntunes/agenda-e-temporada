@@ -133,6 +133,45 @@ body.modo-concerto .skeleton {
     width: 70%;
 }
 
+/* PDF Skeleton Specific */
+.pdf-skeleton {
+    position: absolute;
+    top: 45px; /* Altura do pdf-title */
+    left: 0;
+    width: 100%;
+    height: calc(100% - 45px);
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    padding: 2rem;
+    box-sizing: border-box;
+    background-color: #f5f5f5;
+    border-radius: 0 0 8px 8px;
+    transition: opacity 0.3s ease;
+}
+
+body.modo-concerto .pdf-skeleton {
+    background-color: #050505;
+}
+
+.pdf-skeleton-page {
+    width: 100%;
+    height: 100%;
+    border-radius: 4px;
+    background: linear-gradient(90deg, #e0e0e0 25%, #eeeeee 50%, #e0e0e0 75%);
+    background-size: 200% 100%;
+    animation: skeleton-loading 1.5s infinite;
+}
+
+body.modo-concerto .pdf-skeleton-page {
+    background: linear-gradient(90deg, #111 25%, #1a1a1a 50%, #111 75%);
+}
+
+.pdf-skeleton.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
 .container {
     width: 90%;
     max-width: 1200px;
@@ -879,7 +918,7 @@ iframe {
 .btn-feedback {
     position: fixed;
     bottom: 2rem;
-    right: 2rem;
+    left: 2rem;
     width: 65px;
     height: 65px;
     background-color: var(--primary-color);
@@ -911,7 +950,7 @@ iframe {
 @media (max-width: 768px) {
     .btn-feedback {
         bottom: 1.5rem;
-        right: 1.5rem;
+        left: 1.5rem;
         width: 55px;
         height: 55px;
     }
@@ -1307,7 +1346,7 @@ body.force-mobile .btn-form {
 .notification-container {
     position: fixed;
     bottom: 102px; /* Feedback bottom(32px) + height(65px) + 5px */
-    right: 2rem;
+    left: 2rem;
     z-index: 1000;
 }
 
@@ -1405,7 +1444,7 @@ body.force-mobile .btn-form {
 .notification-panel {
     position: absolute;
     bottom: 80px;
-    right: 0;
+    left: 0;
     width: 250px;
     background-color: #ffffff;
     border-radius: 12px;
@@ -1418,7 +1457,7 @@ body.force-mobile .btn-form {
     opacity: 0;
     visibility: hidden;
     transform: translateY(15px) scale(0.95);
-    transform-origin: bottom right;
+    transform-origin: bottom left;
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     z-index: 1001;
 }
@@ -1483,7 +1522,7 @@ body.force-mobile .btn-form {
     content: '';
     position: absolute;
     bottom: -8px;
-    right: 25px;
+    left: 25px;
     width: 0;
     height: 0;
     border-left: 8px solid transparent;
@@ -1493,10 +1532,27 @@ body.force-mobile .btn-form {
 
 
 @media (max-width: 768px) {
+    .footer-container {
+        flex-direction: column-reverse;
+        gap: 1.5rem;
+        text-align: center;
+        padding: 1.5rem 1rem;
+    }
+
+    .theme-dropdown {
+        right: 50%;
+        transform: translateX(50%) translateY(10px);
+        bottom: calc(100% + 10px);
+    }
+
+    .theme-dropdown.active {
+        transform: translateX(50%) translateY(0);
+    }
+
     .notification-container {
         /* Feedback bottom(24px) + height(55px) + 5px */
         bottom: 84px;
-        right: 1.5rem;
+        left: 1.5rem;
     }
     
     .notification-trigger {
