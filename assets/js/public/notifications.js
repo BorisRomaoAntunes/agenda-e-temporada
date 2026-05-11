@@ -374,7 +374,7 @@ window.requestFirebaseNotificationPermission = async () => {
                     console.error('[Firebase] Erro ao salvar token no banco:', dbError);
                 }
 
-                alert("🎉 Tudo certo! Você receberá notificação a partir de agora quando saírem novos cronogramas.");
+                alert("🎉 Tudo certo! Você receberá notificação a partir de agora quando saírem novas atualizações.");
                 
                 // Grava no localStorage que o usuário já aceitou, para esconder o painel
                 localStorage.setItem("oer_notification_responded", "true");
