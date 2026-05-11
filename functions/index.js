@@ -125,39 +125,61 @@ exports.dailySubscriberCheck = onSchedule({
     const statsRef = admin.firestore().collection("config").doc("stats");
     const dailyStatsRef = admin.firestore().collection("config").doc("dailyStats");
     const logsRef = admin.firestore().collection("adminLogs");
+    const fcmTokensRef = admin.firestore().collection("fcmTokens");
 
     try {
+        // 1. Faz a contagem real de documentos na coleção de tokens
+        const countSnap = await fcmTokensRef.count().get();
+        const actualTokenCount = countSnap.data().count;
+
         await admin.firestore().runTransaction(async (transaction) => {
             const statsSnap = await transaction.get(statsRef);
             const dailySnap = await transaction.get(dailyStatsRef);
 
-            const currentCount = statsSnap.exists() ? (statsSnap.data().subscriberCount || 0) : 0;
+            const storedCount = statsSnap.exists() ? (statsSnap.data().subscriberCount || 0) : 0;
             const previousCount = dailySnap.exists() ? (dailySnap.data().lastCount || 0) : 0;
 
-            // Só registra log se houver mudança
+            // 2. Auto-Cura: Se o contador armazenado estiver errado, prioriza a realidade
+            let currentCount = storedCount;
+            if (actualTokenCount !== storedCount) {
+                console.warn(`[Auto-Cura] Divergência detectada! Real: ${actualTokenCount}, Armazenado: ${storedCount}. Corrigindo...`);
+                currentCount = actualTokenCount;
+                transaction.set(statsRef, {
+                    subscriberCount: currentCount,
+                    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+                }, { merge: true });
+
+                // Log de auditoria da correção
+                transaction.set(logsRef.doc(), {
+                    type: "sistema",
+                    message: "Auto-Cura: Contador de inscritos sincronizado.",
+                    details: `O sistema detectou uma divergência (armazenado: ${storedCount}, real: ${actualTokenCount}) e realizou a correção automática.`,
+                    user: "Sistema",
+                    createdAt: new Date().toISOString()
+                });
+            }
+
+            // 3. Log de tendência (Robô OER)
             if (currentCount !== previousCount) {
                 const diff = currentCount - previousCount;
                 const trend = diff > 0 ? "aumento" : "queda";
-                const absDiff = Math.abs(diff);
                 
                 const logMessage = `Monitoramento Diário: Houve uma ${trend} no número de inscritos.`;
                 const logDetails = `Total atual: ${currentCount} músicos. Variação: ${diff > 0 ? "+" : ""}${diff} desde a última verificação.`;
 
-                const newLog = {
+                transaction.set(logsRef.doc(), {
                     type: "bot",
                     message: logMessage,
                     details: logDetails,
                     user: "Robô OER",
                     createdAt: new Date().toISOString()
-                };
-
-                transaction.set(logsRef.doc(), newLog);
+                });
                 console.log(`Log do robô registrado: ${currentCount} inscritos (${diff > 0 ? "+" : ""}${diff})`);
             } else {
-                console.log(`Nenhuma alteração no número de inscritos (${currentCount}). Pulando registro de log.`);
+                console.log(`Nenhuma alteração real no número de inscritos (${currentCount}).`);
             }
 
-            // Atualiza o contador diário para a próxima verificação
+            // 4. Atualiza o backup diário para comparação amanhã
             transaction.set(dailyStatsRef, {
                 lastCount: currentCount,
                 updatedAt: admin.firestore.FieldValue.serverTimestamp()

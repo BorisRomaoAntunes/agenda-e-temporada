@@ -45,9 +45,6 @@
                 <h1>Agenda Digital</h1>
             </div>
             <div class="header-actions-public">
-                <button id="btn-modo-concerto" class="btn-icon-top" title="Modo Concerto (OLED Dark)">
-                    <i data-lucide="moon"></i>
-                </button>
                 <img src="assets/img/logo_oer.png" alt="Logo Orquestra Experimental de Repertório" class="logo-oer">
             </div>
         </div>
@@ -166,7 +163,26 @@
     </main>
 
     <footer class="main-footer">
-        <p>&copy; 2026 Projeto OER. Desenvolvido por Boris Romão Antunes.</p>
+        <div class="container footer-container">
+            <p>&copy; 2026 Projeto OER. Desenvolvido por Boris Romão Antunes.</p>
+            
+            <div class="theme-selector-wrapper">
+                <button id="btn-theme-selector" class="btn-theme-selector" title="Alterar Tema">
+                    <i data-lucide="sun" id="current-theme-icon"></i>
+                </button>
+                <div id="theme-dropdown" class="theme-dropdown">
+                    <button class="theme-option" data-theme="light" title="Tema Claro">
+                        <i data-lucide="sun"></i> <span>Tema claro</span>
+                    </button>
+                    <button class="theme-option" data-theme="dark" title="Tema Escuro">
+                        <i data-lucide="moon"></i> <span>Tema escuro</span>
+                    </button>
+                    <button class="theme-option" data-theme="system" title="Padrão do Dispositivo">
+                        <i data-lucide="monitor"></i> <span>Padrão do dispositivo</span>
+                    </button>
+                </div>
+            </div>
+        </div>
     </footer>
 
     <!-- Sistema de Rastreamento de Versões -->
@@ -238,32 +254,69 @@
             });
         }
 
-        // Modo Concerto
-        const btnModoConcerto = document.getElementById('btn-modo-concerto');
+        // Controle de Tema (Modo Concerto / OLED Dark)
         const body = document.body;
+        const btnThemeSelector = document.getElementById('btn-theme-selector');
+        const themeDropdown = document.getElementById('theme-dropdown');
+        const themeOptions = document.querySelectorAll('.theme-option');
+        const currentThemeIcon = document.getElementById('current-theme-icon');
 
-        const isModoConcerto = localStorage.getItem('MODO_CONCERTO') === 'true';
-        if (isModoConcerto) {
-            body.classList.add('modo-concerto');
-            updateIcon();
-        }
+        // Inicializar tema
+        const savedTheme = localStorage.getItem('THEME_PREFERENCE') || 'system';
+        applyTheme(savedTheme);
 
-        btnModoConcerto.addEventListener('click', () => {
-            body.classList.toggle('modo-concerto');
-            const enabled = body.classList.contains('modo-concerto');
-            localStorage.setItem('MODO_CONCERTO', enabled);
-            updateIcon();
+        // Abrir/Fechar Dropdown
+        btnThemeSelector.addEventListener('click', (e) => {
+            e.stopPropagation();
+            themeDropdown.classList.toggle('active');
         });
 
-        function updateIcon() {
-            const icon = btnModoConcerto.querySelector('i');
-            if (body.classList.contains('modo-concerto')) {
-                icon.setAttribute('data-lucide', 'sun');
-            } else {
-                icon.setAttribute('data-lucide', 'moon');
+        // Fechar ao clicar fora
+        document.addEventListener('click', () => {
+            themeDropdown.classList.remove('active');
+        });
+
+        // Selecionar opção
+        themeOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                const theme = option.getAttribute('data-theme');
+                applyTheme(theme);
+                localStorage.setItem('THEME_PREFERENCE', theme);
+                themeDropdown.classList.remove('active');
+            });
+        });
+
+        function applyTheme(theme) {
+            // Limpar classes atuais
+            body.classList.remove('modo-concerto');
+            
+            let effectiveTheme = theme;
+            if (theme === 'system') {
+                effectiveTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
             }
+
+            if (effectiveTheme === 'dark') {
+                body.classList.add('modo-concerto');
+                currentThemeIcon.setAttribute('data-lucide', 'moon');
+            } else {
+                currentThemeIcon.setAttribute('data-lucide', 'sun');
+            }
+
+            // Atualizar ícones do Lucide
             lucide.createIcons();
+            
+            // Marcar opção ativa no menu
+            themeOptions.forEach(opt => {
+                opt.classList.toggle('active', opt.getAttribute('data-theme') === theme);
+            });
         }
+
+        // Ouvir mudanças no sistema se estiver no modo 'system'
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+            if (localStorage.getItem('THEME_PREFERENCE') === 'system' || !localStorage.getItem('THEME_PREFERENCE')) {
+                applyTheme('system');
+            }
+        });
 
         // Aplicar animações de entrada
         document.addEventListener('DOMContentLoaded', () => {
