@@ -182,8 +182,29 @@ body.modo-concerto .pdf-skeleton-page {
     margin: 0 auto;
     display: flex;
     justify-content: space-between;
-    /* Texto na ponta esquerda, Logo na ponta direita */
     align-items: center;
+}
+
+.main-header .container {
+    justify-content: flex-start; /* Alinhamento coerente: Logo e Título juntos na esquerda */
+}
+
+/* Layout da Marca (Logo + Título) */
+.header-brand {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.header-separator {
+    width: 1px;
+    height: 35px;
+    background-color: rgba(0, 0, 0, 0.1);
+    display: block;
+}
+
+body.modo-concerto .header-separator {
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
 .logo-oer {
@@ -203,12 +224,26 @@ body.modo-concerto .pdf-skeleton-page {
     font-weight: 700;
     color: var(--text-primary);
     line-height: 1.2;
+    letter-spacing: -0.02em;
 }
 
-.main-header p {
-    font-size: 0.875rem;
-    color: var(--text-secondary);
-    font-weight: 500;
+/* Responsividade do Header */
+@media (max-width: 600px) {
+    .header-brand {
+        gap: 0.75rem;
+    }
+    
+    .header-separator {
+        height: 25px;
+    }
+
+    .main-header h1 {
+        font-size: 1.1rem;
+    }
+    
+    .logo-oer {
+        height: 35px;
+    }
 }
 
 /* Letreiro Animado (News Ticker) */
