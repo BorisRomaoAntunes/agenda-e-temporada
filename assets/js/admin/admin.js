@@ -93,6 +93,7 @@ onAuthStateChanged(auth, (user) => {
         initLogSearch();  // Inicia o campo de busca no histórico
         initScheduleUI(); // Inicia a UI de agendamento de notificações
         initSettingsModal(); // Inicia a lógica do modal de ajustes
+        syncTickerWithLatest(); // Força sincronização do letreiro na inicialização
     } else {
         // Não logado
         dashboardContainer.classList.remove('active');
@@ -778,26 +779,35 @@ async function loadAdminNotifications() {
     if (!listEl) return;
 
     const renderUnifiedList = () => {
-        // Combina as listas
-        const combined = [
-            ...activeNotifications.map(n => ({ ...n, status: 'sent' })),
-            ...scheduledNotifications.map(n => ({ ...n, status: 'pending' }))
-        ];
+        try {
+            // Combina as listas
+            const combined = [
+                ...activeNotifications.map(n => ({ ...n, status: 'sent' })),
+                ...scheduledNotifications.map(n => ({ ...n, status: 'pending' }))
+            ];
 
-        // Ordena por data (os agendados usam scheduledAt, os enviados usam createdAt)
-        combined.sort((a, b) => {
-            const dateA = new Date(a.status === 'pending' ? a.scheduledAt : a.createdAt);
-            const dateB = new Date(b.status === 'pending' ? b.scheduledAt : b.createdAt);
-            return dateB - dateA;
-        });
+            // Ordena por data (os agendados usam scheduledAt, os enviados usam createdAt)
+            combined.sort((a, b) => {
+                const dateAStr = a.status === 'pending' ? a.scheduledAt : a.createdAt;
+                const dateBStr = b.status === 'pending' ? b.scheduledAt : b.createdAt;
+                
+                const dateA = new Date(dateAStr || 0);
+                const dateB = new Date(dateBStr || 0);
+                
+                // Se uma data for inválida, joga para o fim
+                if (isNaN(dateA.getTime())) return 1;
+                if (isNaN(dateB.getTime())) return -1;
+                
+                return dateB - dateA;
+            });
 
-        if (combined.length === 0) {
-            listEl.innerHTML = '<div class="admin-notif-empty">Nenhum comunicado ativo no site ou agendado no momento.</div>';
-            return;
-        }
+            if (combined.length === 0) {
+                listEl.innerHTML = '<div class="admin-notif-empty">Nenhum comunicado ativo no site ou agendado no momento.</div>';
+                return;
+            }
 
-        listEl.innerHTML = '';
-        combined.forEach((data) => {
+            listEl.innerHTML = '';
+            combined.forEach((data) => {
             const isPending = data.status === 'pending';
             const dateObj = new Date(isPending ? data.scheduledAt : data.createdAt);
             const formattedDate = dateObj.toLocaleDateString('pt-BR') + ' às ' + dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -833,6 +843,9 @@ async function loadAdminNotifications() {
         });
 
         lucide.createIcons();
+        } catch (error) {
+            console.error("❌ Erro ao renderizar lista unificada:", error);
+        }
     };
 
     // Escuta em tempo real a coleção de notificações ATIVAS
@@ -840,7 +853,10 @@ async function loadAdminNotifications() {
     const qActive = query(activeRef, orderBy('createdAt', 'desc'), limit(15));
     onSnapshot(qActive, (snapshot) => {
         activeNotifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        console.log(`[Admin] ${activeNotifications.length} avisos ativos carregados.`);
         renderUnifiedList();
+    }, (error) => {
+        console.error("❌ Erro ao escutar avisos ativos:", error);
     });
 
     // Escuta em tempo real a coleção de notificações AGENDADAS (apenas as pendentes)
@@ -849,6 +865,7 @@ async function loadAdminNotifications() {
     
     onSnapshot(qScheduled, (snapshot) => {
         scheduledNotifications = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        console.log(`[Admin] ${scheduledNotifications.length} avisos agendados carregados.`);
         renderUnifiedList();
     }, (error) => {
         console.error("❌ Erro ao escutar agendamentos:", error);
@@ -869,6 +886,11 @@ async function deleteNotification(docId, title, collectionName = 'adminNotificat
         const notifRef = doc(db, collectionName, docId);
         await deleteDoc(notifRef);
         
+        // Sincroniza o letreiro se for um aviso comum
+        if (!isScheduled) {
+            await syncTickerWithLatest();
+        }
+
         const successMsg = isScheduled 
             ? `Agendamento "${title}" cancelado com sucesso.`
             : `Comunicado "${title}" removido com sucesso.`;
@@ -884,6 +906,29 @@ async function deleteNotification(docId, title, collectionName = 'adminNotificat
     } catch (error) {
         console.error("Erro ao deletar:", error);
         showNotification("Erro ao remover/cancelar: " + error.message, 'error');
+    }
+}
+
+/**
+ * Sincroniza o letreiro (latestNotice) com a notificação mais recente no histórico.
+ * Útil para corrigir o estado após deleções ou quando o painel inicia.
+ */
+async function syncTickerWithLatest() {
+    try {
+        const qLatest = query(collection(db, 'adminNotifications'), orderBy('createdAt', 'desc'), limit(1));
+        const latestSnap = await getDocs(qLatest);
+        const latestNoticeRef = doc(db, 'config', 'latestNotice');
+
+        if (!latestSnap.empty) {
+            const newLatest = latestSnap.docs[0].data();
+            // Só atualiza se for realmente diferente para evitar loops (embora improvável aqui)
+            await setDoc(latestNoticeRef, newLatest);
+        } else {
+            // Se não houver avisos, remove o documento do letreiro
+            await deleteDoc(latestNoticeRef);
+        }
+    } catch (error) {
+        console.error("Erro ao sincronizar letreiro:", error);
     }
 }
 

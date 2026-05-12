@@ -90,13 +90,6 @@
                     </div>
                 </div>
                 <div class="header-actions">
-                    <div id="env-selector" class="env-selector" style="display: none;">
-                        <span id="env-label" class="env-label">Produção</span>
-                        <label class="env-switch">
-                            <input type="checkbox" id="toggle-emulator">
-                            <span class="env-slider"></span>
-                        </label>
-                    </div>
                     <button id="btn-settings" class="btn-outline" title="Ajustes do Sistema">
                         <i data-lucide="settings"></i> Ajustes
                     </button>
@@ -484,6 +477,23 @@
                         </label>
                     </div>
                     <p id="toggle-ticker-status-text" class="toggle-status">A carregar estado...</p>
+
+                    <div class="settings-item" style="margin-top: 1.5rem; border-top: 1px solid #eee; padding-top: 1.5rem;">
+                        <div class="settings-item-info">
+                            <div class="settings-icon-bg" style="background: rgba(255, 165, 0, 0.1); color: #FF8C00;">
+                                <i data-lucide="terminal"></i>
+                            </div>
+                            <div>
+                                <h4>Ambiente de Emulação</h4>
+                                <p>Ativa o uso de emuladores locais (Desenvolvimento).</p>
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-emulator">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <p id="env-label" class="toggle-status">A carregar estado...</p>
                 </div>
 
                 <!-- Futuros ajustes podem ser adicionados aqui -->
@@ -521,19 +531,26 @@
         const isEmulator = localStorage.getItem('USE_EMULATORS') === 'true';
 
         // Inicializar estado
-        emulatorToggle.checked = isEmulator;
-        envLabel.textContent = isEmulator ? 'Emuladores' : 'Produção';
-        if (isEmulator) document.body.classList.add('mode-emulator');
+        if (emulatorToggle) {
+            emulatorToggle.checked = isEmulator;
+            if (envLabel) {
+                envLabel.textContent = isEmulator 
+                    ? '⚠️ Modo DESENVOLVIMENTO (Emuladores ATIVOS).' 
+                    : '✅ Modo PRODUÇÃO (Dados Reais).';
+                envLabel.style.color = isEmulator ? '#FF8C00' : '#2E8B57';
+            }
+            if (isEmulator) document.body.classList.add('mode-emulator');
 
-        emulatorToggle.addEventListener('change', () => {
-            localStorage.setItem('USE_EMULATORS', emulatorToggle.checked);
-            // Mostrar aviso antes de recarregar
-            const msg = emulatorToggle.checked
-                ? "Alterando para modo EMULADOR (Desenvolvimento). A página será recarregada."
-                : "Alterando para modo PRODUÇÃO (Real). A página será recarregada.";
-            alert(msg);
-            location.reload();
-        });
+            emulatorToggle.addEventListener('change', () => {
+                localStorage.setItem('USE_EMULATORS', emulatorToggle.checked);
+                // Mostrar aviso antes de recarregar
+                const msg = emulatorToggle.checked
+                    ? "Alterando para modo EMULADOR (Desenvolvimento). A página será recarregada."
+                    : "Alterando para modo PRODUÇÃO (Real). A página será recarregada.";
+                alert(msg);
+                location.reload();
+            });
+        }
 
         // Lógica de Navegação por Abas
         function initTabs() {

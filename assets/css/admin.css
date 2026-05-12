@@ -1354,28 +1354,37 @@
 /* Estilo para Avisos Agendados (Pendentes) */
 .admin-notif-item.is-pending {
     background: #fffbeb; /* Fundo âmbar bem leve */
-    border-left-color: #d97706; /* Borda esquerda dourada */
-    border-right: 1px solid rgba(217, 119, 6, 0.1);
-    border-top: 1px solid rgba(217, 119, 6, 0.1);
-    border-bottom: 1px solid rgba(217, 119, 6, 0.1);
+    border-left: 5px solid #f59e0b; /* Borda esquerda âmbar forte */
+    border-right: 1px solid rgba(245, 158, 11, 0.2);
+    border-top: 1px solid rgba(245, 158, 11, 0.2);
+    border-bottom: 1px solid rgba(245, 158, 11, 0.2);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.08);
 }
 
 .admin-notif-item.is-pending:hover {
     background: #fff9db;
-    box-shadow: 0 6px 20px rgba(217, 119, 6, 0.12);
+    box-shadow: 0 8px 24px rgba(245, 158, 11, 0.15);
+    transform: translateY(-2px);
 }
 
 .admin-notif-item.is-pending .admin-notif-title::after {
     content: 'AGENDADO';
     font-size: 0.65rem;
-    background: #d97706;
+    background: #f59e0b; /* Âmbar vibrante */
     color: white;
-    padding: 2px 8px;
-    border-radius: 4px;
-    margin-left: 10px;
+    padding: 3px 10px;
+    border-radius: 20px; /* Mais arredondado (pílula) */
+    margin-left: 12px;
     vertical-align: middle;
-    font-weight: 700;
-    letter-spacing: 0.5px;
+    font-weight: 800;
+    letter-spacing: 0.8px;
+    box-shadow: 0 2px 5px rgba(245, 158, 11, 0.3);
+    display: inline-block;
+}
+
+.admin-notif-item.is-pending .admin-notif-meta {
+    color: #b45309; /* Marrom âmbar para melhor leitura no fundo claro */
+    font-weight: 500;
 }
 
 
