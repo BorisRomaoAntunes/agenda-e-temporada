@@ -1333,6 +1333,7 @@
         align-items: stretch;
         gap: 1rem;
         padding: 1.2rem 1rem;
+        position: relative; /* Para o tempo se posicionar em relação ao card se necessário */
     }
 
     .log-left {
@@ -1354,10 +1355,11 @@
     }
 
     .log-time {
-        position: absolute;
-        top: 0.8rem;
-        right: 1rem;
+        position: static; /* Remove o absoluto que causava sobreposição */
         font-size: 0.75rem;
+        margin-top: 0.3rem;
+        color: var(--text-secondary);
+        opacity: 0.8;
     }
     
     .log-thumbnail {
@@ -2148,13 +2150,14 @@
 
 @media (max-width: 550px) {
     .settings-modal-card {
-        max-width: 90%;
+        max-width: 95%;
+        width: 95%;
     }
     
     .settings-modal-card .modal-header,
     .settings-modal-card .modal-body,
     .settings-modal-card .modal-footer {
-        padding: 1.5rem;
+        padding: 1.2rem;
     }
 
     .brand, .header-brand {
@@ -2163,10 +2166,105 @@
 
     .header-separator {
         height: 25px;
+        display: none; /* Oculta separador no mobile para ganhar espaço */
     }
 
     .brand h1 {
         font-size: 1rem;
     }
+    
+    .brand p {
+        display: none; /* Oculta subtexto "Controle" no mobile */
+    }
+
+    /* Ocultar texto dos botões do cabeçalho */
+    .header-actions .btn-outline span {
+        display: none;
+    }
+    
+    .header-actions .btn-outline {
+        padding: 0.6rem;
+        aspect-ratio: 1;
+        justify-content: center;
+    }
+
+    .header-actions {
+        gap: 0.6rem;
+    }
 }
+
+/* Refinamento das Abas Horizontais */
+.admin-tabs {
+    display: flex;
+    overflow-x: auto;
+    gap: 0.8rem;
+    padding: 0.5rem 1rem;
+    margin: 0 -1rem 1.5rem -1rem;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
+    position: relative;
+    -webkit-overflow-scrolling: touch;
+}
+
+.admin-tabs::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+}
+
+/* Gradiente para indicar scroll */
+.admin-tabs::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 40px;
+    background: linear-gradient(to right, transparent, var(--admin-bg));
+    pointer-events: none;
+    z-index: 2;
+}
+
+.tab-btn {
+    white-space: nowrap;
+    padding: 0.6rem 1.2rem;
+    border-radius: 20px;
+    border: 1px solid rgba(0,0,0,0.08);
+    background: #fff;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.tab-btn i, .tab-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+.tab-btn.active {
+    background: var(--primary-color);
+    color: #fff;
+    border-color: var(--primary-color);
+    box-shadow: 0 4px 12px rgba(139, 0, 0, 0.2);
+}
+
+.tab-btn:hover:not(.active) {
+    background: #fdfdfd;
+    border-color: #ddd;
+    transform: translateY(-1px);
+}
+
+@media (max-width: 480px) {
+    .tab-btn span {
+        font-size: 0.75rem;
+    }
+    
+    .tab-btn {
+        padding: 0.5rem 0.9rem;
+    }
+}
+
 

@@ -698,6 +698,44 @@ function initEditNotifModal() {
 }
 
 /**
+ * Inicializa o toggle de ambiente (Produção vs Localhost/Emulador).
+ */
+function initEmulatorToggle() {
+    const toggle = document.getElementById('toggle-emulator');
+    const label = document.getElementById('env-label');
+    if (!toggle || !label) return;
+
+    // Lê estado atual do localStorage
+    const isEmulator = localStorage.getItem('USE_EMULATORS') === 'true';
+    toggle.checked = isEmulator;
+    
+    const updateLabel = (active) => {
+        if (active) {
+            label.innerHTML = '<span style="color: #6f42c1; font-weight: 800;">🛠️ LOCALHOST / EMULADORES</span>';
+            document.body.classList.add('mode-emulator');
+        } else {
+            label.innerHTML = '<span style="color: #2E8B57; font-weight: 800;">🌐 PRODUÇÃO (FIREBASE)</span>';
+            document.body.classList.remove('mode-emulator');
+        }
+    };
+
+    updateLabel(isEmulator);
+
+    toggle.addEventListener('change', () => {
+        const newState = toggle.checked;
+        localStorage.setItem('USE_EMULATORS', newState);
+        updateLabel(newState);
+        
+        // Notifica e recarrega após pequeno delay para o usuário ver a mudança
+        showNotification(`Ambiente alterado para ${newState ? "Emulador" : "Produção"}. Reiniciando...`, 'warning');
+        setTimeout(() => {
+            window.location.reload();
+        }, 1500);
+    });
+}
+
+
+/**
  * Abre o modal para editar uma notificação agendada ou ativa.
  */
 function openEditNotifModal(docId, collectionName, data) {
