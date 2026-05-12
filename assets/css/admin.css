@@ -815,21 +815,65 @@
     }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 550px) {
+    .dash-header-content {
+        padding: 0.8rem 1rem;
+        gap: 0.6rem;
+    }
+
+    .brand {
+        gap: 0.8rem;
+    }
+
+    .header-separator {
+        display: none; /* Ganha espaço no mobile */
+    }
+
+    .brand h1 {
+        font-size: 1rem;
+    }
+
     .header-actions {
-        gap: 0.5rem;
+        gap: 0.6rem;
     }
-    
-    .header-actions .btn-outline span {
-        display: none; /* Esconde o texto "Ajustes" e "Sair" em telas muito pequenas */
-    }
-    
+
+    /* Botões de ação do cabeçalho mais robustos e premium */
     .header-actions .btn-outline {
-        padding: 0.6rem;
-        border-radius: 50%;
-        width: 40px;
-        height: 40px;
-        justify-content: center;
+        padding: 0.8rem 1.2rem;
+        border-radius: 12px;
+        min-height: 48px;
+        font-size: 0.9rem;
+        font-weight: 700;
+        background: #fff;
+        border: 1.5px solid #edf2f7;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+        color: var(--text-primary);
+    }
+
+    .header-actions .btn-outline i {
+        width: 18px;
+        height: 18px;
+        stroke-width: 2.5px;
+    }
+
+    /* Em telas muito pequenas, mantemos o texto mas reduzimos ligeiramente o padding lateral */
+    @media (max-width: 380px) {
+        .header-actions .btn-outline {
+            padding: 0.8rem;
+            gap: 0.4rem;
+        }
+        .header-actions .btn-outline span {
+            font-size: 0.85rem;
+        }
+    }
+
+    /* Botões primários e de IA consistentes e robustos */
+    .btn-primary, .btn-robot-ai {
+        padding: 1.2rem 1.5rem !important;
+        font-size: 1.05rem !important;
+        border-radius: 14px !important;
+        min-height: 60px;
+        box-shadow: 0 4px 12px rgba(139, 0, 0, 0.15);
     }
 }
 
@@ -973,39 +1017,54 @@
         justify-content: flex-start;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
-        gap: 0.8rem;
-        padding: 0.5rem 1rem 1rem 1rem;
-        margin: -0.5rem -1rem 1.5rem -1rem; /* Sangria negativa para o scroll encostar nas bordas */
+        gap: 1.2rem;
+        padding: 1.2rem 2rem 2.2rem 2rem;
+        margin: -0.5rem -2rem 1.8rem -2rem;
         scroll-snap-type: x mandatory;
-        scrollbar-width: none; /* Firefox */
-        border-bottom: 1px solid rgba(0,0,0,0.05);
-        mask-image: linear-gradient(to right, black 85%, transparent 100%);
+        scrollbar-width: none;
+        border-bottom: none;
+        position: relative;
+        /* Efeito de máscara profissional: fade nas bordas para indicar scroll */
+        -webkit-mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+        mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
     }
 
     .admin-tabs::-webkit-scrollbar {
-        display: none; /* Chrome/Safari */
+        display: none;
     }
     
     .tab-btn {
         flex: 0 0 auto;
         width: auto;
-        padding: 0.7rem 1.2rem;
-        font-size: 0.85rem;
-        scroll-snap-align: start;
+        padding: 1rem 2rem;
+        font-size: 1.05rem;
+        font-weight: 700;
+        scroll-snap-align: center;
         white-space: nowrap;
-        background: #f8f9fa;
-        border: 1px solid #eee;
+        background: #ffffff;
+        border: 2px solid #f0f2f5;
+        border-radius: 18px; /* Visual mais moderno e orgânico */
+        gap: 0.8rem;
+        min-height: 68px; /* Ligeiramente maior para impacto visual */
+        box-shadow: 0 6px 15px rgba(0,0,0,0.05);
+        color: var(--text-primary);
+        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        display: flex;
+        align-items: center;
     }
 
     .tab-btn.active {
-        background: var(--primary-color);
-        border-color: var(--primary-color);
+        background: linear-gradient(135deg, var(--primary-color), #b22222);
+        border-color: transparent;
         color: white;
+        box-shadow: 0 10px 25px rgba(139, 0, 0, 0.35);
+        transform: translateY(-4px) scale(1.02);
     }
     
-    .tab-btn i {
-        width: 16px;
-        height: 16px;
+    .tab-btn i, .tab-btn svg {
+        width: 22px;
+        height: 22px;
+        stroke-width: 2.5px;
     }
 }
 
@@ -2148,123 +2207,8 @@
     color: var(--primary-color);
 }
 
-@media (max-width: 550px) {
-    .settings-modal-card {
-        max-width: 95%;
-        width: 95%;
-    }
-    
-    .settings-modal-card .modal-header,
-    .settings-modal-card .modal-body,
-    .settings-modal-card .modal-footer {
-        padding: 1.2rem;
-    }
+/* Removida media query redundante que causava conflitos de tamanho */
 
-    .brand, .header-brand {
-        gap: 0.8rem;
-    }
-
-    .header-separator {
-        height: 25px;
-        display: none; /* Oculta separador no mobile para ganhar espaço */
-    }
-
-    .brand h1 {
-        font-size: 1rem;
-    }
-    
-    .brand p {
-        display: none; /* Oculta subtexto "Controle" no mobile */
-    }
-
-    /* Ocultar texto dos botões do cabeçalho */
-    .header-actions .btn-outline span {
-        display: none;
-    }
-    
-    .header-actions .btn-outline {
-        padding: 0.6rem;
-        aspect-ratio: 1;
-        justify-content: center;
-    }
-
-    .header-actions {
-        gap: 0.6rem;
-    }
-}
-
-/* Refinamento das Abas Horizontais */
-.admin-tabs {
-    display: flex;
-    overflow-x: auto;
-    gap: 0.8rem;
-    padding: 0.5rem 1rem;
-    margin: 0 -1rem 1.5rem -1rem;
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE/Edge */
-    position: relative;
-    -webkit-overflow-scrolling: touch;
-}
-
-.admin-tabs::-webkit-scrollbar {
-    display: none; /* Chrome/Safari */
-}
-
-/* Gradiente para indicar scroll */
-.admin-tabs::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    width: 40px;
-    background: linear-gradient(to right, transparent, var(--admin-bg));
-    pointer-events: none;
-    z-index: 2;
-}
-
-.tab-btn {
-    white-space: nowrap;
-    padding: 0.6rem 1.2rem;
-    border-radius: 20px;
-    border: 1px solid rgba(0,0,0,0.08);
-    background: #fff;
-    color: var(--text-secondary);
-    font-size: 0.85rem;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-}
-
-.tab-btn i, .tab-btn svg {
-    width: 16px;
-    height: 16px;
-}
-
-.tab-btn.active {
-    background: var(--primary-color);
-    color: #fff;
-    border-color: var(--primary-color);
-    box-shadow: 0 4px 12px rgba(139, 0, 0, 0.2);
-}
-
-.tab-btn:hover:not(.active) {
-    background: #fdfdfd;
-    border-color: #ddd;
-    transform: translateY(-1px);
-}
-
-@media (max-width: 480px) {
-    .tab-btn span {
-        font-size: 0.75rem;
-    }
-    
-    .tab-btn {
-        padding: 0.5rem 0.9rem;
-    }
-}
+/* --- Fim do Arquivo Admin.css --- */
 
 
