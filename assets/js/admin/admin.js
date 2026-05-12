@@ -93,6 +93,8 @@ onAuthStateChanged(auth, (user) => {
         initLogSearch();  // Inicia o campo de busca no histórico
         initScheduleUI(); // Inicia a UI de agendamento de notificações
         initSettingsModal(); // Inicia a lógica do modal de ajustes
+        initEditNotifModal(); // Inicia a lógica do modal de edição de notificações
+        initEmulatorToggle(); // Inicia o toggle de emulação
         syncTickerWithLatest(); // Força sincronização do letreiro na inicialização
     } else {
         // Não logado
@@ -671,6 +673,135 @@ function initSettingsModal() {
     });
 }
 
+// ================= MODAL DE EDIÇÃO DE NOTIFICAÇÃO =================
+
+function initEditNotifModal() {
+    const modal = document.getElementById('edit-notif-modal');
+    const closeBtn = document.getElementById('close-edit-notif-modal');
+    const cancelBtn = document.getElementById('btn-cancel-edit-notif');
+    const saveBtn = document.getElementById('btn-save-edit-notif');
+
+    if (!modal || !closeBtn || !cancelBtn || !saveBtn) return;
+
+    const closeModal = () => {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    };
+
+    closeBtn.addEventListener('click', closeModal);
+    cancelBtn.addEventListener('click', closeModal);
+    saveBtn.addEventListener('click', saveNotificationEdit);
+
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+}
+
+/**
+ * Abre o modal para editar uma notificação agendada ou ativa.
+ */
+function openEditNotifModal(docId, collectionName, data) {
+    const modal = document.getElementById('edit-notif-modal');
+    const titleInput = document.getElementById('edit-notif-title');
+    const messageInput = document.getElementById('edit-notif-message');
+    const dateInput = document.getElementById('edit-notif-date');
+    const idInput = document.getElementById('edit-notif-id');
+    const collInput = document.getElementById('edit-notif-collection');
+    const schedulingFields = document.getElementById('edit-scheduling-fields');
+
+    if (!modal || !titleInput) return;
+
+    // Preenche os campos ocultos de controle
+    idInput.value = docId;
+    collInput.value = collectionName;
+    
+    // Preenche campos de texto
+    titleInput.value = data.title || '';
+    messageInput.value = data.message || '';
+
+    // Se for agendado, mostra o campo de data e preenche com o valor atual
+    if (collectionName === 'scheduledNotifications') {
+        schedulingFields.style.display = 'block';
+        if (data.scheduledAt) {
+            // Converte ISO para o formato aceito pelo input datetime-local (YYYY-MM-DDTHH:mm)
+            const d = new Date(data.scheduledAt);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            const hours = String(d.getHours()).padStart(2, '0');
+            const minutes = String(d.getMinutes()).padStart(2, '0');
+            dateInput.value = `${year}-${month}-${day}T${hours}:${minutes}`;
+        } else {
+            dateInput.value = '';
+        }
+    } else {
+        schedulingFields.style.display = 'none';
+    }
+
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    lucide.createIcons();
+}
+
+/**
+ * Salva as alterações feitas no modal de edição de notificação.
+ */
+async function saveNotificationEdit() {
+    const docId = document.getElementById('edit-notif-id').value;
+    const collectionName = document.getElementById('edit-notif-collection').value;
+    const title = document.getElementById('edit-notif-title').value;
+    const message = document.getElementById('edit-notif-message').value;
+    const dateVal = document.getElementById('edit-notif-date').value;
+    const saveBtn = document.getElementById('btn-save-edit-notif');
+
+    if (!title.trim()) {
+        showNotification("O título é obrigatório.", "warning");
+        return;
+    }
+
+    try {
+        saveBtn.disabled = true;
+        const originalContent = saveBtn.innerHTML;
+        saveBtn.innerHTML = '<i class="loader-2 animate-spin"></i> Salvando...';
+
+        const notifRef = doc(db, collectionName, docId);
+        const updates = {
+            title: title.trim(),
+            message: message.trim()
+        };
+
+        // Se for agendado e uma nova data foi fornecida, atualiza
+        if (collectionName === 'scheduledNotifications' && dateVal) {
+            const newDate = new Date(dateVal);
+            if (!isNaN(newDate.getTime())) {
+                updates.scheduledAt = newDate.toISOString();
+            }
+        }
+
+        await updateDoc(notifRef, updates);
+        
+        // Se for um aviso que já foi enviado, sincroniza o letreiro caso seja o mais recente
+        if (collectionName === 'adminNotifications') {
+            await syncTickerWithLatest();
+        }
+
+        showNotification("Comunicado atualizado com sucesso!", "success");
+        document.getElementById('edit-notif-modal').style.display = 'none';
+        document.body.style.overflow = '';
+        
+        // Log da edição
+        await saveLog('aviso-editado', `Comunicado editado: "${title}"`, null, `O administrador alterou os detalhes deste aviso.`);
+
+    } catch (error) {
+        console.error("Erro ao salvar edição:", error);
+        showNotification("Erro ao salvar alterações: " + error.message, "error");
+    } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = '<i data-lucide="save"></i> Salvar Alterações';
+        lucide.createIcons();
+    }
+}
+
 // ================= TOGGLE VISIBILIDADE NOTIFICAÇÕES =================
 const settingsRef = doc(db, 'config', 'settings');
 
@@ -808,39 +939,61 @@ async function loadAdminNotifications() {
 
             listEl.innerHTML = '';
             combined.forEach((data) => {
-            const isPending = data.status === 'pending';
-            const dateObj = new Date(isPending ? data.scheduledAt : data.createdAt);
-            const formattedDate = dateObj.toLocaleDateString('pt-BR') + ' às ' + dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-            const metaLabel = isPending ? 'Agendado para ' : 'Enviado em ';
-            const collectionName = isPending ? 'scheduledNotifications' : 'adminNotifications';
+                const isPending = data.status === 'pending';
+                const dateObj = new Date(isPending ? data.scheduledAt : data.createdAt);
+                const formattedDate = dateObj.toLocaleDateString('pt-BR') + ' às ' + dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                const metaLabel = isPending ? 'Agendado para ' : 'Enviado em ';
+                const collectionName = isPending ? 'scheduledNotifications' : 'adminNotifications';
 
-            const item = document.createElement('div');
-            item.className = `admin-notif-item ${isPending ? 'is-pending' : ''}`;
-            item.innerHTML = `
-                <div class="admin-notif-content">
-                    <h4 class="admin-notif-title">${data.title}</h4>
-                    <p class="admin-notif-message">${data.message}</p>
-                    <div class="admin-notif-meta">
-                        <i data-lucide="${isPending ? 'calendar' : 'clock'}" style="width: 12px; height: 12px;"></i> ${metaLabel} ${formattedDate}
+                const item = document.createElement('div');
+                item.className = `admin-notif-item ${isPending ? 'is-pending' : ''}`;
+                item.innerHTML = `
+                    <div class="admin-notif-content">
+                        <h4 class="admin-notif-title">${data.title}</h4>
+                        <p class="admin-notif-message">${data.message}</p>
+                        <div class="admin-notif-meta">
+                            <i data-lucide="${isPending ? 'calendar' : 'clock'}" style="width: 12px; height: 12px;"></i> ${metaLabel} ${formattedDate}
+                        </div>
                     </div>
-                </div>
-                <button class="btn-delete-notif" title="${isPending ? 'Cancelar agendamento' : 'Apagar comunicado do site'}" 
-                        data-id="${data.id}" data-title="${data.title}" data-collection="${collectionName}">
-                    <i data-lucide="${isPending ? 'x-circle' : 'trash-2'}"></i>
-                </button>
-            `;
-            listEl.appendChild(item);
-        });
-
-        // Adiciona listeners para os botões de deletar
-        listEl.querySelectorAll('.btn-delete-notif').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const docId = btn.getAttribute('data-id');
-                const title = btn.getAttribute('data-title');
-                const collectionName = btn.getAttribute('data-collection');
-                await deleteNotification(docId, title, collectionName);
+                    <div class="admin-notif-actions">
+                        ${isPending ? `
+                            <button class="btn-edit-notif" title="Editar agendamento" 
+                                    data-id="${data.id}" data-collection="${collectionName}">
+                                <i data-lucide="edit-3"></i>
+                            </button>
+                        ` : ''}
+                        <button class="btn-delete-notif" title="${isPending ? 'Cancelar agendamento' : 'Apagar comunicado do site'}" 
+                                data-id="${data.id}" data-title="${data.title}" data-collection="${collectionName}">
+                            <i data-lucide="${isPending ? 'x-circle' : 'trash-2'}"></i>
+                        </button>
+                    </div>
+                `;
+                listEl.appendChild(item);
             });
-        });
+
+            // Adiciona listeners para os botões de deletar
+            listEl.querySelectorAll('.btn-delete-notif').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    const docId = btn.getAttribute('data-id');
+                    const title = btn.getAttribute('data-title');
+                    const collectionName = btn.getAttribute('data-collection');
+                    await deleteNotification(docId, title, collectionName);
+                });
+            });
+
+            // NOVO: Adiciona listeners para os botões de editar
+            listEl.querySelectorAll('.btn-edit-notif').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const docId = btn.getAttribute('data-id');
+                    const collectionName = btn.getAttribute('data-collection');
+                    const notificationData = combined.find(n => n.id === docId);
+                    if (notificationData) {
+                        openEditNotifModal(docId, collectionName, notificationData);
+                    }
+                });
+            });
+
+            lucide.createIcons();
 
         lucide.createIcons();
         } catch (error) {

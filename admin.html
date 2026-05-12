@@ -81,7 +81,7 @@
         <!-- Header do Dashboard -->
         <header class="dash-header">
             <div class="dash-header-content">
-                <div class="brand">
+                <div class="brand" id="brand-header" title="Voltar para Histórico">
                     <img src="assets/img/logo_oer.png" alt="OER Logo" class="dash-logo">
                     <div class="header-separator"></div>
                     <div>
@@ -478,7 +478,7 @@
                     </div>
                     <p id="toggle-ticker-status-text" class="toggle-status">A carregar estado...</p>
 
-                    <div class="settings-item" style="margin-top: 1.5rem; border-top: 1px solid #eee; padding-top: 1.5rem;">
+                    <div class="settings-item" style="margin-top: 1.5rem;">
                         <div class="settings-item-info">
                             <div class="settings-icon-bg" style="background: rgba(255, 165, 0, 0.1); color: #FF8C00;">
                                 <i data-lucide="terminal"></i>
@@ -510,6 +510,53 @@
         <img class="modal-content" id="modal-img">
     </div>
 
+    <div id="edit-notif-modal" class="modal-overlay">
+        <div class="settings-modal-card" style="max-width: 550px;">
+            <div class="modal-header">
+                <div class="modal-header-info">
+                    <h3><i data-lucide="edit-3"></i> Editar Agendamento</h3>
+                    <p>Modifique os detalhes da notificação programada.</p>
+                </div>
+                <button class="btn-close-modal" id="close-edit-notif-modal">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit-notif-id">
+                <input type="hidden" id="edit-notif-collection">
+                
+                <div class="version-input-wrapper" style="margin-bottom: 1rem;">
+                    <label for="edit-notif-title">Título do Aviso</label>
+                    <input type="text" id="edit-notif-title" class="version-input" placeholder="Título">
+                </div>
+
+                <div class="version-input-wrapper" style="margin-bottom: 1rem;">
+                    <label for="edit-notif-message">Mensagem Adicional</label>
+                    <textarea id="edit-notif-message" class="version-input" rows="3" placeholder="Mensagem"></textarea>
+                </div>
+
+                <div id="edit-scheduling-fields" style="display: none;">
+                    <div class="version-input-wrapper">
+                        <label for="edit-notif-date">Nova Data e Hora de Envio</label>
+                        <input type="datetime-local" id="edit-notif-date" class="version-input">
+                        <p style="font-size: 0.8rem; color: #666; margin-top: 0.3rem;">
+                            <i data-lucide="info" style="width: 12px; height: 12px;"></i> 
+                            A alteração do horário afetará quando o sistema disparará o aviso.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-body" style="padding-top: 0;">
+                <div class="modal-footer" style="display: flex; gap: 1rem; justify-content: flex-end; padding: 1.5rem 0 0 0; border-top: 1px solid #eee; margin-top: 1rem;">
+                    <button class="btn-outline" id="btn-cancel-edit-notif" style="margin: 0;">Cancelar</button>
+                    <button class="btn-robot-ai" id="btn-save-edit-notif" style="margin: 0; width: auto; min-width: 150px;">
+                        <i data-lucide="save"></i> Salvar Alterações
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Firebase SDKs (Compat / v8 style for simplicity or Modular v9) -->
     <!-- Vamos usar a API Modular V9, que é mais rápida e moderna -->
     <script type="module" src="assets/js/admin/admin.js?v=9"></script>
@@ -525,32 +572,6 @@
 
         lucide.createIcons();
 
-        // Lógica de Seleção de Ambiente (Produção / Emulador)
-        const emulatorToggle = document.getElementById('toggle-emulator');
-        const envLabel = document.getElementById('env-label');
-        const isEmulator = localStorage.getItem('USE_EMULATORS') === 'true';
-
-        // Inicializar estado
-        if (emulatorToggle) {
-            emulatorToggle.checked = isEmulator;
-            if (envLabel) {
-                envLabel.textContent = isEmulator 
-                    ? '⚠️ Modo DESENVOLVIMENTO (Emuladores ATIVOS).' 
-                    : '✅ Modo PRODUÇÃO (Dados Reais).';
-                envLabel.style.color = isEmulator ? '#FF8C00' : '#2E8B57';
-            }
-            if (isEmulator) document.body.classList.add('mode-emulator');
-
-            emulatorToggle.addEventListener('change', () => {
-                localStorage.setItem('USE_EMULATORS', emulatorToggle.checked);
-                // Mostrar aviso antes de recarregar
-                const msg = emulatorToggle.checked
-                    ? "Alterando para modo EMULADOR (Desenvolvimento). A página será recarregada."
-                    : "Alterando para modo PRODUÇÃO (Real). A página será recarregada.";
-                alert(msg);
-                location.reload();
-            });
-        }
 
         // Lógica de Navegação por Abas
         function initTabs() {
@@ -575,9 +596,27 @@
         }
 
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initTabs);
+            document.addEventListener('DOMContentLoaded', () => {
+                initTabs();
+                initBrandClick();
+            });
         } else {
             initTabs();
+            initBrandClick();
+        }
+
+        // Função para tornar o logo/título clicáveis para voltar ao Histórico
+        function initBrandClick() {
+            const brandHeader = document.getElementById('brand-header');
+            const historyTab = document.querySelector('[data-target="section-logs"]');
+            
+            if (brandHeader && historyTab) {
+                brandHeader.addEventListener('click', () => {
+                    historyTab.click();
+                    // Scroll suave para o topo se necessário
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                });
+            }
         }
     </script>
 </body>
