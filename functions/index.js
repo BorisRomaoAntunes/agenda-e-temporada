@@ -454,3 +454,159 @@ exports.onPDFUpload = functions.runWith({
         if (fs.existsSync(outputFilePath)) fs.unlinkSync(outputFilePath);
     }
 });
+
+/**
+ * Processamento Inteligente de Atestados Médicos (Fase 2)
+ * Acionado quando um músico faz upload de um atestado (PDF ou Imagem) na pasta atestados_temp/
+ */
+exports.onAtestadoUpload = functions.runWith({
+    timeoutSeconds: 540, 
+    memory: "1GB"
+}).storage.object().onFinalize(async (object) => {
+    const filePath = object.name;
+    const contentType = object.contentType;
+
+    // 1. Validar se está na pasta correta
+    if (!filePath.startsWith("atestados_temp/")) {
+        return console.log("Arquivo ignorado (não está na pasta 'atestados_temp/')");
+    }
+
+    console.log(`[Atestados] Processando novo arquivo: ${filePath}`);
+
+    const bucket = admin.storage().bucket(object.bucket);
+    const tempFilePath = path.join(os.tmpdir(), path.basename(filePath));
+    
+    try {
+        // 2. Download do arquivo
+        await bucket.file(filePath).download({ destination: tempFilePath });
+
+        // 3. Preparar Gemini
+        const apiKey = process.env.GEMINI_API_KEY || admin.remoteConfig().parameters?.GEMINI_API_KEY?.defaultValue?.value;
+        if (!apiKey) throw new Error("GEMINI_API_KEY não configurada no ambiente ou Remote Config.");
+
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+        // 4. Ler arquivo para enviar ao Gemini
+        const fileBuffer = fs.readFileSync(tempFilePath);
+        const filePart = {
+            inlineData: {
+                data: fileBuffer.toString("base64"),
+                mimeType: contentType,
+            },
+        };
+
+        const prompt = `Você é um assistente administrativo médico experiente. 
+        Analise este atestado médico (pode ser imagem ou PDF) e extraia os dados necessários para o RH.
+        
+        EXTRAIA EM JSON:
+        - nome: Nome completo do paciente/músico. (Seja preciso).
+        - cid: Código CID mencionado. Se não houver, retorne null.
+        - data_inicio: Data de início do afastamento no formato YYYY-MM-DD. Use a data de emissão se não houver data de início explícita.
+        - dias: Quantidade de dias de afastamento (inteiro). Se for apenas comparecimento, coloque 0.
+        - resumo_cid: Uma explicação breve e profissional (máx 200 caracteres) sobre o que significa este CID ou a condição descrita, em termos leigos para um administrador.
+        
+        REGRAS:
+        - Retorne APENAS o objeto JSON, sem markdown ou textos adicionais.
+        - Se não conseguir ler o nome, use "Nao_Identificado".`;
+
+        const result = await model.generateContent([prompt, filePart]);
+        const response = await result.response;
+        const rawText = response.text();
+        
+        // Limpa o texto caso a IA retorne markdown
+        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error("A IA não retornou um JSON válido.");
+        const aiData = JSON.parse(jsonMatch[0]);
+
+        console.log("[Atestados] Dados extraídos:", aiData);
+
+        // 5. Processamento de PDF
+        let pdfDoc;
+        if (contentType === "application/pdf") {
+            pdfDoc = await PDFDocument.load(fileBuffer);
+        } else {
+            // Converter Imagem para PDF
+            pdfDoc = await PDFDocument.create();
+            const image = (contentType.includes("png")) 
+                ? await pdfDoc.embedPng(fileBuffer) 
+                : await pdfDoc.embedJpg(fileBuffer);
+            
+            const page = pdfDoc.addPage([image.width, image.height]);
+            page.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height });
+        }
+
+        // Adicionar página de análise da IA ao final
+        const infoPage = pdfDoc.addPage([600, 500]);
+        const { height } = infoPage.getSize();
+        
+        infoPage.drawText("RELATÓRIO DE ANÁLISE (ROBÔ OER)", { x: 50, y: height - 50, size: 20 });
+        infoPage.drawText("Este documento foi processado automaticamente por Inteligência Artificial.", { x: 50, y: height - 75, size: 10 });
+        
+        infoPage.drawText(`Paciente: ${aiData.nome}`, { x: 50, y: height - 130, size: 14 });
+        infoPage.drawText(`CID: ${aiData.cid || 'Não informado'}`, { x: 50, y: height - 155, size: 14 });
+        infoPage.drawText(`Início do Afastamento: ${aiData.data_inicio}`, { x: 50, y: height - 180, size: 14 });
+        infoPage.drawText(`Período: ${aiData.dias} dias`, { x: 50, y: height - 205, size: 14 });
+        
+        infoPage.drawText("Explicação da Condição:", { x: 50, y: height - 260, size: 14 });
+        infoPage.drawText(aiData.resumo_cid || "N/A", { x: 50, y: height - 285, size: 11, maxWidth: 500 });
+
+        const finalPdfBytes = await pdfDoc.save();
+
+        // 6. Upload para pasta processada com nome padronizado
+        const cleanName = (aiData.nome || "Atestado").replace(/\s+/g, '_').normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9_]/g, "");
+        const finalFileName = `atestado_${cleanName}_${aiData.data_inicio}_${aiData.dias}dias.pdf`;
+        const finalPath = `atestados_processed/${finalFileName}`;
+
+        await bucket.file(finalPath).save(finalPdfBytes, {
+            metadata: { 
+                contentType: "application/pdf",
+                metadata: {
+                    processedBy: "RoboOER",
+                    originalName: path.basename(filePath)
+                }
+            }
+        });
+
+        // 7. Salvar no Firestore (medicalCertificates)
+        await admin.firestore().collection("medicalCertificates").add({
+            nome: aiData.nome,
+            cid: aiData.cid,
+            dataInicio: aiData.data_inicio,
+            dias: aiData.dias,
+            resumoCid: aiData.resumo_cid,
+            fileName: finalFileName,
+            filePath: finalPath,
+            status: "pendente",
+            createdAt: new Date().toISOString(),
+            processedAt: new Date().toISOString()
+        });
+
+        // 8. Log de Auditoria
+        await admin.firestore().collection("adminLogs").add({
+            type: "atestado",
+            message: `Atestado processado: ${aiData.nome}`,
+            details: `IA identificou CID ${aiData.cid} e ${aiData.dias} dias de afastamento.`,
+            user: "Robô OER",
+            createdAt: new Date().toISOString()
+        });
+
+        // 9. Remover original (atestados_temp) para segurança
+        await bucket.file(filePath).delete();
+        console.log(`[Atestados] Processamento concluído com sucesso: ${finalFileName}`);
+
+    } catch (error) {
+        console.error("[Atestados] Erro crítico no processamento:", error);
+        
+        // Log de erro
+        await admin.firestore().collection("adminLogs").add({
+            type: "erro",
+            message: `Falha ao processar atestado: ${path.basename(filePath)}`,
+            details: error.message,
+            user: "Sistema",
+            createdAt: new Date().toISOString()
+        });
+    } finally {
+        if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+    }
+});

@@ -139,6 +139,14 @@
                 </span>
                 <span class="btn-form-label">Atualização dados Musicista OER</span>
             </a>
+
+            <!-- NOVO: Módulo de Atestados (Fase 4) -->
+            <button id="btnAtestadoTrigger" class="btn-form btn-atestado" style="display: none; background: none; border: none; font-family: inherit; padding: 0.4rem;">
+                <span class="btn-form-icon" style="background-color: #2E8B57; box-shadow: 0 4px 15px rgba(46, 139, 87, 0.4);">
+                    <i data-lucide="file-badge"></i>
+                </span>
+                <span class="btn-form-label">Enviar Atestado Médico (IA)</span>
+            </button>
         </div>
 
         <!-- Grid de Visualizadores (Desktop/Tablet) -->
@@ -207,6 +215,9 @@
     <!-- Controle de Links Temporários -->
     <script type="module" src="assets/js/public/dynamic-links.js"></script>
 
+    <!-- Módulo de Atestados Médicos (Fase 4) -->
+    <script type="module" src="assets/js/public/medical-cert.js"></script>
+
     <!-- Botão de Notificações (visibilidade controlada via Firestore pelo admin) -->
     <div class="notification-container" hidden>
         <!-- Painel de Convite Flutuante -->
@@ -243,6 +254,44 @@
             </svg>
             <span class="notification-badge" id="notificationBadge">1</span>
         </button>
+    </div>
+
+    <!-- Modal de Upload de Atestado -->
+    <div id="atestado-upload-modal" class="modal-overlay" style="display: none;">
+        <div class="upload-modal-card">
+            <div class="modal-header">
+                <div class="modal-header-info">
+                    <h3><i data-lucide="file-badge"></i> Enviar Atestado Médico</h3>
+                    <p>O Robô OER processará seu atestado automaticamente.</p>
+                </div>
+                <button class="btn-close-modal" id="btn-close-atestado-upload">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <form id="atestado-upload-form" class="modal-body" style="padding-top: 1rem;">
+                <div class="file-upload-wrapper">
+                    <input type="file" id="input-atestado-file" accept="application/pdf,image/*" class="file-input" required>
+                    <div class="file-drop-area" id="atestado-drop-area">
+                        <i data-lucide="upload-cloud"></i>
+                        <span class="file-msg">Selecione PDF ou Foto do Atestado</span>
+                    </div>
+                </div>
+
+                <div id="atestado-upload-progress" class="progress-bar-container" style="margin-bottom: 1.5rem; height: 8px; background: #eee; border-radius: 4px; overflow: hidden; display: none;">
+                    <div class="progress-bar" id="atestado-progress-inner" style="height: 100%; background: #2E8B57; width: 0%; transition: width 0.3s ease;"></div>
+                </div>
+
+                <button type="submit" class="btn-primary" id="btn-submit-atestado" style="background: #2E8B57; width: 100%;">
+                    <i data-lucide="send"></i> <span>Enviar para Processamento</span>
+                </button>
+                
+                <p style="font-size: 0.75rem; color: #888; text-align: center; margin-top: 1rem; line-height: 1.4;">
+                    <i data-lucide="shield-check" style="width: 12px; height: 12px;"></i> 
+                    Seus dados são processados com segurança e criptografia. 
+                    A administração será notificada após a extração da IA.
+                </p>
+            </form>
+        </div>
     </div>
 
 

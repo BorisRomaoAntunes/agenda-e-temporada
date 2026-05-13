@@ -36,7 +36,8 @@ import {
     getStorage, 
     ref, 
     uploadBytesResumable, 
-    getDownloadURL 
+    getDownloadURL,
+    deleteObject 
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 import { 
     httpsCallable 
@@ -67,6 +68,8 @@ const toggleNotifBtn = document.getElementById('toggle-notif-btn');
 const toggleStatusText = document.getElementById('toggle-status-text');
 const toggleTickerBtn = document.getElementById('toggle-ticker-btn');
 const toggleTickerStatusText = document.getElementById('toggle-ticker-status-text');
+const toggleAtestadosBtn = document.getElementById('toggle-atestados');
+const toggleAtestadosStatusText = document.getElementById('atestados-status-text');
 
 let selectedNotifImage = null;
 
@@ -96,6 +99,7 @@ onAuthStateChanged(auth, (user) => {
         initEditNotifModal(); // Inicia a lógica do modal de edição de notificações
         initEmulatorToggle(); // Inicia o toggle de emulação
         syncTickerWithLatest(); // Força sincronização do letreiro na inicialização
+        initAtestadosManagement(); // Inicia a gestão de atestados médicos (Fase 3)
     } else {
         // Não logado
         dashboardContainer.classList.remove('active');
@@ -870,11 +874,22 @@ function initToggleListener() {
                 : '🔕 Letreiro de comunicados DESATIVADO no site dos músicos.';
             toggleTickerStatusText.style.color = tickerEnabled ? '#2E8B57' : '#888';
         }
+
+        // Estado do Módulo de Atestados
+        const atestadosEnabled = data.atestadosEnabled === true;
+        if (toggleAtestadosBtn) toggleAtestadosBtn.checked = atestadosEnabled;
+        if (toggleAtestadosStatusText) {
+            toggleAtestadosStatusText.textContent = atestadosEnabled
+                ? '✅ Módulo de atestados ATIVO no site dos músicos.'
+                : '🔕 Módulo de atestados DESATIVADO no site dos músicos.';
+            toggleAtestadosStatusText.style.color = atestadosEnabled ? '#2E8B57' : '#888';
+        }
     }, (err) => {
         console.error('[Toggle] Erro ao ouvir config/settings:', err);
         const errorMsg = '⚠️ Erro ao carregar estado.';
         if (toggleStatusText) toggleStatusText.textContent = errorMsg;
         if (toggleTickerStatusText) toggleTickerStatusText.textContent = errorMsg;
+        if (toggleAtestadosStatusText) toggleAtestadosStatusText.textContent = errorMsg;
     });
 
     // Evento para o Toggle de Notificações
@@ -901,6 +916,20 @@ function initToggleListener() {
             } catch (err) {
                 showNotification('Erro ao salvar configuração: ' + err.message, 'error');
                 toggleTickerBtn.checked = !newState;
+            }
+        });
+    }
+
+    // Evento para o Toggle de Atestados
+    if (toggleAtestadosBtn && !toggleAtestadosBtn._listenerAdded) {
+        toggleAtestadosBtn._listenerAdded = true;
+        toggleAtestadosBtn.addEventListener('change', async () => {
+            const newState = toggleAtestadosBtn.checked;
+            try {
+                await setDoc(settingsRef, { atestadosEnabled: newState }, { merge: true });
+            } catch (err) {
+                showNotification('Erro ao salvar configuração: ' + err.message, 'error');
+                toggleAtestadosBtn.checked = !newState;
             }
         });
     }
@@ -1811,3 +1840,185 @@ document.addEventListener('input', (e) => {
         }
     }
 });
+
+/**
+ * FASE 3: GESTÃO DE ATESTADOS MÉDICOS
+ * Gerencia a visualização, edição e arquivamento de atestados processados pela IA.
+ */
+function initAtestadosManagement() {
+    const atestadosGrid = document.getElementById('atestados-grid');
+    const atestadosGridContainer = document.getElementById('atestados-grid-container');
+    const atestadoModal = document.getElementById('atestado-modal');
+    const btnCloseAtestadoModal = document.getElementById('btn-close-atestado-modal');
+    
+    if (!atestadosGrid || !atestadoModal) return;
+
+    // Referências do Formulário no Modal
+    const modalPdfViewer = document.getElementById('atestado-pdf-viewer');
+    const inputEditId = document.getElementById('atestado-edit-id');
+    const inputEditNome = document.getElementById('atestado-edit-nome');
+    const inputEditCid = document.getElementById('atestado-edit-cid');
+    const inputEditInicio = document.getElementById('atestado-edit-inicio');
+    const inputEditDias = document.getElementById('atestado-edit-dias');
+    const inputEditResumo = document.getElementById('atestado-edit-resumo');
+    
+    const btnSaveEdit = document.getElementById('btn-save-atestado-edit');
+    const btnDownloadDelete = document.getElementById('btn-download-delete-atestado');
+
+    // 1. Escutar atestados pendentes no Firestore
+    const q = query(collection(db, "medicalCertificates"), orderBy("createdAt", "desc"));
+    
+    onSnapshot(q, (snapshot) => {
+        if (snapshot.empty) {
+            atestadosGridContainer.style.display = 'none';
+            atestadosGrid.innerHTML = '<div class="admin-notif-empty">Nenhum atestado pendente para revisão.</div>';
+            return;
+        }
+
+        atestadosGridContainer.style.display = 'block';
+        atestadosGrid.innerHTML = '';
+
+        snapshot.forEach((docSnap) => {
+            const data = docSnap.data();
+            const card = createAtestadoCard(docSnap.id, data);
+            atestadosGrid.appendChild(card);
+        });
+        
+        // Reinicializa ícones Lucide
+        if (window.lucide) lucide.createIcons();
+    });
+
+    // 2. Função para criar o Card na Grade
+    function createAtestadoCard(id, data) {
+        const div = document.createElement('div');
+        div.className = 'atestado-card';
+        
+        const dateStr = data.createdAt?.toDate().toLocaleDateString('pt-BR') || '---';
+        
+        div.innerHTML = `
+            <div class="atestado-card-header">
+                <div class="atestado-card-icon">
+                    <i data-lucide="file-text"></i>
+                </div>
+                <span class="atestado-card-status pending">Pendente</span>
+            </div>
+            <div class="atestado-card-info">
+                <h4 title="${data.musicoNome || 'Nome não identificado'}">${data.musicoNome || 'Nome não identificado'}</h4>
+                <p>CID: <strong>${data.cid || '---'}</strong> • ${data.afastamentoDias || '0'} dias</p>
+            </div>
+            <div class="atestado-card-meta">
+                <i data-lucide="calendar"></i> Recebido em ${dateStr}
+            </div>
+            <div class="atestado-card-actions">
+                <button class="btn-outline btn-view-atestado" data-id="${id}">
+                    <i data-lucide="eye"></i> Revisar
+                </button>
+            </div>
+        `;
+
+        // Evento de clique no botão Revisar
+        div.querySelector('.btn-view-atestado').addEventListener('click', () => openAtestadoModal(id, data));
+
+        return div;
+    }
+
+    // 3. Abrir Modal com dados
+    function openAtestadoModal(id, data) {
+        inputEditId.value = id;
+        inputEditNome.value = data.musicoNome || '';
+        inputEditCid.value = data.cid || '';
+        inputEditInicio.value = data.afastamentoInicio || '';
+        inputEditDias.value = data.afastamentoDias || '';
+        inputEditResumo.value = data.resumoIA || '';
+        
+        // Carregar PDF no iframe
+        modalPdfViewer.src = data.processedFileUrl || '';
+        
+        atestadoModal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        if (window.lucide) lucide.createIcons();
+    }
+
+    // 4. Fechar Modal
+    function closeAtestadoModal() {
+        atestadoModal.style.display = 'none';
+        modalPdfViewer.src = '';
+        document.body.style.overflow = 'auto';
+    }
+
+    if (btnCloseAtestadoModal) btnCloseAtestadoModal.addEventListener('click', closeAtestadoModal);
+
+    // 5. Salvar Edições
+    if (btnSaveEdit) {
+        btnSaveEdit.addEventListener('click', async () => {
+            const id = inputEditId.value;
+            const btn = btnSaveEdit;
+            const originalText = btn.innerHTML;
+            
+            try {
+                btn.disabled = true;
+                btn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Salvando...';
+                if (window.lucide) lucide.createIcons();
+
+                await updateDoc(doc(db, "medicalCertificates", id), {
+                    musicoNome: inputEditNome.value,
+                    cid: inputEditCid.value,
+                    afastamentoInicio: inputEditInicio.value,
+                    afastamentoDias: parseInt(inputEditDias.value) || 0,
+                    resumoIA: inputEditResumo.value,
+                    updatedAt: serverTimestamp()
+                });
+
+                showNotification('Atestado atualizado com sucesso!', 'success');
+            } catch (error) {
+                console.error("Erro ao salvar atestado:", error);
+                showNotification('Erro ao salvar alterações.', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = originalText;
+                if (window.lucide) lucide.createIcons();
+            }
+        });
+    }
+
+    // 6. Baixar e Apagar (Arquivamento Seguro)
+    if (btnDownloadDelete) {
+        btnDownloadDelete.addEventListener('click', async () => {
+            const id = inputEditId.value;
+            const url = modalPdfViewer.src;
+            
+            if (!confirm("Tem certeza que deseja baixar o arquivo e apagar os dados do servidor? Esta ação não pode ser desfeita e visa garantir a privacidade do músico.")) {
+                return;
+            }
+
+            try {
+                // 1. Iniciar Download
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `atestado_${inputEditNome.value.replace(/\s+/g, '_')}.pdf`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                // 2. Apagar do Storage e Firestore
+                const atestadoDoc = await getDoc(doc(db, "medicalCertificates", id));
+                const data = atestadoDoc.data();
+                const storagePath = data.processedFilePath; 
+
+                if (storagePath) {
+                    const fileRef = ref(storage, storagePath);
+                    await deleteObject(fileRef);
+                }
+
+                await deleteDoc(doc(db, "medicalCertificates", id));
+
+                showNotification('Atestado baixado e removido com segurança!', 'success');
+                closeAtestadoModal();
+            } catch (error) {
+                console.error("Erro ao arquivar atestado:", error);
+                showNotification('Erro ao remover arquivo do servidor.', 'error');
+            }
+        });
+    }
+}
+

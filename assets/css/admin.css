@@ -2207,3 +2207,158 @@
 /* --- Fim do Arquivo Admin.css --- */
 
 
+
+/* ================= MÓDULO DE ATESTADOS ================= */
+.atestados-grid-wrapper {
+    background: var(--admin-card-bg);
+    padding: 1.5rem;
+    border-radius: var(--border-radius);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    border-top: 3px solid #2E8B57;
+    animation: fadeIn 0.4s ease-out;
+}
+
+.atestados-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.5rem;
+}
+
+.atestado-card {
+    background: #fdfdfd;
+    border: 1px solid #eee;
+    border-radius: 12px;
+    padding: 1.2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+}
+
+.atestado-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(0,0,0,0.05);
+    border-color: #2E8B57;
+}
+
+.atestado-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 4px;
+    background: #2E8B57;
+    opacity: 0.8;
+}
+
+.atestado-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.atestado-card-icon {
+    width: 40px;
+    height: 40px;
+    background: rgba(46, 139, 87, 0.1);
+    color: #2E8B57;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.atestado-card-status {
+    font-size: 0.7rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    background: #e0e0e0;
+    padding: 2px 8px;
+    border-radius: 10px;
+    color: #666;
+}
+
+.atestado-card-status.pending {
+    background: rgba(255, 165, 0, 0.1);
+    color: #FF8C00;
+}
+
+.atestado-card-info h4 {
+    font-size: 1rem;
+    margin: 0.2rem 0;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.atestado-card-info p {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+.atestado-card-meta {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+}
+
+.atestado-card-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: auto;
+}
+
+.atestado-card-actions button {
+    flex: 1;
+    padding: 0.6rem;
+    font-size: 0.8rem;
+}
+
+/* Modal Atestado */
+.atestado-modal-body {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 2rem;
+    padding: 1.5rem;
+}
+
+.atestado-preview-container {
+    background: #525659;
+    border-radius: 8px;
+    overflow: hidden;
+    height: 600px;
+}
+
+.atestado-preview-container iframe {
+    width: 100%;
+    height: 100%;
+}
+
+.atestado-data-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+}
+
+.atestado-modal-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    margin-top: 1rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #eee;
+}
+
+@media (max-width: 900px) {
+    .atestado-modal-body {
+        grid-template-columns: 1fr;
+    }
+    .atestado-preview-container {
+        height: 400px;
+    }
+}

@@ -142,6 +142,26 @@
                         AO VIVO
                     </div>
                 </div>
+                
+                <!-- NOVO: Grade de Atestados Médicos (Fase 3) -->
+                <div id="atestados-grid-container" class="atestados-grid-wrapper" style="display: none; margin-bottom: 2rem;">
+                    <div class="logs-header" style="margin-bottom: 1.5rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                            <div>
+                                <h3><i data-lucide="file-badge"></i> Atestados Pendentes</h3>
+                                <p>Processados pela IA. Revise os dados e baixe para arquivamento.</p>
+                            </div>
+                            <div class="live-indicator" style="background: rgba(46, 139, 87, 0.1); color: #2E8B57;">
+                                <span class="live-dot" style="background: #2E8B57;"></span>
+                                IA ATIVA
+                            </div>
+                        </div>
+                    </div>
+                    <div id="atestados-grid" class="atestados-grid">
+                        <!-- Conteúdo inserido via JS -->
+                        <div class="admin-notif-empty">Nenhum atestado pendente para revisão.</div>
+                    </div>
+                </div>
 
                 <div class="logs-wrapper">
                     <div class="logs-header">
@@ -444,24 +464,8 @@
             </div>
             <div class="modal-body">
                 <div class="settings-group">
+                    <!-- 1. Letreiro de Comunicados -->
                     <div class="settings-item">
-                        <div class="settings-item-info">
-                            <div class="settings-icon-bg">
-                                <i data-lucide="bell"></i>
-                            </div>
-                            <div>
-                                <h4>Botão de Notificação</h4>
-                                <p>Exibe o sininho para inscrições no site.</p>
-                            </div>
-                        </div>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="toggle-notif-btn">
-                            <span class="toggle-slider"></span>
-                        </label>
-                    </div>
-                    <p id="toggle-status-text" class="toggle-status">A carregar estado...</p>
-
-                    <div class="settings-item" style="margin-top: 1.5rem;">
                         <div class="settings-item-info">
                             <div class="settings-icon-bg" style="background: rgba(139, 0, 0, 0.1); color: var(--primary-color);">
                                 <i data-lucide="newspaper"></i>
@@ -478,6 +482,43 @@
                     </div>
                     <p id="toggle-ticker-status-text" class="toggle-status">A carregar estado...</p>
 
+                    <!-- 2. Módulo de Atestados -->
+                    <div class="settings-item" style="margin-top: 1.5rem;">
+                        <div class="settings-item-info">
+                            <div class="settings-icon-bg" style="background: rgba(0, 128, 0, 0.1); color: #2E8B57;">
+                                <i data-lucide="file-badge"></i>
+                            </div>
+                            <div>
+                                <h4>Módulo de Atestados</h4>
+                                <p>Ativa o envio de atestados médicos pelos músicos.</p>
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-atestados">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <p id="atestados-status-text" class="toggle-status">A carregar estado...</p>
+
+                    <!-- 3. Botão de Notificação -->
+                    <div class="settings-item" style="margin-top: 1.5rem;">
+                        <div class="settings-item-info">
+                            <div class="settings-icon-bg">
+                                <i data-lucide="bell"></i>
+                            </div>
+                            <div>
+                                <h4>Botão de Notificação</h4>
+                                <p>Exibe o sininho para inscrições no site.</p>
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-notif-btn">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <p id="toggle-status-text" class="toggle-status">A carregar estado...</p>
+
+                    <!-- 4. Ambiente de Emulação -->
                     <div class="settings-item" style="margin-top: 1.5rem;">
                         <div class="settings-item-info">
                             <div class="settings-icon-bg" style="background: rgba(255, 165, 0, 0.1); color: #FF8C00;">
@@ -552,6 +593,64 @@
                     <button class="btn-robot-ai" id="btn-save-edit-notif" style="margin: 0; width: auto; min-width: 150px;">
                         <i data-lucide="save"></i> Salvar Alterações
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NOVO: Modal Visualizador de Atestado (Fase 3) -->
+    <div id="atestado-modal" class="modal-overlay" style="display: none;">
+        <div class="settings-modal-card" style="max-width: 1000px; width: 95%;">
+            <div class="modal-header">
+                <div class="modal-header-info">
+                    <h3><i data-lucide="file-text"></i> Revisar Atestado</h3>
+                    <p id="atestado-modal-subtitle">Análise automática via Robô OER</p>
+                </div>
+                <button class="btn-close-modal" id="btn-close-atestado-modal">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body atestado-modal-body">
+                <div class="atestado-preview-container">
+                    <iframe id="atestado-pdf-viewer" src="" frameborder="0"></iframe>
+                </div>
+                <div class="atestado-data-form">
+                    <input type="hidden" id="atestado-edit-id">
+                    <div class="version-input-wrapper">
+                        <label>Nome do Músico (Extraído pela IA)</label>
+                        <input type="text" id="atestado-edit-nome" class="version-input" placeholder="Nome completo">
+                    </div>
+                    <div class="version-input-wrapper">
+                        <label>CID (Classificação Internacional de Doenças)</label>
+                        <input type="text" id="atestado-edit-cid" class="version-input" placeholder="Ex: Z02.7">
+                    </div>
+                    <div style="display: flex; gap: 1rem;">
+                        <div class="version-input-wrapper" style="flex: 1;">
+                            <label>Início do Afastamento</label>
+                            <input type="date" id="atestado-edit-inicio" class="version-input">
+                        </div>
+                        <div class="version-input-wrapper" style="flex: 1;">
+                            <label>Duração (Dias)</label>
+                            <input type="number" id="atestado-edit-dias" class="version-input" placeholder="0">
+                        </div>
+                    </div>
+                    <div class="version-input-wrapper">
+                        <label>Resumo da Condição / Explicação do CID</label>
+                        <textarea id="atestado-edit-resumo" class="version-input" rows="4" placeholder="Explicação gerada pela IA..."></textarea>
+                    </div>
+                    
+                    <div class="atestado-modal-actions">
+                        <button class="btn-primary" id="btn-save-atestado-edit">
+                            <i data-lucide="save"></i> Salvar Alterações
+                        </button>
+                        <button class="btn-robot-ai" id="btn-download-delete-atestado">
+                            <i data-lucide="download-cloud"></i> Baixar e Apagar do Servidor
+                        </button>
+                        <p style="font-size: 0.75rem; color: #888; text-align: center; margin-top: 0.5rem;">
+                            <i data-lucide="shield-alert" style="width: 12px; height: 12px;"></i> 
+                            Ao clicar em Baixar e Apagar, o arquivo e os dados serão removidos permanentemente para garantir a privacidade.
+                        </p>
+                    </div>
                 </div>
             </div>
         </div>
