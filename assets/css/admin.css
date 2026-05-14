@@ -2535,12 +2535,12 @@
     .atestado-modal-body {
         display: flex;
         flex-direction: column;
-        height: 85vh; /* Altura fixa no mobile para controlar o conteúdo */
+        height: auto; /* Altura fixa no mobile para controlar o conteúdo */
         max-height: none;
         gap: 1rem;
         padding: 1.2rem;
         grid-template-areas: none;
-        overflow: hidden; /* Evita scroll no corpo principal */
+        overflow: visible; /* Evita scroll no corpo principal */
     }
     
     .atestado-data-form {
@@ -2560,8 +2560,8 @@
 
     .atestado-preview-container {
         order: 3; /* PDF por último no mobile */
-        flex: 1; /* Ocupa o restante do espaço disponível */
-        height: auto; 
+        flex: none; /* Ocupa o restante do espaço disponível */
+        height: 400px; 
         min-height: 200px;
     }
 

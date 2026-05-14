@@ -616,6 +616,40 @@ exports.onAtestadoUpload = functions.runWith({
             color: { type: 'RGB', red: 0.8, green: 0.8, blue: 0.8 }
         });
 
+        // Cálculos e formatação de datas (DD/MM/YYYY)
+        let dataInicioFormatada = aiData.data_inicio || "N/A";
+        let dataFimFormatada = "N/A";
+
+        if (aiData.data_inicio && aiData.dias !== undefined) {
+            try {
+                const parts = aiData.data_inicio.split("-");
+                if (parts.length === 3) {
+                    const [year, month, day] = parts.map(Number);
+                    const dataInicioObj = new Date(year, month - 1, day);
+                    const diasInt = parseInt(aiData.dias, 10);
+                    
+                    // Formata a data de início para DD/MM/YYYY
+                    const fInicioYear = dataInicioObj.getFullYear();
+                    const fInicioMonth = String(dataInicioObj.getMonth() + 1).padStart(2, '0');
+                    const fInicioDay = String(dataInicioObj.getDate()).padStart(2, '0');
+                    dataInicioFormatada = `${fInicioDay}/${fInicioMonth}/${fInicioYear}`;
+                    
+                    // Calcula a data de término
+                    if (!isNaN(diasInt)) {
+                        const diasToAdd = diasInt > 0 ? diasInt - 1 : 0;
+                        dataInicioObj.setDate(dataInicioObj.getDate() + diasToAdd);
+                        
+                        const fFimYear = dataInicioObj.getFullYear();
+                        const fFimMonth = String(dataInicioObj.getMonth() + 1).padStart(2, '0');
+                        const fFimDay = String(dataInicioObj.getDate()).padStart(2, '0');
+                        dataFimFormatada = `${fFimDay}/${fFimMonth}/${fFimYear}`;
+                    }
+                }
+            } catch (e) {
+                console.warn("[Atestados] Erro ao formatar datas no PDF:", e);
+            }
+        }
+
         // Dados Extraídos
         const startY = height - 190;
         const lineSpacing = 25;
@@ -627,8 +661,9 @@ exports.onAtestadoUpload = functions.runWith({
 
         drawDataRow("Músico(a):", aiData.nome, startY);
         drawDataRow("CID:", aiData.cid, startY - lineSpacing);
-        drawDataRow("Início:", aiData.data_inicio, startY - lineSpacing * 2);
-        drawDataRow("Período:", `${aiData.dias} dias`, startY - lineSpacing * 3);
+        drawDataRow("Início:", dataInicioFormatada, startY - lineSpacing * 2);
+        drawDataRow("Término:", dataFimFormatada, startY - lineSpacing * 3);
+        drawDataRow("Período:", `${aiData.dias} dias`, startY - lineSpacing * 4);
 
         // Seção de Explicação
         infoPage.drawText("EXPLICAÇÃO DA CONDIÇÃO (CID):", { 
