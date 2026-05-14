@@ -144,7 +144,7 @@
                 </div>
                 
                 <!-- NOVO: Grade de Atestados Médicos (Fase 3) -->
-                <div id="atestados-grid-container" class="atestados-grid-wrapper" style="display: none; margin-bottom: 2rem;">
+                <div id="atestados-grid-container" class="atestados-grid-wrapper">
                     <div class="logs-header" style="margin-bottom: 1.5rem;">
                         <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                             <div>
@@ -152,7 +152,7 @@
                                 <p>Processados pela IA. Revise os dados e baixe para arquivamento.</p>
                             </div>
                             <div class="live-indicator" style="background: rgba(46, 139, 87, 0.1); color: #2E8B57;">
-                                <span class="live-dot" style="background: #2E8B57;"></span>
+                                <span class="live-dot pulse-green" style="background: #2E8B57;"></span>
                                 IA ATIVA
                             </div>
                         </div>
@@ -180,7 +180,8 @@
                         <button class="filter-btn" data-filter="pdf">Arquivos</button>
                         <button class="filter-btn" data-filter="aviso">Avisos</button>
                         <button class="filter-btn" data-filter="links">Links</button>
-                        <button class="filter-btn" data-filter="bot">Sistema</button>
+                        <button class="filter-btn" data-filter="bot">Robo OER</button>
+                        <button class="filter-btn" data-filter="sistema">Sistema</button>
                     </div>
                     <ul class="log-list" id="log-list">
                         <!-- Logs serão inseridos aqui via JS -->
@@ -616,41 +617,46 @@
                 </div>
                 <div class="atestado-data-form">
                     <input type="hidden" id="atestado-edit-id">
-                    <div class="version-input-wrapper">
+                    
+                    <div class="atestado-field-nome">
                         <label>Nome do Músico (Extraído pela IA)</label>
                         <input type="text" id="atestado-edit-nome" class="version-input" placeholder="Nome completo">
                     </div>
-                    <div class="version-input-wrapper">
-                        <label>CID (Classificação Internacional de Doenças)</label>
+                    
+                    <div class="atestado-field-cid">
+                        <label>CID</label>
                         <input type="text" id="atestado-edit-cid" class="version-input" placeholder="Ex: Z02.7">
                     </div>
-                    <div style="display: flex; gap: 1rem;">
-                        <div class="version-input-wrapper" style="flex: 1;">
-                            <label>Início do Afastamento</label>
-                            <input type="date" id="atestado-edit-inicio" class="version-input">
-                        </div>
-                        <div class="version-input-wrapper" style="flex: 1;">
-                            <label>Duração (Dias)</label>
-                            <input type="number" id="atestado-edit-dias" class="version-input" placeholder="0">
-                        </div>
+
+                    <div class="atestado-field-dias">
+                        <label>Duração (Dias)</label>
+                        <input type="number" id="atestado-edit-dias" class="version-input" placeholder="0">
                     </div>
-                    <div class="version-input-wrapper">
+
+                    <div class="atestado-field-inicio">
+                        <label>Início do Afastamento</label>
+                        <input type="date" id="atestado-edit-inicio" class="version-input">
+                    </div>
+
+                    <div class="atestado-field-fim">
+                        <label>Fim do Afastamento</label>
+                        <input type="date" id="atestado-edit-fim" class="version-input readonly-field" readonly>
+                    </div>
+
+                    <div class="atestado-field-resumo">
                         <label>Resumo da Condição / Explicação do CID</label>
                         <textarea id="atestado-edit-resumo" class="version-input" rows="4" placeholder="Explicação gerada pela IA..."></textarea>
                     </div>
-                    
-                    <div class="atestado-modal-actions">
-                        <button class="btn-primary" id="btn-save-atestado-edit">
-                            <i data-lucide="save"></i> Salvar Alterações
-                        </button>
-                        <button class="btn-robot-ai" id="btn-download-delete-atestado">
-                            <i data-lucide="download-cloud"></i> Baixar e Apagar do Servidor
-                        </button>
-                        <p style="font-size: 0.75rem; color: #888; text-align: center; margin-top: 0.5rem;">
-                            <i data-lucide="shield-alert" style="width: 12px; height: 12px;"></i> 
-                            Ao clicar em Baixar e Apagar, o arquivo e os dados serão removidos permanentemente para garantir a privacidade.
-                        </p>
-                    </div>
+                </div>
+
+                <div class="atestado-modal-actions">
+                    <button class="btn-robot-ai" id="btn-download-delete-atestado" style="justify-content: center; height: 50px; font-size: 1.1rem; width: 100%;">
+                        <i data-lucide="download-cloud"></i> Baixar e Apagar do Servidor
+                    </button>
+                    <p style="font-size: 0.75rem; color: #888; text-align: center; margin-top: 0.5rem;">
+                        <i data-lucide="shield-alert" style="width: 12px; height: 12px;"></i> 
+                        Ao clicar em Baixar e Apagar, o arquivo e os dados serão removidos permanentemente para garantir a privacidade.
+                    </p>
                 </div>
             </div>
         </div>

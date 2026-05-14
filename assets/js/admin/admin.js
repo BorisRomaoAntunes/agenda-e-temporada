@@ -37,7 +37,8 @@ import {
     ref, 
     uploadBytesResumable, 
     getDownloadURL,
-    deleteObject 
+    deleteObject,
+    getBlob 
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 import { 
     httpsCallable 
@@ -1197,11 +1198,8 @@ async function loadLogs(filterType = 'all') {
         <li class="log-item log-skeleton">
             <div class="log-icon skeleton-box" style="width:40px;height:40px;border-radius:50%;"></div>
             <div class="log-content" style="flex:1;">
-                <div class="skeleton-box" style="height:14px;width:70%;margin-bottom:8px;border-radius:6px;"></div>
-                <div class="skeleton-box" style="height:11px;width:45%;border-radius:6px;"></div>
-            </div>
-            <div class="log-right-area">
-                <div class="skeleton-box" style="height:12px;width:80px;border-radius:6px;"></div>
+                <div class="skeleton-box" style="height:14px;width:80%;margin-bottom:12px;border-radius:6px;"></div>
+                <div class="skeleton-box" style="height:10px;width:50%;border-radius:6px;"></div>
             </div>
         </li>
     `).join('');
@@ -1219,6 +1217,9 @@ async function loadLogs(filterType = 'all') {
         } else if (filterType === 'links') {
             // Filtra por ações de links temporários
             q = query(logsRef, where('type', 'in', ['link-criado', 'link-alterado', 'link-removido']), orderBy('createdAt', 'desc'), limit(10));
+        } else if (filterType === 'sistema') {
+            // Filtra por logs técnicos do sistema
+            q = query(logsRef, where('type', 'in', ['sistema', 'erro']), orderBy('createdAt', 'desc'), limit(10));
         } else {
             // Filtra por tipo específico (pdf, bot, etc)
             q = query(logsRef, where('type', '==', filterType), orderBy('createdAt', 'desc'), limit(10));
@@ -1250,6 +1251,9 @@ async function loadLogs(filterType = 'all') {
             if (data.type === 'link-alterado') iconName = 'refresh-cw';
             if (data.type === 'link-removido') iconName = 'trash-2';
             if (data.type === 'bot') iconName = 'bot';
+            if (data.type === 'sistema') iconName = 'cpu';
+            if (data.type === 'atestado') iconName = 'activity';
+            if (data.type === 'erro') iconName = 'alert-triangle';
             
             let linkHtml = '';
             if (data.link) {
@@ -1276,14 +1280,20 @@ async function loadLogs(filterType = 'all') {
                     <i data-lucide="${iconName}"></i>
                 </div>
                 <div class="log-content">
-                    <p>${data.message}</p>
-                    ${data.details ? `<p class="log-details">${data.details}</p>` : ''}
-                    <span>Enviado por: ${data.user}</span>
-                </div>
-                <div class="log-right-area">
-                    <div class="log-time">
-                        <i data-lucide="clock"></i> ${formattedDate} às ${formattedTime}
+                    <p class="log-message">${data.message}</p>
+                    ${data.details ? (data.details.length > 280 ? `
+                        <div class="log-details-wrapper">
+                            <p class="log-details is-collapsed">${data.details}</p>
+                            <button class="log-view-more" onclick="this.previousElementSibling.classList.toggle('is-collapsed'); this.textContent = this.previousElementSibling.classList.contains('is-collapsed') ? 'Ver mais' : 'Ver menos'">Ver mais</button>
+                        </div>
+                    ` : `<p class="log-details">${data.details}</p>`) : ''}
+                    <div class="log-meta">
+                        <span class="log-author"><i data-lucide="user"></i> ${data.user}</span>
+                        <span class="log-divider">•</span>
+                        <span class="log-time"><i data-lucide="clock"></i> ${formattedDate} às ${formattedTime}</span>
                     </div>
+                </div>
+                <div class="log-actions">
                     ${imageHtml}
                     ${linkHtml}
                 </div>
@@ -1347,6 +1357,8 @@ async function loadMoreLogs() {
             q = query(logsRef, where('type', 'in', ['aviso', 'aviso-removido']), orderBy('createdAt', 'desc'), startAfter(lastVisibleLog), limit(10));
         } else if (currentLogFilter === 'links') {
             q = query(logsRef, where('type', 'in', ['link-criado', 'link-alterado', 'link-removido']), orderBy('createdAt', 'desc'), startAfter(lastVisibleLog), limit(10));
+        } else if (currentLogFilter === 'sistema') {
+            q = query(logsRef, where('type', 'in', ['sistema', 'erro']), orderBy('createdAt', 'desc'), startAfter(lastVisibleLog), limit(10));
         } else {
             q = query(logsRef, where('type', '==', currentLogFilter), orderBy('createdAt', 'desc'), startAfter(lastVisibleLog), limit(10));
         }
@@ -1384,6 +1396,9 @@ async function loadMoreLogs() {
             if (data.type === 'link-alterado') iconName = 'refresh-cw';
             if (data.type === 'link-removido') iconName = 'trash-2';
             if (data.type === 'bot') iconName = 'bot';
+            if (data.type === 'sistema') iconName = 'cpu';
+            if (data.type === 'atestado') iconName = 'activity';
+            if (data.type === 'erro') iconName = 'alert-triangle';
             
             let linkHtml = '';
             if (data.link) {
@@ -1409,14 +1424,15 @@ async function loadMoreLogs() {
                     <i data-lucide="${iconName}"></i>
                 </div>
                 <div class="log-content">
-                    <p>${data.message}</p>
+                    <p class="log-message">${data.message}</p>
                     ${data.details ? `<p class="log-details">${data.details}</p>` : ''}
-                    <span>Enviado por: ${data.user}</span>
-                </div>
-                <div class="log-right-area">
-                    <div class="log-time">
-                        <i data-lucide="clock"></i> ${formattedDate} às ${formattedTime}
+                    <div class="log-meta">
+                        <span class="log-author"><i data-lucide="user"></i> ${data.user}</span>
+                        <span class="log-divider">•</span>
+                        <span class="log-time"><i data-lucide="clock"></i> ${formattedDate} às ${formattedTime}</span>
                     </div>
+                </div>
+                <div class="log-actions">
                     ${imageHtml}
                     ${linkHtml}
                 </div>
@@ -1859,24 +1875,51 @@ function initAtestadosManagement() {
     const inputEditNome = document.getElementById('atestado-edit-nome');
     const inputEditCid = document.getElementById('atestado-edit-cid');
     const inputEditInicio = document.getElementById('atestado-edit-inicio');
+    const inputEditFim = document.getElementById('atestado-edit-fim');
     const inputEditDias = document.getElementById('atestado-edit-dias');
     const inputEditResumo = document.getElementById('atestado-edit-resumo');
     
     const btnSaveEdit = document.getElementById('btn-save-atestado-edit');
     const btnDownloadDelete = document.getElementById('btn-download-delete-atestado');
+    let currentAtestadoPath = ''; // Armazena o caminho do arquivo para deleção segura
+
+    // Helper: Calcular data final
+    function calculateEndDate(startDateStr, days) {
+        if (!startDateStr || isNaN(days) || days <= 0) return null;
+        const start = new Date(startDateStr + 'T00:00:00');
+        const end = new Date(start);
+        end.setDate(start.getDate() + parseInt(days) - 1);
+        return end.toISOString().split('T')[0];
+    }
+
+    // Atualizar campo de fim automaticamente
+    function updateEndDateUI() {
+        const endStr = calculateEndDate(inputEditInicio.value, inputEditDias.value);
+        inputEditFim.value = endStr || '';
+    }
+
+    inputEditInicio.addEventListener('change', updateEndDateUI);
+    inputEditDias.addEventListener('input', updateEndDateUI);
 
     // 1. Escutar atestados pendentes no Firestore
     const q = query(collection(db, "medicalCertificates"), orderBy("createdAt", "desc"));
     
     onSnapshot(q, (snapshot) => {
         if (snapshot.empty) {
-            atestadosGridContainer.style.display = 'none';
-            atestadosGrid.innerHTML = '<div class="admin-notif-empty">Nenhum atestado pendente para revisão.</div>';
+            atestadosGridContainer.classList.remove('visible');
+            atestadosGrid.innerHTML = '';
             return;
         }
 
-        atestadosGridContainer.style.display = 'block';
+        atestadosGridContainer.classList.add('visible');
         atestadosGrid.innerHTML = '';
+
+        // Se houver mais de 1 card, permite scroll lateral
+        if (snapshot.size > 1) {
+            atestadosGrid.classList.add('is-scrollable');
+        } else {
+            atestadosGrid.classList.remove('is-scrollable');
+        }
 
         snapshot.forEach((docSnap) => {
             const data = docSnap.data();
@@ -1893,24 +1936,23 @@ function initAtestadosManagement() {
         const div = document.createElement('div');
         div.className = 'atestado-card';
         
-        const dateStr = data.createdAt?.toDate().toLocaleDateString('pt-BR') || '---';
+        const formatBR = (iso) => iso ? iso.split('-').reverse().join('/') : '---';
+        const dataFim = calculateEndDate(data.dataInicio, data.dias);
+        const periodoStr = dataFim 
+            ? `${formatBR(data.dataInicio)} a ${formatBR(data.dataFim || dataFim)}`
+            : `Início: ${formatBR(data.dataInicio)}`;
         
         div.innerHTML = `
-            <div class="atestado-card-header">
-                <div class="atestado-card-icon">
-                    <i data-lucide="file-text"></i>
-                </div>
-                <span class="atestado-card-status pending">Pendente</span>
+            <div class="atestado-card-icon">
+                <i data-lucide="file-text"></i>
             </div>
             <div class="atestado-card-info">
-                <h4 title="${data.musicoNome || 'Nome não identificado'}">${data.musicoNome || 'Nome não identificado'}</h4>
-                <p>CID: <strong>${data.cid || '---'}</strong> • ${data.afastamentoDias || '0'} dias</p>
-            </div>
-            <div class="atestado-card-meta">
-                <i data-lucide="calendar"></i> Recebido em ${dateStr}
+                <h4 title="${data.nome || 'Nome não identificado'}">${data.nome || 'Nome não identificado'}</h4>
+                <p>CID: <strong>${data.cid || '---'}</strong> | <strong>${data.dias || '0'} dias</strong></p>
+                <p style="font-size: 0.8rem; color: var(--text-secondary);">${periodoStr}</p>
             </div>
             <div class="atestado-card-actions">
-                <button class="btn-outline btn-view-atestado" data-id="${id}">
+                <button class="btn-primary btn-view-atestado" data-id="${id}" style="width: 100%; border-radius: 12px;">
                     <i data-lucide="eye"></i> Revisar
                 </button>
             </div>
@@ -1923,16 +1965,34 @@ function initAtestadosManagement() {
     }
 
     // 3. Abrir Modal com dados
-    function openAtestadoModal(id, data) {
+    async function openAtestadoModal(id, data) {
         inputEditId.value = id;
-        inputEditNome.value = data.musicoNome || '';
+        currentAtestadoPath = data.filePath || ''; // Salva o caminho para o botão de apagar
+        inputEditNome.value = data.nome || '';
         inputEditCid.value = data.cid || '';
-        inputEditInicio.value = data.afastamentoInicio || '';
-        inputEditDias.value = data.afastamentoDias || '';
-        inputEditResumo.value = data.resumoIA || '';
+        inputEditInicio.value = data.dataInicio || '';
+        inputEditDias.value = data.dias || '';
+        inputEditResumo.value = data.resumoCid || '';
         
-        // Carregar PDF no iframe
-        modalPdfViewer.src = data.processedFileUrl || '';
+        updateEndDateUI(); // Calcula o fim ao abrir
+        
+        // Limpar visualizador antes de carregar
+        modalPdfViewer.src = '';
+        
+        try {
+            // Se já tivermos a URL processada, usamos ela. Caso contrário, geramos via storage.
+            if (data.processedFileUrl) {
+                modalPdfViewer.src = data.processedFileUrl;
+            } else if (data.filePath) {
+                console.log("📄 [Atestados] Buscando URL de download para:", data.filePath);
+                const fileRef = ref(storage, data.filePath);
+                const url = await getDownloadURL(fileRef);
+                modalPdfViewer.src = url;
+            }
+        } catch (err) {
+            console.error("Erro ao carregar PDF:", err);
+            showNotification('Erro ao carregar o visualizador de PDF.', 'error');
+        }
         
         atestadoModal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
@@ -1948,75 +2008,83 @@ function initAtestadosManagement() {
 
     if (btnCloseAtestadoModal) btnCloseAtestadoModal.addEventListener('click', closeAtestadoModal);
 
-    // 5. Salvar Edições
-    if (btnSaveEdit) {
-        btnSaveEdit.addEventListener('click', async () => {
-            const id = inputEditId.value;
-            const btn = btnSaveEdit;
-            const originalText = btn.innerHTML;
-            
-            try {
-                btn.disabled = true;
-                btn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Salvando...';
-                if (window.lucide) lucide.createIcons();
-
-                await updateDoc(doc(db, "medicalCertificates", id), {
-                    musicoNome: inputEditNome.value,
-                    cid: inputEditCid.value,
-                    afastamentoInicio: inputEditInicio.value,
-                    afastamentoDias: parseInt(inputEditDias.value) || 0,
-                    resumoIA: inputEditResumo.value,
-                    updatedAt: serverTimestamp()
-                });
-
-                showNotification('Atestado atualizado com sucesso!', 'success');
-            } catch (error) {
-                console.error("Erro ao salvar atestado:", error);
-                showNotification('Erro ao salvar alterações.', 'error');
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = originalText;
-                if (window.lucide) lucide.createIcons();
-            }
-        });
-    }
-
-    // 6. Baixar e Apagar (Arquivamento Seguro)
+    // 5. Baixar e Apagar (Ação Unificada de Arquivamento)
     if (btnDownloadDelete) {
         btnDownloadDelete.addEventListener('click', async () => {
+            // Validação de Segurança: Verificar se o administrador está logado
+            if (!auth.currentUser) {
+                showNotification('Sessão expirada ou não autorizada. Faça login novamente.', 'error');
+                return;
+            }
+
             const id = inputEditId.value;
-            const url = modalPdfViewer.src;
+            const nomeMusico = inputEditNome.value;
+            const cid = inputEditCid.value;
+            const dias = inputEditDias.value;
+            const inicio = inputEditInicio.value;
+            const fim = inputEditFim.value;
+            const resumo = inputEditResumo.value;
             
-            if (!confirm("Tem certeza que deseja baixar o arquivo e apagar os dados do servidor? Esta ação não pode ser desfeita e visa garantir a privacidade do músico.")) {
+            if (!confirm(`Tem certeza que deseja baixar o atestado de "${nomeMusico}" e apagar os dados do servidor?\n\nAs correções feitas nos campos serão salvas apenas no histórico de logs.`)) {
                 return;
             }
 
             try {
-                // 1. Iniciar Download
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = `atestado_${inputEditNome.value.replace(/\s+/g, '_')}.pdf`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+                const btn = btnDownloadDelete;
+                const originalText = btn.innerHTML;
+                btn.disabled = true;
+                btn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Processando...';
+                if (window.lucide) lucide.createIcons();
 
-                // 2. Apagar do Storage e Firestore
-                const atestadoDoc = await getDoc(doc(db, "medicalCertificates", id));
-                const data = atestadoDoc.data();
-                const storagePath = data.processedFilePath; 
-
-                if (storagePath) {
-                    const fileRef = ref(storage, storagePath);
-                    await deleteObject(fileRef);
+                // 1. Criar Log de Auditoria
+                try {
+                    const formatBR = (iso) => iso ? iso.split('-').reverse().join('/') : '---';
+                    const detailsText = `CID: ${cid} | Período: ${formatBR(inicio)} a ${formatBR(fim)} (${dias} dias)\n\nParecer: ${resumo}`;
+                    await saveLog("atestado", `Atestado revisado e arquivado: ${nomeMusico}`, null, detailsText);
+                } catch (logErr) {
+                    console.error("⚠️ [Atestados] Erro no log:", logErr);
                 }
 
-                await deleteDoc(doc(db, "medicalCertificates", id));
+                // 2. Buscar o arquivo (Blob) - FAZER ANTES DE APAGAR
+                console.log("📥 [Atestados] Preparando download...");
+                const fileRef = ref(storage, currentAtestadoPath);
+                const blob = await getBlob(fileRef);
 
-                showNotification('Atestado baixado e removido com segurança!', 'success');
+                // 3. Apagar do Servidor (Storage e Firestore) - FAZER ANTES DO DOWNLOAD
+                console.log("🔥 [Atestados] Limpando servidor...");
+                try {
+                    await deleteObject(fileRef);
+                } catch (e) { console.error("Erro storage:", e); }
+
+                try {
+                    const docRef = doc(db, "medicalCertificates", id);
+                    await deleteDoc(docRef);
+                } catch (e) { console.error("Erro firestore:", e); }
+
+                // 4. Fechar Interface Imediatamente
                 closeAtestadoModal();
+                showNotification('Arquivado com sucesso!', 'success');
+
+                // 5. Disparar o Download/Preview (Último passo)
+                if (blob) {
+                    const blobUrl = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = blobUrl;
+                    const safeNome = nomeMusico.replace(/\s+/g, '_');
+                    link.download = `atestado_${safeNome}_${dias}_dias_${cid}.pdf`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    
+                    setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+                }
             } catch (error) {
                 console.error("Erro ao arquivar atestado:", error);
-                showNotification('Erro ao remover arquivo do servidor.', 'error');
+                showNotification(`Erro ao processar arquivamento: ${error.message}`, 'error');
+            } finally {
+                btnDownloadDelete.disabled = false;
+                btnDownloadDelete.innerHTML = '<i data-lucide="download-cloud"></i> Baixar e Apagar do Servidor';
+                if (window.lucide) lucide.createIcons();
             }
         });
     }

@@ -798,12 +798,28 @@ iframe {
 .form-actions {
     margin-bottom: 2rem;
     display: flex;
-    justify-content: center;
+    flex-direction: column; /* Botão temporário em cima, grupo embaixo */
     align-items: center;
-    flex-wrap: wrap;
-    gap: 2rem;
+    gap: 1.5rem;
     width: 100%;
     z-index: 10;
+}
+
+#dynamic-links-container {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    width: 100%;
+}
+
+.main-buttons-group {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: nowrap; /* Tentar manter na mesma linha no desktop */
+    gap: 2rem;
+    width: 100%;
 }
 
 /* Botão com ícone + texto — toda a linha é clicável */
@@ -820,6 +836,19 @@ iframe {
 
 .btn-form:hover {
     background-color: transparent;
+}
+
+/* Estilos específicos para o botão de atestado médico */
+.btn-atestado {
+    background: none;
+    border: none;
+    font-family: inherit;
+    padding: 0.4rem;
+}
+
+.btn-atestado .btn-form-icon {
+    background-color: #2E8B57;
+    box-shadow: 0 4px 15px rgba(46, 139, 87, 0.4);
 }
 
 /* Ícone circular (design original mantido) */
@@ -1211,6 +1240,11 @@ body.modo-concerto .theme-dropdown::after {
         gap: 1.5rem;
         order: -1;
         align-items: center;
+    }
+
+    .main-buttons-group {
+        flex-direction: column; /* Empilha no mobile */
+        gap: 1.5rem;
     }
 
     .mobile-controls {
@@ -1645,11 +1679,305 @@ body.modo-concerto .btn-form.btn-atestado .btn-form-label {
     color: #888;
 }
 
-body.modo-concerto .btn-form.btn-atestado:hover .btn-form-label {
+/* ============================================
+   MODAL DE ATESTADOS PREMIUM (FASE 4)
+   ============================================ */
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.upload-modal-container {
+    width: 100%;
+    max-width: 500px;
+    animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.upload-modal-card {
+    background: var(--bg-card, rgba(255, 255, 255, 0.95));
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 24px;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+}
+
+/* Modo Concerto / Dark Mode adjustment */
+.modo-concerto .upload-modal-card {
+    background: rgba(20, 20, 20, 0.9) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: #eee;
+}
+
+.modal-header {
+    padding: 1.5rem 2rem;
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    position: relative;
+}
+
+.modo-concerto .modal-header {
+    border-bottom-color: rgba(255, 255, 255, 0.05);
+}
+
+.modal-header-icon {
+    width: 48px;
+    height: 48px;
+    background: rgba(46, 139, 87, 0.1);
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     color: #2E8B57;
 }
 
-body.modo-concerto .upload-modal-card {
-    background: #0a0a0a;
-    border: 1px solid #333;
+.modal-header-text h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.modal-header-text p {
+    margin: 0.2rem 0 0;
+    font-size: 0.85rem;
+    color: #666;
+}
+
+.modo-concerto .modal-header-text p {
+    color: #aaa;
+}
+
+.btn-close-modal {
+    position: absolute;
+    right: 1.5rem;
+    top: 1.5rem;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #999;
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.btn-close-modal:hover {
+    background: rgba(0, 0, 0, 0.05);
+    color: #333;
+}
+
+.modo-concerto .btn-close-modal:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: #fff;
+}
+
+.modal-body {
+    padding: 2rem;
+}
+
+/* Área de Upload (Upload Zone) */
+.upload-zone {
+    position: relative;
+    border: 2px dashed rgba(46, 139, 87, 0.3);
+    border-radius: 20px;
+    padding: 2.5rem 1.5rem;
+    text-align: center;
+    transition: all 0.3s ease;
+    cursor: pointer;
+    background: rgba(46, 139, 87, 0.02);
+}
+
+.upload-zone:hover, .upload-zone.dragover {
+    border-color: #2E8B57;
+    background: rgba(46, 139, 87, 0.05);
+    transform: translateY(-2px);
+}
+
+.file-input {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    opacity: 0;
+    cursor: pointer;
+    z-index: 2;
+}
+
+.upload-icon-wrapper {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 1rem;
+    background: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    color: #2E8B57;
+    transition: transform 0.3s ease;
+}
+
+.modo-concerto .upload-icon-wrapper {
+    background: #333;
+}
+
+.upload-zone:hover .upload-icon-wrapper {
+    transform: scale(1.1);
+}
+
+.upload-text .primary-text {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+}
+
+.upload-text .secondary-text {
+    font-size: 0.75rem;
+    color: #888;
+}
+
+.file-selected-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    color: #2E8B57;
+    font-weight: 600;
+}
+
+/* Botão Premium Submit */
+.btn-premium-submit {
+    width: 100%;
+    padding: 1.1rem;
+    margin-top: 1.5rem;
+    background: linear-gradient(135deg, #2E8B57 0%, #1a5e3a 100%);
+    color: white;
+    border: none;
+    border-radius: 16px;
+    font-size: 1rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.8rem;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 10px 20px -5px rgba(46, 139, 87, 0.4);
+}
+
+.btn-premium-submit:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 15px 25px -5px rgba(46, 139, 87, 0.5);
+    filter: brightness(1.1);
+}
+
+.btn-premium-submit:disabled {
+    background: #ccc;
+    box-shadow: none;
+    cursor: not-allowed;
+}
+
+/* Progresso Premium */
+.premium-progress-container {
+    margin-top: 1.5rem;
+}
+
+.progress-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+}
+
+.progress-track {
+    height: 10px;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.modo-concerto .progress-track {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #2E8B57, #4ecb8c);
+    width: 0%;
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Segurança no Rodapé */
+.modal-footer-security {
+    margin-top: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.02);
+    border-radius: 12px;
+}
+
+.modo-concerto .modal-footer-security {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.modal-footer-security i {
+    width: 16px;
+    height: 16px;
+    color: #2E8B57;
+    flex-shrink: 0;
+}
+
+.modal-footer-security p {
+    margin: 0;
+    font-size: 0.7rem;
+    color: #888;
+    line-height: 1.4;
+}
+
+/* Animações */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { transform: translateY(30px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* Ajustes Mobile */
+@media (max-width: 480px) {
+    .modal-overlay {
+        padding: 1rem;
+    }
+    .modal-header {
+        padding: 1.2rem 1.5rem;
+    }
+    .modal-body {
+        padding: 1.5rem;
+    }
+    .upload-modal-card {
+        border-radius: 20px;
+    }
 }

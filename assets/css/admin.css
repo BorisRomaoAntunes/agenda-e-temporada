@@ -14,6 +14,7 @@
     background-color: var(--admin-bg);
     margin: 0;
     min-height: 100vh;
+    overflow-x: hidden;
 }
 
 .admin-container {
@@ -1068,9 +1069,10 @@
 .logs-wrapper {
     background: white;
     border-radius: 12px;
-    padding: 2rem;
+    padding: 1.5rem;
     box-shadow: var(--card-shadow);
-    max-width: 800px;
+    max-width: 700px;
+    width: 100%;
     margin: 0 auto 2rem auto;
     position: relative;
 }
@@ -1197,17 +1199,19 @@
 .log-item {
     display: flex;
     align-items: flex-start;
-    padding: 1rem;
+    padding: 1.2rem;
     background: #fdfdfd;
     border: 1px solid #f0f0f0;
-    border-radius: 8px;
-    gap: 1rem;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border-radius: 12px;
+    gap: 1.2rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    width: 100%;
 }
 
 .log-item:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+    border-color: #e0e0e0;
 }
 
 .log-icon {
@@ -1260,56 +1264,93 @@
     color: #8A2BE2;
 }
 
-.log-content {
-    flex-grow: 1;
+.log-icon.type-sistema {
+    background: rgba(108, 117, 125, 0.1);
+    color: #6c757d;
 }
 
-.log-content p {
+.log-icon.type-atestado {
+    background: rgba(32, 201, 151, 0.1);
+    color: #20c997;
+}
+
+.log-icon.type-erro {
+    background: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+}
+
+.log-content {
+    flex-grow: 1;
+    min-width: 0;
+}
+
+.log-message {
     margin: 0;
     color: var(--text-primary);
     font-size: 0.95rem;
-    font-weight: 500;
+    font-weight: 600;
+    line-height: 1.4;
+    word-break: break-word;
+    overflow-wrap: break-word;
 }
 
-.log-content span {
-    display: block;
+.log-details {
+    margin: 0.4rem 0 0 0;
     color: var(--text-secondary);
     font-size: 0.85rem;
-    margin-top: 0.3rem;
+    line-height: 1.5;
+    background: rgba(0, 0, 0, 0.02);
+    padding: 0.6rem 0.8rem;
+    border-radius: 8px;
+    border-left: 3px solid #eee;
+}
+
+.log-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.8rem;
+    color: #888;
+    font-size: 0.75rem;
+}
+
+.log-author, .log-time {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.log-author svg, .log-time svg {
+    width: 12px;
+    height: 12px;
+}
+
+.log-divider {
+    color: #ddd;
+}
+
+.log-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.8rem;
+    flex-shrink: 0;
+    text-align: right;
 }
 
 .log-link {
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
-    margin-top: 0.5rem;
-    font-size: 0.85rem;
+    font-size: 0.8rem;
     color: var(--primary-color);
     text-decoration: none;
-    font-weight: 500;
+    font-weight: 600;
     transition: all 0.2s ease;
-}
-
-.log-link:hover {
-    color: var(--hover-color);
-    text-decoration: underline;
-}
-
-/* Quando o link está na área direita (mesma posição da imagem) */
-.log-right-area .log-link {
-    margin-top: 0;
-    justify-content: flex-end;
-    text-align: right;
-}
-
-
-.log-time {
-    font-size: 0.8rem;
-    color: #999;
-    white-space: nowrap;
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
+    padding: 0.4rem 0.8rem;
+    background: rgba(139, 0, 0, 0.05);
+    border-radius: 6px;
 }
 
 .log-time svg {
@@ -1379,50 +1420,45 @@
     }
 
     .logs-wrapper {
-        padding: 1.2rem 0.8rem;
+        padding: 1.2rem 1rem;
+        border-radius: 0; /* Full width mobile feel */
+        box-shadow: none;
+        border-top: 1px solid #eee;
     }
 
     .log-item {
+        flex-wrap: wrap;
+        gap: 0.8rem;
+        padding: 1rem;
+    }
+
+    .log-icon {
+        width: 32px;
+        height: 32px;
+    }
+
+    .log-icon svg {
+        width: 16px;
+        height: 16px;
+    }
+
+    .log-meta {
         flex-direction: column;
-        align-items: stretch;
-        gap: 1rem;
-        padding: 1.2rem 1rem;
-        position: relative; /* Para o tempo se posicionar em relação ao card se necessário */
+        align-items: flex-start;
+        gap: 0.2rem;
     }
 
-    .log-left {
-        width: 100%;
-        border-right: none;
-        padding-right: 0;
-        margin-right: 0;
+    .log-divider {
+        display: none;
     }
 
-    .log-right-area {
+    .log-actions {
         width: 100%;
         flex-direction: row;
-        align-items: center;
         justify-content: space-between;
-        min-width: 0;
-        margin-top: 0.5rem;
-        border-top: 1px solid #f0f0f0;
+        margin-top: 0.8rem;
         padding-top: 0.8rem;
-    }
-
-    .log-time {
-        position: static; /* Remove o absoluto que causava sobreposição */
-        font-size: 0.75rem;
-        margin-top: 0.3rem;
-        color: var(--text-secondary);
-        opacity: 0.8;
-    }
-    
-    .log-thumbnail {
-        width: 60px;
-        height: 60px;
-    }
-
-    .log-right-area .log-link {
-        margin: 0;
+        border-top: 1px dashed #eee;
     }
 }
 
@@ -1477,15 +1513,17 @@
 .admin-notif-item {
     background: white;
     border-radius: 12px;
-    padding: 1.5rem; /* Aumentado de 1.2rem para dar mais espaço */
+    padding: 1.2rem;
     box-shadow: 0 4px 15px rgba(0,0,0,0.05);
     display: flex;
     justify-content: space-between;
-    align-items: flex-start; /* Alterado de center para flex-start para melhor suporte a textos longos */
+    align-items: flex-start;
     border-left: 4px solid #2E8B57;
     animation: fadeIn 0.3s ease-out;
-    min-height: auto; /* Garante que não haja altura fixa */
     transition: all 0.2s ease;
+    max-width: 700px;
+    width: 100%;
+    margin: 0 auto;
 }
 
 .admin-notif-item:hover {
@@ -1639,22 +1677,42 @@
     border-radius: 8px;
     border-left: 3px solid #ddd;
     line-height: 1.5;
-    display: inline-block;
+    display: block;
     max-width: 100%;
+    word-break: break-all;
+    overflow-wrap: anywhere;
+    box-sizing: border-box;
+    white-space: pre-wrap;
+}
+
+.log-details.is-collapsed {
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.log-view-more {
+    background: none;
+    border: none;
+    color: #2E8B57;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 4px 0;
+    margin-top: 2px;
+    transition: all 0.2s;
+    display: block;
+}
+
+.log-view-more:hover {
+    color: #1e5c3a;
+    text-decoration: underline;
 }
 
 /* ================= MODAL DE IMAGEM & MINIATURAS ================= */
 
-.log-right-area {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 0.8rem;
-    flex-shrink: 0;
-    min-width: 140px;
-    text-align: right;
-}
+
 
 .log-thumbnail-wrapper {
     margin-top: 4px;
@@ -2210,45 +2268,90 @@
 
 /* ================= MÓDULO DE ATESTADOS ================= */
 .atestados-grid-wrapper {
-    background: var(--admin-card-bg);
-    padding: 1.5rem;
-    border-radius: var(--border-radius);
-    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-    border-top: 3px solid #2E8B57;
+    width: 100%;
+    max-width: 1000px;
+    margin: 0 auto 3rem auto;
     animation: fadeIn 0.4s ease-out;
 }
 
 .atestados-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 2rem;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+/* Modo Carrossel para múltiplos atestados */
+.atestados-grid.is-scrollable {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    justify-content: flex-start;
+    padding: 1rem 1rem 2.5rem 1rem;
     gap: 1.5rem;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(46, 139, 87, 0.3) transparent;
+}
+
+.atestados-grid.is-scrollable .atestado-card {
+    flex: 0 0 auto;
+    scroll-snap-align: center;
+    margin: 0;
+}
+
+/* Indicador visual de scrollbar para deixar claro que há mais conteúdo */
+.atestados-grid.is-scrollable::-webkit-scrollbar {
+    height: 6px;
+}
+
+.atestados-grid.is-scrollable::-webkit-scrollbar-track {
+    background: rgba(0,0,0,0.02);
+    border-radius: 10px;
+}
+
+.atestados-grid.is-scrollable::-webkit-scrollbar-thumb {
+    background: rgba(46, 139, 87, 0.2);
+    border-radius: 10px;
+}
+
+.atestados-grid.is-scrollable::-webkit-scrollbar-thumb:hover {
+    background: rgba(46, 139, 87, 0.4);
 }
 
 .atestado-card {
-    background: #fdfdfd;
-    border: 1px solid #eee;
-    border-radius: 12px;
-    padding: 1.2rem;
+    background: var(--admin-card-bg);
+    border: 1px solid rgba(0,0,0,0.05);
+    border-radius: 20px;
+    padding: 1.8rem;
     display: flex;
     flex-direction: column;
-    gap: 0.8rem;
-    transition: var(--transition);
+    align-items: center;
+    justify-content: space-between;
+    text-align: center;
+    gap: 0.5rem;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
     position: relative;
     overflow: hidden;
+    width: 220px;
+    height: 220px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+    margin: 0 auto;
 }
 
 .atestado-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 15px rgba(0,0,0,0.05);
+    transform: translateY(-8px) scale(1.02);
+    box-shadow: 0 12px 30px rgba(0,0,0,0.1);
     border-color: #2E8B57;
 }
 
 .atestado-card::before {
     content: '';
     position: absolute;
-    top: 0; left: 0; width: 100%; height: 4px;
-    background: #2E8B57;
-    opacity: 0.8;
+    top: 0; left: 0; width: 100%; height: 5px;
+    background: linear-gradient(90deg, #2E8B57, #3cb371);
 }
 
 .atestado-card-header {
@@ -2258,14 +2361,20 @@
 }
 
 .atestado-card-icon {
-    width: 40px;
-    height: 40px;
+    width: 60px;
+    height: 60px;
     background: rgba(46, 139, 87, 0.1);
     color: #2E8B57;
-    border-radius: 10px;
+    border-radius: 16px;
     display: flex;
     align-items: center;
     justify-content: center;
+    margin: 0 auto;
+}
+
+.atestado-card-icon svg {
+    width: 28px;
+    height: 28px;
 }
 
 .atestado-card-status {
@@ -2283,19 +2392,25 @@
     color: #FF8C00;
 }
 
+.atestado-card-info {
+    width: 100%;
+}
+
 .atestado-card-info h4 {
     font-size: 1rem;
-    margin: 0.2rem 0;
+    margin: 0.5rem 0 0.2rem 0;
     color: var(--text-primary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    font-weight: 700;
 }
 
 .atestado-card-info p {
     font-size: 0.85rem;
     color: var(--text-secondary);
     margin: 0;
+    font-weight: 500;
 }
 
 .atestado-card-meta {
@@ -2319,46 +2434,198 @@
     font-size: 0.8rem;
 }
 
-/* Modal Atestado */
+/* MODAL DE ATESTADO - LAYOUT PREMIUM */
 .atestado-modal-body {
     display: grid;
-    grid-template-columns: 1.2fr 1fr;
-    gap: 2rem;
-    padding: 1.5rem;
+    grid-template-areas: 
+        "preview form"
+        "preview actions";
+    grid-template-columns: 1fr 420px;
+    grid-template-rows: 1fr auto; /* O formulário ocupa o topo, ações ancoradas na base */
+    gap: 1.5rem 2.5rem;
+    padding: 2rem;
+    height: 75vh; /* Altura fixa para simetria */
+    max-height: 800px;
+    overflow: hidden; /* Remove scroll do container principal */
 }
 
 .atestado-preview-container {
-    background: #525659;
-    border-radius: 8px;
+    grid-area: preview;
+    background: #f5f5f5;
+    border-radius: 12px;
     overflow: hidden;
-    height: 600px;
+    height: 100%; /* Ocupa exatamente a altura do modal-body */
+    border: 1px solid rgba(0,0,0,0.1);
+    box-shadow: inset 0 2px 10px rgba(0,0,0,0.05);
 }
 
 .atestado-preview-container iframe {
     width: 100%;
     height: 100%;
+    border: none;
 }
 
 .atestado-data-form {
-    display: flex;
-    flex-direction: column;
-    gap: 1.2rem;
+    grid-area: form;
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Duas colunas iguais */
+    gap: 0.8rem 1rem;
+    align-items: end;
+}
+
+.atestado-field-nome { grid-column: span 2; }
+.atestado-field-cid { grid-column: span 1; }
+.atestado-field-dias { grid-column: span 1; }
+.atestado-field-inicio { grid-column: span 1; }
+.atestado-field-fim { grid-column: span 1; }
+.atestado-field-resumo { grid-column: span 2; }
+
+/* Labels menores para economizar espaço vertical */
+.atestado-data-form label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 6px;
+    display: block;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+#atestado-edit-nome {
+    font-size: 1.1rem;
+    font-weight: 700;
+    padding: 0.8rem;
+}
+
+#atestado-edit-resumo {
+    height: 140px; /* Reduzido para caber no grid sem scroll */
+    min-height: 100px;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    padding: 0.8rem;
+    background: #fafafa;
+    border: 1px solid #ddd;
+    resize: none;
+}
+
+/* Ajuste fino nos inputs */
+.atestado-data-form .version-input {
+    margin-bottom: 0;
+    width: 100%;
+}
+
+.readonly-field {
+    background: rgba(0,0,0,0.03) !important;
+    cursor: not-allowed;
+    border-color: rgba(0,0,0,0.08) !important;
+    opacity: 0.8;
 }
 
 .atestado-modal-actions {
+    grid-area: actions;
     display: flex;
     flex-direction: column;
     gap: 0.8rem;
-    margin-top: 1rem;
-    padding-top: 1.5rem;
-    border-top: 1px solid #eee;
+    margin-top: 0;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(0,0,0,0.05);
 }
 
 @media (max-width: 900px) {
     .atestado-modal-body {
-        grid-template-columns: 1fr;
+        display: flex;
+        flex-direction: column;
+        height: 85vh; /* Altura fixa no mobile para controlar o conteúdo */
+        max-height: none;
+        gap: 1rem;
+        padding: 1.2rem;
+        grid-template-areas: none;
+        overflow: hidden; /* Evita scroll no corpo principal */
     }
+    
+    .atestado-data-form {
+        order: 1;
+        grid-template-columns: 1fr 1fr; /* Mantém 2 colunas para CID/Dias se houver espaço */
+        gap: 0.8rem;
+        flex: 0 0 auto; /* Ocupa apenas o necessário */
+    }
+
+    .atestado-modal-actions {
+        order: 2; /* Botão agora vem antes do PDF */
+        margin-top: 0;
+        padding: 0.8rem 0;
+        border-top: 1px solid rgba(0,0,0,0.05);
+        flex: 0 0 auto;
+    }
+
     .atestado-preview-container {
-        height: 400px;
+        order: 3; /* PDF por último no mobile */
+        flex: 1; /* Ocupa o restante do espaço disponível */
+        height: auto; 
+        min-height: 200px;
+    }
+
+    .atestado-field-nome, .atestado-field-inicio, .atestado-field-fim, .atestado-field-resumo {
+        grid-column: span 2;
+    }
+
+    #atestado-edit-resumo {
+        height: 100px; /* Mais compacto no mobile */
+    }
+    
+    @media (max-width: 500px) {
+        .atestado-data-form {
+            grid-template-columns: 1fr;
+        }
+        .atestado-field-nome, .atestado-field-inicio, .atestado-field-fim, .atestado-field-resumo, .atestado-field-cid, .atestado-field-dias {
+            grid-column: span 1;
+        }
+    }
+}
+
+/* Animações e Estados Dinâmicos - Gestão em Tempo Real */
+.atestados-grid-wrapper {
+    display: none;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.atestados-grid-wrapper.visible {
+    display: block;
+    opacity: 1;
+    transform: translateY(0);
+    animation: fadeInUp 0.5s ease forwards;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(15px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Pulso Verde para IA Ativa */
+.pulse-green {
+    box-shadow: 0 0 0 0 rgba(46, 139, 87, 0.4);
+    animation: pulse-green 2s infinite;
+}
+
+@keyframes pulse-green {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(46, 139, 87, 0.7);
+    }
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 6px rgba(46, 139, 87, 0);
+    }
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(46, 139, 87, 0);
     }
 }

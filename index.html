@@ -108,45 +108,47 @@
             <!-- Container para Links Temporários (Dinâmico) - Aparece agora no topo para maior destaque -->
             <div id="dynamic-links-container"></div>
 
-            <!-- Formulário 1 -->
-            <a href="https://forms.office.com/Pages/ResponsePage.aspx?id=nN-Y8wz9KUigA8dwocSgY_4kygpNx5FImT_LCLvUtWVUOFhXRTFTUkVSOFEyNlE1NTY0UVlKN0VFVy4u"
-                class="btn-form" target="_blank" title="Formulário pedido de Dispensa Bolsistas OER">
-                <span class="btn-form-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                        <polyline points="14 2 14 8 20 8"></polyline>
-                        <line x1="16" y1="13" x2="8" y2="13"></line>
-                        <line x1="16" y1="17" x2="8" y2="17"></line>
-                        <polyline points="10 9 9 9 8 9"></polyline>
-                    </svg>
-                </span>
-                <span class="btn-form-label">Formulário pedido de Dispensa Bolsistas OER</span>
-            </a>
+            <!-- Grupo de botões principais que devem ficar na mesma linha -->
+            <div class="main-buttons-group">
+                <!-- Formulário 1 -->
+                <a href="https://forms.office.com/Pages/ResponsePage.aspx?id=nN-Y8wz9KUigA8dwocSgY_4kygpNx5FImT_LCLvUtWVUOFhXRTFTUkVSOFEyNlE1NTY0UVlKN0VFVy4u"
+                    class="btn-form" target="_blank" title="Formulário pedido de Dispensa Bolsistas OER">
+                    <span class="btn-form-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10 9 9 9 8 9"></polyline>
+                        </svg>
+                    </span>
+                    <span class="btn-form-label">Formulário pedido de Dispensa Bolsistas OER</span>
+                </a>
 
+                <!-- Formulário 3 -->
+                <a href="https://forms.cloud.microsoft/r/dh1TJk6XAW"
+                    class="btn-form btn-update" target="_blank" title="Atualização de dados">
+                    <span class="btn-form-icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M21 2v6h-6"></path>
+                            <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
+                            <path d="M3 22v-6h6"></path>
+                            <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
+                        </svg>
+                    </span>
+                    <span class="btn-form-label">Atualização dados Musicista OER</span>
+                </a>
 
-            <!-- Formulário 3 -->
-            <a href="https://forms.cloud.microsoft/r/dh1TJk6XAW"
-                class="btn-form btn-update" target="_blank" title="Atualização de dados">
-                <span class="btn-form-icon">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M21 2v6h-6"></path>
-                        <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
-                        <path d="M3 22v-6h6"></path>
-                        <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
-                    </svg>
-                </span>
-                <span class="btn-form-label">Atualização dados Musicista OER</span>
-            </a>
-
-            <!-- NOVO: Módulo de Atestados (Fase 4) -->
-            <button id="btnAtestadoTrigger" class="btn-form btn-atestado" style="display: none; background: none; border: none; font-family: inherit; padding: 0.4rem;">
-                <span class="btn-form-icon" style="background-color: #2E8B57; box-shadow: 0 4px 15px rgba(46, 139, 87, 0.4);">
-                    <i data-lucide="file-badge"></i>
-                </span>
-                <span class="btn-form-label">Enviar Atestado Médico (IA)</span>
-            </button>
+                <!-- NOVO: Módulo de Atestados (Fase 4) -->
+                <button id="btnAtestadoTrigger" class="btn-form btn-atestado" style="display: none;">
+                    <span class="btn-form-icon">
+                        <i data-lucide="stethoscope"></i>
+                    </span>
+                    <span class="btn-form-label">Envio Atestado Médico</span>
+                </button>
+            </div>
         </div>
 
         <!-- Grid de Visualizadores (Desktop/Tablet) -->
@@ -256,41 +258,62 @@
         </button>
     </div>
 
-    <!-- Modal de Upload de Atestado -->
+    <!-- Modal de Upload de Atestado (Design Premium) -->
     <div id="atestado-upload-modal" class="modal-overlay" style="display: none;">
-        <div class="upload-modal-card">
-            <div class="modal-header">
-                <div class="modal-header-info">
-                    <h3><i data-lucide="file-badge"></i> Enviar Atestado Médico</h3>
-                    <p>O Robô OER processará seu atestado automaticamente.</p>
-                </div>
-                <button class="btn-close-modal" id="btn-close-atestado-upload">
-                    <i data-lucide="x"></i>
-                </button>
-            </div>
-            <form id="atestado-upload-form" class="modal-body" style="padding-top: 1rem;">
-                <div class="file-upload-wrapper">
-                    <input type="file" id="input-atestado-file" accept="application/pdf,image/*" class="file-input" required>
-                    <div class="file-drop-area" id="atestado-drop-area">
-                        <i data-lucide="upload-cloud"></i>
-                        <span class="file-msg">Selecione PDF ou Foto do Atestado</span>
+        <div class="upload-modal-container">
+            <div class="upload-modal-card">
+                <div class="modal-header">
+                    <div class="modal-header-icon">
+                        <i data-lucide="stethoscope"></i>
                     </div>
+                    <div class="modal-header-text">
+                        <h3>Enviar Atestado Médico</h3>
+                        <p>O Robô OER processará seu atestado automaticamente.</p>
+                    </div>
+                    <button class="btn-close-modal" id="btn-close-atestado-upload" aria-label="Fechar">
+                        <i data-lucide="x"></i>
+                    </button>
                 </div>
 
-                <div id="atestado-upload-progress" class="progress-bar-container" style="margin-bottom: 1.5rem; height: 8px; background: #eee; border-radius: 4px; overflow: hidden; display: none;">
-                    <div class="progress-bar" id="atestado-progress-inner" style="height: 100%; background: #2E8B57; width: 0%; transition: width 0.3s ease;"></div>
-                </div>
+                <form id="atestado-upload-form" class="modal-body">
+                    <div class="upload-zone" id="atestado-drop-area">
+                        <input type="file" id="input-atestado-file" accept="application/pdf,image/*" class="file-input" required>
+                        <div class="upload-zone-content">
+                            <div class="upload-icon-wrapper">
+                                <i data-lucide="upload-cloud"></i>
+                            </div>
+                            <div class="upload-text">
+                                <span class="primary-text">Clique para selecionar ou arraste o arquivo</span>
+                                <span class="secondary-text">PDF ou Imagens (Máx. 10MB)</span>
+                            </div>
+                            <div class="file-selected-info" style="display: none;">
+                                <i data-lucide="file-check"></i>
+                                <span class="file-name-display">arquivo.pdf</span>
+                            </div>
+                        </div>
+                    </div>
 
-                <button type="submit" class="btn-primary" id="btn-submit-atestado" style="background: #2E8B57; width: 100%;">
-                    <i data-lucide="send"></i> <span>Enviar para Processamento</span>
-                </button>
-                
-                <p style="font-size: 0.75rem; color: #888; text-align: center; margin-top: 1rem; line-height: 1.4;">
-                    <i data-lucide="shield-check" style="width: 12px; height: 12px;"></i> 
-                    Seus dados são processados com segurança e criptografia. 
-                    A administração será notificada após a extração da IA.
-                </p>
-            </form>
+                    <div id="atestado-upload-progress" class="premium-progress-container" style="display: none;">
+                        <div class="progress-info">
+                            <span>Enviando arquivo...</span>
+                            <span class="progress-percentage">0%</span>
+                        </div>
+                        <div class="progress-track">
+                            <div class="progress-fill" id="atestado-progress-inner"></div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-premium-submit" id="btn-submit-atestado">
+                        <i data-lucide="send"></i>
+                        <span>Enviar para Processamento</span>
+                    </button>
+
+                    <div class="modal-footer-security">
+                        <i data-lucide="shield-check"></i>
+                        <p>Processamento seguro com criptografia de ponta a ponta. A administração será notificada automaticamente.</p>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
 

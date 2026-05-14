@@ -52,12 +52,7 @@ service cloud.firestore {
       allow read, write: if request.auth != null;
     }
 
-    // Coleção "settings" — configurações globais do sistema
-    // Leitura pública (para verificar se atestados estão ativos)
-    match /settings/atestados {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
+
 
     // Regra padrão — nega tudo que não foi explicitamente permitido
     match /{document=**} {

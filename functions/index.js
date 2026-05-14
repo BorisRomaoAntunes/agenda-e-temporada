@@ -4,7 +4,7 @@ const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const functions = require("firebase-functions");
 const { FieldValue } = require("firebase-admin/firestore");
 const admin = require("firebase-admin");
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { GoogleGenAI } = require("@google/genai");
 const { PDFDocument } = require("pdf-lib");
 const path = require("path");
 const os = require("os");
@@ -141,8 +141,8 @@ exports.dailySubscriberCheck = onSchedule({
             const statsSnap = await transaction.get(statsRef);
             const dailySnap = await transaction.get(dailyStatsRef);
 
-            const storedCount = statsSnap.exists() ? (statsSnap.data().subscriberCount || 0) : 0;
-            const previousCount = dailySnap.exists() ? (dailySnap.data().lastCount || 0) : 0;
+            const storedCount = statsSnap.exists ? (statsSnap.data().subscriberCount || 0) : 0;
+            const previousCount = dailySnap.exists ? (dailySnap.data().lastCount || 0) : 0;
 
             // 2. Auto-Cura: Se o contador armazenado estiver errado, prioriza a realidade
             let currentCount = storedCount;
@@ -484,18 +484,39 @@ exports.onAtestadoUpload = functions.runWith({
         const apiKey = process.env.GEMINI_API_KEY || admin.remoteConfig().parameters?.GEMINI_API_KEY?.defaultValue?.value;
         if (!apiKey) throw new Error("GEMINI_API_KEY não configurada no ambiente ou Remote Config.");
 
-        const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const ai = new GoogleGenAI({ apiKey });
+        
+        // --- Diagnóstico solicitado pelo usuário: Listar modelos ---
+        try {
+            console.log("[Atestados] Solicitando lista de modelos ativos...");
+            const modelList = await ai.models.list();
+            
+            // Tratamento robusto: a API pode retornar { models: [] } ou []
+            const modelsArray = Array.isArray(modelList) ? modelList : (modelList.models || []);
+            const activeModels = modelsArray.map(m => m.name).join(", ");
+            
+            // Grava no Log de Auditoria para validação do usuário
+            await admin.firestore().collection("adminLogs").add({
+                type: "sistema",
+                message: "Auditoria de Modelos Gemini",
+                details: `Modelos ativos: ${activeModels || "Nenhum encontrado"}. Resposta completa: ${JSON.stringify(modelList)}`,
+                user: "Sistema",
+                createdAt: new Date().toISOString()
+            });
+            console.log(`[Atestados] Modelos ativos: ${activeModels}`);
+        } catch (listError) {
+            console.warn("[Atestados] Falha ao listar modelos:", listError.message);
+            await admin.firestore().collection("adminLogs").add({
+                type: "erro",
+                message: "Falha na Auditoria de Modelos",
+                details: `Erro ao listar: ${listError.message}`,
+                user: "Sistema",
+                createdAt: new Date().toISOString()
+            });
+        }
 
-        // 4. Ler arquivo para enviar ao Gemini
+        // 4. Ler arquivo e preparar Prompt
         const fileBuffer = fs.readFileSync(tempFilePath);
-        const filePart = {
-            inlineData: {
-                data: fileBuffer.toString("base64"),
-                mimeType: contentType,
-            },
-        };
-
         const prompt = `Você é um assistente administrativo médico experiente. 
         Analise este atestado médico (pode ser imagem ou PDF) e extraia os dados necessários para o RH.
         
@@ -510,16 +531,34 @@ exports.onAtestadoUpload = functions.runWith({
         - Retorne APENAS o objeto JSON, sem markdown ou textos adicionais.
         - Se não conseguir ler o nome, use "Nao_Identificado".`;
 
-        const result = await model.generateContent([prompt, filePart]);
-        const response = await result.response;
-        const rawText = response.text();
-        
-        // Limpa o texto caso a IA retorne markdown
-        const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) throw new Error("A IA não retornou um JSON válido.");
-        const aiData = JSON.parse(jsonMatch[0]);
+        // 5. Executar extração com Gemini 2.5 Flash (Modelo Atual em 2026)
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: [
+                {
+                    role: "user",
+                    parts: [
+                        { text: prompt },
+                        {
+                            inlineData: {
+                                data: fileBuffer.toString("base64"),
+                                mimeType: contentType
+                            }
+                        }
+                    ]
+                }
+            ]
+        });
 
-        console.log("[Atestados] Dados extraídos:", aiData);
+        const resultText = response.text || "";
+        console.log("[Atestados] Resposta da IA:", resultText);
+        
+        // Limpar o JSON (às vezes a IA coloca ```json ... ```)
+        const jsonMatch = resultText.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error("A IA não retornou um JSON válido.");
+        
+        const aiData = JSON.parse(jsonMatch[0]);
+        console.log("[Atestados] Dados extraídos com sucesso:", aiData);
 
         // 5. Processamento de PDF
         let pdfDoc;
@@ -536,20 +575,80 @@ exports.onAtestadoUpload = functions.runWith({
             page.drawImage(image, { x: 0, y: 0, width: image.width, height: image.height });
         }
 
-        // Adicionar página de análise da IA ao final
-        const infoPage = pdfDoc.addPage([600, 500]);
-        const { height } = infoPage.getSize();
+        // 6. Adicionar página de análise da IA com Design Premium (Sugestão 2)
+        const infoPage = pdfDoc.addPage([600, 700]);
+        const { width, height } = infoPage.getSize();
         
-        infoPage.drawText("RELATÓRIO DE ANÁLISE (ROBÔ OER)", { x: 50, y: height - 50, size: 20 });
-        infoPage.drawText("Este documento foi processado automaticamente por Inteligência Artificial.", { x: 50, y: height - 75, size: 10 });
+        // Tentar carregar o logo
+        try {
+            const logoPath = path.join(__dirname, 'assets', 'logo.png');
+            if (fs.existsSync(logoPath)) {
+                const logoBytes = fs.readFileSync(logoPath);
+                const logoImage = await pdfDoc.embedPng(logoBytes);
+                const logoDims = logoImage.scale(0.3);
+                infoPage.drawImage(logoImage, {
+                    x: width / 2 - logoDims.width / 2,
+                    y: height - 80,
+                    width: logoDims.width,
+                    height: logoDims.height,
+                });
+            }
+        } catch (logoErr) {
+            console.warn("Não foi possível carregar o logo no PDF:", logoErr);
+        }
+
+        // Título e Subtítulo
+        infoPage.drawText("RELATÓRIO DE ANÁLISE — ROBÔ OER", { 
+            x: 50, y: height - 120, size: 18, 
+            color: { type: 'RGB', red: 0.1, green: 0.1, blue: 0.1 } 
+        });
         
-        infoPage.drawText(`Paciente: ${aiData.nome}`, { x: 50, y: height - 130, size: 14 });
-        infoPage.drawText(`CID: ${aiData.cid || 'Não informado'}`, { x: 50, y: height - 155, size: 14 });
-        infoPage.drawText(`Início do Afastamento: ${aiData.data_inicio}`, { x: 50, y: height - 180, size: 14 });
-        infoPage.drawText(`Período: ${aiData.dias} dias`, { x: 50, y: height - 205, size: 14 });
-        
-        infoPage.drawText("Explicação da Condição:", { x: 50, y: height - 260, size: 14 });
-        infoPage.drawText(aiData.resumo_cid || "N/A", { x: 50, y: height - 285, size: 11, maxWidth: 500 });
+        infoPage.drawText("Documento processado via Inteligência Artificial para gestão administrativa.", { 
+            x: 50, y: height - 140, size: 9, 
+            color: { type: 'RGB', red: 0.4, green: 0.4, blue: 0.4 } 
+        });
+
+        // Linha Divisória
+        infoPage.drawLine({
+            start: { x: 50, y: height - 155 },
+            end: { x: width - 50, y: height - 155 },
+            thickness: 1,
+            color: { type: 'RGB', red: 0.8, green: 0.8, blue: 0.8 }
+        });
+
+        // Dados Extraídos
+        const startY = height - 190;
+        const lineSpacing = 25;
+
+        const drawDataRow = (label, value, y) => {
+            infoPage.drawText(label, { x: 50, y, size: 12, color: { type: 'RGB', red: 0.5, green: 0.5, blue: 0.5 } });
+            infoPage.drawText(value || "N/A", { x: 180, y, size: 12 });
+        };
+
+        drawDataRow("Músico(a):", aiData.nome, startY);
+        drawDataRow("CID:", aiData.cid, startY - lineSpacing);
+        drawDataRow("Início:", aiData.data_inicio, startY - lineSpacing * 2);
+        drawDataRow("Período:", `${aiData.dias} dias`, startY - lineSpacing * 3);
+
+        // Seção de Explicação
+        infoPage.drawText("EXPLICAÇÃO DA CONDIÇÃO (CID):", { 
+            x: 50, y: startY - 130, size: 12, 
+            color: { type: 'RGB', red: 0.1, green: 0.1, blue: 0.1 } 
+        });
+
+        const explanation = aiData.resumo_cid || "Nenhuma informação adicional extraída sobre o CID.";
+        infoPage.drawText(explanation, { 
+            x: 50, y: startY - 155, size: 11, 
+            maxWidth: 500,
+            lineHeight: 14,
+            color: { type: 'RGB', red: 0.2, green: 0.2, blue: 0.2 } 
+        });
+
+        // Rodapé
+        infoPage.drawText(`Processado em: ${new Date().toLocaleString('pt-BR')}`, { 
+            x: 50, y: 50, size: 8, 
+            color: { type: 'RGB', red: 0.6, green: 0.6, blue: 0.6 } 
+        });
 
         const finalPdfBytes = await pdfDoc.save();
 
@@ -586,7 +685,7 @@ exports.onAtestadoUpload = functions.runWith({
         await admin.firestore().collection("adminLogs").add({
             type: "atestado",
             message: `Atestado processado: ${aiData.nome}`,
-            details: `IA identificou CID ${aiData.cid} e ${aiData.dias} dias de afastamento.`,
+            details: `IA identificou CID ${aiData.cid} e ${aiData.dias} dias de afastamento.\n\nParecer da IA: ${aiData.resumo_cid || "Nenhuma explicação adicional."}`,
             user: "Robô OER",
             createdAt: new Date().toISOString()
         });
