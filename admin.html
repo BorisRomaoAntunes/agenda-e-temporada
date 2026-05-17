@@ -114,6 +114,9 @@
                 <button class="tab-btn" data-target="section-arquivos">
                     <i data-lucide="folder"></i> <span>Temporada & Agenda</span>
                 </button>
+                <button class="tab-btn" data-target="section-calendario">
+                    <i data-lucide="calendar-days"></i> <span>Calendário</span>
+                </button>
                 <button class="tab-btn" data-target="section-links">
                     <i data-lucide="link"></i> <span>Links Temporários</span>
                 </button>
@@ -449,6 +452,173 @@
                     </div>
                 </div>
             </section>
+
+            <!-- Seção 4: Calendário Interativo -->
+            <section id="section-calendario" class="tab-content">
+                <div class="calendario-grid-layout">
+                    <div class="calendario-col-form">
+                        <div class="upload-card">
+                    <div class="card-icon" style="background: rgba(139, 0, 0, 0.1); color: var(--primary-color);">
+                        <i data-lucide="calendar-days"></i>
+                    </div>
+                    <h3>Gerenciar Calendário</h3>
+                    <p>Adicione eventos manualmente ou extraia de um PDF/E-mail usando o Robô OER.</p>
+            
+                    <!-- Seleção de Fonte IA -->
+                    <div style="display: flex; gap: 1rem; margin-top: 1.5rem; justify-content: center;">
+                        <button class="btn-ia-source" id="btn-ia-texto">
+                            <i data-lucide="mail"></i>
+                            <span>Colar E-mail</span>
+                            <small>Texto do cronograma</small>
+                        </button>
+                        <button class="btn-ia-source" id="btn-ia-pdf">
+                            <i data-lucide="file-digit"></i>
+                            <span>Enviar PDF</span>
+                            <small>Upload de arquivo</small>
+                        </button>
+                    </div>
+            
+                    <!-- Container para edição manual ou eventos retornados da IA -->
+                    <div id="calendario-form-container" style="margin-top: 2rem; border-top: 1px solid #eee; padding-top: 1.5rem;">
+                         <div style="display: flex; align-items: center; gap: 0.8rem; margin-bottom: 1.5rem;">
+                             <div style="width: 35px; height: 35px; border-radius: 50%; background: rgba(139, 0, 0, 0.1); color: var(--primary-color); display: flex; align-items: center; justify-content: center;">
+                                 <i data-lucide="edit-3" style="width: 18px; height: 18px;"></i>
+                             </div>
+                             <h4 style="margin: 0; font-size: 1.1rem;">Adicionar / Editar Evento</h4>
+                         </div>
+                         
+                         <form id="evento-form" class="professional-form">
+                             <input type="hidden" id="evento-id">
+                             
+                             <!-- Cartão 1: Informações Gerais -->
+                             <div class="form-group-card">
+                                 <div class="form-group-title">
+                                     <i data-lucide="info"></i>
+                                     <span>Informações Gerais</span>
+                                 </div>
+                                 <div class="form-row">
+                                     <div class="version-input-wrapper" style="flex: 1; min-width: 140px;">
+                                         <label><i data-lucide="tag"></i> Tipo de Evento</label>
+                                         <select id="evento-tipo" class="version-input" required>
+                                             <option value="ensaio_tutti">Ensaio Tutti</option>
+                                             <option value="ensaio_naipe">Ensaio de Naipe</option>
+                                             <option value="concerto">Concerto</option>
+                                         </select>
+                                     </div>
+                                     <div class="version-input-wrapper" id="naipe-wrapper" style="display:none; flex: 1; min-width: 140px;">
+                                         <label><i data-lucide="users"></i> Nome do Naipe</label>
+                                         <input type="text" id="evento-naipe" class="version-input" placeholder="Ex: Violoncelos">
+                                     </div>
+                                 </div>
+                                 <div class="form-row">
+                                     <div class="version-input-wrapper" style="flex: 1; min-width: 180px;">
+                                         <label><i data-lucide="align-left"></i> Descrição / Título Curto</label>
+                                         <input type="text" id="evento-descricao" class="version-input" placeholder="Ex: Tutti, Geral, OER" required>
+                                     </div>
+                                     <div class="version-input-wrapper" style="flex: 1; min-width: 180px;">
+                                         <label><i data-lucide="music"></i> Nome do Concerto (opcional)</label>
+                                         <input type="text" id="evento-concerto" class="version-input" placeholder="Ex: Metacosmos">
+                                     </div>
+                                 </div>
+                             </div>
+
+                             <!-- Cartão 2: Data e Horários -->
+                             <div class="form-group-card">
+                                 <div class="form-group-title">
+                                     <i data-lucide="calendar"></i>
+                                     <span>Data e Horários</span>
+                                 </div>
+                                 <div class="form-row">
+                                     <div class="version-input-wrapper" style="flex: 1.5; min-width: 130px;">
+                                         <label><i data-lucide="calendar-days"></i> Data</label>
+                                         <input type="date" id="evento-date" class="version-input" required>
+                                     </div>
+                                     <div class="version-input-wrapper" style="flex: 1; min-width: 85px;">
+                                         <label><i data-lucide="clock"></i> Início</label>
+                                         <input type="time" id="evento-inicio" class="version-input" required>
+                                     </div>
+                                     <div class="version-input-wrapper" style="flex: 1; min-width: 85px;">
+                                         <label><i data-lucide="clock-9"></i> Fim</label>
+                                         <input type="time" id="evento-fim" class="version-input" required>
+                                     </div>
+                                 </div>
+                             </div>
+
+                             <!-- Cartão 3: Localização -->
+                             <div class="form-group-card">
+                                 <div class="form-group-title">
+                                     <i data-lucide="map-pin"></i>
+                                     <span>Localização</span>
+                                 </div>
+                                 <div class="form-row">
+                                     <div class="version-input-wrapper" style="flex: 1.2; min-width: 160px;">
+                                         <label><i data-lucide="map-pin-5"></i> Local Principal</label>
+                                         <input type="text" id="evento-local" class="version-input" placeholder="Ex: Sala de Ensaio OSM/OER" required>
+                                     </div>
+                                     <div class="version-input-wrapper" style="flex: 1; min-width: 130px;">
+                                         <label><i data-lucide="navigation"></i> Complemento</label>
+                                         <input type="text" id="evento-complemento" class="version-input" placeholder="Ex: Prédio Corpos (opcional)">
+                                     </div>
+                                 </div>
+                                 <div class="form-row">
+                                     <div class="version-input-wrapper" style="flex: 1;">
+                                         <label><i data-lucide="map"></i> Link do Google Maps (opcional)</label>
+                                         <input type="url" id="evento-maps" class="version-input" placeholder="https://maps.app.goo.gl/...">
+                                     </div>
+                                 </div>
+                             </div>
+
+                             <!-- Cartão 4: Detalhamento do Dia -->
+                             <div class="form-group-card">
+                                 <div class="form-group-title">
+                                     <i data-lucide="library"></i>
+                                     <span>Detalhamento do Dia</span>
+                                 </div>
+                                 <div class="version-input-wrapper" style="margin-bottom: 1.2rem;">
+                                     <label><i data-lucide="megaphone"></i> Avisos do Dia (um por linha)</label>
+                                     <textarea id="evento-avisos" class="version-input" rows="4" style="width:100%; resize:vertical;" placeholder="Ex:
+Acesso ao prédio somente após 16h30
+Trazer partituras do programa anterior
+Usar traje preto"></textarea>
+                                 </div>
+                                 <div class="version-input-wrapper">
+                                     <label><i data-lucide="music-4"></i> Repertório (um por linha &middot; Suporta **negrito** e *itálico*)</label>
+                                     <textarea id="evento-repertorio" class="version-input" rows="6" style="width:100%; resize:vertical;" placeholder="Ex:
+**STRAVINSKY** Petrushka / **ASSAD** Bonecos de Olinda / **RIPKE** Bonecas de Olívia
+Intervalo
+**DVOŘÁK** Sinfonia nº 8 / *SMETANA* A Noiva Vendida"></textarea>
+                                 </div>
+                             </div>
+
+                             <div style="display:flex; gap: 1rem; margin-top: 1.5rem; border-top: 1px solid #eee; padding-top: 1.5rem;">
+                                 <button type="submit" class="btn-primary" style="flex: 2;"><i data-lucide="save"></i> Salvar Evento no Calendário</button>
+                                 <button type="button" class="btn-outline" id="btn-cancel-evento" style="flex: 1;">Limpar</button>
+                             </div>
+                         </form>
+                    </div>
+                        </div>
+                    </div>
+            
+                    <div class="calendario-col-lista">
+                        <!-- Lista Mensal de Eventos -->
+                        <div id="admin-eventos-list-wrapper" class="admin-notif-wrapper">
+                    <div class="logs-header" style="justify-content: space-between;">
+                        <div>
+                            <h3><i data-lucide="list"></i> Eventos do Mês</h3>
+                            <p>Navegue pelos meses para ver os eventos cadastrados.</p>
+                        </div>
+                        <div style="display:flex; align-items: center; gap: 1rem;">
+                            <button id="btn-prev-month" class="btn-outline" style="padding: 0.5rem;"><i data-lucide="chevron-left"></i></button>
+                            <span id="label-current-month" style="font-weight: 600;">Maio 2026</span>
+                            <button id="btn-next-month" class="btn-outline" style="padding: 0.5rem;"><i data-lucide="chevron-right"></i></button>
+                        </div>
+                    </div>
+                    <div id="admin-eventos-list" class="log-list">
+                        <!-- Eventos inseridos via JS -->
+                        </div>
+                    </div>
+                </div>
+            </section>
         </main>
     </div>
     <!-- Modal de Ajustes do Sistema -->
@@ -518,6 +688,24 @@
                         </label>
                     </div>
                     <p id="toggle-status-text" class="toggle-status">A carregar estado...</p>
+                    
+                    <!-- NOVO: Módulo Calendário Interativo -->
+                    <div class="settings-item" style="margin-top: 1.5rem;">
+                        <div class="settings-item-info">
+                            <div class="settings-icon-bg" style="background: rgba(139, 0, 0, 0.1); color: var(--primary-color);">
+                                <i data-lucide="calendar-days"></i>
+                            </div>
+                            <div>
+                                <h4>Calendário Interativo</h4>
+                                <p>Oculta os PDFs e exibe a nova agenda para os músicos.</p>
+                            </div>
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-new-calendar">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <p id="toggle-calendar-status-text" class="toggle-status">A carregar estado...</p>
 
                     <!-- 4. Ambiente de Emulação -->
                     <div class="settings-item" style="margin-top: 1.5rem;">
@@ -724,6 +912,58 @@
             }
         }
     </script>
+    <!-- ===== MODAL IA CALENDÁRIO ===== -->
+    <div id="ia-modal-overlay" class="ia-modal-overlay" style="display:none;" aria-modal="true" role="dialog">
+        <div class="ia-modal-card">
+            <!-- Header -->
+            <div class="ia-modal-header">
+                <div class="ia-modal-header-info">
+                    <div class="ia-modal-icon" id="ia-modal-icon">
+                        <i data-lucide="sparkles"></i>
+                    </div>
+                    <div>
+                        <h3 id="ia-modal-title">Robô OER</h3>
+                        <p id="ia-modal-subtitle">Extraia eventos automaticamente com IA</p>
+                    </div>
+                </div>
+                <button class="ia-modal-close" id="btn-ia-modal-close" title="Fechar">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+
+            <!-- Body: painel texto -->
+            <div class="ia-modal-body" id="ia-texto-container">
+                <div class="ia-modal-tip">
+                    <i data-lucide="info"></i>
+                    Cole o conteúdo do e-mail de cronograma enviado pela OSM/OER. A IA irá identificar e preencher os eventos automaticamente.
+                </div>
+                <textarea id="ia-email-text" class="version-input ia-modal-textarea" rows="10"
+                    placeholder="Cole aqui o texto do e-mail de cronograma...&#10;&#10;Exemplo:&#10;Quinta-feira, 22/05 — Ensaio Tutti&#10;Local: Sala de Ensaio OSM/OER&#10;19h00 às 22h00"></textarea>
+                <button class="btn-robot-ai ia-modal-btn-action" id="btn-process-ia-texto">
+                    <i data-lucide="sparkles"></i> Processar com IA
+                </button>
+            </div>
+
+            <!-- Body: painel PDF -->
+            <div class="ia-modal-body" id="ia-pdf-container" style="display:none;">
+                <div class="ia-modal-tip">
+                    <i data-lucide="info"></i>
+                    Envie o PDF do cronograma mensal. O Robô OER irá ler o documento e extrair todos os eventos listados.
+                </div>
+                <div class="file-upload-wrapper ia-modal-upload">
+                    <input type="file" id="ia-pdf-file" accept="application/pdf" class="file-input">
+                    <div class="file-drop-area">
+                        <i data-lucide="upload-cloud"></i>
+                        <span class="file-msg">Clique ou arraste o PDF do cronograma aqui</span>
+                    </div>
+                </div>
+                <button class="btn-robot-ai ia-modal-btn-action" id="btn-process-ia-pdf">
+                    <i data-lucide="sparkles"></i> Processar PDF com IA
+                </button>
+            </div>
+        </div>
+    </div>
+
 </body>
 
 </html>

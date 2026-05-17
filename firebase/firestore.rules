@@ -1,60 +1,69 @@
-rules_version='2'
+rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Coleção "config" — armazena configurações dos PDFs
-    // Leitura pública (site precisa carregar os links dos PDFs)
-    // Escrita apenas para administradores autenticados
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Coleção "config" — configurações globais do app (PDFs, Feature Flags)
     match /config/{document} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isSignedIn();
     }
 
-    // Coleção "adminNotifications" — armazena disparos de notificações push
-    // Leitura pública (site precisa carregar os avisos para o letreiro/histórico)
-    // Escrita apenas para administradores autenticados
+    // Coleção "adminNotifications" — histórico de notificações push enviadas
     match /adminNotifications/{document} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isSignedIn();
     }
 
-    // Coleção "fcmTokens" — armazena os tokens de notificação dos usuários
-    // Leitura não é necessária para o público
-    // Escrita é permitida para qualquer um poder se registrar
+    // Coleção "fcmTokens" — tokens para notificações push
     match /fcmTokens/{document} {
-      allow read: if request.auth != null;
-      allow write: if true;
+      allow read: if isSignedIn();
+      allow write: if true; // Permite que usuários se inscrevam sem login
     }
 
-    // Coleção "adminLogs" — armazena o histórico de ações do painel admin
-    // Leitura e Escrita apenas para administradores autenticados
+    // Coleção "adminLogs" — histórico de auditoria do painel
     match /adminLogs/{document} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isSignedIn();
     }
 
-    // Coleção "dynamicLinks" — armazena os botões temporários
-    // Leitura pública e escrita apenas para administradores autenticados
+    // Coleção "dynamicLinks" — botões temporários
     match /dynamicLinks/{document} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isSignedIn();
     }
 
-    // Coleção "scheduledNotifications" — armazena avisos agendados
-    // Leitura e Escrita apenas para administradores autenticados
+    // Coleção "scheduledNotifications" — avisos agendados
     match /scheduledNotifications/{document} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isSignedIn();
     }
 
-    // Coleção "medicalCertificates" — armazena metadados dos atestados processados
-    // Leitura e Escrita apenas para administradores autenticados
+    // Coleção "medicalCertificates" — módulo de atestados
     match /medicalCertificates/{document} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isSignedIn();
     }
 
+    // ==========================================
+    // NOVO MÓDULO DE CALENDÁRIO INTERATIVO
+    // ==========================================
 
+    // Coleção "eventos" — agenda diária
+    match /eventos/{document} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
 
-    // Regra padrão — nega tudo que não foi explicitamente permitido
+    // Coleção "avisos_semana" — avisos globais da semana
+    match /avisos_semana/{document} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    // Regra padrão de segurança (nega tudo por padrão)
     match /{document=**} {
       allow read, write: if false;
     }

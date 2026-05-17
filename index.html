@@ -151,6 +151,64 @@
             </div>
         </div>
 
+        <!-- Nova Seção de Calendário Interativo (Fase 4) -->
+        <div id="calendario-section" class="calendario-section" style="display: none;">
+            <div class="calendario-header">
+                <div class="mes-atual-container" id="btn-open-mes-modal" role="button" tabindex="0">
+                    <span id="mes-atual-label">Carregando...</span>
+                    <i data-lucide="chevron-down"></i>
+                </div>
+                <div id="proxima-atividade-ticker" class="proxima-atividade-ticker"></div>
+                <button id="btn-hoje" class="btn-hoje">HOJE</button>
+            </div>
+
+            <div class="calendario-filtros" id="calendario-filtros">
+                <button class="filtro-btn ativo" data-filtro="todos">Todos</button>
+                <button class="filtro-btn" data-filtro="ensaio_tutti"><span class="dot dot-tutti"></span> Tutti</button>
+                <button class="filtro-btn" data-filtro="concerto"><span class="dot dot-concerto"></span> Concerto</button>
+                <button class="filtro-btn" data-filtro="ensaio_naipe"><span class="dot dot-naipe"></span> Naipe</button>
+            </div>
+
+            <div class="calendario-strip-container">
+                <div class="calendario-strip" id="calendario-strip">
+                    <!-- Cards de dia gerados via JS -->
+                </div>
+            </div>
+
+            <div class="calendario-avisos-semana" id="avisos-semana-container" style="display: none;">
+                <!-- Avisos globais da semana -->
+            </div>
+
+            <div class="calendario-eventos-container" id="calendario-eventos">
+                <!-- Lista de eventos do dia selecionado gerada via JS -->
+                <div class="evento-empty-state">
+                    <i data-lucide="calendar"></i>
+                    <p>Selecione um dia para ver os eventos.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Seleção de Mês -->
+        <div id="mes-modal" class="modal-overlay" style="display: none;" role="dialog" aria-modal="true">
+            <div class="mes-modal-container upload-modal-card" style="max-width: 400px;">
+                <div class="modal-header">
+                    <div class="modal-header-icon">
+                        <i data-lucide="calendar-days"></i>
+                    </div>
+                    <div class="modal-header-text">
+                        <h3>Ir para o mês</h3>
+                        <p class="modal-desc">Escolha o ano e o mês para ver a agenda</p>
+                    </div>
+                    <button class="btn-close-modal" id="btn-close-mes-modal" aria-label="Fechar">
+                        <i data-lucide="x"></i>
+                    </button>
+                </div>
+                <div class="mes-modal-body" id="mes-modal-body">
+                    <!-- Lista/Grid de meses gerada via JS -->
+                </div>
+            </div>
+        </div>
+
         <!-- Grid de Visualizadores (Desktop/Tablet) -->
         <div class="pdf-grid">
             <!-- PDF 1: Temporada -->
@@ -219,6 +277,9 @@
 
     <!-- Módulo de Atestados Médicos (Fase 4) -->
     <script type="module" src="assets/js/public/medical-cert.js"></script>
+
+    <!-- Módulo de Calendário Interativo (Fase 4) -->
+    <script type="module" src="assets/js/public/calendario.js"></script>
 
     <!-- Botão de Notificações (visibilidade controlada via Firestore pelo admin) -->
     <div class="notification-container" hidden>

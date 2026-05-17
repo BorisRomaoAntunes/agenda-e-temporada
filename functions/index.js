@@ -224,7 +224,7 @@ exports.suggestNotificationText = onCall({
     }
 
     try {
-        const genAI = new GoogleGenerativeAI(apiKey);
+        const genAI = new GoogleGenAI({ apiKey });
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
         const prompt = `Você é o Robô OER, o assistente oficial e entusiasta da Orquestra Experimental de Repertório.
@@ -742,5 +742,101 @@ exports.onAtestadoUpload = functions.runWith({
         });
     } finally {
         if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
+    }
+});
+
+/**
+ * Módulo de Calendário: Processa cronograma em texto ou PDF para JSON
+ */
+exports.parseScheduleWithGemini = onCall({
+    region: "us-central1",
+    timeoutSeconds: 120,
+    memory: "512MiB"
+}, async (request) => {
+    if (!request.auth) {
+        throw new HttpsError("unauthenticated", "Autenticação obrigatória.");
+    }
+    const { text, pdfBase64, mimeType } = request.data;
+    if (!text && !pdfBase64) {
+        throw new HttpsError("invalid-argument", "Forneça o texto ou o PDF do cronograma.");
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY || admin.remoteConfig().parameters?.GEMINI_API_KEY?.defaultValue?.value;
+    if (!apiKey) throw new HttpsError("internal", "GEMINI_API_KEY não configurada.");
+
+    const genAI = new GoogleGenAI({ apiKey });
+
+    const prompt = `Você é um assistente que extrai cronogramas de ensaios e concertos de e-mails
+da Orquestra Experimental de Repertório (OER).
+
+Retorne APENAS um JSON válido com esta estrutura:
+{
+  "eventos": [{
+    "date": "YYYY-MM-DD",
+    "tipo": "ensaio_tutti" | "ensaio_naipe" | "concerto",
+    "naipe": "string ou null",
+    "descricaoEnsaio": "Tutti" | "GERAL" | "OER" | "OER + Cantora Solista" | "string",
+    "horarioInicio": "HH:MM",
+    "horarioFim": "HH:MM",
+    "local": "string",
+    "localComplemento": "string ou null",
+    "concertoNome": "string ou null",
+    "repertorio": ["COMPOSITOR Nome da obra"],
+    "avisos": ["string"]
+  }],
+  "avisos_semana": [{
+    "texto": "string",
+    "tipo": "info" | "warning" | "danger"
+  }]
+}
+
+REGRAS:
+- Cada ensaio de naipe e cada ensaio tutti são documentos SEPARADOS mesmo no mesmo dia.
+- Repertório: formato "COMPOSITOR Nome da obra" (COMPOSITOR em maiúsculas).
+- Separadores "/" e "e" entre obras → itens separados no array.
+- Se houver "Intervalo" entre peças → inserir "--- Intervalo ---" como item do array.
+- "Repertório completo" aceito como valor literal.
+- "Metacosmos" sozinho como repertório → valor literal aceito.
+- localComplemento vem entre parênteses após o local (ex: "prédio Corpos Artísticos").
+- "concertoNome" é o nome do programa/série (ex: "Metacosmos"), não o tipo do evento.
+- Avisos globais da semana (IMPORTANTE:, Lembrando:) → "avisos_semana".
+- "Cronograma sujeito a alterações." → IGNORAR.
+- Datas no formato YYYY-MM-DD.
+
+Texto do e-mail: ${text ? text : "Veja o documento PDF anexo."}`;
+
+    try {
+        const parts = [{ text: prompt }];
+        if (pdfBase64) {
+            parts.push({
+                inlineData: {
+                    data: pdfBase64,
+                    mimeType: mimeType || "application/pdf"
+                }
+            });
+        }
+
+        const response = await genAI.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: [
+                {
+                    role: "user",
+                    parts: parts
+                }
+            ]
+        });
+
+        // SDK @google/genai v2.x: response.text() é método, não propriedade
+        const resultText = (typeof response.text === "function") ? response.text() : (response.text || "");
+        console.log("[parseSchedule] Resposta bruta da IA:", resultText.substring(0, 500));
+
+        const jsonMatch = resultText.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) throw new Error("A IA não retornou um JSON válido. Resposta: " + resultText.substring(0, 300));
+        
+        return JSON.parse(jsonMatch[0]);
+
+    } catch (error) {
+        console.error("Erro ao processar cronograma:", error.message, error.stack);
+        throw new HttpsError("internal", "Erro ao processar calendário com a IA: " + error.message);
     }
 });

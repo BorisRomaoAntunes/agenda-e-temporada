@@ -71,12 +71,15 @@ const toggleTickerBtn = document.getElementById('toggle-ticker-btn');
 const toggleTickerStatusText = document.getElementById('toggle-ticker-status-text');
 const toggleAtestadosBtn = document.getElementById('toggle-atestados');
 const toggleAtestadosStatusText = document.getElementById('atestados-status-text');
+const toggleNewCalendarBtn = document.getElementById('toggle-new-calendar');
+const toggleNewCalendarStatusText = document.getElementById('toggle-calendar-status-text');
 
 let selectedNotifImage = null;
 
 // ================= AUTHENTICATION =================
 
 let unsubscribeToggle = null; // Guarda o listener do toggle para poder cancelar no logout
+let unsubscribeAppToggle = null; // Guarda o listener do config/app para poder cancelar no logout
 let unsubscribeSubscribers = null; // Guarda o listener de assinantes
 let unsubscribeLinks = null; // Guarda o listener de links temporários
 
@@ -101,11 +104,13 @@ onAuthStateChanged(auth, (user) => {
         initEmulatorToggle(); // Inicia o toggle de emulação
         syncTickerWithLatest(); // Força sincronização do letreiro na inicialização
         initAtestadosManagement(); // Inicia a gestão de atestados médicos (Fase 3)
+        initCalendarManagement(); // Inicia o módulo de calendário interativo
     } else {
         // Não logado
         dashboardContainer.classList.remove('active');
         loginContainer.classList.add('active');
         if (unsubscribeToggle) { unsubscribeToggle(); unsubscribeToggle = null; }
+        if (unsubscribeAppToggle) { unsubscribeAppToggle(); unsubscribeAppToggle = null; }
         if (unsubscribeSubscribers) { unsubscribeSubscribers(); unsubscribeSubscribers = null; }
         if (unsubscribeLinks) { unsubscribeLinks(); unsubscribeLinks = null; }
     }
@@ -847,10 +852,12 @@ async function saveNotificationEdit() {
 
 // ================= TOGGLE VISIBILIDADE NOTIFICAÇÕES =================
 const settingsRef = doc(db, 'config', 'settings');
+const appConfigRef = doc(db, 'config', 'app');
 
 function initToggleListener() {
     // Cancela listener anterior se já existir
     if (unsubscribeToggle) unsubscribeToggle();
+    if (unsubscribeAppToggle) unsubscribeAppToggle();
 
     // Escuta em tempo real o estado dos toggles
     unsubscribeToggle = onSnapshot(settingsRef, (snap) => {
@@ -893,6 +900,31 @@ function initToggleListener() {
         if (toggleAtestadosStatusText) toggleAtestadosStatusText.textContent = errorMsg;
     });
 
+    // Escuta em tempo real o estado do novo calendário
+    unsubscribeAppToggle = onSnapshot(appConfigRef, (snap) => {
+        // Se o usuário estiver interagindo com o toggle (marcado com a flag), não sobrescrevemos a UI
+        if (toggleNewCalendarBtn && toggleNewCalendarBtn.dataset.isUpdating === 'true') {
+            console.log('[Toggle] Ignorando atualização do snapshot para evitar conflito de estado.');
+            return;
+        }
+
+        const data = snap.exists() ? snap.data() : {};
+        const showNewCalendar = data.show_new_calendar === true;
+        
+        console.log('[Toggle] Estado atual no Firestore (config/app):', showNewCalendar);
+
+        if (toggleNewCalendarBtn) toggleNewCalendarBtn.checked = showNewCalendar;
+        if (toggleNewCalendarStatusText) {
+            toggleNewCalendarStatusText.textContent = showNewCalendar
+                ? '✅ Novo calendário ATIVO no site dos músicos.'
+                : '🔕 Novo calendário DESATIVADO no site dos músicos.';
+            toggleNewCalendarStatusText.style.color = showNewCalendar ? '#2E8B57' : '#888';
+        }
+    }, (err) => {
+        console.error('[Toggle] Erro ao ouvir config/app:', err);
+        if (toggleNewCalendarStatusText) toggleNewCalendarStatusText.textContent = '⚠️ Erro ao carregar estado do calendário.';
+    });
+
     // Evento para o Toggle de Notificações
     if (toggleNotifBtn && !toggleNotifBtn._listenerAdded) {
         toggleNotifBtn._listenerAdded = true;
@@ -931,6 +963,69 @@ function initToggleListener() {
             } catch (err) {
                 showNotification('Erro ao salvar configuração: ' + err.message, 'error');
                 toggleAtestadosBtn.checked = !newState;
+            }
+        });
+    }
+
+    if (toggleNewCalendarBtn && !toggleNewCalendarBtn._listenerAdded) {
+        toggleNewCalendarBtn._listenerAdded = true;
+        toggleNewCalendarBtn.addEventListener('change', async () => {
+            const newState = toggleNewCalendarBtn.checked;
+            console.log('[Toggle] Solicitada alteração para:', newState);
+
+            // Marcamos que estamos atualizando para que o listener snapshot ignore a mudança momentaneamente
+            toggleNewCalendarBtn.dataset.isUpdating = 'true';
+            toggleNewCalendarBtn.disabled = true; // Trava visual
+
+            // Se for ativar, fazer validação de segurança
+            if (newState) {
+                try {
+                    console.log('[Toggle] Validando existência de eventos para o mês atual...');
+                    const now = new Date();
+                    
+                    const eventosRef = collection(db, 'eventos');
+                    const startOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+                    const endOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-31`;
+                    
+                    const q = query(
+                        eventosRef, 
+                        where("date", ">=", startOfMonth), 
+                        where("date", "<=", endOfMonth), 
+                        limit(1)
+                    );
+                    const snapshot = await getDocs(q);
+
+                    if (snapshot.empty) {
+                        console.warn('[Toggle] Validação falhou: Nenhum evento encontrado.');
+                        showNotification('Atenção: Cadastre pelo menos um evento para o mês atual antes de ativar o novo calendário.', 'warning');
+                        toggleNewCalendarBtn.checked = false; // Reverte na interface
+                        toggleNewCalendarBtn.disabled = false;
+                        delete toggleNewCalendarBtn.dataset.isUpdating;
+                        return;
+                    }
+                    console.log('[Toggle] Validação OK. Procedendo com o salvamento.');
+                } catch (err) {
+                    console.error('[Toggle] Erro na validação:', err);
+                    showNotification('Erro ao validar eventos no calendário: ' + err.message, 'error');
+                    toggleNewCalendarBtn.checked = false;
+                    toggleNewCalendarBtn.disabled = false;
+                    delete toggleNewCalendarBtn.dataset.isUpdating;
+                    return;
+                }
+            }
+
+            try {
+                await setDoc(appConfigRef, { show_new_calendar: newState }, { merge: true });
+                console.log('[Toggle] Sucesso ao atualizar Firestore.');
+                showNotification(`Novo calendário ${newState ? 'ATIVADO' : 'DESATIVADO'} com sucesso.`, 'success');
+            } catch (err) {
+                console.error('[Toggle] Erro ao salvar no Firestore:', err);
+                showNotification('Erro ao salvar configuração do calendário: ' + err.message, 'error');
+                toggleNewCalendarBtn.checked = !newState;
+            } finally {
+                // Liberamos o botão e o listener
+                toggleNewCalendarBtn.disabled = false;
+                delete toggleNewCalendarBtn.dataset.isUpdating;
             }
         });
     }
@@ -1016,24 +1111,24 @@ async function loadAdminNotifications() {
                 const item = document.createElement('div');
                 item.className = `admin-notif-item ${isPending ? 'is-pending' : ''}`;
                 item.innerHTML = `
-                    <div class="admin-notif-content">
+                    <div class="admin-notif-header">
                         <h4 class="admin-notif-title">${data.title}</h4>
-                        <p class="admin-notif-message">${data.message}</p>
-                        <div class="admin-notif-meta">
-                            <i data-lucide="${isPending ? 'calendar' : 'clock'}" style="width: 12px; height: 12px;"></i> ${metaLabel} ${formattedDate}
+                        <div class="admin-notif-actions">
+                            ${isPending ? `
+                                <button class="btn-edit-notif" title="Editar agendamento" 
+                                        data-id="${data.id}" data-collection="${collectionName}">
+                                    <i data-lucide="edit-3"></i>
+                                </button>
+                            ` : ''}
+                            <button class="btn-delete-notif" title="${isPending ? 'Cancelar agendamento' : 'Apagar comunicado do site'}" 
+                                    data-id="${data.id}" data-title="${data.title}" data-collection="${collectionName}">
+                                <i data-lucide="${isPending ? 'x-circle' : 'trash-2'}"></i>
+                            </button>
                         </div>
                     </div>
-                    <div class="admin-notif-actions">
-                        ${isPending ? `
-                            <button class="btn-edit-notif" title="Editar agendamento" 
-                                    data-id="${data.id}" data-collection="${collectionName}">
-                                <i data-lucide="edit-3"></i>
-                            </button>
-                        ` : ''}
-                        <button class="btn-delete-notif" title="${isPending ? 'Cancelar agendamento' : 'Apagar comunicado do site'}" 
-                                data-id="${data.id}" data-title="${data.title}" data-collection="${collectionName}">
-                            <i data-lucide="${isPending ? 'x-circle' : 'trash-2'}"></i>
-                        </button>
+                    <p class="admin-notif-message">${data.message}</p>
+                    <div class="admin-notif-meta">
+                        <i data-lucide="${isPending ? 'calendar' : 'clock'}" style="width: 12px; height: 12px;"></i> ${metaLabel} ${formattedDate}
                     </div>
                 `;
                 listEl.appendChild(item);
@@ -2090,3 +2185,562 @@ function initAtestadosManagement() {
     }
 }
 
+// ================= MÓDULO DE CALENDÁRIO INTERATIVO =================
+function initCalendarManagement() {
+    console.log("Inicializando Módulo de Calendário Interativo...");
+
+    const btnIaTexto = document.getElementById('btn-ia-texto');
+    const btnIaPdf = document.getElementById('btn-ia-pdf');
+    const containerTexto = document.getElementById('ia-texto-container');
+    const containerPdf = document.getElementById('ia-pdf-container');
+    const btnProcessTexto = document.getElementById('btn-process-ia-texto');
+    const btnProcessPdf = document.getElementById('btn-process-ia-pdf');
+    const textareaEmail = document.getElementById('ia-email-text');
+    const inputPdf = document.getElementById('ia-pdf-file');
+    const formContainer = document.getElementById('calendario-form-container');
+
+    // Referências ao modal
+    const iaModalOverlay = document.getElementById('ia-modal-overlay');
+    const iaModalTitle = document.getElementById('ia-modal-title');
+    const iaModalSubtitle = document.getElementById('ia-modal-subtitle');
+    const btnIaModalClose = document.getElementById('btn-ia-modal-close');
+
+    function openIaModal(tipo) {
+        // Mostrar painel correto
+        containerTexto.style.display = tipo === 'texto' ? 'flex' : 'none';
+        containerPdf.style.display  = tipo === 'pdf'   ? 'flex' : 'none';
+
+        // Atualizar título/subtítulo do modal
+        if (tipo === 'texto') {
+            iaModalTitle.textContent    = 'Colar E-mail';
+            iaModalSubtitle.textContent = 'Extraia eventos do texto do cronograma';
+        } else {
+            iaModalTitle.textContent    = 'Enviar PDF';
+            iaModalSubtitle.textContent = 'Extraia eventos a partir de um arquivo PDF';
+        }
+
+        iaModalOverlay.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function closeIaModal() {
+        iaModalOverlay.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+
+    // UI: Alternar abas Texto / PDF
+    if (btnIaTexto && btnIaPdf) {
+        btnIaTexto.addEventListener('click', () => openIaModal('texto'));
+        btnIaPdf.addEventListener('click',   () => openIaModal('pdf'));
+    }
+
+    // Fechar modal
+    if (btnIaModalClose) btnIaModalClose.addEventListener('click', closeIaModal);
+    if (iaModalOverlay)  iaModalOverlay.addEventListener('click', (e) => {
+        if (e.target === iaModalOverlay) closeIaModal();
+    });
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && iaModalOverlay && iaModalOverlay.style.display !== 'none') closeIaModal();
+    });
+
+    // Processar Texto com IA
+    if (btnProcessTexto) {
+        btnProcessTexto.addEventListener('click', async () => {
+            const text = textareaEmail.value.trim();
+            if (!text) {
+                showNotification("Cole o texto do e-mail antes de processar.", "warning");
+                return;
+            }
+            processarIA({ text });
+        });
+    }
+
+    // Processar PDF com IA
+    if (btnProcessPdf) {
+        btnProcessPdf.addEventListener('click', async () => {
+            const file = inputPdf.files[0];
+            if (!file || file.type !== "application/pdf") {
+                showNotification("Selecione um arquivo PDF válido.", "warning");
+                return;
+            }
+            
+            // Converter PDF para Base64
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = async () => {
+                const base64 = reader.result.split(',')[1];
+                processarIA({ pdfBase64: base64, mimeType: file.type });
+            };
+        });
+    }
+
+    async function processarIA(payload) {
+        try {
+            showNotification("Processando com Inteligência Artificial...", "info");
+            const btn = payload.text ? btnProcessTexto : btnProcessPdf;
+            btn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Aguarde...';
+            btn.disabled = true;
+            if (window.lucide) lucide.createIcons();
+
+            // Referência para a Cloud Function
+            const parseSchedule = httpsCallable(functions, 'parseScheduleWithGemini');
+            const result = await parseSchedule(payload);
+            const data = result.data;
+            
+            console.log("Retorno da IA:", data);
+            showNotification("Processamento concluído! Verifique os dados abaixo.", "success");
+            
+            closeIaModal();
+            renderPreviaEventos(data);
+
+        } catch (error) {
+            console.error("Erro no processamento da IA:", error);
+            showNotification("Erro na IA: " + error.message, "error");
+        } finally {
+            const btn = payload.text ? btnProcessTexto : btnProcessPdf;
+            btn.innerHTML = payload.text ? '<i data-lucide="sparkles"></i> Processar com IA' : '<i data-lucide="sparkles"></i> Processar PDF com IA';
+            btn.disabled = false;
+            if (window.lucide) lucide.createIcons();
+        }
+    }
+
+    function renderPreviaEventos(data) {
+        formContainer.style.display = 'block';
+        
+        // Limpar os elementos anteriores de IA, mas não o formulário principal
+        const prevPrevia = document.getElementById('previa-ia-container');
+        if (prevPrevia) prevPrevia.remove();
+
+        const previaDiv = document.createElement('div');
+        previaDiv.id = 'previa-ia-container';
+        previaDiv.style.marginTop = '1.5rem';
+        previaDiv.innerHTML = `<h4>Prévia dos Eventos Gerados</h4>`;
+        
+        if (!data || !data.eventos || data.eventos.length === 0) {
+            previaDiv.innerHTML += `<p>Nenhum evento encontrado pela IA.</p>`;
+            formContainer.insertBefore(previaDiv, formContainer.firstChild);
+            return;
+        }
+
+        data.eventos.forEach((evento, index) => {
+            const card = document.createElement('div');
+            card.className = 'admin-card';
+            card.style.marginBottom = '1rem';
+            card.style.borderLeft = '4px solid var(--primary-color)';
+            card.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div>
+                        <strong>${evento.date} - ${evento.tipo}</strong><br>
+                        <small>${evento.horarioInicio} às ${evento.horarioFim} | ${evento.local}</small>
+                    </div>
+                    <button class="btn-primary btn-save-ia" data-index="${index}"><i data-lucide="save"></i> Salvar</button>
+                </div>
+                <details style="margin-top: 1rem; font-size: 12px;">
+                    <summary style="cursor: pointer; color: #666;">Ver JSON extraído</summary>
+                    <pre style="background: #f4f4f4; padding: 10px; border-radius: 4px; overflow-x: auto;">${JSON.stringify(evento, null, 2)}</pre>
+                </details>
+            `;
+            previaDiv.appendChild(card);
+        });
+
+        // Eventos dos botões de salvar
+        previaDiv.querySelectorAll('.btn-save-ia').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const idx = e.currentTarget.getAttribute('data-index');
+                const evento = data.eventos[idx];
+                
+                try {
+                    e.currentTarget.disabled = true;
+                    e.currentTarget.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Salvando...';
+                    if (window.lucide) lucide.createIcons();
+                    
+                    // Sanitizar e estruturar os dados do evento da IA para evitar campos "undefined" no Firestore
+                    const eventoData = {
+                        date: evento.date || "",
+                        tipo: evento.tipo || "ensaio_tutti",
+                        naipe: (evento.tipo === 'ensaio_naipe' && evento.naipe) ? evento.naipe : null,
+                        descricaoEnsaio: evento.descricaoEnsaio || "Ensaio",
+                        horarioInicio: evento.horarioInicio || "00:00",
+                        horarioFim: evento.horarioFim || "00:00",
+                        local: evento.local || "",
+                        localComplemento: evento.localComplemento || null,
+                        localMapsUrl: evento.localMapsUrl || null,
+                        concertoNome: evento.concertoNome || null,
+                        repertorio: (evento.repertorio && evento.repertorio.length > 0) ? evento.repertorio : null,
+                        avisos: (evento.avisos && evento.avisos.length > 0) ? evento.avisos : null,
+                        mesRef: evento.date ? evento.date.substring(0, 7) : "",
+                        createdAt: serverTimestamp(),
+                        updatedAt: serverTimestamp(),
+                        criadoPor: auth.currentUser.uid
+                    };
+
+                    await addDoc(collection(db, "eventos"), eventoData);
+                    showNotification("Evento salvo com sucesso no Calendário!", "success");
+                    e.currentTarget.innerHTML = '<i data-lucide="check"></i> Salvo';
+                    e.currentTarget.style.background = '#4CAF50';
+                    e.currentTarget.style.borderColor = '#4CAF50';
+                    if (window.lucide) lucide.createIcons();
+                } catch (err) {
+                    showNotification("Erro ao salvar evento: " + err.message, "error");
+                    e.currentTarget.disabled = false;
+                    e.currentTarget.innerHTML = '<i data-lucide="save"></i> Salvar';
+                    if (window.lucide) lucide.createIcons();
+                }
+            });
+        });
+        
+        if (data.avisos_semana && data.avisos_semana.length > 0) {
+            const avisosContainer = document.createElement('div');
+            avisosContainer.className = 'admin-card';
+            avisosContainer.style.borderLeft = '4px solid #f59e0b'; // Laranja
+            avisosContainer.innerHTML = `<h4>Avisos da Semana (Box Amarelo/Laranja)</h4>`;
+            data.avisos_semana.forEach(aviso => {
+                avisosContainer.innerHTML += `<p style="margin-top: 0.5rem;"><strong>${aviso.tipo}:</strong> ${aviso.texto}</p>`;
+            });
+            const btnSaveAviso = document.createElement('button');
+            btnSaveAviso.className = 'btn-primary';
+            btnSaveAviso.style.marginTop = '1rem';
+            btnSaveAviso.innerHTML = '<i data-lucide="save"></i> Salvar Avisos';
+            btnSaveAviso.addEventListener('click', async (e) => {
+                try {
+                    btnSaveAviso.disabled = true;
+                    btnSaveAviso.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Salvando...';
+                    if (window.lucide) lucide.createIcons();
+
+                    for (const aviso of data.avisos_semana) {
+                        aviso.createdAt = serverTimestamp();
+                        aviso.criadoPor = auth.currentUser.uid;
+                        await addDoc(collection(db, "avisos_semana"), aviso);
+                    }
+                    showNotification("Avisos da semana salvos!", "success");
+                    btnSaveAviso.innerHTML = '<i data-lucide="check"></i> Salvos';
+                    btnSaveAviso.style.background = '#4CAF50';
+                    btnSaveAviso.style.borderColor = '#4CAF50';
+                    if (window.lucide) lucide.createIcons();
+                } catch (err) {
+                    showNotification("Erro ao salvar avisos: " + err.message, "error");
+                    btnSaveAviso.disabled = false;
+                    btnSaveAviso.innerHTML = '<i data-lucide="save"></i> Salvar Avisos';
+                    if (window.lucide) lucide.createIcons();
+                }
+            });
+            avisosContainer.appendChild(btnSaveAviso);
+            previaDiv.appendChild(avisosContainer);
+        }
+        
+        formContainer.insertBefore(previaDiv, formContainer.firstChild);
+        if (window.lucide) lucide.createIcons();
+    }
+
+    // Formulário de Criação/Edição Manual
+    const eventoForm = document.getElementById('evento-form');
+    const eventoTipoSelect = document.getElementById('evento-tipo');
+    const naipeWrapper = document.getElementById('naipe-wrapper');
+    const btnCancelEvento = document.getElementById('btn-cancel-evento');
+
+    if (eventoTipoSelect) {
+        eventoTipoSelect.addEventListener('change', (e) => {
+            if (e.target.value === 'ensaio_naipe') {
+                naipeWrapper.style.display = 'block';
+                document.getElementById('evento-naipe').setAttribute('required', 'true');
+            } else {
+                naipeWrapper.style.display = 'none';
+                document.getElementById('evento-naipe').removeAttribute('required');
+                document.getElementById('evento-naipe').value = '';
+            }
+        });
+    }
+
+    if (eventoForm) {
+        eventoForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btnSubmit = eventoForm.querySelector('button[type="submit"]');
+            const originalBtnText = btnSubmit.innerHTML;
+            
+            try {
+                btnSubmit.disabled = true;
+                btnSubmit.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Salvando...';
+                if (window.lucide) lucide.createIcons();
+
+                const id = document.getElementById('evento-id').value;
+                const tipo = document.getElementById('evento-tipo').value;
+                const date = document.getElementById('evento-date').value;
+                
+                const repertorioLines = document.getElementById('evento-repertorio').value.split('\n').map(l => l.trim()).filter(l => l);
+                const avisosLines = document.getElementById('evento-avisos').value.split('\n').map(l => l.trim()).filter(l => l);
+
+                const eventoData = {
+                    date: date,
+                    tipo: tipo,
+                    naipe: tipo === 'ensaio_naipe' ? document.getElementById('evento-naipe').value : null,
+                    descricaoEnsaio: document.getElementById('evento-descricao').value,
+                    horarioInicio: document.getElementById('evento-inicio').value,
+                    horarioFim: document.getElementById('evento-fim').value,
+                    local: document.getElementById('evento-local').value,
+                    localComplemento: document.getElementById('evento-complemento').value || null,
+                    localMapsUrl: document.getElementById('evento-maps').value || null,
+                    concertoNome: document.getElementById('evento-concerto').value || null,
+                    repertorio: repertorioLines.length > 0 ? repertorioLines : null,
+                    avisos: avisosLines.length > 0 ? avisosLines : null,
+                    mesRef: date.substring(0, 7), // YYYY-MM
+                    updatedAt: serverTimestamp(),
+                };
+
+                if (id) {
+                    // Update
+                    const docRef = doc(db, "eventos", id);
+                    await updateDoc(docRef, eventoData);
+                    showNotification("Evento atualizado com sucesso!", "success");
+                } else {
+                    // Create
+                    eventoData.createdAt = serverTimestamp();
+                    eventoData.criadoPor = auth.currentUser.uid;
+                    await addDoc(collection(db, "eventos"), eventoData);
+                    showNotification("Evento criado com sucesso!", "success");
+                }
+
+                eventoForm.reset();
+                document.getElementById('evento-id').value = '';
+                if (naipeWrapper) naipeWrapper.style.display = 'none';
+                loadMonthlyEvents();
+
+            } catch(err) {
+                showNotification("Erro ao salvar evento: " + err.message, "error");
+            } finally {
+                btnSubmit.disabled = false;
+                btnSubmit.innerHTML = originalBtnText;
+                if (window.lucide) lucide.createIcons();
+            }
+        });
+    }
+
+    if (btnCancelEvento) {
+        btnCancelEvento.addEventListener('click', () => {
+            eventoForm.reset();
+            document.getElementById('evento-id').value = '';
+            if (naipeWrapper) naipeWrapper.style.display = 'none';
+        });
+    }
+
+    function preencherFormularioEvento(id, data) {
+        document.getElementById('evento-id').value = id;
+        document.getElementById('evento-tipo').value = data.tipo;
+        if (data.tipo === 'ensaio_naipe') {
+            if (naipeWrapper) naipeWrapper.style.display = 'block';
+            document.getElementById('evento-naipe').value = data.naipe || '';
+        } else {
+            if (naipeWrapper) naipeWrapper.style.display = 'none';
+            document.getElementById('evento-naipe').value = '';
+        }
+        document.getElementById('evento-descricao').value = data.descricaoEnsaio || '';
+        document.getElementById('evento-date').value = data.date;
+        document.getElementById('evento-inicio').value = data.horarioInicio || '';
+        document.getElementById('evento-fim').value = data.horarioFim || '';
+        document.getElementById('evento-local').value = data.local || '';
+        document.getElementById('evento-complemento').value = data.localComplemento || '';
+        document.getElementById('evento-maps').value = data.localMapsUrl || '';
+        document.getElementById('evento-concerto').value = data.concertoNome || '';
+        document.getElementById('evento-repertorio').value = data.repertorio ? data.repertorio.join('\n') : '';
+        document.getElementById('evento-avisos').value = data.avisos ? data.avisos.join('\n') : '';
+    }
+
+    // Lógica da Lista Mensal
+    let currentListDate = new Date();
+    const labelCurrentMonth = document.getElementById('label-current-month');
+    const btnPrevMonth = document.getElementById('btn-prev-month');
+    const btnNextMonth = document.getElementById('btn-next-month');
+    const eventosList = document.getElementById('admin-eventos-list');
+
+    function updateMonthLabel() {
+        if (!labelCurrentMonth) return;
+        const formatter = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' });
+        const formatted = formatter.format(currentListDate);
+        labelCurrentMonth.textContent = formatted.charAt(0).toUpperCase() + formatted.slice(1);
+    }
+
+    async function loadMonthlyEvents() {
+        if (!eventosList) return;
+        updateMonthLabel();
+        
+        eventosList.innerHTML = '<div class="loading-logs"><i data-lucide="loader-2" class="spin"></i> Carregando eventos...</div>';
+        if (window.lucide) lucide.createIcons();
+
+        try {
+            const year = currentListDate.getFullYear();
+            const month = currentListDate.getMonth() + 1;
+            const startOfMonth = `${year}-${String(month).padStart(2, '0')}-01`;
+            const endOfMonth = `${year}-${String(month).padStart(2, '0')}-31`;
+
+            const eventosQuery = query(
+                collection(db, "eventos"),
+                where("date", ">=", startOfMonth),
+                where("date", "<=", endOfMonth),
+                orderBy("date", "asc")
+            );
+
+            const querySnapshot = await getDocs(eventosQuery);
+            eventosList.innerHTML = '';
+
+            if (querySnapshot.empty) {
+                eventosList.innerHTML = '<div class="admin-notif-empty">Nenhum evento agendado para este mês.</div>';
+                return;
+            }
+
+            querySnapshot.forEach(docSnap => {
+                const data = docSnap.data();
+                const card = document.createElement('div');
+                card.className = `event-admin-card`;
+                
+                const splitDate = data.date.split('-');
+                const dia = splitDate[2];
+                const dataObj = new Date(splitDate[0], splitDate[1] - 1, splitDate[2]);
+                const mes = dataObj.toLocaleString('pt-BR', { month: 'short' }).replace('.', '');
+                
+                // Tipo formatado para exibição
+                let tipoLabel = 'Evento';
+                if (data.tipo === 'ensaio_tutti') tipoLabel = 'Tutti';
+                if (data.tipo === 'ensaio_naipe') tipoLabel = 'Naipe';
+                if (data.tipo === 'concerto') tipoLabel = 'Concerto';
+
+                // Resumo do evento (Repertório ou Avisos)
+                let resumoHtml = '';
+                if ((data.repertorio && data.repertorio.length > 0) || (data.avisos && data.avisos.length > 0)) {
+                    const formatMarkdown = (text) => {
+                        if (!text) return '';
+                        return text
+                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                            .replace(/\*(.*?)\*/g, '<em>$1</em>');
+                    };
+
+                    resumoHtml = `<div class="event-admin-summary-full">`;
+                    
+                    if (data.avisos && data.avisos.length > 0) {
+                        resumoHtml += `
+                            <div class="event-admin-summary-section">
+                                <span class="summary-section-title"><i data-lucide="megaphone"></i> Avisos do Dia</span>
+                                <ul class="event-admin-avisos-list">
+                                    ${data.avisos.map(aviso => `<li>${formatMarkdown(aviso.trim())}</li>`).join('')}
+                                </ul>
+                            </div>
+                        `;
+                    }
+                    
+                    if (data.repertorio && data.repertorio.length > 0) {
+                        resumoHtml += `
+                            <div class="event-admin-summary-section">
+                                <span class="summary-section-title"><i data-lucide="music-4"></i> Repertório</span>
+                                <ul class="event-admin-repertorio-list">
+                                    ${data.repertorio.map(item => {
+                                        const trimmed = item.trim();
+                                        if (trimmed.toLowerCase() === 'intervalo') {
+                                            return `<li class="repertorio-intervalo">Intervalo</li>`;
+                                        }
+                                        return `<li>${formatMarkdown(trimmed)}</li>`;
+                                    }).join('')}
+                                </ul>
+                            </div>
+                        `;
+                    }
+                    
+                    resumoHtml += `</div>`;
+                }
+
+                card.innerHTML = `
+                    <div class="event-admin-card-header">
+                        <div class="event-admin-date-box">
+                            <span class="day">${dia}</span>
+                            <span class="month">${mes}</span>
+                        </div>
+                        <div class="event-admin-header-info">
+                            <span class="event-admin-type-badge ${data.tipo}">${tipoLabel}</span>
+                            <h4 class="event-admin-title">${data.descricaoEnsaio || data.concertoNome || 'Evento'} ${data.naipe ? `- ${data.naipe}` : ''}</h4>
+                        </div>
+                    </div>
+                    
+                    <div class="event-admin-card-body">
+                        <div class="event-admin-detail">
+                            <i data-lucide="clock"></i> 
+                            <span>${data.horarioInicio} às ${data.horarioFim}</span>
+                        </div>
+                        <div class="event-admin-detail">
+                            <i data-lucide="map-pin"></i> 
+                            <span>${data.local} ${data.localComplemento ? `(${data.localComplemento})` : ''}</span>
+                        </div>
+                        ${resumoHtml}
+                    </div>
+
+                    <div class="event-admin-card-actions">
+                        <button class="event-admin-action-btn edit btn-edit-evento" data-id="${docSnap.id}">
+                            <i data-lucide="edit-3"></i> Editar
+                        </button>
+                        <button class="event-admin-action-btn delete btn-delete-evento" data-id="${docSnap.id}">
+                            <i data-lucide="trash-2"></i> Excluir
+                        </button>
+                    </div>
+                `;
+                eventosList.appendChild(card);
+            });
+
+            // Bind edit/delete
+            eventosList.querySelectorAll('.btn-delete-evento').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = e.currentTarget.getAttribute('data-id');
+                    if (confirm("Tem certeza que deseja excluir este evento? Ação irreversível.")) {
+                        try {
+                            e.currentTarget.disabled = true;
+                            e.currentTarget.innerHTML = '<i data-lucide="loader-2" class="spin"></i>';
+                            if (window.lucide) lucide.createIcons();
+                            
+                            await deleteDoc(doc(db, "eventos", id));
+                            showNotification("Evento excluído.", "success");
+                            loadMonthlyEvents();
+                        } catch(err) {
+                            showNotification("Erro ao excluir: " + err.message, "error");
+                        }
+                    }
+                });
+            });
+
+            eventosList.querySelectorAll('.btn-edit-evento').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = e.currentTarget.getAttribute('data-id');
+                    try {
+                        const docSnap = await getDoc(doc(db, "eventos", id));
+                        if(docSnap.exists()){
+                            const d = docSnap.data();
+                            preencherFormularioEvento(id, d);
+                            document.getElementById('calendario-form-container').scrollIntoView({behavior: 'smooth'});
+                        }
+                    } catch(err) {
+                        showNotification("Erro ao carregar evento: " + err.message, "error");
+                    }
+                });
+            });
+
+            if (window.lucide) lucide.createIcons();
+
+        } catch (error) {
+            console.error("Erro ao carregar eventos do mês:", error);
+            eventosList.innerHTML = `<div class="error-msg" style="display:block;">Erro: ${error.message}</div>`;
+        }
+    }
+
+    if (btnPrevMonth) {
+        btnPrevMonth.addEventListener('click', () => {
+            currentListDate.setMonth(currentListDate.getMonth() - 1);
+            loadMonthlyEvents();
+        });
+    }
+    if (btnNextMonth) {
+        btnNextMonth.addEventListener('click', () => {
+            currentListDate.setMonth(currentListDate.getMonth() + 1);
+            loadMonthlyEvents();
+        });
+    }
+
+    // Carregar inicialmente se a div existir
+    if (eventosList) {
+        loadMonthlyEvents();
+    }
+}
