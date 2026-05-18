@@ -157,20 +157,20 @@ exports.dailySubscriberCheck = onSchedule({
                 // Log de auditoria da correção
                 transaction.set(logsRef.doc(), {
                     type: "sistema",
-                    message: "Auto-Cura: Contador de inscritos sincronizado.",
-                    details: `O sistema detectou uma divergência (armazenado: ${storedCount}, real: ${actualTokenCount}) e realizou a correção automática.`,
+                    message: "Robô OER: Auto-Cura realizada com sucesso.",
+                    details: `O Robô OER detectou e corrigiu uma divergência de sincronização no contador de assinantes (armazenado: ${storedCount}, real no banco: ${actualTokenCount}). O número exibido no painel administrativo foi atualizado e calibrado para refletir com exatidão a realidade.`,
                     user: "Sistema",
                     createdAt: new Date().toISOString()
                 });
             }
 
-            // 3. Log de tendência (Robô OER)
+            // 3. Log de tendência e verificação (Robô OER)
             if (currentCount !== previousCount) {
                 const diff = currentCount - previousCount;
                 const trend = diff > 0 ? "aumento" : "queda";
                 
-                const logMessage = `Monitoramento Diário: Houve uma ${trend} no número de inscritos.`;
-                const logDetails = `Total atual: ${currentCount} músicos. Variação: ${diff > 0 ? "+" : ""}${diff} desde a última verificação.`;
+                const logMessage = "Robô OER: Verificação de assinaturas concluída (Alteração detectada).";
+                const logDetails = `O Robô OER realizou a verificação diária e identificou novos inscritos ou cancelamentos de assinaturas (músicos que pararam de assinar). Total atual: ${currentCount} músicos. Houve uma ${trend} no número de inscritos (Variação de ${diff > 0 ? "+" : ""}${diff} desde ontem). O contador do painel foi sincronizado.`;
 
                 transaction.set(logsRef.doc(), {
                     type: "bot",
@@ -181,7 +181,18 @@ exports.dailySubscriberCheck = onSchedule({
                 });
                 console.log(`Log do robô registrado: ${currentCount} inscritos (${diff > 0 ? "+" : ""}${diff})`);
             } else {
-                console.log(`Nenhuma alteração real no número de inscritos (${currentCount}).`);
+                // Registrar log mesmo quando não há alterações
+                const logMessage = "Robô OER: Verificação de assinaturas concluída (Sem alterações).";
+                const logDetails = `O Robô OER verificou se houve novos inscritos ou cancelamentos (músicos que pararam de assinar). Nenhuma alteração foi detectada nas últimas 24 horas. Total de assinantes ativo e sincronizado: ${currentCount} músicos.`;
+
+                transaction.set(logsRef.doc(), {
+                    type: "bot",
+                    message: logMessage,
+                    details: logDetails,
+                    user: "Robô OER",
+                    createdAt: new Date().toISOString()
+                });
+                console.log(`Nenhuma alteração real no número de inscritos (${currentCount}). Log de rotina registrado.`);
             }
 
             // 4. Atualiza o backup diário para comparação amanhã
@@ -750,7 +761,7 @@ exports.onAtestadoUpload = functions.runWith({
  */
 exports.parseScheduleWithGemini = onCall({
     region: "us-central1",
-    timeoutSeconds: 120,
+    timeoutSeconds: 300,
     memory: "512MiB"
 }, async (request) => {
     if (!request.auth) {

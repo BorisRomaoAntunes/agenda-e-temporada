@@ -76,7 +76,7 @@ function toggleCalendarVisibility(show) {
         }
     } else {
         if (pdfGrid) pdfGrid.style.display = 'flex';
-        if (mobileButtons) mobileButtons.style.display = 'block';
+        if (mobileButtons) mobileButtons.style.display = 'flex';
         if (calendarioSection) {
             calendarioSection.style.display = 'none';
             console.log("[Calendário] Seção de calendário desativada (display: none)");

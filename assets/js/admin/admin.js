@@ -1267,6 +1267,7 @@ async function saveLog(type, message, link = null, details = null, imageUrl = nu
         await addDoc(logsRef, logData);
         
         // Recarrega logs para aparecer imediatamente
+        allLogsCache = null; // Limpa cache para busca refletir novos logs
         loadLogs();
     } catch (e) {
         console.error("Erro ao salvar log: ", e);
@@ -1278,6 +1279,70 @@ let isLoadingLogs = false;
 let hasMoreLogs = true;
 
 let currentLogFilter = 'all';
+let allLogsCache = null; // Cache dos logs baixados para busca
+let isFetchingLogsForSearch = false; // Indica se estamos buscando logs para preencher o cache
+let activeSearchQuery = ''; // Controla o termo atual de busca ativo
+
+function buildLogItemElement(data) {
+    const dateObj = new Date(data.createdAt);
+    const formattedDate = dateObj.toLocaleDateString('pt-BR');
+    const formattedTime = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    
+    let iconName = 'folder-up';
+    if (data.type === 'aviso') iconName = 'bell-ring';
+    if (data.type === 'aviso-removido') iconName = 'bell-off';
+    if (data.type === 'link-criado') iconName = 'link';
+    if (data.type === 'link-alterado') iconName = 'refresh-cw';
+    if (data.type === 'link-removido') iconName = 'trash-2';
+    if (data.type === 'bot') iconName = 'bot';
+    if (data.type === 'sistema') iconName = 'cpu';
+    if (data.type === 'atestado') iconName = 'activity';
+    if (data.type === 'erro') iconName = 'alert-triangle';
+    
+    let linkHtml = '';
+    if (data.link) {
+        const isLinkType = data.type && data.type.startsWith('link-');
+        const btnLabel = isLinkType ? 'Acessar Link' : 'Ver Arquivo';
+        const btnIcon = isLinkType ? 'external-link' : 'file-text';
+        linkHtml = `<a href="${data.link}" target="_blank" class="log-link"><i data-lucide="${btnIcon}"></i> ${btnLabel}</a>`;
+    }
+
+    let imageHtml = '';
+    if (data.imageUrl) {
+        imageHtml = `
+            <div class="log-thumbnail-wrapper">
+                <img src="${data.imageUrl}" class="log-thumbnail" alt="Miniatura" onclick="window.openImageModal('${data.imageUrl}')">
+            </div>
+        `;
+    }
+    
+    const li = document.createElement('li');
+    li.className = `log-item log-type-${data.type}`;
+    li.innerHTML = `
+        <div class="log-icon type-${data.type}">
+            <i data-lucide="${iconName}"></i>
+        </div>
+        <div class="log-content">
+            <p class="log-message">${data.message}</p>
+            ${data.details ? (data.details.length > 280 ? `
+                <div class="log-details-wrapper">
+                    <p class="log-details is-collapsed">${data.details}</p>
+                    <button class="log-view-more" onclick="this.previousElementSibling.classList.toggle('is-collapsed'); this.textContent = this.previousElementSibling.classList.contains('is-collapsed') ? 'Ver mais' : 'Ver menos'">Ver mais</button>
+                </div>
+            ` : `<p class="log-details">${data.details}</p>`) : ''}
+            <div class="log-meta">
+                <span class="log-author"><i data-lucide="user"></i> ${data.user}</span>
+                <span class="log-divider">•</span>
+                <span class="log-time"><i data-lucide="clock"></i> ${formattedDate} às ${formattedTime}</span>
+            </div>
+        </div>
+        <div class="log-actions">
+            ${imageHtml}
+            ${linkHtml}
+        </div>
+    `;
+    return li;
+}
 
 async function loadLogs(filterType = 'all') {
     const listEl = document.getElementById('log-list');
@@ -1335,64 +1400,7 @@ async function loadLogs(filterType = 'all') {
         
         querySnapshot.forEach((doc) => {
             const data = doc.data();
-            const dateObj = new Date(data.createdAt);
-            const formattedDate = dateObj.toLocaleDateString('pt-BR');
-            const formattedTime = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-            
-            let iconName = 'folder-up';
-            if (data.type === 'aviso') iconName = 'bell-ring';
-            if (data.type === 'aviso-removido') iconName = 'bell-off';
-            if (data.type === 'link-criado') iconName = 'link';
-            if (data.type === 'link-alterado') iconName = 'refresh-cw';
-            if (data.type === 'link-removido') iconName = 'trash-2';
-            if (data.type === 'bot') iconName = 'bot';
-            if (data.type === 'sistema') iconName = 'cpu';
-            if (data.type === 'atestado') iconName = 'activity';
-            if (data.type === 'erro') iconName = 'alert-triangle';
-            
-            let linkHtml = '';
-            if (data.link) {
-                const isLinkType = data.type && data.type.startsWith('link-');
-                const btnLabel = isLinkType ? 'Acessar Link' : 'Ver Arquivo';
-                const btnIcon = isLinkType ? 'external-link' : 'file-text';
-                linkHtml = `<a href="${data.link}" target="_blank" class="log-link"><i data-lucide="${btnIcon}"></i> ${btnLabel}</a>`;
-            }
-
-            // HTML da miniatura se houver imagem
-            let imageHtml = '';
-            if (data.imageUrl) {
-                imageHtml = `
-                    <div class="log-thumbnail-wrapper">
-                        <img src="${data.imageUrl}" class="log-thumbnail" alt="Miniatura" onclick="window.openImageModal('${data.imageUrl}')">
-                    </div>
-                `;
-            }
-            
-            const li = document.createElement('li');
-            li.className = `log-item log-type-${data.type}`;
-            li.innerHTML = `
-                <div class="log-icon type-${data.type}">
-                    <i data-lucide="${iconName}"></i>
-                </div>
-                <div class="log-content">
-                    <p class="log-message">${data.message}</p>
-                    ${data.details ? (data.details.length > 280 ? `
-                        <div class="log-details-wrapper">
-                            <p class="log-details is-collapsed">${data.details}</p>
-                            <button class="log-view-more" onclick="this.previousElementSibling.classList.toggle('is-collapsed'); this.textContent = this.previousElementSibling.classList.contains('is-collapsed') ? 'Ver mais' : 'Ver menos'">Ver mais</button>
-                        </div>
-                    ` : `<p class="log-details">${data.details}</p>`) : ''}
-                    <div class="log-meta">
-                        <span class="log-author"><i data-lucide="user"></i> ${data.user}</span>
-                        <span class="log-divider">•</span>
-                        <span class="log-time"><i data-lucide="clock"></i> ${formattedDate} às ${formattedTime}</span>
-                    </div>
-                </div>
-                <div class="log-actions">
-                    ${imageHtml}
-                    ${linkHtml}
-                </div>
-            `;
+            const li = buildLogItemElement(data);
             listEl.appendChild(li);
         });
         
@@ -1417,7 +1425,7 @@ async function loadLogs(filterType = 'all') {
 
 async function handleLogScroll() {
     const listEl = document.getElementById('log-list');
-    if (!listEl || isLoadingLogs || !hasMoreLogs) return;
+    if (!listEl || isLoadingLogs || !hasMoreLogs || activeSearchQuery) return;
 
     // Detecta se a rolagem chegou a 50px do final da lista
     if (listEl.scrollTop + listEl.clientHeight >= listEl.scrollHeight - 50) {
@@ -1480,58 +1488,7 @@ async function loadMoreLogs() {
         
         querySnapshot.forEach((doc) => {
             const data = doc.data();
-            const dateObj = new Date(data.createdAt);
-            const formattedDate = dateObj.toLocaleDateString('pt-BR');
-            const formattedTime = dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-            
-            let iconName = 'folder-up';
-            if (data.type === 'aviso') iconName = 'bell-ring';
-            if (data.type === 'aviso-removido') iconName = 'bell-off';
-            if (data.type === 'link-criado') iconName = 'link';
-            if (data.type === 'link-alterado') iconName = 'refresh-cw';
-            if (data.type === 'link-removido') iconName = 'trash-2';
-            if (data.type === 'bot') iconName = 'bot';
-            if (data.type === 'sistema') iconName = 'cpu';
-            if (data.type === 'atestado') iconName = 'activity';
-            if (data.type === 'erro') iconName = 'alert-triangle';
-            
-            let linkHtml = '';
-            if (data.link) {
-                const isLinkType = data.type && data.type.startsWith('link-');
-                const btnLabel = isLinkType ? 'Acessar Link' : 'Ver Arquivo';
-                const btnIcon = isLinkType ? 'external-link' : 'file-text';
-                linkHtml = `<a href="${data.link}" target="_blank" class="log-link"><i data-lucide="${btnIcon}"></i> ${btnLabel}</a>`;
-            }
-
-            let imageHtml = '';
-            if (data.imageUrl) {
-                imageHtml = `
-                    <div class="log-thumbnail-wrapper">
-                        <img src="${data.imageUrl}" class="log-thumbnail" alt="Miniatura" onclick="window.openImageModal('${data.imageUrl}')">
-                    </div>
-                `;
-            }
-            
-            const li = document.createElement('li');
-            li.className = `log-item log-type-${data.type}`;
-            li.innerHTML = `
-                <div class="log-icon type-${data.type}">
-                    <i data-lucide="${iconName}"></i>
-                </div>
-                <div class="log-content">
-                    <p class="log-message">${data.message}</p>
-                    ${data.details ? `<p class="log-details">${data.details}</p>` : ''}
-                    <div class="log-meta">
-                        <span class="log-author"><i data-lucide="user"></i> ${data.user}</span>
-                        <span class="log-divider">•</span>
-                        <span class="log-time"><i data-lucide="clock"></i> ${formattedDate} às ${formattedTime}</span>
-                    </div>
-                </div>
-                <div class="log-actions">
-                    ${imageHtml}
-                    ${linkHtml}
-                </div>
-            `;
+            const li = buildLogItemElement(data);
             listEl.appendChild(li);
         });
         
@@ -1570,6 +1527,13 @@ function initLogFilters() {
             filterButtons.forEach(b => b.classList.remove('active'));
             // Adiciona ao botão clicado
             btn.classList.add('active');
+            
+            // Limpa o input de busca e zera o cache para forçar recarregamento sob demanda
+            const searchInput = document.getElementById('log-search');
+            if (searchInput) searchInput.value = '';
+            allLogsCache = null;
+            activeSearchQuery = '';
+
             // Carrega os logs com o filtro selecionado
             const filterType = btn.getAttribute('data-filter');
             lastVisibleLog = null;
@@ -1581,6 +1545,14 @@ function initLogFilters() {
 
 // ================= BUSCA NO HISTÓRICO =================
 
+function normalizeStr(str) {
+    if (!str) return '';
+    return str
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+}
+
 function initLogSearch() {
     const searchInput = document.getElementById('log-search');
     if (!searchInput) return;
@@ -1589,40 +1561,114 @@ function initLogSearch() {
 
     searchInput.addEventListener('input', () => {
         clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-            const term = searchInput.value.trim().toLowerCase();
+        debounceTimer = setTimeout(async () => {
+            const term = searchInput.value.trim();
             const listEl = document.getElementById('log-list');
             if (!listEl) return;
 
-            const items = listEl.querySelectorAll('.log-item:not(.log-skeleton)');
-
+            // Se o campo estiver vazio, restaura o estado paginado normal
             if (!term) {
-                // Sem busca: mostra tudo
-                items.forEach(item => item.style.display = '');
+                activeSearchQuery = '';
+                // Limpa mensagem de vazio
+                const emptyMsg = listEl.querySelector('.log-search-empty');
+                if (emptyMsg) emptyMsg.remove();
+                
+                // Recarrega logs normais
+                loadLogs(currentLogFilter);
                 return;
             }
 
-            let anyVisible = false;
-            items.forEach(item => {
-                const text = item.textContent.toLowerCase();
-                const match = text.includes(term);
-                item.style.display = match ? '' : 'none';
-                if (match) anyVisible = true;
+            activeSearchQuery = term;
+            const normalizedQuery = normalizeStr(term);
+            const queryTokens = normalizedQuery.split(/\s+/).filter(Boolean);
+
+            // Se o cache estiver vazio, busca até 200 logs do Firestore com o filtro ativo
+            if (!allLogsCache) {
+                // Skeleton Screen temporário enquanto carrega os logs da busca
+                listEl.innerHTML = Array(4).fill(`
+                    <li class="log-item log-skeleton">
+                        <div class="log-icon skeleton-box" style="width:40px;height:40px;border-radius:50%;"></div>
+                        <div class="log-content" style="flex:1;">
+                            <div class="skeleton-box" style="height:14px;width:80%;margin-bottom:12px;border-radius:6px;"></div>
+                            <div class="skeleton-box" style="height:10px;width:50%;border-radius:6px;"></div>
+                        </div>
+                    </li>
+                `).join('');
+                lucide.createIcons();
+
+                // Oculta indicador de scroll
+                const wrapper = listEl.closest('.logs-wrapper');
+                const mask = wrapper ? wrapper.querySelector('.scroll-indicator-mask') : null;
+                if (mask) mask.style.opacity = '0';
+
+                try {
+                    isFetchingLogsForSearch = true;
+                    const logsRef = collection(db, 'adminLogs');
+                    let q;
+                    if (currentLogFilter === 'all') {
+                        q = query(logsRef, orderBy('createdAt', 'desc'), limit(200));
+                    } else if (currentLogFilter === 'aviso') {
+                        q = query(logsRef, where('type', 'in', ['aviso', 'aviso-removido']), orderBy('createdAt', 'desc'), limit(200));
+                    } else if (currentLogFilter === 'links') {
+                        q = query(logsRef, where('type', 'in', ['link-criado', 'link-alterado', 'link-removido']), orderBy('createdAt', 'desc'), limit(200));
+                    } else if (currentLogFilter === 'sistema') {
+                        q = query(logsRef, where('type', 'in', ['sistema', 'erro']), orderBy('createdAt', 'desc'), limit(200));
+                    } else {
+                        q = query(logsRef, where('type', '==', currentLogFilter), orderBy('createdAt', 'desc'), limit(200));
+                    }
+
+                    const snapshot = await getDocs(q);
+                    allLogsCache = [];
+                    snapshot.forEach(doc => {
+                        allLogsCache.push(doc.data());
+                    });
+                } catch (err) {
+                    console.error("Erro ao buscar logs para pesquisa: ", err);
+                    listEl.innerHTML = '<div style="color:red; padding:1rem; text-align:center;">Erro ao carregar busca.</div>';
+                    isFetchingLogsForSearch = false;
+                    return;
+                } finally {
+                    isFetchingLogsForSearch = false;
+                }
+            }
+
+            // Filtragem local inteligente
+            const matchedLogs = allLogsCache.filter(log => {
+                const searchContent = normalizeStr([
+                    log.message || '',
+                    log.details || '',
+                    log.user || '',
+                    log.type || ''
+                ].join(' '));
+
+                // Todos os tokens de busca devem estar presentes no conteúdo do log
+                return queryTokens.every(token => searchContent.includes(token));
             });
 
-            // Mostra mensagem se nenhum resultado
-            const emptyMsg = listEl.querySelector('.log-search-empty');
-            if (!anyVisible) {
-                if (!emptyMsg) {
-                    const div = document.createElement('div');
-                    div.className = 'log-search-empty';
-                    div.style.cssText = 'text-align:center;padding:2rem;color:#888;';
-                    div.innerHTML = `<i data-lucide="search-x" style="display:block;margin:0 auto 0.5rem;"></i> Nenhum resultado para "${searchInput.value}"`;
-                    listEl.appendChild(div);
-                    lucide.createIcons();
-                }
+            // Se o usuário limpou/alterou a pesquisa enquanto a requisição assíncrona terminava, abortamos o render
+            if (activeSearchQuery !== term) return;
+
+            // Renderização dos logs correspondentes
+            listEl.innerHTML = '';
+            
+            // Oculta indicador de scroll durante a busca
+            const wrapper = listEl.closest('.logs-wrapper');
+            const mask = wrapper ? wrapper.querySelector('.scroll-indicator-mask') : null;
+            if (mask) mask.style.opacity = '0';
+
+            if (matchedLogs.length === 0) {
+                const div = document.createElement('div');
+                div.className = 'log-search-empty';
+                div.style.cssText = 'text-align:center;padding:2rem;color:#888;';
+                div.innerHTML = `<i data-lucide="search-x" style="display:block;margin:0 auto 0.5rem;"></i> Nenhum resultado para "${term}" no filtro ativo.`;
+                listEl.appendChild(div);
+                lucide.createIcons();
             } else {
-                if (emptyMsg) emptyMsg.remove();
+                matchedLogs.forEach(log => {
+                    const li = buildLogItemElement(log);
+                    listEl.appendChild(li);
+                });
+                lucide.createIcons();
             }
         }, 300);
     });
@@ -2227,6 +2273,22 @@ function initCalendarManagement() {
     function closeIaModal() {
         iaModalOverlay.style.display = 'none';
         document.body.style.overflow = '';
+        
+        // Resetar estados do painel de upload de PDF do Robô IA
+        if (inputPdf) {
+            inputPdf.value = '';
+            const dropArea = inputPdf.nextElementSibling;
+            if (dropArea) {
+                dropArea.classList.remove('has-file');
+                const fileMsg = dropArea.querySelector('.file-msg');
+                if (fileMsg) {
+                    fileMsg.textContent = 'Clique ou arraste o PDF do cronograma aqui';
+                }
+            }
+        }
+        if (textareaEmail) {
+            textareaEmail.value = '';
+        }
     }
 
     // UI: Alternar abas Texto / PDF
@@ -2243,6 +2305,27 @@ function initCalendarManagement() {
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape' && iaModalOverlay && iaModalOverlay.style.display !== 'none') closeIaModal();
     });
+
+    // Escutar mudanças no input de PDF do Robô IA para feedback visual
+    if (inputPdf) {
+        inputPdf.addEventListener('change', (e) => {
+            const dropArea = inputPdf.nextElementSibling;
+            const fileMsg = dropArea ? dropArea.querySelector('.file-msg') : null;
+            const file = e.target.files[0];
+
+            if (file) {
+                if (dropArea) dropArea.classList.add('has-file');
+                if (fileMsg) {
+                    fileMsg.textContent = `📄 ${file.name}`;
+                }
+            } else {
+                if (dropArea) dropArea.classList.remove('has-file');
+                if (fileMsg) {
+                    fileMsg.textContent = 'Clique ou arraste o PDF do cronograma aqui';
+                }
+            }
+        });
+    }
 
     // Processar Texto com IA
     if (btnProcessTexto) {
@@ -2283,8 +2366,8 @@ function initCalendarManagement() {
             btn.disabled = true;
             if (window.lucide) lucide.createIcons();
 
-            // Referência para a Cloud Function
-            const parseSchedule = httpsCallable(functions, 'parseScheduleWithGemini');
+            // Referência para a Cloud Function com timeout estendido de 5 minutos (300s)
+            const parseSchedule = httpsCallable(functions, 'parseScheduleWithGemini', { timeout: 300000 });
             const result = await parseSchedule(payload);
             const data = result.data;
             
@@ -2595,7 +2678,8 @@ function initCalendarManagement() {
                 const splitDate = data.date.split('-');
                 const dia = splitDate[2];
                 const dataObj = new Date(splitDate[0], splitDate[1] - 1, splitDate[2]);
-                const mes = dataObj.toLocaleString('pt-BR', { month: 'short' }).replace('.', '');
+                const diasSemana = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
+                const diaSemanaStr = diasSemana[dataObj.getDay()];
                 
                 // Tipo formatado para exibição
                 let tipoLabel = 'Evento';
@@ -2650,7 +2734,7 @@ function initCalendarManagement() {
                     <div class="event-admin-card-header">
                         <div class="event-admin-date-box">
                             <span class="day">${dia}</span>
-                            <span class="month">${mes}</span>
+                            <span class="month">${diaSemanaStr}</span>
                         </div>
                         <div class="event-admin-header-info">
                             <span class="event-admin-type-badge ${data.tipo}">${tipoLabel}</span>

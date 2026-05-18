@@ -27,12 +27,12 @@ document.addEventListener('DOMContentLoaded', () => {
      */
     function initAtestadosFeature() {
         onSnapshot(doc(db, "config", "settings"), (docSnap) => {
-            if (docSnap.exists() && docSnap.data().atestadosEnabled) {
+            if (docSnap.exists() && docSnap.data().atestadosEnabled === false) {
+                atestadoBtn.style.display = 'none';
+            } else {
                 atestadoBtn.style.display = 'flex';
                 // Reinicializa ícones do Lucide
                 if (window.lucide) window.lucide.createIcons();
-            } else {
-                atestadoBtn.style.display = 'none';
             }
         });
     }
