@@ -404,6 +404,32 @@ function formatarTextoSimples(texto) {
     return htmlEscapado;
 }
 
+function formatarTextoComIcones(texto, mapsUrlCallback) {
+    if (!texto) return '';
+    
+    // Regex de Google Maps
+    const mapsRegex = /(https?:\/\/(?:maps\.google\.com|www\.google\.com\/maps|maps\.app\.goo\.gl|goo\.gl\/maps)\/[^\s\)\],]+)/i;
+    
+    let mapsUrl = '';
+    let textoLimpo = texto;
+    const match = texto.match(mapsRegex);
+    if (match) {
+        mapsUrl = match[1];
+        textoLimpo = texto.replace(mapsUrl, '').replace(/\s+/g, ' ').trim();
+        if (mapsUrlCallback && typeof mapsUrlCallback === 'function') {
+            mapsUrlCallback(mapsUrl);
+        }
+    }
+    
+    let htmlFormatado = formatarTextoSimples(textoLimpo);
+    
+    if (mapsUrl) {
+        htmlFormatado += ` <a href="${mapsUrl}" target="_blank" class="inline-maps-link" title="Ver no Google Maps"><i data-lucide="map"></i></a>`;
+    }
+    
+    return htmlFormatado;
+}
+
 function detectarIntervalo(str) {
     if (!str) return false;
     const normalized = str.toLowerCase().replace(/[^a-z0-9]/gi, '').trim();
@@ -443,6 +469,19 @@ function renderizarEventosDiaSelecionado() {
         const card = document.createElement('div');
         card.className = 'evento-card';
         
+        // Detecção de status de cancelamento (fallback por texto + status explícito)
+        const txtCompleto = `${evento.descricaoEnsaio || ''} ${evento.concertoNome || ''} ${evento.local || ''}`.toLowerCase();
+        const isCancelado = evento.status === 'Cancelado' || 
+                            txtCompleto.includes('cancelado') || 
+                            txtCompleto.includes('ensaio cancelado') || 
+                            txtCompleto.includes('concerto cancelado') || 
+                            txtCompleto.includes('evento cancelado') || 
+                            txtCompleto.includes('cancelados');
+        
+        if (isCancelado) {
+            card.classList.add('status-cancelado');
+        }
+        
         // 1. Determinar o título/header com base no tipo
         let tipoTexto = '';
         if (evento.tipo === 'ensaio_tutti') {
@@ -459,14 +498,49 @@ function renderizarEventosDiaSelecionado() {
         const headerText = `🗓️${tipoTexto}, ${horarioStr}`;
         
         // 2. Construir a linha de local (com link do Google Maps se houver)
-        let localTexto = `${evento.local || 'Local a definir'}`;
-        if (evento.localComplemento) {
-            localTexto += ` - ${evento.localComplemento}`;
+        const mapsRegex = /(https?:\/\/(?:maps\.google\.com|www\.google\.com\/maps|maps\.app\.goo\.gl|goo\.gl\/maps)\/[^\s\)\],]+)/i;
+        
+        let localMapsUrl = evento.localMapsUrl || '';
+        let localTextoLimpo = evento.local || '';
+        let localComplementoLimpo = evento.localComplemento || '';
+
+        // Extrair se houver URL no local
+        const matchLocal = localTextoLimpo.match(mapsRegex);
+        if (matchLocal) {
+            if (!localMapsUrl) localMapsUrl = matchLocal[1];
+            localTextoLimpo = localTextoLimpo.replace(matchLocal[1], '').replace(/\s+/g, ' ').trim();
+        }
+
+        // Extrair se houver URL no complemento
+        const matchComp = localComplementoLimpo.match(mapsRegex);
+        if (matchComp) {
+            if (!localMapsUrl) localMapsUrl = matchComp[1];
+            localComplementoLimpo = localComplementoLimpo.replace(matchComp[1], '').replace(/\s+/g, ' ').trim();
+        }
+
+        // Extrair se houver URL nos avisos
+        if (evento.avisos && evento.avisos.length > 0) {
+            evento.avisos.forEach(aviso => {
+                if (typeof aviso === 'string') {
+                    const matchAviso = aviso.match(mapsRegex);
+                    if (matchAviso && !localMapsUrl) {
+                        localMapsUrl = matchAviso[1];
+                    }
+                }
+            });
+        }
+        
+        let localTexto = `${localTextoLimpo || 'Local a definir'}`;
+        if (localComplementoLimpo) {
+            localTexto += ` - ${localComplementoLimpo}`;
         }
         
         let localHtml = '';
-        if (evento.localMapsUrl) {
-            localHtml = `<a href="${evento.localMapsUrl}" target="_blank" class="evento-local-link"><i data-lucide="map-pin"></i> ${localTexto}</a>`;
+        if (localMapsUrl) {
+            localHtml = `
+                <span class="evento-local-text"><i data-lucide="map-pin"></i> ${localTexto}</span>
+                <a href="${localMapsUrl}" target="_blank" class="evento-local-link-icon" title="Ver no Google Maps"><i data-lucide="map"></i></a>
+            `;
         } else {
             localHtml = `<span class="evento-local-text"><i data-lucide="map-pin"></i> ${localTexto}</span>`;
         }
@@ -501,17 +575,19 @@ function renderizarEventosDiaSelecionado() {
         if (evento.avisos && evento.avisos.length > 0) {
             avisosHtml = '<div class="evento-avisos"><h4>Avisos do dia</h4><ul>';
             evento.avisos.forEach(aviso => {
-                avisosHtml += `<li>${formatarTextoSimples(aviso)}</li>`;
+                avisosHtml += `<li>${formatarTextoComIcones(aviso)}</li>`;
             });
             avisosHtml += '</ul></div>';
         }
+        
+        const canceladoBadge = isCancelado ? `<span class="status-cancelado-badge"><i data-lucide="x-circle"></i> Cancelado</span>` : '';
         
         // Indicador de atualização recente
         const updatedDot = evento.updatedAt ? `<span class="evento-updated-dot" title="Atualizado recentemente"></span>` : '';
         
         card.innerHTML = `
             <div class="evento-card-header-linha">
-                <h3 class="evento-titulo-novo">${headerText} ${updatedDot}</h3>
+                <h3 class="evento-titulo-novo">${headerText} ${canceladoBadge} ${updatedDot}</h3>
                 <span class="cronograma-aviso">Cronograma sujeito a alterações.</span>
             </div>
             
@@ -543,7 +619,7 @@ function renderizarAvisosSemana() {
         div.className = `aviso-semana-item aviso-${aviso.tipo || 'info'}`;
         div.innerHTML = `
             <i data-lucide="alert-circle"></i>
-            <span>${aviso.texto}</span>
+            <span>${formatarTextoComIcones(aviso.texto)}</span>
         `;
         avisosSemanaContainer.appendChild(div);
     });

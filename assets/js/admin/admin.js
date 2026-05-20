@@ -30,7 +30,8 @@ import {
     getDocs,
     updateDoc,
     serverTimestamp,
-    where
+    where,
+    deleteField
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { 
     getStorage, 
@@ -343,143 +344,388 @@ async function updateFirestoreVersionOnly(type, displayVersion) {
     console.log(`🤖 [Robô OER] Atualização de versão de ${type} concluída. O Robô aguarda acionamento manual.`);
     // await triggerAISuggestion(type === 'agenda' ? 'Agenda' : 'Temporada', displayVersion);
 }
-
 /**
- * Robô OER: Sugere uma notificação com IA após alteração de sistema.
- */
-async function triggerAISuggestion(type, version) {
-    console.log("🤖 [Robô OER] Iniciando triggerAISuggestion...", { type, version });
-    
-    const titleInput = document.getElementById('notif-title');
-    const messageInput = document.getElementById('notif-message');
-    const btnRobot = document.getElementById('btn-ai-robot');
-
-    if (!titleInput || !messageInput) {
-        console.error("🤖 [Robô OER] Inputs de notificação não encontrados no DOM.");
-        return;
-    }
-
-    // 1. Estado de carregamento visual no botão
-    if (btnRobot) {
-        btnRobot.classList.add('loading');
-        btnRobot.disabled = true;
-    }
-
-    // 2. Rola até o formulário e foca
-    setTimeout(() => {
-        titleInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        titleInput.focus();
-    }, 300);
-
-    // 3. Estado de carregamento nos campos
-    const originalTitlePlaceholder = titleInput.placeholder;
-    const originalMessagePlaceholder = messageInput.placeholder;
-    
-    titleInput.value = '';
-    messageInput.value = '';
-    titleInput.placeholder = "🤖 Robô OER: Gerando sugestão com IA...";
-    messageInput.placeholder = "Aguarde um instante, estou afinando as palavras...";
-    titleInput.disabled = true;
-    messageInput.disabled = true;
-
-    try {
-        console.log("🤖 [Robô OER] Chamando Cloud Function suggestNotificationText...");
-        const suggestText = httpsCallable(functions, 'suggestNotificationText');
-        const result = await suggestText({ type, version });
-        
-        console.log("🤖 [Robô OER] Resposta da IA recebida com sucesso.");
-        const { title, message } = result.data;
-        
-        // 4. Preenche os campos
-        titleInput.value = title || "";
-        messageInput.value = message || "";
-        
-        showNotification('O Robô OER sugeriu um aviso baseado na última atualização!', 'success');
-    } catch (error) {
-        console.error("🤖 [Robô OER] Erro crítico na sugestão de IA:", error);
-        
-        let errorUserMsg = 'Não foi possível gerar a sugestão automática.';
-        if (error.message.includes('unauthenticated')) errorUserMsg += ' (Erro de Autenticação)';
-        
-        showNotification(errorUserMsg, 'error');
-
-        // Fallback
-        titleInput.value = `Atualização: ${type} v${version}`;
-        messageInput.value = `A ${type} foi atualizada para a versão v${version}. Confira os detalhes no site!`;
-    } finally {
-        titleInput.disabled = false;
-        messageInput.disabled = false;
-        titleInput.placeholder = originalTitlePlaceholder;
-        messageInput.placeholder = originalMessagePlaceholder;
-        
-        if (btnRobot) {
-            btnRobot.classList.remove('loading');
-            btnRobot.disabled = false;
-        }
-        console.log("🤖 [Robô OER] Fluxo finalizado.");
-    }
-}
-
-/**
- * Busca a atualização mais recente nos logs para o Robô OER
- */
-async function getLatestUpdateInfo() {
-    try {
-        const logsRef = collection(db, 'adminLogs');
-        // Busca o log de PDF mais recente
-        const q = query(logsRef, orderBy('createdAt', 'desc'), limit(10));
-        const querySnapshot = await getDocs(q);
-        
-        let latestPdfLog = null;
-        querySnapshot.forEach(doc => {
-            if (!latestPdfLog && (doc.data().type === 'pdf')) {
-                latestPdfLog = doc.data();
-            }
-        });
-
-        if (!latestPdfLog) return null;
-
-        // Extrai Tipo e Versão usando Regex
-        const msg = latestPdfLog.message;
-        const typeMatch = msg.match(/(AGENDA|TEMPORADA)/i);
-        const versionMatch = msg.match(/v([\d\.]+)/);
-
-        if (typeMatch && versionMatch) {
-            return {
-                type: typeMatch[1].charAt(0).toUpperCase() + typeMatch[1].slice(1).toLowerCase(),
-                version: versionMatch[1]
-            };
-        }
-        return null;
-    } catch (err) {
-        console.error("Erro ao buscar logs para o Robô:", err);
-        return null;
-    }
-}
-
-/**
- * Inicializa o acionamento manual do Robô OER
+ * Robô OER: Inicializa o acionamento do Robô OER Inteligente
  */
 function initManualRobot() {
     const btnRobot = document.getElementById('btn-ai-robot');
-    if (!btnRobot) return;
+    const modalOverlay = document.getElementById('robot-notif-modal-overlay');
+    const btnClose = document.getElementById('btn-robot-modal-close');
+    const btnGenerate = document.getElementById('btn-robot-generate');
 
-    btnRobot.addEventListener('click', async () => {
-        console.log("🤖 [Robô OER] Acionamento manual detectado.");
-        
-        btnRobot.classList.add('loading');
-        btnRobot.disabled = true;
+    if (!btnRobot || !modalOverlay) {
+        console.warn("🤖 [Robô OER] Elementos essenciais do Robô OER não encontrados no DOM.");
+        return;
+    }
 
-        const info = await getLatestUpdateInfo();
-        
-        if (info) {
-            await triggerAISuggestion(info.type, info.version);
+    // Abertura do Modal com Verificação Condicional
+    btnRobot.addEventListener('click', () => {
+        const titleInput = document.getElementById('notif-title');
+        const messageInput = document.getElementById('notif-message');
+        const currentTitle = titleInput ? titleInput.value.trim() : '';
+        const currentMessage = messageInput ? messageInput.value.trim() : '';
+
+        if (currentTitle && currentMessage) {
+            // Ambos preenchidos: correção direta
+            correctNotificationDirectly(currentTitle, currentMessage);
         } else {
-            showNotification('Não encontrei atualizações recentes para basear a sugestão.', 'warning');
-            btnRobot.classList.remove('loading');
-            btnRobot.disabled = false;
+            // Um ou ambos vazios: copia o que estiver preenchido (se houver) para o modal
+            const prefilledText = currentTitle || currentMessage || '';
+            openRobotModal(prefilledText);
         }
     });
+
+    // Fechamento do Modal
+    if (btnClose) {
+        btnClose.addEventListener('click', () => {
+            closeRobotModal();
+        });
+    }
+
+    // Fechar ao clicar no overlay
+    modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) {
+            closeRobotModal();
+        }
+    });
+
+    // Ação de Geração com IA
+    if (btnGenerate) {
+        btnGenerate.addEventListener('click', () => {
+            generateNotificationWithAI();
+        });
+    }
+
+    // Toggle de inclusão de contexto
+    const includeContextToggle = document.getElementById('robot-include-context');
+    const contextWrapper = document.getElementById('robot-context-wrapper');
+    if (includeContextToggle && contextWrapper) {
+        includeContextToggle.addEventListener('change', () => {
+            contextWrapper.style.display = includeContextToggle.checked ? 'flex' : 'none';
+        });
+    }
+}
+
+/**
+ * Abre o modal do Robô OER e carrega o estado da imagem e do contexto
+ */
+async function openRobotModal(prefilledText = '') {
+    const modalOverlay = document.getElementById('robot-notif-modal-overlay');
+    const instructionInput = document.getElementById('robot-user-instruction');
+    const imageBadge = document.getElementById('robot-image-badge');
+
+    if (!modalOverlay) return;
+
+    // Reset ou preenche a instrução anterior
+    if (instructionInput) instructionInput.value = prefilledText;
+
+    // Exibe ou oculta o badge de imagem baseado em selectedNotifImage
+    if (imageBadge) {
+        if (selectedNotifImage) {
+            imageBadge.style.display = 'flex';
+            imageBadge.querySelector('span').textContent = `Imagem detectada! A IA irá analisar "${selectedNotifImage.name}" para redigir o aviso.`;
+        } else {
+            imageBadge.style.display = 'none';
+        }
+    }
+
+    // Sincroniza o wrapper de contexto com o estado do toggle
+    const includeContextToggle = document.getElementById('robot-include-context');
+    const contextWrapper = document.getElementById('robot-context-wrapper');
+    if (includeContextToggle && contextWrapper) {
+        contextWrapper.style.display = includeContextToggle.checked ? 'flex' : 'none';
+    }
+
+    // Exibe o modal
+    modalOverlay.style.display = 'flex';
+    document.body.style.overflow = 'hidden'; // Impede scroll do body
+
+    // Carrega o contexto dinâmico
+    await loadRobotModalContext();
+}
+
+/**
+ * Fecha o modal do Robô OER
+ */
+function closeRobotModal() {
+    const modalOverlay = document.getElementById('robot-notif-modal-overlay');
+    if (modalOverlay) {
+        modalOverlay.style.display = 'none';
+        document.body.style.overflow = ''; // Restaura scroll do body
+    }
+}
+
+/**
+ * Carrega e renderiza o contexto recente do sistema para visualização no modal
+ */
+async function loadRobotModalContext() {
+    const loadingEl = document.getElementById('robot-context-loading');
+    const containerEl = document.getElementById('robot-context-items');
+
+    if (!containerEl) return;
+
+    if (loadingEl) loadingEl.style.display = 'flex';
+    containerEl.innerHTML = '';
+
+    try {
+        const items = [];
+
+        // 1. Busca os últimos 5 logs relevantes
+        const logsRef = collection(db, 'adminLogs');
+        const qLogs = query(logsRef, orderBy('createdAt', 'desc'), limit(5));
+        const logsSnap = await getDocs(qLogs);
+        
+        logsSnap.forEach(doc => {
+            const data = doc.data();
+            const dateObj = data.createdAt?.toDate ? data.createdAt.toDate() : new Date(data.createdAt);
+            const dateStr = dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+            
+            items.push({
+                type: 'log',
+                dateStr,
+                text: data.message || '',
+                rawDate: dateObj
+            });
+        });
+
+        // 2. Busca os próximos 5 eventos a partir de hoje
+        const eventosRef = collection(db, 'eventos');
+        const todayStr = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
+        const qEvents = query(
+            eventosRef,
+            where('date', '>=', todayStr),
+            orderBy('date', 'asc'),
+            limit(5)
+        );
+        const eventsSnap = await getDocs(qEvents);
+
+        eventsSnap.forEach(doc => {
+            const data = doc.data();
+            const parts = data.date.split('-');
+            const dateStr = `${parts[2]}/${parts[1]}`;
+            const text = `${data.title} (${data.type || 'Evento'})`;
+
+            items.push({
+                type: 'event',
+                dateStr,
+                text,
+                rawDate: new Date(data.date + 'T12:00:00')
+            });
+        });
+
+        if (items.length === 0) {
+            containerEl.innerHTML = '<p style="font-size: 0.8rem; color: #888; text-align: center; padding: 1rem 0;">Nenhum contexto recente encontrado.</p>';
+        } else {
+            items.forEach(item => {
+                const badge = document.createElement('div');
+                badge.className = `context-badge ${item.type} selected`;
+                badge.style.cursor = 'pointer';
+                badge.style.transition = 'opacity 0.2s ease, border-color 0.2s ease';
+                
+                // Armazena o texto estruturado no dataset
+                badge.dataset.text = `[${item.type === 'log' ? 'Histórico/Logs' : 'Compromissos/Agenda'}] (${item.dateStr}) ${item.text}`;
+                
+                const iconHtml = item.type === 'log' 
+                    ? '<i data-lucide="info"></i>' 
+                    : '<i data-lucide="calendar"></i>';
+                
+                badge.innerHTML = `
+                    <input type="checkbox" class="context-item-checkbox" checked style="cursor: pointer; accent-color: var(--primary-color, #8b0000); width: 14px; height: 14px; margin-right: 4px;">
+                    ${iconHtml}
+                    <span class="date" style="font-weight: 600; margin-left: 2px;">${item.dateStr}</span>
+                    <span class="text" title="${item.text}" style="margin-left: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${item.text}</span>
+                `;
+                
+                const checkbox = badge.querySelector('.context-item-checkbox');
+                
+                // Previne o clique no checkbox de disparar duas vezes
+                checkbox.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (checkbox.checked) {
+                        badge.classList.add('selected');
+                        badge.style.opacity = '1';
+                    } else {
+                        badge.classList.remove('selected');
+                        badge.style.opacity = '0.5';
+                    }
+                });
+                
+                // Alterna o estado ao clicar em qualquer lugar do badge
+                badge.addEventListener('click', () => {
+                    checkbox.checked = !checkbox.checked;
+                    if (checkbox.checked) {
+                        badge.classList.add('selected');
+                        badge.style.opacity = '1';
+                    } else {
+                        badge.classList.remove('selected');
+                        badge.style.opacity = '0.5';
+                    }
+                });
+                
+                containerEl.appendChild(badge);
+            });
+            lucide.createIcons();
+        }
+    } catch (err) {
+        console.error("🤖 [Robô OER] Erro ao carregar contexto para o modal:", err);
+        containerEl.innerHTML = '<p style="font-size: 0.8rem; color: #e53e3e; text-align: center; padding: 1rem 0;">Falha ao obter histórico recente.</p>';
+    } finally {
+        if (loadingEl) loadingEl.style.display = 'none';
+    }
+}
+
+/**
+ * Envia as instruções manuais, contexto e imagem do Robô OER para a Cloud Function e preenche o formulário
+ */
+async function generateNotificationWithAI() {
+    const btnGenerate = document.getElementById('btn-robot-generate');
+    const instructionInput = document.getElementById('robot-user-instruction');
+    const includeContextToggle = document.getElementById('robot-include-context');
+    
+    const titleInput = document.getElementById('notif-title');
+    const messageInput = document.getElementById('notif-message');
+
+    if (!btnGenerate || !titleInput || !messageInput) return;
+
+    const userPrompt = instructionInput ? instructionInput.value.trim() : '';
+    const includeContext = includeContextToggle ? includeContextToggle.checked : true;
+
+    // Coleta apenas os itens de contexto ativamente marcados (que têm a classe "selected")
+    let selectedContexts = [];
+    if (includeContext) {
+        const selectedBadges = Array.from(document.querySelectorAll('#robot-context-items .context-badge.selected'));
+        selectedContexts = selectedBadges.map(badge => badge.dataset.text || '').filter(Boolean);
+    }
+
+    // Estado visual de carregamento
+    btnGenerate.disabled = true;
+    const originalBtnHTML = btnGenerate.innerHTML;
+    btnGenerate.innerHTML = '<i data-lucide="loader" class="animate-spin"></i> Gerando aviso...';
+    lucide.createIcons();
+
+    try {
+        const payload = {
+            userPrompt,
+            includeContext,
+            selectedContexts
+        };
+
+        // Se houver imagem selecionada pelo administrador, vamos processá-la para base64
+        if (selectedNotifImage) {
+            console.log("🤖 [Robô OER] Convertendo imagem selecionada para Base64 para envio multimodal...");
+            const base64Data = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const result = reader.result;
+                    const base64String = result.split(',')[1];
+                    resolve(base64String);
+                };
+                reader.onerror = (err) => reject(err);
+                reader.readAsDataURL(selectedNotifImage);
+            });
+
+            payload.image = {
+                inlineData: {
+                    mimeType: selectedNotifImage.type,
+                    data: base64Data
+                }
+            };
+        }
+
+        console.log("🤖 [Robô OER] Chamando Cloud Function suggestNotificationText com dados expandidos...");
+        const suggestTextFn = httpsCallable(functions, 'suggestNotificationText');
+        const result = await suggestTextFn(payload);
+        
+        console.log("🤖 [Robô OER] Sugestão de IA recebida com sucesso:", result.data);
+        const { title, message } = result.data;
+
+        // Preenche os campos principais do aviso
+        titleInput.value = title || '';
+        messageInput.value = message || '';
+
+        // Feedback de sucesso
+        showNotification('O Robô OER gerou uma sugestão personalizada! 🎼🤖', 'success');
+
+        // Fecha o modal e limpa
+        closeRobotModal();
+
+        // Rola até o formulário de aviso e foca
+        setTimeout(() => {
+            titleInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            titleInput.focus();
+        }, 300);
+
+    } catch (error) {
+        console.error("🤖 [Robô OER] Erro ao chamar a IA do Robô OER:", error);
+        
+        let errorUserMsg = 'Erro ao processar com a IA.';
+        if (error.message && error.message.includes('unauthenticated')) {
+            errorUserMsg += ' (Faça login novamente)';
+        } else if (error.message) {
+            errorUserMsg += ` (${error.message})`;
+        }
+        
+        showNotification(errorUserMsg, 'error');
+    } finally {
+        btnGenerate.disabled = false;
+        btnGenerate.innerHTML = originalBtnHTML;
+        lucide.createIcons();
+    }
+}
+
+/**
+ * Realiza a correção e aprimoramento direto do título e mensagem sem abrir o modal
+ */
+async function correctNotificationDirectly(currentTitle, currentMessage) {
+    const btnRobot = document.getElementById('btn-ai-robot');
+    const titleInput = document.getElementById('notif-title');
+    const messageInput = document.getElementById('notif-message');
+
+    if (!btnRobot || !titleInput || !messageInput) return;
+
+    // Estado visual de carregamento no próprio botão
+    btnRobot.disabled = true;
+    btnRobot.classList.add('loading');
+
+    try {
+        const userPrompt = `Por favor, revise, corrija a gramática e melhore a redação deste aviso. 
+Título atual: "${currentTitle}"
+Mensagem atual: "${currentMessage}"
+Retorne a sugestão ideal mantendo o contexto original.`;
+
+        console.log("🤖 [Robô OER] Chamando Cloud Function suggestNotificationText para correção direta...");
+        const suggestTextFn = httpsCallable(functions, 'suggestNotificationText');
+        const result = await suggestTextFn({
+            userPrompt,
+            includeContext: true // Mantém o contexto de ensaios/temporada se disponível
+        });
+
+        console.log("🤖 [Robô OER] Correção direta concluída com sucesso:", result.data);
+        const { title, message } = result.data;
+
+        // Preenche os campos principais do aviso com os textos corrigidos
+        if (title) titleInput.value = title;
+        if (message) messageInput.value = message;
+
+        // Feedback de sucesso
+        showNotification('O Robô OER aprimorou o seu aviso! 🎼🤖', 'success');
+
+    } catch (error) {
+        console.error("🤖 [Robô OER] Erro na correção direta com a IA:", error);
+        
+        let errorUserMsg = 'Erro ao processar a correção com a IA.';
+        if (error.message && error.message.includes('unauthenticated')) {
+            errorUserMsg += ' (Faça login novamente)';
+        } else if (error.message) {
+            errorUserMsg += ` (${error.message})`;
+        }
+        
+        showNotification(errorUserMsg, 'error');
+    } finally {
+        // Remove estado de carregamento
+        btnRobot.disabled = false;
+        btnRobot.classList.remove('loading');
+    }
 }
 
 // ================= NOTIFICAÇÕES PUSH =================
@@ -685,11 +931,15 @@ function initSettingsModal() {
 
 // ================= MODAL DE EDIÇÃO DE NOTIFICAÇÃO =================
 
+let editNotifImageDeleted = false;
+
 function initEditNotifModal() {
     const modal = document.getElementById('edit-notif-modal');
     const closeBtn = document.getElementById('close-edit-notif-modal');
     const cancelBtn = document.getElementById('btn-cancel-edit-notif');
     const saveBtn = document.getElementById('btn-save-edit-notif');
+    const deleteImgBtn = document.getElementById('btn-delete-edit-notif-image');
+    const imageContainer = document.getElementById('edit-notif-image-container');
 
     if (!modal || !closeBtn || !cancelBtn || !saveBtn) return;
 
@@ -701,6 +951,13 @@ function initEditNotifModal() {
     closeBtn.addEventListener('click', closeModal);
     cancelBtn.addEventListener('click', closeModal);
     saveBtn.addEventListener('click', saveNotificationEdit);
+
+    if (deleteImgBtn && imageContainer) {
+        deleteImgBtn.addEventListener('click', () => {
+            editNotifImageDeleted = true;
+            imageContainer.style.display = 'none';
+        });
+    }
 
     modal.addEventListener('click', (e) => {
         if (e.target === modal) closeModal();
@@ -756,8 +1013,24 @@ function openEditNotifModal(docId, collectionName, data) {
     const idInput = document.getElementById('edit-notif-id');
     const collInput = document.getElementById('edit-notif-collection');
     const schedulingFields = document.getElementById('edit-scheduling-fields');
+    const imageContainer = document.getElementById('edit-notif-image-container');
+    const imagePreview = document.getElementById('edit-notif-image-preview');
 
     if (!modal || !titleInput) return;
+
+    // Reseta estado de imagem deletada
+    editNotifImageDeleted = false;
+
+    // Controla exibição da imagem anexa
+    if (imageContainer && imagePreview) {
+        if (data.imageUrl) {
+            imagePreview.src = data.imageUrl;
+            imageContainer.style.display = 'flex';
+        } else {
+            imagePreview.src = '';
+            imageContainer.style.display = 'none';
+        }
+    }
 
     // Preenche os campos ocultos de controle
     idInput.value = docId;
@@ -817,6 +1090,10 @@ async function saveNotificationEdit() {
             title: title.trim(),
             message: message.trim()
         };
+
+        if (editNotifImageDeleted) {
+            updates.imageUrl = deleteField();
+        }
 
         // Se for agendado e uma nova data foi fornecida, atualiza
         if (collectionName === 'scheduledNotifications' && dateVal) {
@@ -1108,6 +1385,12 @@ async function loadAdminNotifications() {
                 const metaLabel = isPending ? 'Agendado para ' : 'Enviado em ';
                 const collectionName = isPending ? 'scheduledNotifications' : 'adminNotifications';
 
+                const imageHtml = data.imageUrl ? `
+                    <div class="admin-notif-image-wrapper">
+                        <img src="${data.imageUrl}" class="admin-notif-thumbnail" alt="Imagem Anexa" onclick="window.openImageModal('${data.imageUrl}')">
+                    </div>
+                ` : '';
+
                 const item = document.createElement('div');
                 item.className = `admin-notif-item ${isPending ? 'is-pending' : ''}`;
                 item.innerHTML = `
@@ -1127,6 +1410,7 @@ async function loadAdminNotifications() {
                         </div>
                     </div>
                     <p class="admin-notif-message">${data.message}</p>
+                    ${imageHtml}
                     <div class="admin-notif-meta">
                         <i data-lucide="${isPending ? 'calendar' : 'clock'}" style="width: 12px; height: 12px;"></i> ${metaLabel} ${formattedDate}
                     </div>
@@ -2234,6 +2518,138 @@ function initAtestadosManagement() {
 // ================= MÓDULO DE CALENDÁRIO INTERATIVO =================
 function initCalendarManagement() {
     console.log("Inicializando Módulo de Calendário Interativo...");
+    window.eventosPreviaIA = [];
+    window.editingPreviaTempId = null;
+
+    function inferirEventData(evento) {
+        const data = { ...evento };
+        
+        // Normalizar data
+        if (!data.date) {
+            data.date = "";
+        }
+        
+        // 1. Horários Padrão por Categoria de Evento e fallbacks de preenchimento
+        if (!data.horarioInicio || data.horarioInicio === "00:00" || data.horarioInicio === "") {
+            let diaDaSemana = -1;
+            let mes = -1;
+            if (data.date && data.date.includes('-')) {
+                try {
+                    const parsedDate = new Date(data.date + 'T12:00:00');
+                    diaDaSemana = parsedDate.getDay(); // 0 = Domingo
+                    mes = parsedDate.getMonth(); // 0 = Janeiro
+                } catch (e) {
+                    console.error("Erro ao analisar data para fallback de horário:", e);
+                }
+            }
+            
+            // Concertos aos Domingos (TMSP): O horário padrão é 11h. Exceção rara: Janeiro às 17h.
+            if (data.tipo === 'concerto' && diaDaSemana === 0) {
+                if (mes === 0) {
+                    data.horarioInicio = "17:00";
+                } else {
+                    data.horarioInicio = "11:00";
+                }
+            }
+            // Concertos de Camerata/Oficina (Sala do Conservatório): O horário padrão é 19h (sextas-feiras) ou 18h (sábados).
+            else if (data.tipo === 'concerto_camerata' || (data.tipo === 'concerto' && data.local && data.local.includes("Sala do Conservatório"))) {
+                if (diaDaSemana === 5) { // Sexta
+                    data.horarioInicio = "19:00";
+                } else if (diaDaSemana === 6) { // Sábado
+                    data.horarioInicio = "18:00";
+                }
+            }
+            // Apresentações "No Vale": O horário padrão é 16h (geralmente às quintas-feiras).
+            else if (data.local && data.local.toLowerCase().includes("no vale")) {
+                data.horarioInicio = "16:00";
+            }
+            // Reavaliações de Músicos: O período é rigorosamente das 13h às 16h30.
+            else if (data.descricaoEnsaio && data.descricaoEnsaio.toLowerCase().includes("reavaliação")) {
+                data.horarioInicio = "13:00";
+                data.horarioFim = "16:30";
+            }
+            // Testes Externos (Audições): Costumam começar às 13h ou 14h.
+            else if (data.descricaoEnsaio && (data.descricaoEnsaio.toLowerCase().includes("teste") || data.descricaoEnsaio.toLowerCase().includes("audição"))) {
+                data.horarioInicio = "13:00";
+            }
+        }
+        
+        if (!data.horarioFim) {
+            data.horarioFim = "00:00";
+        }
+
+        // 2. Locais Padrão (Venues)
+        if (!data.local || data.local.trim() === "") {
+            let diaDaSemana = -1;
+            if (data.date && data.date.includes('-')) {
+                try {
+                    const parsedDate = new Date(data.date + 'T12:00:00');
+                    diaDaSemana = parsedDate.getDay();
+                } catch (e) {}
+            }
+            
+            // Sábados Matinais / Concertos Externos: Sala de Ensaios do TMSP (Subsolo) deve ser proposta como local padrão para ensaios matinais no sábado.
+            const isSaturdayMorning = diaDaSemana === 6 && data.horarioInicio && parseInt(data.horarioInicio.split(':')[0], 10) < 12;
+            
+            if (isSaturdayMorning && (data.tipo.includes('ensaio') || data.tipo === 'tutti')) {
+                data.local = "Sala de Ensaios do TMSP (Subsolo)";
+            }
+            // Default Geral: Se não houver local especificado para um concerto da orquestra completa, o local padrão é o TMSP (Teatro Municipal de São Paulo).
+            else if (data.tipo === 'concerto') {
+                data.local = "Teatro Municipal de São Paulo";
+            }
+        }
+
+        // Normalização de nomes de local: Normalizar "Sala de Ensaio" (ou variações como "Sala de Ensaios") para "Sala de Ensaios do TMSP (Subsolo)"
+        if (data.local) {
+            const normalizedLocal = data.local.toLowerCase().trim();
+            if (normalizedLocal === "sala de ensaio" || normalizedLocal === "sala de ensaios" || normalizedLocal === "sala de ensaio do tmsp" || normalizedLocal === "sala de ensaios tmsp" || normalizedLocal === "sala de ensaio tmsp") {
+                data.local = "Sala de Ensaios do TMSP (Subsolo)";
+            }
+        }
+
+        // 3. Regex de extração de links do Google Maps (e higienização de endereço)
+        const mapsRegex = /(https?:\/\/(?:maps\.google\.com|www\.google\.com\/maps|maps\.app\.goo\.gl|goo\.gl\/maps)\/[^\s\)\],]+)/i;
+
+        if (data.local) {
+            const matchLocal = data.local.match(mapsRegex);
+            if (matchLocal) {
+                if (!data.localMapsUrl) data.localMapsUrl = matchLocal[1];
+                data.local = data.local.replace(matchLocal[1], '').replace(/\s+/g, ' ').trim();
+            }
+        }
+
+        if (data.localComplemento) {
+            const matchComp = data.localComplemento.match(mapsRegex);
+            if (matchComp) {
+                if (!data.localMapsUrl) data.localMapsUrl = matchComp[1];
+                data.localComplemento = data.localComplemento.replace(matchComp[1], '').replace(/\s+/g, ' ').trim();
+            }
+        }
+
+        if (data.avisos && Array.isArray(data.avisos)) {
+            data.avisos = data.avisos.map(aviso => {
+                if (typeof aviso === 'string') {
+                    const matchAviso = aviso.match(mapsRegex);
+                    if (matchAviso) {
+                        if (!data.localMapsUrl) data.localMapsUrl = matchAviso[1];
+                        return aviso.replace(matchAviso[1], '').replace(/\s+/g, ' ').trim();
+                    }
+                }
+                return aviso;
+            });
+        }
+
+        // 4. Detecção de status de cancelamento se contiver palavra-chave no texto
+        const txtCompleto = `${data.descricaoEnsaio || ''} ${data.concertoNome || ''} ${data.local || ''}`.toLowerCase();
+        if (txtCompleto.includes('cancelado') || txtCompleto.includes('ensaio cancelado') || txtCompleto.includes('concerto cancelado') || txtCompleto.includes('evento cancelado') || txtCompleto.includes('cancelados')) {
+            data.status = "Cancelado";
+        } else if (!data.status) {
+            data.status = "Confirmado";
+        }
+
+        return data;
+    }
 
     const btnIaTexto = document.getElementById('btn-ia-texto');
     const btnIaPdf = document.getElementById('btn-ia-pdf');
@@ -2395,96 +2811,68 @@ function initCalendarManagement() {
         const prevPrevia = document.getElementById('previa-ia-container');
         if (prevPrevia) prevPrevia.remove();
 
-        const previaDiv = document.createElement('div');
-        previaDiv.id = 'previa-ia-container';
-        previaDiv.style.marginTop = '1.5rem';
-        previaDiv.innerHTML = `<h4>Prévia dos Eventos Gerados</h4>`;
-        
-        if (!data || !data.eventos || data.eventos.length === 0) {
-            previaDiv.innerHTML += `<p>Nenhum evento encontrado pela IA.</p>`;
-            formContainer.insertBefore(previaDiv, formContainer.firstChild);
+        if (!data || !data.eventos) {
             return;
         }
 
-        data.eventos.forEach((evento, index) => {
-            const card = document.createElement('div');
-            card.className = 'admin-card';
-            card.style.marginBottom = '1rem';
-            card.style.borderLeft = '4px solid var(--primary-color)';
-            card.innerHTML = `
-                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
-                    <div>
-                        <strong>${evento.date} - ${evento.tipo}</strong><br>
-                        <small>${evento.horarioInicio} às ${evento.horarioFim} | ${evento.local}</small>
-                    </div>
-                    <button class="btn-primary btn-save-ia" data-index="${index}"><i data-lucide="save"></i> Salvar</button>
-                </div>
-                <details style="margin-top: 1rem; font-size: 12px;">
-                    <summary style="cursor: pointer; color: #666;">Ver JSON extraído</summary>
-                    <pre style="background: #f4f4f4; padding: 10px; border-radius: 4px; overflow-x: auto;">${JSON.stringify(evento, null, 2)}</pre>
-                </details>
-            `;
-            previaDiv.appendChild(card);
+        // 1. Mapear e carregar as prévias de eventos na lista global de memória
+        window.eventosPreviaIA = (data.eventos || []).map(evento => {
+            const rawEvent = {
+                _tempId: Math.random().toString(36).substring(2, 9),
+                date: evento.date || "",
+                tipo: evento.tipo || "ensaio_tutti",
+                naipe: (evento.tipo === 'ensaio_naipe' && evento.naipe) ? evento.naipe : null,
+                descricaoEnsaio: evento.descricaoEnsaio || evento.descricao || "Ensaio",
+                horarioInicio: evento.horarioInicio || "00:00",
+                horarioFim: evento.horarioFim || "00:00",
+                local: evento.local || "",
+                localComplemento: evento.localComplemento || null,
+                localMapsUrl: evento.localMapsUrl || null,
+                concertoNome: evento.concertoNome || evento.concertName || null,
+                repertorio: (evento.repertorio && evento.repertorio.length > 0) ? evento.repertorio : null,
+                avisos: (evento.avisos && evento.avisos.length > 0) ? evento.avisos : null
+            };
+            return inferirEventData(rawEvent);
         });
 
-        // Eventos dos botões de salvar
-        previaDiv.querySelectorAll('.btn-save-ia').forEach(btn => {
-            btn.addEventListener('click', async (e) => {
-                const idx = e.currentTarget.getAttribute('data-index');
-                const evento = data.eventos[idx];
-                
+        // 2. Mudar a data do calendário administrativo para o mês do primeiro evento proposto
+        if (window.eventosPreviaIA.length > 0) {
+            const firstEvent = window.eventosPreviaIA[0];
+            if (firstEvent.date && firstEvent.date.includes('-')) {
                 try {
-                    e.currentTarget.disabled = true;
-                    e.currentTarget.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Salvando...';
-                    if (window.lucide) lucide.createIcons();
-                    
-                    // Sanitizar e estruturar os dados do evento da IA para evitar campos "undefined" no Firestore
-                    const eventoData = {
-                        date: evento.date || "",
-                        tipo: evento.tipo || "ensaio_tutti",
-                        naipe: (evento.tipo === 'ensaio_naipe' && evento.naipe) ? evento.naipe : null,
-                        descricaoEnsaio: evento.descricaoEnsaio || "Ensaio",
-                        horarioInicio: evento.horarioInicio || "00:00",
-                        horarioFim: evento.horarioFim || "00:00",
-                        local: evento.local || "",
-                        localComplemento: evento.localComplemento || null,
-                        localMapsUrl: evento.localMapsUrl || null,
-                        concertoNome: evento.concertoNome || null,
-                        repertorio: (evento.repertorio && evento.repertorio.length > 0) ? evento.repertorio : null,
-                        avisos: (evento.avisos && evento.avisos.length > 0) ? evento.avisos : null,
-                        mesRef: evento.date ? evento.date.substring(0, 7) : "",
-                        createdAt: serverTimestamp(),
-                        updatedAt: serverTimestamp(),
-                        criadoPor: auth.currentUser.uid
-                    };
-
-                    await addDoc(collection(db, "eventos"), eventoData);
-                    showNotification("Evento salvo com sucesso no Calendário!", "success");
-                    e.currentTarget.innerHTML = '<i data-lucide="check"></i> Salvo';
-                    e.currentTarget.style.background = '#4CAF50';
-                    e.currentTarget.style.borderColor = '#4CAF50';
-                    if (window.lucide) lucide.createIcons();
+                    const parts = firstEvent.date.split('-');
+                    const year = parseInt(parts[0], 10);
+                    const month = parseInt(parts[1], 10) - 1;
+                    currentListDate = new Date(year, month, 1);
                 } catch (err) {
-                    showNotification("Erro ao salvar evento: " + err.message, "error");
-                    e.currentTarget.disabled = false;
-                    e.currentTarget.innerHTML = '<i data-lucide="save"></i> Salvar';
-                    if (window.lucide) lucide.createIcons();
+                    console.error("Erro ao mudar a data do calendário:", err);
                 }
-            });
-        });
-        
+            }
+        }
+
+        // 3. Recarregar os eventos do mês (isso vai ler do Firestore + nossa lista na memória)
+        loadMonthlyEvents();
+
+        // 4. Se houver avisos da semana, exibimos um box específico na coluna lateral
         if (data.avisos_semana && data.avisos_semana.length > 0) {
+            const previaDiv = document.createElement('div');
+            previaDiv.id = 'previa-ia-container';
+            previaDiv.style.marginTop = '1.5rem';
+
             const avisosContainer = document.createElement('div');
             avisosContainer.className = 'admin-card';
             avisosContainer.style.borderLeft = '4px solid #f59e0b'; // Laranja
-            avisosContainer.innerHTML = `<h4>Avisos da Semana (Box Amarelo/Laranja)</h4>`;
+            avisosContainer.innerHTML = `<h4>Avisos da Semana Gerados pela IA</h4>`;
+            
             data.avisos_semana.forEach(aviso => {
                 avisosContainer.innerHTML += `<p style="margin-top: 0.5rem;"><strong>${aviso.tipo}:</strong> ${aviso.texto}</p>`;
             });
+
             const btnSaveAviso = document.createElement('button');
             btnSaveAviso.className = 'btn-primary';
             btnSaveAviso.style.marginTop = '1rem';
             btnSaveAviso.innerHTML = '<i data-lucide="save"></i> Salvar Avisos';
+            
             btnSaveAviso.addEventListener('click', async (e) => {
                 try {
                     btnSaveAviso.disabled = true;
@@ -2492,9 +2880,13 @@ function initCalendarManagement() {
                     if (window.lucide) lucide.createIcons();
 
                     for (const aviso of data.avisos_semana) {
-                        aviso.createdAt = serverTimestamp();
-                        aviso.criadoPor = auth.currentUser.uid;
-                        await addDoc(collection(db, "avisos_semana"), aviso);
+                        const avisoData = {
+                            tipo: aviso.tipo || "",
+                            texto: aviso.texto || "",
+                            createdAt: serverTimestamp(),
+                            criadoPor: auth.currentUser.uid
+                        };
+                        await addDoc(collection(db, "avisos_semana"), avisoData);
                     }
                     showNotification("Avisos da semana salvos!", "success");
                     btnSaveAviso.innerHTML = '<i data-lucide="check"></i> Salvos';
@@ -2508,12 +2900,12 @@ function initCalendarManagement() {
                     if (window.lucide) lucide.createIcons();
                 }
             });
+
             avisosContainer.appendChild(btnSaveAviso);
             previaDiv.appendChild(avisosContainer);
+            formContainer.insertBefore(previaDiv, formContainer.firstChild);
+            if (window.lucide) lucide.createIcons();
         }
-        
-        formContainer.insertBefore(previaDiv, formContainer.firstChild);
-        if (window.lucide) lucide.createIcons();
     }
 
     // Formulário de Criação/Edição Manual
@@ -2553,6 +2945,8 @@ function initCalendarManagement() {
                 const repertorioLines = document.getElementById('evento-repertorio').value.split('\n').map(l => l.trim()).filter(l => l);
                 const avisosLines = document.getElementById('evento-avisos').value.split('\n').map(l => l.trim()).filter(l => l);
 
+                const status = document.getElementById('evento-status') ? document.getElementById('evento-status').value : 'Confirmado';
+
                 const eventoData = {
                     date: date,
                     tipo: tipo,
@@ -2563,6 +2957,7 @@ function initCalendarManagement() {
                     local: document.getElementById('evento-local').value,
                     localComplemento: document.getElementById('evento-complemento').value || null,
                     localMapsUrl: document.getElementById('evento-maps').value || null,
+                    status: status,
                     concertoNome: document.getElementById('evento-concerto').value || null,
                     repertorio: repertorioLines.length > 0 ? repertorioLines : null,
                     avisos: avisosLines.length > 0 ? avisosLines : null,
@@ -2570,21 +2965,35 @@ function initCalendarManagement() {
                     updatedAt: serverTimestamp(),
                 };
 
+                const eventoDataNormalizado = inferirEventData(eventoData);
+
                 if (id) {
                     // Update
                     const docRef = doc(db, "eventos", id);
-                    await updateDoc(docRef, eventoData);
+                    await updateDoc(docRef, eventoDataNormalizado);
                     showNotification("Evento atualizado com sucesso!", "success");
                 } else {
                     // Create
-                    eventoData.createdAt = serverTimestamp();
-                    eventoData.criadoPor = auth.currentUser.uid;
-                    await addDoc(collection(db, "eventos"), eventoData);
+                    eventoDataNormalizado.createdAt = serverTimestamp();
+                    eventoDataNormalizado.criadoPor = auth.currentUser.uid;
+                    await addDoc(collection(db, "eventos"), eventoDataNormalizado);
+
+                    // Se estávamos editando um evento gerado pela IA, remove ele da lista de prévias
+                    if (window.editingPreviaTempId) {
+                        const previewIdx = window.eventosPreviaIA.findIndex(evt => evt._tempId === window.editingPreviaTempId);
+                        if (previewIdx !== -1) {
+                            window.eventosPreviaIA.splice(previewIdx, 1);
+                        }
+                        window.editingPreviaTempId = null;
+                    }
+
                     showNotification("Evento criado com sucesso!", "success");
                 }
 
                 eventoForm.reset();
+                if (document.getElementById('evento-status')) document.getElementById('evento-status').value = 'Confirmado';
                 document.getElementById('evento-id').value = '';
+                window.editingPreviaTempId = null;
                 if (naipeWrapper) naipeWrapper.style.display = 'none';
                 loadMonthlyEvents();
 
@@ -2601,7 +3010,9 @@ function initCalendarManagement() {
     if (btnCancelEvento) {
         btnCancelEvento.addEventListener('click', () => {
             eventoForm.reset();
+            if (document.getElementById('evento-status')) document.getElementById('evento-status').value = 'Confirmado';
             document.getElementById('evento-id').value = '';
+            window.editingPreviaTempId = null;
             if (naipeWrapper) naipeWrapper.style.display = 'none';
         });
     }
@@ -2624,6 +3035,9 @@ function initCalendarManagement() {
         document.getElementById('evento-complemento').value = data.localComplemento || '';
         document.getElementById('evento-maps').value = data.localMapsUrl || '';
         document.getElementById('evento-concerto').value = data.concertoNome || '';
+        if (document.getElementById('evento-status')) {
+            document.getElementById('evento-status').value = data.status || 'Confirmado';
+        }
         document.getElementById('evento-repertorio').value = data.repertorio ? data.repertorio.join('\n') : '';
         document.getElementById('evento-avisos').value = data.avisos ? data.avisos.join('\n') : '';
     }
@@ -2665,21 +3079,57 @@ function initCalendarManagement() {
             const querySnapshot = await getDocs(eventosQuery);
             eventosList.innerHTML = '';
 
-            if (querySnapshot.empty) {
-                eventosList.innerHTML = '<div class="admin-notif-empty">Nenhum evento agendado para este mês.</div>';
+            // 1. Mapear eventos reais do Firestore
+            const dbEvents = [];
+            querySnapshot.forEach(docSnap => {
+                dbEvents.push({
+                    id: docSnap.id,
+                    data: docSnap.data(),
+                    isPreview: false
+                });
+            });
+
+            // 2. Filtrar as prévias de IA correspondentes ao mês ativo
+            const monthPrefix = `${year}-${String(month).padStart(2, '0')}`;
+            const aiPreviews = (window.eventosPreviaIA || []).filter(evt => evt.date && evt.date.startsWith(monthPrefix)).map(evt => {
+                return {
+                    id: null,
+                    _tempId: evt._tempId,
+                    data: evt,
+                    isPreview: true
+                };
+            });
+
+            // 3. Mesclar e ordenar
+            const combinedEvents = [...dbEvents, ...aiPreviews];
+
+            if (combinedEvents.length === 0) {
+                eventosList.innerHTML = '<div class="admin-notif-empty">Nenhum evento agendado ou prévia IA para este mês.</div>';
                 return;
             }
 
-            querySnapshot.forEach(docSnap => {
-                const data = docSnap.data();
-                const card = document.createElement('div');
-                card.className = `event-admin-card`;
+            // Ordenar por data (ascendente) e horário de início (ascendente)
+            combinedEvents.sort((a, b) => {
+                const dateA = a.data.date || "";
+                const dateB = b.data.date || "";
+                if (dateA !== dateB) return dateA.localeCompare(dateB);
                 
-                const splitDate = data.date.split('-');
-                const dia = splitDate[2];
-                const dataObj = new Date(splitDate[0], splitDate[1] - 1, splitDate[2]);
+                const timeA = a.data.horarioInicio || "00:00";
+                const timeB = b.data.horarioInicio || "00:00";
+                return timeA.localeCompare(timeB);
+            });
+
+            // 4. Renderizar cada card na linha do tempo
+            combinedEvents.forEach(item => {
+                const data = item.data;
+                const card = document.createElement('div');
+                card.className = (item.isPreview ? 'event-admin-card preview-ia' : 'event-admin-card') + (data.status === 'Cancelado' ? ' status-cancelado' : '');
+                
+                const splitDate = (data.date || "2026-01-01").split('-');
+                const dia = splitDate[2] || "01";
+                const dataObj = new Date(splitDate[0] || 2026, (splitDate[1] || 1) - 1, splitDate[2] || 1);
                 const diasSemana = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SÁB"];
-                const diaSemanaStr = diasSemana[dataObj.getDay()];
+                const diaSemanaStr = diasSemana[dataObj.getDay()] || "???";
                 
                 // Tipo formatado para exibição
                 let tipoLabel = 'Evento';
@@ -2730,6 +3180,47 @@ function initCalendarManagement() {
                     resumoHtml += `</div>`;
                 }
 
+                // Custom badge styles for previews vs database events
+                let badgeHtml = item.isPreview 
+                    ? `<span class="event-admin-type-badge ${data.tipo}">${tipoLabel}</span> <span class="event-admin-type-badge" style="background: rgba(245, 158, 11, 0.18); color: #d97706; font-weight: 600; border: 1px solid rgba(245, 158, 11, 0.3);"><i data-lucide="sparkles" style="width: 12px; height: 12px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i> IA - Validar</span>`
+                    : `<span class="event-admin-type-badge ${data.tipo}">${tipoLabel}</span>`;
+
+                if (data.status === 'Cancelado') {
+                    badgeHtml += ` <span class="event-admin-type-badge status-cancelado-badge" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); font-weight: 600;"><i data-lucide="circle-slash" style="width: 12px; height: 12px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i> Cancelado</span>`;
+                }
+
+                const footerActionsHtml = item.isPreview 
+                    ? `
+                    <div class="event-admin-card-actions">
+                        <button class="event-admin-action-btn confirm btn-save-preview-ia" data-temp-id="${item._tempId}">
+                            <i data-lucide="check"></i> Confirmar
+                        </button>
+                        <button class="event-admin-action-btn edit btn-edit-preview-ia" data-temp-id="${item._tempId}">
+                            <i data-lucide="edit-3"></i> Editar
+                        </button>
+                        <button class="event-admin-action-btn preview-delete btn-delete-preview-ia" data-temp-id="${item._tempId}">
+                            <i data-lucide="trash-2"></i> Descartar
+                        </button>
+                    </div>
+                    `
+                    : `
+                    <div class="event-admin-card-actions">
+                        <button class="event-admin-action-btn edit btn-edit-evento" data-id="${item.id}">
+                            <i data-lucide="edit-3"></i> Editar
+                        </button>
+                        <button class="event-admin-action-btn delete btn-delete-evento" data-id="${item.id}">
+                            <i data-lucide="trash-2"></i> Excluir
+                        </button>
+                    </div>
+                    `;
+
+                const mapsLinkHtml = data.localMapsUrl ? `
+                    <div class="event-admin-detail event-admin-map-link-wrapper">
+                        <i data-lucide="map"></i> 
+                        <a href="${data.localMapsUrl}" target="_blank" class="event-admin-local-link">Ver no Google Maps</a>
+                    </div>
+                ` : '';
+
                 card.innerHTML = `
                     <div class="event-admin-card-header">
                         <div class="event-admin-date-box">
@@ -2737,7 +3228,7 @@ function initCalendarManagement() {
                             <span class="month">${diaSemanaStr}</span>
                         </div>
                         <div class="event-admin-header-info">
-                            <span class="event-admin-type-badge ${data.tipo}">${tipoLabel}</span>
+                            ${badgeHtml}
                             <h4 class="event-admin-title">${data.descricaoEnsaio || data.concertoNome || 'Evento'} ${data.naipe ? `- ${data.naipe}` : ''}</h4>
                         </div>
                     </div>
@@ -2751,29 +3242,26 @@ function initCalendarManagement() {
                             <i data-lucide="map-pin"></i> 
                             <span>${data.local} ${data.localComplemento ? `(${data.localComplemento})` : ''}</span>
                         </div>
+                        ${mapsLinkHtml}
                         ${resumoHtml}
                     </div>
 
-                    <div class="event-admin-card-actions">
-                        <button class="event-admin-action-btn edit btn-edit-evento" data-id="${docSnap.id}">
-                            <i data-lucide="edit-3"></i> Editar
-                        </button>
-                        <button class="event-admin-action-btn delete btn-delete-evento" data-id="${docSnap.id}">
-                            <i data-lucide="trash-2"></i> Excluir
-                        </button>
-                    </div>
+                    ${footerActionsHtml}
                 `;
                 eventosList.appendChild(card);
             });
 
-            // Bind edit/delete
+            // 5. Configurar ouvintes de eventos para itens oficiais e prévias de IA
+
+            // Ações de Eventos Reais: Deletar
             eventosList.querySelectorAll('.btn-delete-evento').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
-                    const id = e.currentTarget.getAttribute('data-id');
+                    const targetBtn = e.currentTarget;
+                    const id = targetBtn.getAttribute('data-id');
                     if (confirm("Tem certeza que deseja excluir este evento? Ação irreversível.")) {
                         try {
-                            e.currentTarget.disabled = true;
-                            e.currentTarget.innerHTML = '<i data-lucide="loader-2" class="spin"></i>';
+                            targetBtn.disabled = true;
+                            targetBtn.innerHTML = '<i data-lucide="loader-2" class="spin"></i>';
                             if (window.lucide) lucide.createIcons();
                             
                             await deleteDoc(doc(db, "eventos", id));
@@ -2781,11 +3269,15 @@ function initCalendarManagement() {
                             loadMonthlyEvents();
                         } catch(err) {
                             showNotification("Erro ao excluir: " + err.message, "error");
+                            targetBtn.disabled = false;
+                            targetBtn.innerHTML = '<i data-lucide="trash-2"></i>';
+                            if (window.lucide) lucide.createIcons();
                         }
                     }
                 });
             });
 
+            // Ações de Eventos Reais: Editar
             eventosList.querySelectorAll('.btn-edit-evento').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     const id = e.currentTarget.getAttribute('data-id');
@@ -2798,6 +3290,86 @@ function initCalendarManagement() {
                         }
                     } catch(err) {
                         showNotification("Erro ao carregar evento: " + err.message, "error");
+                    }
+                });
+            });
+
+            // Ações de Prévia IA: Confirmar (Gravar no Banco)
+            eventosList.querySelectorAll('.btn-save-preview-ia').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const targetBtn = e.currentTarget;
+                    const tempId = targetBtn.getAttribute('data-temp-id');
+                    const previewIdx = window.eventosPreviaIA.findIndex(evt => evt._tempId === tempId);
+                    if (previewIdx === -1) return;
+                    const evento = window.eventosPreviaIA[previewIdx];
+
+                    try {
+                        targetBtn.disabled = true;
+                        targetBtn.innerHTML = '<i data-lucide="loader-2" class="spin"></i>';
+                        if (window.lucide) lucide.createIcons();
+
+                        const eventoData = {
+                            date: evento.date || "",
+                            tipo: evento.tipo || "ensaio_tutti",
+                            naipe: (evento.tipo === 'ensaio_naipe' && evento.naipe) ? evento.naipe : null,
+                            descricaoEnsaio: evento.descricaoEnsaio || "Ensaio",
+                            horarioInicio: evento.horarioInicio || "00:00",
+                            horarioFim: evento.horarioFim || "00:00",
+                            local: evento.local || "",
+                            localComplemento: evento.localComplemento || null,
+                            localMapsUrl: evento.localMapsUrl || null,
+                            status: evento.status || "Confirmado",
+                            concertoNome: evento.concertoNome || null,
+                            repertorio: (evento.repertorio && evento.repertorio.length > 0) ? evento.repertorio : null,
+                            avisos: (evento.avisos && evento.avisos.length > 0) ? evento.avisos : null,
+                            mesRef: evento.date ? evento.date.substring(0, 7) : "",
+                            createdAt: serverTimestamp(),
+                            updatedAt: serverTimestamp(),
+                            criadoPor: auth.currentUser.uid
+                        };
+
+                        await addDoc(collection(db, "eventos"), eventoData);
+                        
+                        // Remover da memória global
+                        window.eventosPreviaIA.splice(previewIdx, 1);
+                        
+                        showNotification("Evento confirmado e adicionado à lista oficial!", "success");
+                        loadMonthlyEvents();
+                    } catch (err) {
+                        showNotification("Erro ao confirmar evento: " + err.message, "error");
+                        targetBtn.disabled = false;
+                        targetBtn.innerHTML = '<i data-lucide="check"></i> Confirmar';
+                        if (window.lucide) lucide.createIcons();
+                    }
+                });
+            });
+
+            // Ações de Prévia IA: Editar (Preencher Formulário Manual)
+            eventosList.querySelectorAll('.btn-edit-preview-ia').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const tempId = e.currentTarget.getAttribute('data-temp-id');
+                    const previewIdx = window.eventosPreviaIA.findIndex(evt => evt._tempId === tempId);
+                    if (previewIdx === -1) return;
+                    const evento = window.eventosPreviaIA[previewIdx];
+
+                    // Salvar o ID temporário sendo editado e preencher formulário (com id vazio no banco)
+                    window.editingPreviaTempId = tempId;
+                    preencherFormularioEvento("", evento);
+                    
+                    document.getElementById('calendario-form-container').scrollIntoView({behavior: 'smooth'});
+                    showNotification("Prévia IA carregada no formulário. Faça seus ajustes e salve para criar o evento oficial.", "info");
+                });
+            });
+
+            // Ações de Prévia IA: Descartar (Excluir apenas da memória)
+            eventosList.querySelectorAll('.btn-delete-preview-ia').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const tempId = e.currentTarget.getAttribute('data-temp-id');
+                    const previewIdx = window.eventosPreviaIA.findIndex(evt => evt._tempId === tempId);
+                    if (previewIdx !== -1) {
+                        window.eventosPreviaIA.splice(previewIdx, 1);
+                        showNotification("Rascunho de evento IA descartado.", "info");
+                        loadMonthlyEvents();
                     }
                 });
             });

@@ -505,6 +505,13 @@
                                              <option value="concerto">Concerto</option>
                                          </select>
                                      </div>
+                                     <div class="version-input-wrapper" style="flex: 1; min-width: 140px;">
+                                         <label><i data-lucide="check-circle-2"></i> Status do Evento</label>
+                                         <select id="evento-status" class="version-input" required>
+                                             <option value="Confirmado">Confirmado</option>
+                                             <option value="Cancelado">Cancelado</option>
+                                         </select>
+                                     </div>
                                      <div class="version-input-wrapper" id="naipe-wrapper" style="display:none; flex: 1; min-width: 140px;">
                                          <label><i data-lucide="users"></i> Nome do Naipe</label>
                                          <input type="text" id="evento-naipe" class="version-input" placeholder="Ex: Violoncelos">
@@ -741,7 +748,7 @@ Intervalo
     </div>
 
     <div id="edit-notif-modal" class="modal-overlay">
-        <div class="settings-modal-card" style="max-width: 550px;">
+        <div class="settings-modal-card" style="max-width: 700px; width: 95%;">
             <div class="modal-header">
                 <div class="modal-header-info">
                     <h3><i data-lucide="edit-3"></i> Editar Agendamento</h3>
@@ -755,24 +762,38 @@ Intervalo
                 <input type="hidden" id="edit-notif-id">
                 <input type="hidden" id="edit-notif-collection">
                 
-                <div class="version-input-wrapper" style="margin-bottom: 1rem;">
-                    <label for="edit-notif-title">Título do Aviso</label>
-                    <input type="text" id="edit-notif-title" class="version-input" placeholder="Título">
-                </div>
+                <div class="edit-notif-layout">
+                    <div class="edit-notif-fields">
+                        <div class="version-input-wrapper" style="margin-bottom: 1rem;">
+                            <label for="edit-notif-title">Título do Aviso</label>
+                            <input type="text" id="edit-notif-title" class="version-input" placeholder="Título">
+                        </div>
 
-                <div class="version-input-wrapper" style="margin-bottom: 1rem;">
-                    <label for="edit-notif-message">Mensagem Adicional</label>
-                    <textarea id="edit-notif-message" class="version-input" rows="3" placeholder="Mensagem"></textarea>
-                </div>
+                        <div class="version-input-wrapper" style="margin-bottom: 1rem;">
+                            <label for="edit-notif-message">Mensagem Adicional</label>
+                            <textarea id="edit-notif-message" class="version-input" rows="3" placeholder="Mensagem"></textarea>
+                        </div>
 
-                <div id="edit-scheduling-fields" style="display: none;">
-                    <div class="version-input-wrapper">
-                        <label for="edit-notif-date">Nova Data e Hora de Envio</label>
-                        <input type="datetime-local" id="edit-notif-date" class="version-input">
-                        <p style="font-size: 0.8rem; color: #666; margin-top: 0.3rem;">
-                            <i data-lucide="info" style="width: 12px; height: 12px;"></i> 
-                            A alteração do horário afetará quando o sistema disparará o aviso.
-                        </p>
+                        <div id="edit-scheduling-fields" style="display: none;">
+                            <div class="version-input-wrapper">
+                                <label for="edit-notif-date">Nova Data e Hora de Envio</label>
+                                <input type="datetime-local" id="edit-notif-date" class="version-input">
+                                <p style="font-size: 0.8rem; color: #666; margin-top: 0.3rem;">
+                                    <i data-lucide="info" style="width: 12px; height: 12px;"></i> 
+                                    A alteração do horário afetará quando o sistema disparará o aviso.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="edit-notif-image-side" id="edit-notif-image-container" style="display: none;">
+                        <label class="edit-notif-image-label">Imagem Anexa</label>
+                        <div class="edit-notif-image-preview-wrapper">
+                            <img id="edit-notif-image-preview" src="" alt="Imagem do Aviso">
+                            <button type="button" id="btn-delete-edit-notif-image" class="btn-delete-edit-image" title="Remover imagem">
+                                <i data-lucide="x"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -959,6 +980,76 @@ Intervalo
                 </div>
                 <button class="btn-robot-ai ia-modal-btn-action" id="btn-process-ia-pdf">
                     <i data-lucide="sparkles"></i> Processar PDF com IA
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL ROBÔ OER INTELIGENTE ===== -->
+    <div id="robot-notif-modal-overlay" class="ia-modal-overlay" style="display:none;" aria-modal="true" role="dialog">
+        <div class="ia-modal-card">
+            <!-- Header -->
+            <div class="ia-modal-header">
+                <div class="ia-modal-header-info">
+                    <div class="ia-modal-icon">
+                        <i data-lucide="bot"></i>
+                    </div>
+                    <div>
+                        <h3>Robô OER Inteligente</h3>
+                        <p>Escreva instruções ou use o contexto do painel</p>
+                    </div>
+                </div>
+                <button class="ia-modal-close" id="btn-robot-modal-close" title="Fechar">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="ia-modal-body">
+                <div class="ia-modal-tip">
+                    <i data-lucide="sparkles"></i>
+                    O Robô OER usará inteligência artificial para redigir o título e a mensagem adicional com um tom musical, profissional e chamativo.
+                </div>
+                
+                <!-- Área de prompt manual -->
+                <div class="version-input-wrapper">
+                    <label style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--text-secondary); margin-bottom: 6px; display: block;">O que você deseja notificar?</label>
+                    <textarea id="robot-user-instruction" class="version-input ia-modal-textarea" rows="4"
+                        placeholder="Ex: Ensaio de naipes dos metais amanhã na sala 2 às 14h, tragam a partitura da 5ª sinfonia..."></textarea>
+                </div>
+
+                <!-- Feedback de imagem multimodal -->
+                <div id="robot-image-badge" class="ia-modal-tip" style="display: none; background: rgba(46, 139, 87, 0.08); border-color: rgba(46, 139, 87, 0.15); border-left-color: #2E8B57; color: #2E8B57;">
+                    <i data-lucide="image" style="color: #2E8B57;"></i>
+                    <span>Imagem detectada! A IA irá analisar o conteúdo visual para redigir o aviso.</span>
+                </div>
+
+                <!-- Toggle de Contexto -->
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0; border-top: 1px solid #f0f2f5; margin-top: 0.5rem;">
+                    <span style="font-size: 0.9rem; font-weight: 600; color: var(--text-primary);">Incluir contexto do painel</span>
+                    <label class="switch" style="position: relative; display: inline-block; width: 44px; height: 24px;">
+                        <input type="checkbox" id="robot-include-context" checked style="opacity: 0; width: 0; height: 0;">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <!-- Detalhamento do Contexto que será enviado -->
+                <div id="robot-context-wrapper" style="background: #fafafa; border-radius: 10px; border: 1px solid #f0f0f0; padding: 0.8rem; display: flex; flex-direction: column; gap: 0.6rem;">
+                    <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #888; display: flex; align-items: center; gap: 0.4rem;">
+                        <i data-lucide="database" style="width: 12px; height: 12px;"></i>
+                        Visualização do Contexto
+                    </div>
+                    <div id="robot-context-loading" style="font-size: 0.8rem; color: #666; display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0;">
+                        <i data-lucide="loader" class="animate-spin" style="width: 14px; height: 14px;"></i>
+                        Carregando informações recentes...
+                    </div>
+                    <div id="robot-context-items" style="display: flex; flex-direction: column; gap: 0.4rem; max-height: 150px; overflow-y: auto;">
+                        <!-- Inserido dinamicamente via JS -->
+                    </div>
+                </div>
+
+                <button class="btn-robot-ai ia-modal-btn-action" id="btn-robot-generate" style="margin-top: 0.5rem;">
+                    <i data-lucide="sparkles"></i> Gerar Aviso com IA
                 </button>
             </div>
         </div>

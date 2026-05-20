@@ -207,10 +207,10 @@ exports.dailySubscriberCheck = onSchedule({
 });
 
 /**
- * Gera uma sugestão de título e corpo para notificação push usando IA.
+ * Gera uma sugestão de título e corpo para notificação push usando IA (Robô OER Inteligente).
  */
 exports.suggestNotificationText = onCall({
-    region: "us-central1", // Ou sua região padrão
+    region: "us-central1",
     maxInstances: 10,
     memory: "512MiB"
 }, async (request) => {
@@ -219,60 +219,161 @@ exports.suggestNotificationText = onCall({
         throw new HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
     }
 
-    const { type, version } = request.data;
-    if (!type || !version) {
-        throw new HttpsError("invalid-argument", "Os campos 'type' e 'version' são obrigatórios.");
-    }
-
+    const { userPrompt, includeContext, selectedContexts, image, type, version } = request.data;
     const apiKey = process.env.GEMINI_API_KEY || admin.remoteConfig().parameters?.GEMINI_API_KEY?.defaultValue?.value;
     
     if (!apiKey) {
         console.warn("GEMINI_API_KEY não configurada. Usando fallback estático.");
         return {
-            title: `Nova ${type} disponível!`,
-            message: `A ${type} foi atualizada para a versão v${version}. Confira os detalhes no site.`
+            title: `🎼 Novo aviso OER`,
+            message: `Olá naipe! Temos uma nova atualização de partituras e cronogramas. Confira os detalhes! 🎻`
         };
     }
 
     try {
-        const genAI = new GoogleGenAI({ apiKey });
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const ai = new GoogleGenAI({ apiKey });
 
-        const prompt = `Você é o Robô OER, o assistente oficial e entusiasta da Orquestra Experimental de Repertório.
-        Sua missão é avisar os músicos sobre atualizações nas partituras e cronogramas com energia e precisão.
-        
-        Um administrador acabou de atualizar a "${type}" para a versão "${version}".
-        
-        Crie um título curto (máx 50 caracteres) e uma mensagem vibrante (máx 150 caracteres) para uma notificação push.
-        
-        DIRETRIZES DE ESTILO:
-        1. Título: Deve ser impactante e chamar a atenção (clicável), mas ser informativo. Deve ficar claro que se trata de uma atualização ou nova versão da "${type}".
-        2. Corpo da Mensagem: Use referências musicais sutis e "dosadas" para dar personalidade (ex: "em sintonia", "nova pauta", "ritmo de ensaio"), mas evite o excesso de termos técnicos. Priorize a clareza da informação sobre a "${type}".
-        3. Emojis: Utilize emojis musicais de forma elegante e moderada (máximo 2 ou 3).
-        4. Identidade e Tom: Você é o assistente oficial da OER. O tom deve ser vibrante e inspirador, mas profissional.
-        
-        REGRAS TÉCNICAS:
-        - Retorne APENAS um objeto JSON válido.
-        - Formato: {"title": "...", "message": "..."}`;
+        let logsText = "";
+        let eventosText = "";
 
+        if (includeContext) {
+            if (Array.isArray(selectedContexts)) {
+                // Se foi enviada uma lista específica filtrada pelo administrador
+                if (selectedContexts.length > 0) {
+                    logsText = "CONTEXTO DO SISTEMA SELECIONADO PELO ADMINISTRADOR:\n" + 
+                        selectedContexts.map(ctx => `- ${ctx}`).join("\n") + "\n";
+                }
+            } else {
+                // Fallback legado: busca tudo diretamente do banco
+                // 1. Obter últimos 5 logs do painel
+                try {
+                    const logsSnap = await admin.firestore().collection("adminLogs")
+                        .orderBy("createdAt", "desc")
+                        .limit(5)
+                        .get();
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
-        
-        // Limpar possíveis blocos de código markdown do JSON
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
+                    if (!logsSnap.empty) {
+                        logsText = "ÚLTIMOS LOGS DE ATIVIDADE DO SISTEMA:\n";
+                        logsSnap.forEach(doc => {
+                            const data = doc.data();
+                            const time = data.createdAt ? (typeof data.createdAt.toDate === "function" ? data.createdAt.toDate().toISOString() : data.createdAt) : "N/A";
+                            logsText += `- [${time}] [${data.type || "info"}] ${data.message || ""}: ${data.details || ""}\n`;
+                        });
+                    }
+                } catch (err) {
+                    console.error("Erro ao buscar logs para contexto:", err);
+                }
+
+                // 2. Obter próximos 5 eventos do calendário a partir de hoje
+                try {
+                    // Formato YYYY-MM-DD em São Paulo
+                    const todayStr = new Intl.DateTimeFormat("fr-CA", { timeZone: "America/Sao_Paulo" }).format(new Date());
+                    const eventosSnap = await admin.firestore().collection("eventos")
+                        .where("date", ">=", todayStr)
+                        .orderBy("date", "asc")
+                        .limit(5)
+                        .get();
+
+                    if (!eventosSnap.empty) {
+                        eventosText = "PRÓXIMOS COMPROMISSOS DA ORQUESTRA:\n";
+                        eventosSnap.forEach(doc => {
+                            const data = doc.data();
+                            const repertorioStr = Array.isArray(data.repertorio) ? data.repertorio.join(", ") : (data.repertorio || "N/A");
+                            const avisosStr = Array.isArray(data.avisos) ? data.avisos.join("; ") : (data.avisos || "N/A");
+                            eventosText += `- Dia: ${data.date} | Tipo: ${data.tipo || "N/A"} | Naipe: ${data.naipe || "Todos"} | Início: ${data.horarioInicio || "N/A"} | Local: ${data.local || "N/A"} | Repertório: ${repertorioStr} | Avisos: ${avisosStr}\n`;
+                        });
+                    }
+                } catch (err) {
+                    console.error("Erro ao buscar eventos para contexto:", err);
+                }
+            }
+        }
+
+        const contents = [];
+
+        // Adicionar imagem no formato suportado pela API caso presente
+        if (image && image.inlineData && image.inlineData.data && image.inlineData.mimeType) {
+            contents.push({
+                inlineData: {
+                    mimeType: image.inlineData.mimeType,
+                    data: image.inlineData.data
+                }
+            });
+        }
+
+        // Construir instrução textual
+        let promptText = `Você é o Robô OER, o assistente oficial e entusiasta da Orquestra Experimental de Repertório.
+Sua missão é avisar os músicos sobre atualizações nas partituras, cronogramas, avisos importantes e eventos com muita energia e precisão.
+
+Abaixo estão as informações disponíveis para você criar a sugestão de notificação push:
+
+`;
+
+        if (userPrompt) {
+            promptText += `INSTRUÇÃO ESPECÍFICA DO ADMINISTRADOR:
+"${userPrompt}"
+
+`;
+        }
+
+        if (type && version) {
+            promptText += `ATUALIZAÇÃO DE SISTEMA:
+- Item atualizado: ${type}
+- Nova versão: ${version}
+
+`;
+        }
+
+        if (logsText) {
+            promptText += logsText + "\n";
+        }
+
+        if (eventosText) {
+            promptText += eventosText + "\n";
+        }
+
+        if (image && image.inlineData) {
+            promptText += `ANÁLISE DE IMAGEM:
+Foi feito o upload de uma imagem (comunicado, cartaz, grade ou foto de partitura). Analise visualmente a imagem anexada para identificar detalhes importantes (como data, horário, local, repertório, instruções específicas ou naipes afetados) e use esses detalhes para elaborar o aviso.
+
+`;
+        }
+
+        promptText += `DIRETRIZES DE ESTILE E TOM:
+1. Tom: Vibrante, inspirador e profissional. Você ama a OER e quer manter os músicos informados e entusiasmados!
+2. Referências Musicais: Sempre incorpore referências musicais sutis e elegantes no texto (ex: "afinando", "em harmonia", "nova partitura na estante", "em ritmo de ensaio", "compasso").
+3. Emojis: Sempre utilize emojis de forma chamativa, especialmente emojis musicais (ex: 🎼, 🎻, 🎺, 🥁, 🎹), limitando a no máximo 2 ou 3 para manter o estilo profissional de notificação do sistema.
+4. Clareza e Tamanho: A mensagem final deve ser extremamente curta, clara e direta (ideal para leitura imediata em notificações push de celular).
+   - TÍTULO: Máximo de 50 caracteres.
+   - CORPO/MENSAGEM: Máximo de 150 caracteres.
+
+REGRAS TÉCNICAS DE RETORNO:
+- Retorne APENAS um objeto JSON válido, sem qualquer tipo de formatação markdown (como \`\`\`json ou \`\`\`) e sem nenhum texto de introdução ou conclusão.
+- O formato deve ser exatamente: {"title": "Título aqui", "message": "Corpo da mensagem aqui"}`;
+
+        contents.push({ text: promptText });
+
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: contents
+        });
+
+        const resultText = response.text || "";
+        console.log("Resposta do Robô OER:", resultText);
+
+        // Limpar possíveis marcações de markdown e extrair o objeto JSON
+        const jsonMatch = resultText.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
             return JSON.parse(jsonMatch[0]);
         }
-        
-        throw new Error("Falha ao processar resposta da IA.");
+
+        throw new Error("A IA não retornou um JSON válido.");
 
     } catch (error) {
         console.error("Erro ao gerar sugestão com IA (usando fallback):", error);
         return {
-            title: `🎼 Novo andamento: ${type} v${version}`,
-            message: `Atenção, naipe! A ${type} foi atualizada para a versão v${version}. Partituras na estante! 🎻`
+            title: `🎼 Novo aviso: Robô OER`,
+            message: `Músicos, fiquem atentos à estante! Novas atualizações de ensaio e partituras disponíveis. 🎻`
         };
     }
 });
@@ -312,27 +413,12 @@ exports.scheduledNotificationHandler = onSchedule({
 
     console.log(`[Agendamento] Processando ${dueDocs.length} notificações vencidas.`);
 
-    const tokensSnap = await db.collection("fcmTokens").get();
-    const tokens = [];
-    tokensSnap.forEach(d => { if (d.data().token) tokens.push(d.data().token); });
-
     for (const docSnap of dueDocs) {
         const data = docSnap.data();
         await docSnap.ref.update({ status: "processing" });
         try {
-            if (tokens.length > 0) {
-                await admin.messaging().sendEachForMulticast({
-                    notification: {
-                        title: data.title || "Novo aviso",
-                        body: data.message || "",
-                        ...(data.imageUrl ? { image: data.imageUrl } : {})
-                    },
-                    tokens
-                });
-            }
-            await docSnap.ref.update({ status: "sent", sentAt: now.toISOString() });
-
-            // NOVO: Adiciona ao histórico de avisos do site e atualiza o letreiro
+            // Adiciona ao histórico de avisos do site e atualiza o letreiro.
+            // Isto disparará automaticamente a Cloud Function sendPushNotification.
             const notifData = {
                 title: data.title || "Novo aviso",
                 message: data.message || "",
@@ -345,11 +431,13 @@ exports.scheduledNotificationHandler = onSchedule({
             await db.collection("adminLogs").add({
                 type: "aviso",
                 message: "Aviso agendado enviado: " + data.title,
-                details: "Agendado para " + data.scheduledAt + ". Enviado para " + tokens.length + " musico(s).",
+                details: "Agendado para " + data.scheduledAt + ". Disparado via histórico de avisos para todos os músicos ativos.",
                 user: data.createdBy || "agendamento",
                 ...(data.imageUrl ? { imageUrl: data.imageUrl } : {}),
                 createdAt: now.toISOString()
             });
+
+            await docSnap.ref.update({ status: "sent", sentAt: now.toISOString() });
         } catch (err) {
             console.error("Erro ao processar notificacao agendada:", err);
             await docSnap.ref.update({ status: "error", errorMsg: String(err) });
@@ -791,6 +879,8 @@ Retorne APENAS um JSON válido com esta estrutura:
     "horarioFim": "HH:MM",
     "local": "string",
     "localComplemento": "string ou null",
+    "localMapsUrl": "string ou null",
+    "status": "Confirmado" | "Cancelado",
     "concertoNome": "string ou null",
     "repertorio": ["COMPOSITOR Nome da obra"],
     "avisos": ["string"]
@@ -811,8 +901,30 @@ REGRAS:
 - localComplemento vem entre parênteses após o local (ex: "prédio Corpos Artísticos").
 - "concertoNome" é o nome do programa/série (ex: "Metacosmos"), não o tipo do evento.
 - Avisos globais da semana (IMPORTANTE:, Lembrando:) → "avisos_semana".
-- "Cronograma sujeito a alterações." → IGNORAR.
+- "Cronograma sujeito a alterações." ou "Sujeito a alteração." → IGNORAR de avisos e repertórios do evento (o sistema visual já possui aviso padrão).
 - Datas no formato YYYY-MM-DD.
+
+REGRAS DE INFERÊNCIA DE DADOS (EM CASO DE OMISSÃO):
+1. STATUS:
+   - Todo evento criado deve ter status = "Confirmado" por padrão.
+   - Se o texto indicar que o ensaio ou concerto foi suspenso ou não ocorrerá (ex: "não haverá ensaio", "ensaio cancelado", "concerto suspenso"), defina status = "Cancelado".
+
+2. HORÁRIOS PADRÃO (se omitidos):
+   - Concertos aos domingos no Teatro Municipal (TMSP) → horárioInicio padrão: "11:00". (Exceção rara: em janeiro, às 17h, se indicado).
+   - Concertos de Camerata ou Oficina na Sala do Conservatório → horárioInicio padrão: "19:00" se for sexta-feira, ou "18:00" se for sábado.
+   - Apresentações "No Vale" (geralmente às quintas-feiras) → horárioInicio padrão: "16:00".
+   - Reavaliações de Músicos → horárioInicio padrão: "13:00" e horárioFim padrão: "16:30".
+   - Testes Externos (Audições) → horárioInicio padrão: "13:00" ou "14:00".
+
+3. LOCAIS PADRÃO E NORMALIZAÇÃO (se omitidos):
+   - Concerto da orquestra completa (Tutti) sem local especificado → local padrão: "Teatro Municipal de São Paulo (TMSP)".
+   - Ensaios de Naipe, Ensaios Gerais (orquestra reduzida), Reavaliações de Músicos ou Testes Externos (Audições) sem local especificado → local padrão: "Sala de Ensaios do TMSP (Subsolo)".
+   - Concertos de Camerata ou Oficina → local padrão: "Sala do Conservatório (Praça das Artes)".
+   - Normalização Estrita de String: Se o local contiver o texto "Sala de Ensaio" ou variações aproximadas, salve OBRIGATORIAMENTE como "Sala de Ensaios do TMSP (Subsolo)".
+
+4. LINKS DE MAPAS (Google Maps):
+   - Se houver qualquer link do Google Maps (ex: maps.app.goo.gl ou google.com/maps) no texto ou e-mail, extraia essa URL completa e defina-a no campo "localMapsUrl".
+   - Remova a URL crua do campo "localComplemento" ou "local" para evitar exibição poluída na interface.
 
 Texto do e-mail: ${text ? text : "Veja o documento PDF anexo."}`;
 
