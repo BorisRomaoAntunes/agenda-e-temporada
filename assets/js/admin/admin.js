@@ -404,6 +404,36 @@ function initManualRobot() {
             contextWrapper.style.display = includeContextToggle.checked ? 'flex' : 'none';
         });
     }
+
+    // Gerenciador de ação de selecionar/desmarcar todos os contextos
+    const toggleSelectAllBtn = document.getElementById('robot-toggle-select-all');
+    if (toggleSelectAllBtn) {
+        toggleSelectAllBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const allBadges = document.querySelectorAll('#robot-context-items .context-badge');
+            const selectedBadges = document.querySelectorAll('#robot-context-items .context-badge.selected');
+            
+            // Se houver algum badge selecionado, vamos desmarcar todos. Caso contrário, selecionamos todos.
+            const shouldSelect = selectedBadges.length === 0;
+
+            allBadges.forEach(badge => {
+                const checkbox = badge.querySelector('.context-item-checkbox');
+                if (shouldSelect) {
+                    badge.classList.add('selected');
+                    badge.style.opacity = '1';
+                    if (checkbox) checkbox.checked = true;
+                } else {
+                    badge.classList.remove('selected');
+                    badge.style.opacity = '0.5';
+                    if (checkbox) checkbox.checked = false;
+                }
+            });
+
+            updateSelectAllButtonText();
+        });
+    }
 }
 
 /**
@@ -548,6 +578,7 @@ async function loadRobotModalContext() {
                         badge.classList.remove('selected');
                         badge.style.opacity = '0.5';
                     }
+                    updateSelectAllButtonText();
                 });
                 
                 // Alterna o estado ao clicar em qualquer lugar do badge
@@ -560,17 +591,45 @@ async function loadRobotModalContext() {
                         badge.classList.remove('selected');
                         badge.style.opacity = '0.5';
                     }
+                    updateSelectAllButtonText();
                 });
                 
                 containerEl.appendChild(badge);
             });
             lucide.createIcons();
+            updateSelectAllButtonText();
         }
     } catch (err) {
         console.error("🤖 [Robô OER] Erro ao carregar contexto para o modal:", err);
         containerEl.innerHTML = '<p style="font-size: 0.8rem; color: #e53e3e; text-align: center; padding: 1rem 0;">Falha ao obter histórico recente.</p>';
     } finally {
         if (loadingEl) loadingEl.style.display = 'none';
+    }
+}
+
+/**
+ * Atualiza o estado visual e o texto do botão "Selecionar/Desmarcar todos" do modal do Robô OER
+ */
+function updateSelectAllButtonText() {
+    const toggleBtn = document.getElementById('robot-toggle-select-all');
+    if (!toggleBtn) return;
+    
+    const allBadges = document.querySelectorAll('#robot-context-items .context-badge');
+    const selectedBadges = document.querySelectorAll('#robot-context-items .context-badge.selected');
+    
+    if (allBadges.length === 0) {
+        toggleBtn.style.display = 'none';
+        return;
+    }
+    
+    toggleBtn.style.display = 'inline-block';
+    
+    // Se nenhum estiver selecionado, a opção é selecionar tudo
+    if (selectedBadges.length === 0) {
+        toggleBtn.textContent = 'Selecionar todos';
+    } else {
+        // Se houver pelo menos um selecionado, a opção é limpar/desmarcar todos
+        toggleBtn.textContent = 'Desmarcar todos';
     }
 }
 

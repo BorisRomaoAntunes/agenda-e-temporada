@@ -873,7 +873,7 @@ Intervalo
 
     <!-- Firebase SDKs (Compat / v8 style for simplicity or Modular v9) -->
     <!-- Vamos usar a API Modular V9, que é mais rápida e moderna -->
-    <script type="module" src="assets/js/admin/admin.js?v=9"></script>
+    <script type="module" src="assets/js/admin/admin.js?v=10"></script>
     <script>
         // Registro do Service Worker
         if ('serviceWorker' in navigator) {
@@ -1035,9 +1035,12 @@ Intervalo
 
                 <!-- Detalhamento do Contexto que será enviado -->
                 <div id="robot-context-wrapper" style="background: #fafafa; border-radius: 10px; border: 1px solid #f0f0f0; padding: 0.8rem; display: flex; flex-direction: column; gap: 0.6rem;">
-                    <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #888; display: flex; align-items: center; gap: 0.4rem;">
-                        <i data-lucide="database" style="width: 12px; height: 12px;"></i>
-                        Visualização do Contexto
+                    <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                        <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #888; display: flex; align-items: center; gap: 0.4rem;">
+                            <i data-lucide="database" style="width: 12px; height: 12px;"></i>
+                            Visualização do Contexto
+                        </div>
+                        <button id="robot-toggle-select-all" type="button" style="background: none; border: none; color: var(--primary-color, #8b0000); font-size: 0.75rem; font-weight: 600; cursor: pointer; padding: 0; display: none;">Desmarcar todos</button>
                     </div>
                     <div id="robot-context-loading" style="font-size: 0.8rem; color: #666; display: flex; align-items: center; gap: 0.4rem; padding: 0.5rem 0;">
                         <i data-lucide="loader" class="animate-spin" style="width: 14px; height: 14px;"></i>
