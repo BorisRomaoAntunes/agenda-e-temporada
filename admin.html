@@ -413,8 +413,9 @@
                     <div class="card-icon" style="background: rgba(138, 43, 226, 0.1); color: #8A2BE2;">
                         <i data-lucide="link"></i>
                     </div>
-                    <h3>Criar Link Temporário</h3>
-                    <p>Adicione um novo botão no site dos músicos.</p>
+                    <input type="hidden" id="link-id">
+                    <h3 id="link-form-title">Criar Link Temporário</h3>
+                    <p id="link-form-desc">Adicione um novo botão no site dos músicos.</p>
 
                     <div class="version-input-wrapper" style="padding-top: 0.5rem; margin-bottom: 1rem;">
                         <label for="link-name">Ícone e Nome do Botão (máx. 30 caracteres)</label>
@@ -466,9 +467,14 @@
                         </div>
                     </div>
 
-                    <button class="btn-primary" id="btn-create-link" style="margin-top: 0.5rem;">
-                        <i data-lucide="plus"></i> Criar Botão
-                    </button>
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem;">
+                        <button class="btn-primary" id="btn-create-link" style="flex: 1;">
+                            <i data-lucide="plus"></i> Criar Botão
+                        </button>
+                        <button class="btn-outline-cancel" id="btn-cancel-edit-link" style="display: none; flex: 1;">
+                            <i data-lucide="x"></i> Cancelar
+                        </button>
+                    </div>
                 </div>
 
                 <div id="admin-links-list-wrapper" class="admin-notif-wrapper">
@@ -722,7 +728,7 @@ Intervalo
                             <i data-lucide="file-text" style="color: var(--primary-color, #8b0000); width: 18px; height: 18px;"></i> Relatórios Específicos
                         </h4>
                         <div class="reports-buttons-grid" style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                            <button id="btn-generate-ficha-ia" class="btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem; background: #2E8B57; cursor: pointer; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 500; font-size: 0.9rem; color: white; border: none; transition: background 0.2s;">
+                            <button id="btn-generate-ficha-ia" class="btn-primary" title="Clique uma vez para carregar (usa cache se atualizado) ou clique duplo para forçar nova geração via IA" style="display: inline-flex; align-items: center; gap: 0.5rem; background: #2E8B57; cursor: pointer; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 500; font-size: 0.9rem; color: white; border: none; transition: background 0.2s;">
                                 <i data-lucide="sparkles" style="width: 16px; height: 16px;"></i> <span>Ficha Técnica - Comunicação</span>
                             </button>
                         </div>
@@ -740,12 +746,12 @@ Intervalo
                         <div class="musicos-table-wrapper" style="overflow-x: auto; margin-top: 1.2rem; border-radius: 10px; border: 1px solid #f0f2f5; background: white;">
                             <table class="musicos-table" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem;">
                                 <thead>
-                                    <tr style="background: #fafafa; border-bottom: 1px solid #f0f2f5; color: #666; font-weight: 600;">
+                                                                    <tr style="background: #fafafa; border-bottom: 1px solid #f0f2f5; color: #666; font-weight: 600;">
                                         <th style="padding: 1rem 1.2rem;">Nome Artístico</th>
                                         <th style="padding: 1rem 1.2rem;">Instrumento</th>
                                         <th style="padding: 1rem 1.2rem;">Status</th>
-                                        <th style="padding: 1rem 1.2rem;">E-mail</th>
                                         <th style="padding: 1rem 1.2rem;">Telefone</th>
+                                        <th style="padding: 1rem 1.2rem;">E-mail</th>
                                     </tr>
                                 </thead>
                                 <tbody id="musicos-tbody">
@@ -1380,11 +1386,11 @@ Intervalo
                         <label style="font-size: 0.85rem; font-weight: 700; color: #444; display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.2rem;">
                             <i data-lucide="user-check" style="width: 16px; height: 16px; color: #2E8B57;"></i> Nomes dos Músicos:
                         </label>
-                        <div class="segment-control" style="display: flex; background: #e9ecef; padding: 3px; border-radius: 8px; width: fit-content; border: 1px solid #dee2e6; margin-bottom: 0.2rem;">
-                            <button type="button" class="segment-btn active" id="btn-name-artistico" style="border: none; background: white; padding: 0.4rem 1rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s; color: #2E8B57; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                        <div class="segment-control" style="margin-bottom: 0.2rem;">
+                            <button type="button" class="segment-btn active" id="btn-name-artistico">
                                 Nome Artístico
                             </button>
-                            <button type="button" class="segment-btn" id="btn-name-completo" style="border: none; background: transparent; padding: 0.4rem 1rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s; color: #555;">
+                            <button type="button" class="segment-btn" id="btn-name-completo">
                                 Nome Completo
                             </button>
                         </div>
@@ -1398,14 +1404,14 @@ Intervalo
                         <label style="font-size: 0.85rem; font-weight: 700; color: #444; display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.2rem;">
                             <i data-lucide="file-text" style="width: 16px; height: 16px; color: #2E8B57;"></i> Formato de Saída:
                         </label>
-                        <div class="segment-control" style="display: flex; background: #e9ecef; padding: 3px; border-radius: 8px; width: fit-content; border: 1px solid #dee2e6;">
-                            <button type="button" class="segment-btn active" id="btn-format-markdown" style="border: none; background: white; padding: 0.4rem 1rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s; color: #2E8B57; display: flex; align-items: center; gap: 0.3rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                        <div class="segment-control">
+                            <button type="button" class="segment-btn active" id="btn-format-markdown">
                                 <i data-lucide="message-square" style="width: 13px; height: 13px;"></i> Markdown
                             </button>
-                            <button type="button" class="segment-btn" id="btn-format-email" style="border: none; background: transparent; padding: 0.4rem 1rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s; color: #555; display: flex; align-items: center; gap: 0.3rem;">
+                            <button type="button" class="segment-btn" id="btn-format-email">
                                 <i data-lucide="mail" style="width: 13px; height: 13px;"></i> E-mail Corrido
                             </button>
-                            <button type="button" class="segment-btn" id="btn-format-lista" style="border: none; background: transparent; padding: 0.4rem 1rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s; color: #555; display: flex; align-items: center; gap: 0.3rem;">
+                            <button type="button" class="segment-btn" id="btn-format-lista">
                                 <i data-lucide="list" style="width: 13px; height: 13px;"></i> Lista Vertical
                             </button>
                         </div>

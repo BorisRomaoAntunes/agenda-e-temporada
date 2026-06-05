@@ -1602,8 +1602,10 @@ function initEngagementChart() {
             const day = String(d.getDate()).padStart(2, '0');
             const dateStr = `${year}-${month}-${day}`;
             
-            // Exibição dd/mm conforme solicitado
-            const displayStr = `${day}/${month}`;
+            // Exibição dd/mm e dia da semana conforme solicitado
+            const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+            const diaSemanaStr = diasSemana[d.getDay()];
+            const displayStr = `${day}/${month} (${diaSemanaStr})`;
             
             lastDays.push({
                 dateStr: dateStr,
@@ -2500,12 +2502,13 @@ document.addEventListener('keydown', (e) => {
 
 // ================= LINKS TEMPORÁRIOS =================
 
+let selectedIcon = 'link'; // Mantém o ícone selecionado para o link temporário (escopo do módulo)
+
 function setupLinks() {
     const btnCreate = document.getElementById('btn-create-link');
     if (!btnCreate) return;
 
     // Lógica do Seletor de Ícones
-    let selectedIcon = 'link';
     const btnIconPicker = document.getElementById('btn-icon-picker');
     const iconPickerContainer = btnIconPicker ? btnIconPicker.parentElement : null;
     const iconOptions = document.querySelectorAll('.icon-option');
@@ -2563,9 +2566,11 @@ function setupLinks() {
     }
 
     btnCreate.addEventListener('click', async () => {
+        const idInput = document.getElementById('link-id');
         const nameInput = document.getElementById('link-name');
         const urlInput = document.getElementById('link-url');
         
+        const docId = idInput ? idInput.value : '';
         const name = nameInput.value.trim();
         const url = urlInput.value.trim();
 
@@ -2581,51 +2586,179 @@ function setupLinks() {
 
         try {
             btnCreate.disabled = true;
-            btnCreate.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Criando...';
 
-            await addDoc(collection(db, 'dynamicLinks'), {
-                name: name,
-                url: url,
-                icon: selectedIcon,
-                active: true,
-                createdAt: serverTimestamp()
-            });
+            if (docId) {
+                btnCreate.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Salvando...';
+                if (window.lucide) lucide.createIcons();
 
-            nameInput.value = '';
-            urlInput.value = '';
-            if (counterSpan) {
-                counterSpan.textContent = '0/30';
-                counterSpan.style.color = 'var(--text-secondary)';
+                await updateDoc(doc(db, 'dynamicLinks', docId), {
+                    name: name,
+                    url: url,
+                    icon: selectedIcon
+                });
+
+                showNotification('Link atualizado com sucesso!', 'success');
+                await saveLog('link-alterado', `Link temporário alterado: "${name}"`, url, `O administrador editou os dados de um link temporário.`);
+                
+                window.resetLinkForm();
+            } else {
+                btnCreate.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Criando...';
+                if (window.lucide) lucide.createIcons();
+
+                await addDoc(collection(db, 'dynamicLinks'), {
+                    name: name,
+                    url: url,
+                    icon: selectedIcon,
+                    active: true,
+                    createdAt: serverTimestamp()
+                });
+
+                nameInput.value = '';
+                urlInput.value = '';
+                if (counterSpan) {
+                    counterSpan.textContent = '0/30';
+                    counterSpan.style.color = 'var(--text-secondary)';
+                }
+
+                // Reseta ícone para o padrão
+                selectedIcon = 'link';
+                const resetPreview = document.getElementById('selected-icon-preview');
+                if (resetPreview) {
+                    const newIcon = document.createElement('i');
+                    newIcon.id = 'selected-icon-preview';
+                    newIcon.setAttribute('data-lucide', 'link');
+                    resetPreview.parentNode.replaceChild(newIcon, resetPreview);
+                    lucide.createIcons();
+                }
+                iconOptions.forEach(o => {
+                    o.classList.remove('active');
+                    if (o.getAttribute('data-icon') === 'link') o.classList.add('active');
+                });
+                showNotification('Link criado com sucesso!', 'success');
+                await saveLog('link-criado', `Link temporário criado: "${name}"`, url, `O administrador criou um novo link temporário.`);
             }
-
-            // Reseta ícone para o padrão
-            selectedIcon = 'link';
-            const resetPreview = document.getElementById('selected-icon-preview');
-            if (resetPreview) {
-                const newIcon = document.createElement('i');
-                newIcon.id = 'selected-icon-preview';
-                newIcon.setAttribute('data-lucide', 'link');
-                resetPreview.parentNode.replaceChild(newIcon, resetPreview);
-                lucide.createIcons();
-            }
-            iconOptions.forEach(o => {
-                o.classList.remove('active');
-                if (o.getAttribute('data-icon') === 'link') o.classList.add('active');
-            });
-            showNotification('Link criado com sucesso!', 'success');
-            await saveLog('link-criado', `Link temporário criado: "${name}"`, url, `O administrador criou um novo link temporário.`);
         } catch (error) {
-            console.error('Erro ao criar link:', error);
-            showNotification('Erro ao criar link.', 'error');
+            console.error('Erro ao salvar link:', error);
+            showNotification('Erro ao salvar link.', 'error');
         } finally {
             btnCreate.disabled = false;
-            btnCreate.innerHTML = '<i data-lucide="plus"></i> Criar Botão';
+            if (docId) {
+                btnCreate.innerHTML = '<i data-lucide="save"></i> Salvar Alterações';
+            } else {
+                btnCreate.innerHTML = '<i data-lucide="plus"></i> Criar Botão';
+            }
             lucide.createIcons();
         }
     });
 
+    const btnCancelEdit = document.getElementById('btn-cancel-edit-link');
+    if (btnCancelEdit) {
+        btnCancelEdit.addEventListener('click', () => {
+            window.resetLinkForm();
+        });
+    }
+
     loadAdminLinks();
 }
+
+// Funções para controle de Edição de Links
+window.startEditLink = function(id, name, url, icon) {
+    const idInput = document.getElementById('link-id');
+    const nameInput = document.getElementById('link-name');
+    const urlInput = document.getElementById('link-url');
+    const formTitle = document.getElementById('link-form-title');
+    const formDesc = document.getElementById('link-form-desc');
+    const btnCreate = document.getElementById('btn-create-link');
+    const btnCancel = document.getElementById('btn-cancel-edit-link');
+    
+    if (idInput) idInput.value = id;
+    if (nameInput) {
+        nameInput.value = name;
+        // atualiza contador de caracteres
+        const counterSpan = document.getElementById('link-name-counter');
+        if (counterSpan) {
+            counterSpan.textContent = `${name.length}/30`;
+            counterSpan.style.color = name.length >= 30 ? '#ff4444' : 'var(--text-secondary)';
+        }
+    }
+    if (urlInput) urlInput.value = url;
+    
+    // Atualiza ícone selecionado
+    selectedIcon = icon || 'link';
+    const resetPreview = document.getElementById('selected-icon-preview');
+    if (resetPreview) {
+        const newIcon = document.createElement('i');
+        newIcon.id = 'selected-icon-preview';
+        newIcon.setAttribute('data-lucide', selectedIcon);
+        resetPreview.parentNode.replaceChild(newIcon, resetPreview);
+    }
+    const iconOptions = document.querySelectorAll('.icon-option');
+    iconOptions.forEach(o => {
+        o.classList.remove('active');
+        if (o.getAttribute('data-icon') === selectedIcon) o.classList.add('active');
+    });
+
+    if (formTitle) formTitle.textContent = 'Editar Link Temporário';
+    if (formDesc) formDesc.textContent = 'Edite o texto e a URL do botão.';
+    
+    if (btnCreate) {
+        btnCreate.innerHTML = '<i data-lucide="save"></i> Salvar Alterações';
+    }
+    if (btnCancel) btnCancel.style.display = 'block';
+    
+    // Rolar suavemente para o formulário
+    const sectionLinks = document.getElementById('section-links');
+    if (sectionLinks) {
+        sectionLinks.scrollIntoView({ behavior: 'smooth' });
+    }
+    
+    if (window.lucide) lucide.createIcons();
+};
+
+window.resetLinkForm = function() {
+    const idInput = document.getElementById('link-id');
+    const nameInput = document.getElementById('link-name');
+    const urlInput = document.getElementById('link-url');
+    const formTitle = document.getElementById('link-form-title');
+    const formDesc = document.getElementById('link-form-desc');
+    const btnCreate = document.getElementById('btn-create-link');
+    const btnCancel = document.getElementById('btn-cancel-edit-link');
+    
+    if (idInput) idInput.value = '';
+    if (nameInput) nameInput.value = '';
+    if (urlInput) urlInput.value = '';
+    
+    const counterSpan = document.getElementById('link-name-counter');
+    if (counterSpan) {
+        counterSpan.textContent = '0/30';
+        counterSpan.style.color = 'var(--text-secondary)';
+    }
+    
+    // Reseta ícone para o padrão
+    selectedIcon = 'link';
+    const resetPreview = document.getElementById('selected-icon-preview');
+    if (resetPreview) {
+        const newIcon = document.createElement('i');
+        newIcon.id = 'selected-icon-preview';
+        newIcon.setAttribute('data-lucide', 'link');
+        resetPreview.parentNode.replaceChild(newIcon, resetPreview);
+    }
+    const iconOptions = document.querySelectorAll('.icon-option');
+    iconOptions.forEach(o => {
+        o.classList.remove('active');
+        if (o.getAttribute('data-icon') === 'link') o.classList.add('active');
+    });
+
+    if (formTitle) formTitle.textContent = 'Criar Link Temporário';
+    if (formDesc) formDesc.textContent = 'Adicione um novo botão no site dos músicos.';
+    
+    if (btnCreate) {
+        btnCreate.innerHTML = '<i data-lucide="plus"></i> Criar Botão';
+    }
+    if (btnCancel) btnCancel.style.display = 'none';
+    
+    if (window.lucide) lucide.createIcons();
+};
 
 function loadAdminLinks() {
     const listEl = document.getElementById('admin-links-list');
@@ -2672,6 +2805,9 @@ function loadAdminLinks() {
                         <input type="checkbox" class="toggle-link-status" data-id="${id}" data-name="${data.name}" data-url="${data.url}" ${isChecked}>
                         <span class="toggle-slider"></span>
                     </label>
+                    <button class="btn-edit-notif" title="Editar Link" data-id="${id}" data-name="${data.name}" data-url="${data.url}" data-icon="${iconName}">
+                        <i data-lucide="edit-2"></i>
+                    </button>
                     <button class="btn-delete-notif" title="Apagar Link" data-id="${id}" data-name="${data.name}" data-url="${data.url}">
                         <i data-lucide="trash-2"></i>
                     </button>
@@ -2700,6 +2836,17 @@ function loadAdminLinks() {
                     e.target.checked = !newState; // reverte visualmente
                     showNotification("Erro ao atualizar status do link.", 'error');
                 }
+            });
+        });
+
+        listEl.querySelectorAll('.btn-edit-notif').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const docId = btn.getAttribute('data-id');
+                const name = btn.getAttribute('data-name');
+                const url = btn.getAttribute('data-url');
+                const icon = btn.getAttribute('data-icon');
+                
+                window.startEditLink(docId, name, url, icon);
             });
         });
 
@@ -3879,6 +4026,25 @@ function initMusiciansManagement() {
     const drawerOverlay = document.getElementById('musico-drawer-overlay');
     const btnCloseDrawer = document.getElementById('btn-close-drawer');
 
+    // Função utilitária para obter o link correto do WhatsApp a partir do número cadastrado
+    const obterLinkWhatsapp = (telefone) => {
+        if (!telefone || telefone === '-') return '';
+        const digitos = telefone.toString().replace(/[^\d]/g, '');
+        if (!digitos) return '';
+        
+        // Se tiver 10 ou 11 dígitos (DDD + número), adiciona o DDI 55 (Brasil)
+        if (digitos.length === 10 || digitos.length === 11) {
+            return `https://wa.me/55${digitos}`;
+        }
+        
+        // Se já tiver 12 ou 13 dígitos (já contendo o DDI 55)
+        if (digitos.length === 12 || digitos.length === 13) {
+            return `https://wa.me/${digitos}`;
+        }
+        
+        return `https://wa.me/${digitos}`;
+    };
+
     // Função utilitária para calcular idade com segurança a partir de vários formatos de data do Excel / String
     const calcularIdade = (nascimentoVal) => {
         if (!nascimentoVal || nascimentoVal === '-') return null;
@@ -3962,21 +4128,29 @@ function initMusiciansManagement() {
     function updateStats(musicians) {
         if (!statTotal) return;
         
-        // Contabiliza somente bolsistas e monitores
+        // Contabiliza somente bolsistas e monitores ativos
         const validMusicians = musicians.filter(m => {
+            if (m.statusFirebase === 'desligado' || m.statusFirebase === 'inativo') return false;
             const status = (m.Status || '').toLowerCase();
             return status.includes('bolsista') || status.includes('monitor');
         });
         statTotal.textContent = validMusicians.length;
         
-        const bolsistas = musicians.filter(m => (m.Status || '').toLowerCase().includes('bolsista')).length;
+        const bolsistas = musicians.filter(m => {
+            if (m.statusFirebase === 'desligado' || m.statusFirebase === 'inativo') return false;
+            return (m.Status || '').toLowerCase().includes('bolsista');
+        }).length;
         statBolsistas.textContent = bolsistas;
         
-        const monitores = musicians.filter(m => (m.Status || '').toLowerCase().includes('monitor')).length;
+        const monitores = musicians.filter(m => {
+            if (m.statusFirebase === 'desligado' || m.statusFirebase === 'inativo') return false;
+            return (m.Status || '').toLowerCase().includes('monitor');
+        }).length;
         statMonitores.textContent = monitores;
         
         // Filtra para contar somente quem possui restrições reais
         const restricoes = musicians.filter(m => {
+            if (m.statusFirebase === 'desligado' || m.statusFirebase === 'inativo') return false;
             const r = (m['Restrição Alimentar'] || m['Restrição Alimentar '] || '').toString().toLowerCase().trim();
             if (r === "" || r === "-" || r === "não" || r === "não se aplica" || r.includes("sem restriç") || r.includes("sem restric") || r.includes("não possui") || r.includes("nao possui")) {
                 return false;
@@ -4009,13 +4183,28 @@ function initMusiciansManagement() {
             else if (statusLower.includes('monitor')) badgeClass = 'monitor';
             else if (statusLower.includes('reg.titular') || statusLower.includes('titular')) badgeClass = 'reg-titular';
             else if (statusLower.includes('extra')) badgeClass = 'musico-extra';
+            else if (statusLower.includes('desligado')) badgeClass = 'desligado';
+            const whatsappLink = obterLinkWhatsapp(musico.TELEFONE);
+            let telefoneHtml = musico.TELEFONE || '-';
+            if (whatsappLink && musico.TELEFONE !== '-') {
+                telefoneHtml = `
+                    <div class="phone-column-container">
+                        <span class="phone-number-text">${musico.TELEFONE}</span>
+                        <a href="${whatsappLink}" target="_blank" class="whatsapp-quick-link" title="Chamar no WhatsApp" onclick="event.stopPropagation();">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" style="fill: currentColor;">
+                                <path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L3 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7 .9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/>
+                            </svg>
+                        </a>
+                    </div>
+                `;
+            }
 
             tr.innerHTML = `
                 <td style="padding: 1rem 1.2rem; font-weight: 600; color: #333;">${musico.NOMEARTISTICO || '-'}</td>
                 <td style="padding: 1rem 1.2rem; color: #495057;">${musico.INSTRUMENTOS || '-'}</td>
                 <td style="padding: 1rem 1.2rem;"><span class="field-value badge ${badgeClass}">${musico.Status || '-'}</span></td>
+                <td style="padding: 1rem 1.2rem; color: #666; font-size: 0.9rem;">${telefoneHtml}</td>
                 <td style="padding: 1rem 1.2rem; color: #666; font-size: 0.9rem;">${musico.EMAIL || '-'}</td>
-                <td style="padding: 1rem 1.2rem; color: #666; font-size: 0.9rem;">${musico.TELEFONE || '-'}</td>
             `;
 
             // Evento de clique para abrir a gaveta (Drawer)
@@ -4090,6 +4279,7 @@ function initMusiciansManagement() {
         else if (statusLower.includes('monitor')) badgeClass = 'monitor';
         else if (statusLower.includes('reg.titular') || statusLower.includes('titular')) badgeClass = 'reg-titular';
         else if (statusLower.includes('extra')) badgeClass = 'musico-extra';
+        else if (statusLower.includes('desligado')) badgeClass = 'desligado';
         statusBadge.classList.add(badgeClass);
 
         document.getElementById('drawer-val-escalado').textContent = formatValue(musico.Escalado);
@@ -4113,7 +4303,24 @@ function initMusiciansManagement() {
 
         // Contatos e Docs
         document.getElementById('drawer-val-email').textContent = formatValue(musico.EMAIL);
-        document.getElementById('drawer-val-telefone').textContent = formatValue(musico.TELEFONE);
+        
+        const whatsappLinkDrawer = obterLinkWhatsapp(musico.TELEFONE);
+        const telefoneVal = formatValue(musico.TELEFONE);
+        const drawerTelefoneEl = document.getElementById('drawer-val-telefone');
+        if (whatsappLinkDrawer && telefoneVal !== '-') {
+            drawerTelefoneEl.innerHTML = `
+                <div style="display: inline-flex; align-items: center; gap: 0.5rem;">
+                    <span>${telefoneVal}</span>
+                    <a href="${whatsappLinkDrawer}" target="_blank" class="whatsapp-quick-link" title="Chamar no WhatsApp" style="display: inline-flex; align-items: center; color: #25D366; transition: transform 0.2s; padding: 2px;">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" style="width: 16px; height: 16px; fill: currentColor;">
+                            <path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L3 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7 .9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/>
+                        </svg>
+                    </a>
+                </div>
+            `;
+        } else {
+            drawerTelefoneEl.textContent = telefoneVal;
+        }
         document.getElementById('drawer-val-cpf').textContent = formatValue(musico.CPF);
         document.getElementById('drawer-val-rg').textContent = formatValue(musico.RG);
         document.getElementById('drawer-val-pis').textContent = formatValue(musico['PIS/PASEP']);
@@ -4170,17 +4377,20 @@ function initMusiciansManagement() {
                     const data = new Uint8Array(event.target.result);
                     const workbook = XLSX.read(data, { type: 'array' });
                     
-                    // Buscar aba Dados Gerais (com espaço extra comum)
-                    let sheetName = workbook.SheetNames.find(name => name.trim() === 'Dados Gerais');
+                    // Buscar aba de dados de forma flexível (aceita "dados", "Dados" ou "Dados Gerais")
+                    let sheetName = workbook.SheetNames.find(name => {
+                        const n = name.trim().toLowerCase();
+                        return n === 'dados' || n === 'dados gerais';
+                    });
                     if (!sheetName) {
-                        throw new Error('Aba "Dados Gerais" não encontrada na planilha. Verifique o nome da aba.');
+                        throw new Error('Aba "dados" ou "Dados Gerais" não encontrada na planilha. Verifique o nome da aba.');
                     }
 
                     const sheet = workbook.Sheets[sheetName];
                     const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
                     
                     if (rows.length === 0) {
-                        throw new Error('A aba "Dados Gerais" está vazia.');
+                        throw new Error(`A aba "${sheetName}" está vazia.`);
                     }
 
                     showNotification(`Processando ${rows.length} linhas...`, "info");
@@ -4193,7 +4403,7 @@ function initMusiciansManagement() {
 
                     // Iniciar Sincronização com o Firestore
                     let updatedCount = 0;
-                    let inactiveCount = 0;
+                    let desligadosCount = 0;
                     const incomingCpfs = new Set();
 
                     // Instanciar batch
@@ -4225,18 +4435,19 @@ function initMusiciansManagement() {
                         updatedCount++;
                     });
 
-                    // Identificar músicos no Firestore que não estão na planilha importada e marcá-los como "inativos"
+                    // Identificar músicos no Firestore que não estão na planilha importada e marcá-los como "desligados"
                     const currentDocsSnap = await getDocs(collection(db, "musicos"));
                     currentDocsSnap.forEach(docSnap => {
                         const dbCpf = docSnap.id;
                         const data = docSnap.data();
-                        if (!incomingCpfs.has(dbCpf) && data.statusFirebase !== "inativo") {
+                        if (!incomingCpfs.has(dbCpf) && data.statusFirebase !== "inativo" && data.statusFirebase !== "desligado") {
                             const docRef = doc(db, "musicos", dbCpf);
                             batch.update(docRef, { 
-                                statusFirebase: "inativo",
+                                statusFirebase: "desligado",
+                                Status: "Desligado",
                                 updatedAt: serverTimestamp()
                             });
-                            inactiveCount++;
+                            desligadosCount++;
                         }
                     });
 
@@ -4247,10 +4458,10 @@ function initMusiciansManagement() {
                     // Gravar Lote
                     await batch.commit();
 
-                    showNotification(`Sucesso! ${updatedCount} músicos atualizados. ${inactiveCount} inativados.`, "success");
+                    showNotification(`Sucesso! ${updatedCount} músicos atualizados. ${desligadosCount} marcados como desligados.`, "success");
                     
                     // Salvar log de auditoria
-                    await saveLog("sistema", `Planilha de músicos importada com sucesso (${updatedCount} cadastros atualizados, ${inactiveCount} inativados)`, auth.currentUser.email);
+                    await saveLog("sistema", `Planilha de músicos importada com sucesso (${updatedCount} cadastros atualizados, ${desligadosCount} marcados como desligados)`, auth.currentUser.email);
 
                 } catch (error) {
                     console.error("Erro ao importar planilha:", error);
@@ -4275,8 +4486,9 @@ function initMusiciansManagement() {
             }
 
             try {
-                // Filtrar apenas bolsistas e monitores
+                // Filtrar apenas bolsistas e monitores ativos
                 const filtered = allMusicians.filter(m => {
+                    if (m.statusFirebase === 'desligado' || m.statusFirebase === 'inativo') return false;
                     const status = (m.Status || '').toLowerCase();
                     return status.includes('bolsista') || status.includes('monitor');
                 });
@@ -4388,6 +4600,9 @@ function initMusiciansManagement() {
             // Filtro EMM (Angela): ignorar qualquer profissional cujo status contenha 'emm'
             if (status.includes('emm')) return;
 
+            // Ignorar músicos desligados ou inativos
+            if (status.includes('desligado') || m.statusFirebase === 'desligado' || m.statusFirebase === 'inativo') return;
+
             const instrumento = (m.INSTRUMENTOS || '').trim();
             
             // Fallback de nomes: se o escolhido estiver em branco, usa o outro
@@ -4454,6 +4669,13 @@ function initMusiciansManagement() {
             const monitoresOrdenados = naipesMonitores[naipe].sort((a, b) => a.localeCompare(b, 'pt-BR'));
             const bolsistasOrdenados = naipesBolsistas[naipe].sort((a, b) => a.localeCompare(b, 'pt-BR'));
             naipes[naipe] = [...monitoresOrdenados, ...bolsistasOrdenados];
+        });
+
+        // Garantir que o Regente Titular venha sempre antes do Regente Assistente
+        regentes.sort((a, b) => {
+            const pesoA = a.cargo === "Regente Titular" ? 1 : (a.cargo === "Regente Assistente" ? 2 : 3);
+            const pesoB = b.cargo === "Regente Titular" ? 1 : (b.cargo === "Regente Assistente" ? 2 : 3);
+            return pesoA - pesoB;
         });
 
         return { regentes, naipes, equipeTecnica };
@@ -4693,56 +4915,44 @@ function initMusiciansManagement() {
         }
     };
 
-    if (btnGenerateFicha) {
-        btnGenerateFicha.addEventListener('click', async () => {
-            if (allMusicians.length === 0) {
-                showNotification("Nenhum integrante ativo para gerar o relatório.", "warning");
-                return;
-            }
+    // Função do processo de geração da ficha técnica
+    const generateFichaProcess = async (forceIA = false) => {
+        if (allMusicians.length === 0) {
+            showNotification("Nenhum integrante ativo para gerar o relatório.", "warning");
+            return;
+        }
 
-            // Resetar seletores de visualização para o estado padrão
-            if (btnNameArtistico && btnNameCompleto) {
-                btnNameArtistico.classList.add('active');
-                btnNameCompleto.classList.remove('active');
-                btnNameArtistico.style.background = 'white';
-                btnNameArtistico.style.color = '#2E8B57';
-                btnNameArtistico.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)';
-                btnNameCompleto.style.background = 'transparent';
-                btnNameCompleto.style.color = '#555';
-                btnNameCompleto.style.boxShadow = 'none';
-                if (labelNameStatus) {
-                    labelNameStatus.textContent = '📌 Exibindo Nome Artístico (com fallback para Nome de Registro se não preenchido)';
-                }
+        // Resetar seletores de visualização para o estado padrão
+        if (btnNameArtistico && btnNameCompleto) {
+            btnNameArtistico.classList.add('active');
+            btnNameCompleto.classList.remove('active');
+            if (labelNameStatus) {
+                labelNameStatus.textContent = '📌 Exibindo Nome Artístico (com fallback para Nome de Registro se não preenchido)';
             }
+        }
 
-            if (btnFormatMarkdown && btnFormatEmail && btnFormatLista) {
-                btnFormatMarkdown.classList.add('active');
-                btnFormatEmail.classList.remove('active');
-                btnFormatLista.classList.remove('active');
-                btnFormatMarkdown.style.background = 'white';
-                btnFormatMarkdown.style.color = '#2E8B57';
-                btnFormatMarkdown.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)';
-                
-                btnFormatEmail.style.background = 'transparent';
-                btnFormatEmail.style.color = '#555';
-                btnFormatEmail.style.boxShadow = 'none';
-                
-                btnFormatLista.style.background = 'transparent';
-                btnFormatLista.style.color = '#555';
-                btnFormatLista.style.boxShadow = 'none';
-            }
+        if (btnFormatMarkdown && btnFormatEmail && btnFormatLista) {
+            btnFormatMarkdown.classList.add('active');
+            btnFormatEmail.classList.remove('active');
+            btnFormatLista.classList.remove('active');
+        }
 
-            // Exibir loading
-            btnGenerateFicha.disabled = true;
-            const originalHTML = btnGenerateFicha.innerHTML;
+        // Exibir loading
+        btnGenerateFicha.disabled = true;
+        const originalHTML = btnGenerateFicha.innerHTML;
+        if (forceIA) {
+            btnGenerateFicha.innerHTML = '<i data-lucide="loader-2" class="animate-spin" style="width: 16px; height: 16px;"></i> <span>Forçando regeneração via IA...</span>';
+        } else {
             btnGenerateFicha.innerHTML = '<i data-lucide="loader-2" class="animate-spin" style="width: 16px; height: 16px;"></i> <span>Processando Ficha...</span>';
-            if (window.lucide) lucide.createIcons();
+        }
+        if (window.lucide) lucide.createIcons();
 
-            geminiFichaMarkdown = ""; // Resetar o cache do Gemini
+        geminiFichaMarkdown = ""; // Resetar o cache do Gemini
 
-            try {
-                // 1. Verificar Cache do Firestore
-                let usarCache = false;
+        try {
+            // 1. Verificar Cache do Firestore (apenas se NÃO forçar a IA)
+            let usarCache = false;
+            if (!forceIA) {
                 try {
                     const importSnap = await getDoc(doc(db, "config", "musiciansImport"));
                     const cacheSnap = await getDoc(doc(db, "config", "fichaTecnicaCache"));
@@ -4763,79 +4973,98 @@ function initMusiciansManagement() {
                 } catch (cacheErr) {
                     console.warn("Erro ao ler cache do Firestore, prosseguindo com fluxo normal:", cacheErr);
                 }
+            }
 
-                if (usarCache) {
-                    showNotification("Ficha Técnica carregada instantaneamente do cache! 🎼⚡", "success");
-                } else {
-                    // Obter dados estruturados padrão (Artístico) para mandar à IA
-                    const data = obterDadosFichaEstruturados('artistico');
-                    const { regentes, naipes, equipeTecnica } = data;
+            if (usarCache) {
+                showNotification("Ficha Técnica carregada instantaneamente do cache! 🎼⚡", "success");
+            } else {
+                // Obter dados estruturados padrão (Artístico) para mandar à IA
+                const data = obterDadosFichaEstruturados('artistico');
+                const { regentes, naipes, equipeTecnica } = data;
 
-                    // Construir a lista em formato de texto para mandar à Cloud Function
-                    let listText = 'Regentes:\n';
-                    regentes.forEach(r => { listText += `- ${r.cargo}: ${r.nome}\n`; });
-                    
-                    listText += '\nNaipes:\n';
-                    Object.keys(naipes).forEach(naipe => {
-                        const list = naipes[naipe];
-                        if (list.length > 0) listText += `- ${naipe}: ${list.join(', ')}\n`;
-                    });
+                // Construir a lista em formato de texto para mandar à Cloud Function
+                let listText = 'Regentes:\n';
+                regentes.forEach(r => { listText += `- ${r.cargo}: ${r.nome}\n`; });
+                
+                listText += '\nNaipes:\n';
+                Object.keys(naipes).forEach(naipe => {
+                    const list = naipes[naipe];
+                    if (list.length > 0) listText += `- ${naipe}: ${list.join(', ')}\n`;
+                });
 
-                    listText += '\nEquipe Técnica:\n';
-                    Object.keys(equipeTecnica).forEach(cargo => {
-                        const list = equipeTecnica[cargo];
-                        if (list.length > 0) listText += `- ${cargo}: ${list.join(', ')}\n`;
-                    });
+                listText += '\nEquipe Técnica:\n';
+                Object.keys(equipeTecnica).forEach(cargo => {
+                    const list = equipeTecnica[cargo];
+                    if (list.length > 0) listText += `- ${cargo}: ${list.join(', ')}\n`;
+                });
 
-                    // Chamar IA via Cloud Function
-                    console.log("Chamando Cloud Function generateFichaTecnica...");
-                    const generateFichaFn = httpsCallable(functions, 'generateFichaTecnica');
-                    const response = await generateFichaFn({ musiciansTextList: listText });
-                    if (response.data && response.data.text) {
-                        geminiFichaMarkdown = response.data.text;
-                        showNotification("Ficha Técnica gerada com sucesso via IA! 🎼🤖", "success");
+                // Chamar IA via Cloud Function
+                console.log(forceIA ? "Forçando geração de Ficha Técnica com IA..." : "Chamando Cloud Function generateFichaTecnica...");
+                const generateFichaFn = httpsCallable(functions, 'generateFichaTecnica');
+                const response = await generateFichaFn({ musiciansTextList: listText });
+                if (response.data && response.data.text) {
+                    geminiFichaMarkdown = response.data.text;
+                    showNotification(forceIA ? "Ficha Técnica regenerada com sucesso via IA! 🎼🤖" : "Ficha Técnica gerada com sucesso via IA! 🎼🤖", "success");
 
-                        // Gravar o novo resultado no cache do Firestore
-                        try {
-                            await setDoc(doc(db, "config", "fichaTecnicaCache"), {
-                                text: geminiFichaMarkdown,
-                                generatedAt: serverTimestamp()
-                            });
-                            console.log("Cache da Ficha Técnica atualizado no Firestore.");
-                        } catch (cacheWriteErr) {
-                            console.warn("Não foi possível salvar a ficha no cache do Firestore:", cacheWriteErr);
-                        }
-                    } else {
-                        throw new Error("Resposta inválida da Cloud Function.");
+                    // Gravar o novo resultado no cache do Firestore
+                    try {
+                        await setDoc(doc(db, "config", "fichaTecnicaCache"), {
+                            text: geminiFichaMarkdown,
+                            generatedAt: serverTimestamp()
+                        });
+                        console.log("Cache da Ficha Técnica atualizado no Firestore.");
+                    } catch (cacheWriteErr) {
+                        console.warn("Não foi possível salvar a ficha no cache do Firestore:", cacheWriteErr);
                     }
+                } else {
+                    throw new Error("Resposta inválida da Cloud Function.");
                 }
+            }
 
-                // Renderizar com base no estado inicial ativo
+            // Renderizar com base no estado inicial ativo
+            atualizarExibicaoFicha();
+
+            if (modalFicha) {
+                modalFicha.style.display = 'flex';
+            }
+
+        } catch (err) {
+            console.error("Erro geral ao gerar Ficha Técnica:", err);
+            // Fallback local caso tudo (IA e Cache) falhe
+            try {
+                const dataFallback = obterDadosFichaEstruturados('artistico');
+                geminiFichaMarkdown = gerarFichaMarkdown(dataFallback);
                 atualizarExibicaoFicha();
-
                 if (modalFicha) {
                     modalFicha.style.display = 'flex';
                 }
+                showNotification("Ficha Técnica gerada localmente (Fallback de segurança).", "info");
+            } catch (fallbackErr) {
+                console.error("Falha inclusive no fallback local:", fallbackErr);
+                showNotification("Erro ao processar: " + err.message, "error");
+            }
+        } finally {
+            btnGenerateFicha.disabled = false;
+            btnGenerateFicha.innerHTML = originalHTML;
+            if (window.lucide) lucide.createIcons();
+        }
+    };
 
-            } catch (err) {
-                console.error("Erro geral ao gerar Ficha Técnica:", err);
-                // Fallback local caso tudo (IA e Cache) falhe
-                try {
-                    const dataFallback = obterDadosFichaEstruturados('artistico');
-                    geminiFichaMarkdown = gerarFichaMarkdown(dataFallback);
-                    atualizarExibicaoFicha();
-                    if (modalFicha) {
-                        modalFicha.style.display = 'flex';
-                    }
-                    showNotification("Ficha Técnica gerada localmente (Fallback de segurança).", "info");
-                } catch (fallbackErr) {
-                    console.error("Falha inclusive no fallback local:", fallbackErr);
-                    showNotification("Erro ao processar: " + err.message, "error");
-                }
-            } finally {
-                btnGenerateFicha.disabled = false;
-                btnGenerateFicha.innerHTML = originalHTML;
-                if (window.lucide) lucide.createIcons();
+    if (btnGenerateFicha) {
+        let clickTimeout = null;
+        let clickCount = 0;
+
+        btnGenerateFicha.addEventListener('click', () => {
+            clickCount++;
+            if (clickCount === 1) {
+                clickTimeout = setTimeout(async () => {
+                    clickCount = 0;
+                    await generateFichaProcess(false);
+                }, 300);
+            } else if (clickCount === 2) {
+                clearTimeout(clickTimeout);
+                clickCount = 0;
+                generateFichaProcess(true);
             }
         });
     }
@@ -4845,12 +5074,6 @@ function initMusiciansManagement() {
         btnNameArtistico.addEventListener('click', () => {
             btnNameArtistico.classList.add('active');
             btnNameCompleto.classList.remove('active');
-            btnNameArtistico.style.background = 'white';
-            btnNameArtistico.style.color = '#2E8B57';
-            btnNameArtistico.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)';
-            btnNameCompleto.style.background = 'transparent';
-            btnNameCompleto.style.color = '#555';
-            btnNameCompleto.style.boxShadow = 'none';
             if (labelNameStatus) {
                 labelNameStatus.textContent = '📌 Exibindo Nome Artístico (com fallback para Nome de Registro se não preenchido)';
             }
@@ -4860,12 +5083,6 @@ function initMusiciansManagement() {
         btnNameCompleto.addEventListener('click', () => {
             btnNameCompleto.classList.add('active');
             btnNameArtistico.classList.remove('active');
-            btnNameCompleto.style.background = 'white';
-            btnNameCompleto.style.color = '#2E8B57';
-            btnNameCompleto.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)';
-            btnNameArtistico.style.background = 'transparent';
-            btnNameArtistico.style.color = '#555';
-            btnNameArtistico.style.boxShadow = 'none';
             if (labelNameStatus) {
                 labelNameStatus.textContent = '📌 Exibindo Nome Completo / de Registro (nome de registro civil dos músicos)';
             }
@@ -4877,17 +5094,11 @@ function initMusiciansManagement() {
         const resetFormatButtons = () => {
             [btnFormatMarkdown, btnFormatEmail, btnFormatLista].forEach(btn => {
                 btn.classList.remove('active');
-                btn.style.background = 'transparent';
-                btn.style.color = '#555';
-                btn.style.boxShadow = 'none';
             });
         };
 
         const setButtonActive = (btn) => {
             btn.classList.add('active');
-            btn.style.background = 'white';
-            btn.style.color = '#2E8B57';
-            btn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)';
         };
 
         btnFormatMarkdown.addEventListener('click', () => {

@@ -175,6 +175,31 @@
     box-shadow: none;
 }
 
+.btn-outline-cancel {
+    background: transparent;
+    border: 1.5px solid #dc3545;
+    color: #dc3545;
+    padding: 1rem;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: var(--transition);
+    font-family: inherit;
+}
+
+.btn-outline-cancel:hover {
+    background: rgba(220, 53, 69, 0.05);
+    color: #c82333;
+    border-color: #c82333;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.1);
+}
+
 .error-msg {
     color: #dc3545;
     font-size: 0.85rem;
@@ -3915,6 +3940,12 @@ input:checked + .slider:before {
     color: #6b7280;
 }
 
+.field-value.badge.desligado {
+    background-color: rgba(107, 114, 128, 0.15);
+    color: #6b7280;
+    border: 1px solid rgba(107, 114, 128, 0.3);
+}
+
 /* Efeito de hover no botão de importação */
 #btn-import-excel-label:hover {
     filter: brightness(1.1);
@@ -3985,3 +4016,141 @@ input:checked + .slider:before {
     }
 }
 
+/* Controles Segmentados (Nomes de Músicos e Formato de Saída) */
+.segment-control {
+    display: flex;
+    background: #e9ecef;
+    padding: 3px;
+    border-radius: 8px;
+    width: fit-content;
+    border: 1px solid #dee2e6;
+}
+
+.segment-btn {
+    border: none;
+    background: transparent;
+    padding: 0.4rem 1rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #555;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3rem;
+}
+
+.segment-btn.active {
+    background: white;
+    color: #2E8B57;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+/* Responsividade para Controles Segmentados em Mobile */
+@media (max-width: 576px) {
+    .ficha-tecnica-options {
+        flex-direction: column;
+        gap: 1rem !important;
+    }
+    
+    .segment-control {
+        width: 100% !important;
+        display: flex !important;
+    }
+    
+    .segment-btn {
+        flex: 1 !important;
+        padding: 0.4rem 0.5rem !important;
+        font-size: 0.75rem !important;
+        text-align: center;
+        white-space: normal !important;
+        word-break: normal !important;
+        line-height: 1.1 !important;
+    }
+}
+
+@media (max-width: 400px) {
+    .segment-control .segment-btn i,
+    .segment-control .segment-btn svg {
+        display: none !important;
+    }
+}
+
+/* Link rápido do WhatsApp na Tabela de Músicos e Drawer */
+.phone-column-container {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: nowrap;
+}
+
+.whatsapp-quick-link {
+    display: inline-flex;
+    align-items: center;
+    color: #25D366;
+    transition: transform 0.2s ease-in-out;
+    padding: 2px;
+}
+
+.whatsapp-quick-link svg {
+    width: 16px;
+    height: 16px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.whatsapp-quick-link:hover {
+    color: #128C7E;
+    transform: scale(1.25);
+}
+
+/* Versão Mobile do WhatsApp Quick Link */
+@media (max-width: 600px) {
+    .phone-number-text {
+        display: none !important;
+    }
+    
+    .whatsapp-quick-link svg {
+        width: 22px !important;
+        height: 22px !important;
+    }
+
+    /* Reordenamento de colunas na tabela de músicos no celular */
+    .musicos-table thead tr,
+    .musicos-table tbody tr {
+        display: grid !important;
+        grid-template-columns: 140px 120px 110px 80px 180px;
+        width: max-content;
+    }
+    
+    .musicos-table th, 
+    .musicos-table td {
+        display: block;
+    }
+    
+    .musicos-table th:nth-child(1),
+    .musicos-table td:nth-child(1) {
+        order: 1;
+    }
+    .musicos-table th:nth-child(4),
+    .musicos-table td:nth-child(4) {
+        order: 2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .musicos-table th:nth-child(2),
+    .musicos-table td:nth-child(2) {
+        order: 3;
+    }
+    .musicos-table th:nth-child(3),
+    .musicos-table td:nth-child(3) {
+        order: 4;
+    }
+    .musicos-table th:nth-child(5),
+    .musicos-table td:nth-child(5) {
+        order: 5;
+    }
+}
