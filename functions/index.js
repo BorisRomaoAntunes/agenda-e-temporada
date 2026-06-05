@@ -1,6 +1,7 @@
 const { onDocumentCreated, onDocumentDeleted } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { defineSecret } = require("firebase-functions/params");
 const functions = require("firebase-functions");
 const { FieldValue } = require("firebase-admin/firestore");
 const admin = require("firebase-admin");
@@ -10,75 +11,217 @@ const path = require("path");
 const os = require("os");
 const fs = require("fs");
 
+// Secret Manager: chave da API Gemini (configurar com: firebase functions:secrets:set GEMINI_API_KEY)
+const geminiApiKey = defineSecret("GEMINI_API_KEY");
+
 admin.initializeApp();
 
-exports.sendPushNotification = onDocumentCreated("adminNotifications/{notificationId}", async (event) => {
+exports.sendPushNotification = onDocumentCreated({
+    document: "adminNotifications/{notificationId}",
+    secrets: [geminiApiKey]
+}, async (event) => {
     const data = event.data.data();
     if (!data) return;
 
     const { title, message } = data;
 
     console.log(`Disparando notificação: ${title}`);
-
-    // Buscar todos os tokens registrados na coleção fcmTokens
-    const tokensSnapshot = await admin.firestore().collection("fcmTokens").get();
-    
-    const tokens = [];
-    tokensSnapshot.forEach((doc) => {
-        const tokenData = doc.data();
-        // Evita erro se o campo token não existir no documento
-        if (tokenData && tokenData.token) {
-            tokens.push(tokenData.token);
-        }
-    });
-
-    if (tokens.length === 0) {
-        console.log("Nenhum token encontrado na coleção fcmTokens. Abortando envio.");
-        return;
-    }
-
-    console.log(`Enviando para ${tokens.length} dispositivos...`);
-
-    const payload = {
-        notification: {
-            title: title || "Novo aviso",
-            body: message || "",
-            image: data.imageUrl || undefined,
-        },
-        tokens: tokens,
-    };
-
+ 
+    // Verificar se as notificações globais estão habilitadas no Firestore
+    let notifEnabled = true;
     try {
-        const response = await admin.messaging().sendEachForMulticast(payload);
-        console.log(`${response.successCount} mensagens enviadas com sucesso, ${response.failureCount} falharam.`);
-        
-        // Limpar tokens antigos/revogados (opcional, mas recomendado)
-        if (response.failureCount > 0) {
-            const failedTokens = [];
-            response.responses.forEach((resp, idx) => {
-                if (!resp.success) {
-                    // Erros comuns: messaging/invalid-registration-token ou messaging/registration-token-not-registered
-                    if (resp.error.code === 'messaging/invalid-registration-token' ||
-                        resp.error.code === 'messaging/registration-token-not-registered') {
-                        failedTokens.push(tokens[idx]);
-                    }
-                }
-            });
-
-            // Apaga os tokens inválidos do Firestore usando um batch (operação em lote)
-            if (failedTokens.length > 0) {
-                const batch = admin.firestore().batch();
-                failedTokens.forEach(badToken => {
-                    // O ID do documento é o próprio token
-                    const docRef = admin.firestore().collection("fcmTokens").doc(badToken);
-                    batch.delete(docRef);
-                });
-                await batch.commit();
-                console.log(`Apagados ${failedTokens.length} tokens inválidos do banco de dados.`);
+        const settingsSnap = await admin.firestore().collection("config").doc("settings").get();
+        if (settingsSnap.exists) {
+            const settings = settingsSnap.data();
+            if (settings && settings.notificationsEnabled !== undefined) {
+                notifEnabled = settings.notificationsEnabled === true;
             }
         }
-    } catch (error) {
-        console.error("Erro crítico ao enviar mensagens multicast:", error);
+    } catch (settingsError) {
+        console.error("Erro ao ler config/settings. Usando fallback default (true):", settingsError);
+    }
+
+    if (notifEnabled) {
+        // Buscar todos os tokens registrados na coleção fcmTokens
+        const tokensSnapshot = await admin.firestore().collection("fcmTokens").get();
+        
+        const tokens = [];
+        tokensSnapshot.forEach((doc) => {
+            const tokenData = doc.data();
+            // Evita erro se o campo token não existir no documento
+            if (tokenData && tokenData.token) {
+                tokens.push(tokenData.token);
+            }
+        });
+
+        if (tokens.length === 0) {
+            console.log("Nenhum token encontrado na coleção fcmTokens. Abortando envio.");
+        } else {
+            console.log(`Enviando para ${tokens.length} dispositivos...`);
+
+            // Define o link correto com a tag de engajamento
+            const targetLink = data.linkUrl 
+                ? `${data.linkUrl}${data.linkUrl.includes('?') ? '&' : '?'}source=notification`
+                : "https://oer-agenda.web.app/?source=notification";
+
+            const payload = {
+                notification: {
+                    title: title || "Novo aviso",
+                    body: message || "",
+                    image: data.imageUrl || undefined,
+                },
+                data: data.linkUrl ? { linkUrl: data.linkUrl } : {},
+                webpush: {
+                    notification: {
+                        title: title || "Novo aviso",
+                        body: message || "",
+                        icon: "https://oer-agenda.web.app/assets/img/favicon-final.png",
+                        badge: "https://oer-agenda.web.app/assets/img/favicon-final.png",
+                        image: data.imageUrl || undefined,
+                    },
+                    fcmOptions: {
+                        link: targetLink
+                    }
+                },
+                tokens: tokens,
+            };
+
+            try {
+                const response = await admin.messaging().sendEachForMulticast(payload);
+                console.log(`${response.successCount} mensagens enviadas com sucesso, ${response.failureCount} falharam.`);
+                
+                // Limpar tokens antigos/revogados (opcional, mas recomendado)
+                if (response.failureCount > 0) {
+                    const failedTokens = [];
+                    response.responses.forEach((resp, idx) => {
+                        if (!resp.success) {
+                            // Erros comuns: messaging/invalid-registration-token ou messaging/registration-token-not-registered
+                            if (resp.error.code === 'messaging/invalid-registration-token' ||
+                                resp.error.code === 'messaging/registration-token-not-registered') {
+                                failedTokens.push(tokens[idx]);
+                            }
+                        }
+                    });
+
+                    // Apaga os tokens inválidos do Firestore usando um batch (operação em lote)
+                    if (failedTokens.length > 0) {
+                        const batch = admin.firestore().batch();
+                        failedTokens.forEach(badToken => {
+                            // O ID do documento é o próprio token
+                            const docRef = admin.firestore().collection("fcmTokens").doc(badToken);
+                            batch.delete(docRef);
+                        });
+                        await batch.commit();
+                        console.log(`Apagados ${failedTokens.length} tokens inválidos do banco de dados.`);
+                    }
+                }
+            } catch (error) {
+                console.error("Erro crítico ao enviar mensagens multicast:", error);
+            }
+        }
+    } else {
+        console.log("Notificações globais desativadas pelo painel admin (config/settings). O disparo real de push FCM foi pulado.");
+    }
+
+    // Processamento assíncrono de OCR para extração de texto de imagem (se houver)
+    if (data.imageUrl) {
+        let storagePath = data.imageStoragePath || null;
+        if (!storagePath) {
+            // Tenta decodificar o caminho da imagem a partir da URL do Firebase Storage
+            const match = data.imageUrl.match(/\/o\/([^?#]+)/);
+            if (match) {
+                storagePath = decodeURIComponent(match[1]);
+            }
+        }
+
+        if (storagePath) {
+            try {
+                console.log(`[OCR] Iniciando processamento de imagem para OCR: ${storagePath}`);
+                const bucket = admin.storage().bucket();
+                const file = bucket.file(storagePath);
+                
+                const [exists] = await file.exists();
+                if (exists) {
+                    const [fileBuffer] = await file.download();
+                    
+                    let mimeType = "image/jpeg";
+                    if (storagePath.toLowerCase().endsWith(".png")) mimeType = "image/png";
+                    else if (storagePath.toLowerCase().endsWith(".webp")) mimeType = "image/webp";
+                    else if (storagePath.toLowerCase().endsWith(".gif")) mimeType = "image/gif";
+                    
+                    const apiKey = process.env.GEMINI_API_KEY || admin.remoteConfig().parameters?.GEMINI_API_KEY?.defaultValue?.value;
+                    if (apiKey) {
+                        const ai = new GoogleGenAI({ apiKey });
+                        const prompt = "Você é um assistente de OCR de alta precisão. Analise esta imagem e extraia todo o texto que nela estiver escrito. Retorne APENAS o texto literal extraído da imagem, sem comentários adicionais, sem markdown e sem preâmbulos.";
+                        
+                        const response = await ai.models.generateContent({
+                            model: "gemini-2.5-flash",
+                            contents: [
+                                {
+                                    role: "user",
+                                    parts: [
+                                        { text: prompt },
+                                        {
+                                            inlineData: {
+                                                data: fileBuffer.toString("base64"),
+                                                mimeType: mimeType
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        });
+                        
+                        const resultText = (typeof response.text === "function") ? response.text() : (response.text || "");
+                        const extractedText = resultText.trim();
+                        console.log(`[OCR] Texto extraído (${extractedText.length} caracteres): ${extractedText.substring(0, 100)}...`);
+                        
+                        if (extractedText) {
+                            const db = admin.firestore();
+                            const notifId = event.params.notificationId;
+                            
+                            // 1. Atualizar o documento da própria notificação na coleção adminNotifications
+                            await db.collection("adminNotifications").doc(notifId).update({
+                                ocrText: extractedText
+                            });
+                            console.log(`[OCR] Documento adminNotifications/${notifId} atualizado.`);
+                            
+                            // 2. Atualizar o log correspondente em adminLogs
+                            const logsSnapshot = await db.collection("adminLogs")
+                                .where("imageUrl", "==", data.imageUrl)
+                                .limit(1)
+                                .get();
+                                
+                            if (!logsSnapshot.empty) {
+                                const logDoc = logsSnapshot.docs[0];
+                                await logDoc.ref.update({
+                                    imageOcrText: extractedText
+                                });
+                                console.log(`[OCR] Documento adminLogs/${logDoc.id} atualizado.`);
+                            } else {
+                                console.log(`[OCR] Nenhum log correspondente encontrado para imageUrl: ${data.imageUrl}`);
+                            }
+                            
+                            // 3. Atualizar config/latestNotice se for o aviso atual
+                            const latestNoticeRef = db.collection("config").doc("latestNotice");
+                            const latestNoticeSnap = await latestNoticeRef.get();
+                            if (latestNoticeSnap.exists && latestNoticeSnap.data().imageUrl === data.imageUrl) {
+                                await latestNoticeRef.update({
+                                    ocrText: extractedText
+                                });
+                                console.log("[OCR] config/latestNotice atualizado.");
+                            }
+                        }
+                    } else {
+                        console.warn("[OCR] GEMINI_API_KEY não configurada. Abortando OCR.");
+                    }
+                } else {
+                    console.warn(`[OCR] Arquivo de imagem não encontrado no Storage: ${storagePath}`);
+                }
+            } catch (ocrError) {
+                console.error("[OCR] Erro crítico ao processar imagem de notificação:", ocrError);
+            }
+        }
     }
 });
 
@@ -212,7 +355,8 @@ exports.dailySubscriberCheck = onSchedule({
 exports.suggestNotificationText = onCall({
     region: "us-central1",
     maxInstances: 10,
-    memory: "512MiB"
+    memory: "512MiB",
+    secrets: [geminiApiKey]
 }, async (request) => {
     // Verificar autenticação (apenas admins podem chamar)
     if (!request.auth) {
@@ -379,6 +523,93 @@ REGRAS TÉCNICAS DE RETORNO:
 });
 
 /**
+ * Gera o relatório formatado de Ficha Técnica de Orquestra usando IA (Gemini 2.5 Flash).
+ */
+exports.generateFichaTecnica = onCall({
+    region: "us-central1",
+    maxInstances: 10,
+    memory: "512MiB",
+    secrets: [geminiApiKey]
+}, async (request) => {
+    // Verificar autenticação (apenas admins podem chamar)
+    if (!request.auth) {
+        throw new HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
+    }
+
+    const { musiciansTextList } = request.data;
+    const apiKey = process.env.GEMINI_API_KEY || admin.remoteConfig().parameters?.GEMINI_API_KEY?.defaultValue?.value;
+    
+    if (!apiKey) {
+        console.warn("GEMINI_API_KEY não configurada. Falha no processamento por IA.");
+        throw new HttpsError("failed-precondition", "GEMINI_API_KEY não configurada.");
+    }
+
+    try {
+        const ai = new GoogleGenAI({ apiKey });
+
+        const prompt = `Você é um assistente especializado em formatação de Ficha Técnica de Orquestra e Grupos Musicais. Ao receber uma lista de músicos, regentes e equipe técnica, siga rigorosamente as seguintes instruções para gerar a saída final:
+
+🔹 ESTRUTURA GERAL E LAYOUT
+- Transforme toda a lista em um único parágrafo contínuo (uma única linha).
+- Não utilize quebras de linha em nenhum momento do corpo principal dos músicos/equipe.
+- Use formatação rica (Markdown normal do sistema, sem ser bloco de código monoespaçado).
+- O texto final deve estar 100% linear, visualmente limpo e pronto para copiar e colar.
+- Não inclua explicações, introduções ou conclusões. Forneça apenas o resultado final.
+
+🔹 ORDEM DOS ELEMENTOS
+1º: Regentes (no início de tudo).
+2º: Naipes/Instrumentos com seus respectivos músicos.
+3º: Equipe Técnica (Coordenador, Inspetor, Produtor, Montadores, etc.).
+4º: Texto de legenda ao final de tudo.
+
+🔹 PONTUAÇÃO E CONEXÕES
+- Cada regente, naipe de instrumento ou cargo técnico deve ser separado por ponto final (.).
+- Os nomes de músicos/equipe dentro de um mesmo naipe ou cargo devem ser separados por vírgula (,).
+- Antes do último nome de cada grupo de naipe ou cargo, use "e" (Exemplo: Nome1, Nome2 e Nome3.).
+- O último nome de cada grupo deve terminar com ponto final (.).
+
+🔹 FORMATAÇÃO DOS GRUPOS E CARGOS
+- Regentes: Começam com o cargo sem negrito e terminam com ponto final (Exemplo: Regente Titular Nome. Regente Assistente Nome.). Não levam asterisco.
+- Naipes de Instrumentos: O nome do instrumento/naipe deve vir obrigatoriamente em negrito (Exemplo: **Trompas**).
+- Equipe Técnica (ao final): 
+  * Os cargos "Coordenador Artístico", "Inspetor" e "Produtor de Palco" devem vir em negrito (Exemplo: **Inspetor** Nome.). Não levam asterisco.
+  * O cargo "Montadores" e outros cargos finais não especificados vêm sem negrito (Exemplo: Montadores Nome e Nome.). Não levam asterisco.
+
+🔹 REGRAS ESPECÍFICAS DE HIERARQUIA (SPALLA E MONITOR)
+- Spalla: O primeiro nome do naipe de "Primeiros Violinos" é sempre o Spalla. Ele deve receber negrito duplo manual no início do nome e um asterisco ao final (Exemplo: **Primeiros Violinos** **Nome*, Nome2, Nome3.).
+- Monitores: O primeiro nome de TODOS os outros naipes de instrumentos (exceto Primeiros Violinos) é o Monitor. Ele deve receber um asterisco ao final do nome (Exemplo: **Trompas** Nome*, Nome2, Nome3.).
+
+🔹 TEXTO DE LEGENDA OBRIGATÓRIO (AO FIM DA LISTA)
+- Após o último nome da equipe técnica e do ponto final, insira exatamente o seguinte trecho de texto como legenda (incluindo as quebras de linha para separar a legenda):
+*monitor
+**Spalla
+
+🔹 LIMPEZA E PADRONIZAÇÃO DA LISTA
+- Ignore completamente linhas indicando observações originais como "*Nomes Artísticos" ou linhas em branco.
+- Remova duplicações e mantenha apenas os nomes válidos.
+- Mantenha os nomes dos naipes exatamente como fornecidos.
+- Não altere a ordem dos músicos dentro de cada grupo, não adicione e não remova nomes.
+- Corrija apenas espaços desnecessários, mantendo a grafia original dos nomes.
+
+Aqui está a lista bruta de regentes, músicos por naipes e equipe técnica para você formatar e linearizar:
+
+${musiciansTextList}`;
+
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: [{ role: "user", parts: [{ text: prompt }] }]
+        });
+
+        const resultText = response.text || "";
+        return { text: resultText.trim() };
+
+    } catch (error) {
+        console.error("Erro na geração da Ficha Técnica via Gemini:", error);
+        throw new HttpsError("internal", error.message || "Erro interno no processamento por IA.");
+    }
+});
+
+/**
  * [BASE] Handler de Notificações Agendadas
  * Roda a cada minuto e verifica scheduledNotifications com status='pending'.
  */
@@ -424,7 +655,8 @@ exports.scheduledNotificationHandler = onSchedule({
                 message: data.message || "",
                 createdAt: now.toISOString(),
                 sentBy: data.createdBy || 'agendamento',
-                ...(data.imageUrl ? { imageUrl: data.imageUrl } : {})
+                ...(data.imageUrl ? { imageUrl: data.imageUrl } : {}),
+                ...(data.linkUrl ? { linkUrl: data.linkUrl } : {})
             };
             await db.collection("adminNotifications").add(notifData);
             await db.collection("config").doc("latestNotice").set(notifData);
@@ -434,6 +666,7 @@ exports.scheduledNotificationHandler = onSchedule({
                 details: "Agendado para " + data.scheduledAt + ". Disparado via histórico de avisos para todos os músicos ativos.",
                 user: data.createdBy || "agendamento",
                 ...(data.imageUrl ? { imageUrl: data.imageUrl } : {}),
+                ...(data.linkUrl ? { link: data.linkUrl } : {}),
                 createdAt: now.toISOString()
             });
 
@@ -456,7 +689,7 @@ exports.scheduleNotification = onCall({
     if (!request.auth) {
         throw new HttpsError("unauthenticated", "Autenticacao obrigatoria.");
     }
-    const { title, message, imageUrl, scheduledAt } = request.data;
+    const { title, message, imageUrl, linkUrl, scheduledAt } = request.data;
     if (!title || !scheduledAt) {
         throw new HttpsError("invalid-argument", "Os campos title e scheduledAt sao obrigatorios.");
     }
@@ -471,6 +704,7 @@ exports.scheduleNotification = onCall({
         title,
         message: message || "",
         ...(imageUrl ? { imageUrl } : {}),
+        ...(linkUrl ? { linkUrl } : {}),
         scheduledAt: scheduled.toISOString(),
         status: "pending",
         createdBy: request.auth.token.email || request.auth.uid,
@@ -560,7 +794,8 @@ exports.onPDFUpload = functions.runWith({
  */
 exports.onAtestadoUpload = functions.runWith({
     timeoutSeconds: 540, 
-    memory: "1GB"
+    memory: "1GB",
+    secrets: ["GEMINI_API_KEY"]
 }).storage.object().onFinalize(async (object) => {
     const filePath = object.name;
     const contentType = object.contentType;
@@ -850,7 +1085,8 @@ exports.onAtestadoUpload = functions.runWith({
 exports.parseScheduleWithGemini = onCall({
     region: "us-central1",
     timeoutSeconds: 300,
-    memory: "512MiB"
+    memory: "512MiB",
+    secrets: [geminiApiKey]
 }, async (request) => {
     if (!request.auth) {
         throw new HttpsError("unauthenticated", "Autenticação obrigatória.");
@@ -963,3 +1199,167 @@ Texto do e-mail: ${text ? text : "Veja o documento PDF anexo."}`;
         throw new HttpsError("internal", "Erro ao processar calendário com a IA: " + error.message);
     }
 });
+
+/**
+ * Realiza uma varredura em tempo real (FCM dryRun) para calibrar os tokens de assinantes ativos.
+ * Remove tokens obsoletos/inválidos e ajusta o contador estatístico.
+ */
+exports.checkSubscribersNow = onCall({
+    region: "us-central1",
+    maxInstances: 5,
+    memory: "256MiB"
+}, async (request) => {
+    // Validar se o usuário está autenticado
+    if (!request.auth) {
+        throw new HttpsError("unauthenticated", "Apenas administradores autenticados podem rodar a varredura.");
+    }
+
+    const email = request.auth.token.email || "Administrador";
+    console.log(`[Varredura Manual] Iniciada por: ${email}`);
+
+    const db = admin.firestore();
+    const statsRef = db.collection("config").doc("stats");
+    const dailyStatsRef = db.collection("config").doc("dailyStats");
+    const logsRef = db.collection("adminLogs");
+    const fcmTokensRef = db.collection("fcmTokens");
+
+    try {
+        // 1. Buscar todos os tokens registrados
+        const tokensSnapshot = await fcmTokensRef.get();
+        const tokens = [];
+        tokensSnapshot.forEach(doc => {
+            const data = doc.data();
+            if (data && data.token) {
+                tokens.push(data.token);
+            }
+        });
+
+        const initialCount = tokens.length;
+        console.log(`[Varredura Manual] Analisando ${initialCount} tokens salvos...`);
+
+        if (initialCount === 0) {
+            // Caso especial: sem tokens no banco
+            await statsRef.set({
+                subscriberCount: 0,
+                updatedAt: FieldValue.serverTimestamp()
+            }, { merge: true });
+
+            await logsRef.add({
+                type: "bot",
+                message: "Robô OER (Manual): Varredura concluída (Sem tokens).",
+                details: "O Robô OER realizou a varredura manual e detectou que não há nenhum token de dispositivo registrado no banco de dados. O contador foi zerado.",
+                user: email,
+                createdAt: new Date().toISOString()
+            });
+
+            return {
+                success: true,
+                removedCount: 0,
+                newCount: 0,
+                corrected: false
+            };
+        }
+
+        // 2. Validar cada token em lotes de 500 usando dryRun
+        const failedTokens = [];
+        for (let i = 0; i < tokens.length; i += 500) {
+            const tokensBatch = tokens.slice(i, i + 500);
+            const payload = {
+                notification: {
+                    title: "Validação silenciosa",
+                    body: "Apenas para teste de conectividade."
+                },
+                tokens: tokensBatch
+            };
+
+            try {
+                // dryRun = true: não envia mensagem para o aparelho, só valida no Google/Apple
+                const response = await admin.messaging().sendEachForMulticast(payload, true);
+                if (response.failureCount > 0) {
+                    response.responses.forEach((resp, idx) => {
+                        if (!resp.success) {
+                            const errCode = resp.error.code;
+                            if (errCode === 'messaging/invalid-registration-token' ||
+                                errCode === 'messaging/registration-token-not-registered') {
+                                failedTokens.push(tokensBatch[idx]);
+                            }
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error(`[Varredura Manual] Erro ao enviar dryRun para lote ${i}:`, err);
+            }
+        }
+
+        const removedCount = failedTokens.length;
+        console.log(`[Varredura Manual] ${removedCount} tokens inválidos encontrados.`);
+
+        // 3. Remover tokens inválidos do Firestore em batches de 500
+        if (removedCount > 0) {
+            for (let i = 0; i < failedTokens.length; i += 500) {
+                const batch = db.batch();
+                const batchTokens = failedTokens.slice(i, i + 500);
+                batchTokens.forEach(badToken => {
+                    const docRef = fcmTokensRef.doc(badToken);
+                    batch.delete(docRef);
+                });
+                await batch.commit();
+            }
+            console.log(`[Varredura Manual] Removidos ${removedCount} documentos de fcmTokens.`);
+        }
+
+        // 4. Recalcular e atualizar o contador de estatísticas em tempo real
+        const finalCountSnap = await fcmTokensRef.count().get();
+        const finalCount = finalCountSnap.data().count;
+
+        let corrected = false;
+        const statsSnap = await statsRef.get();
+        const storedCount = statsSnap.exists ? (statsSnap.data().subscriberCount || 0) : 0;
+
+        // Se o valor armazenado for diferente do valor real pós-limpeza, houve auto-cura
+        if (storedCount !== finalCount) {
+            corrected = true;
+            await statsRef.set({
+                subscriberCount: finalCount,
+                updatedAt: FieldValue.serverTimestamp()
+            }, { merge: true });
+        }
+
+        // 5. Registrar logs de auditoria
+        const logMsg = `Robô OER (Manual): Varredura manual de assinaturas concluída.`;
+        const logDetails = `O Robô OER executou uma varredura em tempo real a pedido de ${email}.
+- Tokens analisados: ${initialCount}
+- Tokens inválidos removidos: ${removedCount}
+- Total ativo pós-limpeza: ${finalCount} músicos.
+${corrected ? `Divergência detectada e auto-curada! O contador do painel foi ajustado de ${storedCount} para ${finalCount}.` : `O contador já estava perfeitamente sincronizado com o banco.`}`;
+
+        await logsRef.add({
+            type: "bot",
+            message: logMsg,
+            details: logDetails,
+            user: email,
+            createdAt: new Date().toISOString()
+        });
+
+        // 6. Atualizar o backup diário para o robô das 6h não registrar variações indevidas
+        await dailyStatsRef.set({
+            lastCount: finalCount,
+            updatedAt: FieldValue.serverTimestamp()
+        }, { merge: true });
+
+        return {
+            success: true,
+            removedCount: removedCount,
+            newCount: finalCount,
+            corrected: corrected,
+            message: `Varredura concluída. ${removedCount} tokens antigos foram removidos. Total de inscritos: ${finalCount}.`
+        };
+
+    } catch (error) {
+        console.error("[Varredura Manual] Erro crítico:", error);
+        throw new HttpsError("internal", "Erro ao executar a varredura manual de assinaturas: " + error.message);
+    }
+});
+
+// A função callable temporária backfillOcr foi removida com sucesso após a execução bem-sucedida da migração na produção.
+

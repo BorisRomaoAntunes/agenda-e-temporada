@@ -1,7 +1,10 @@
 [
   {
-    "origin": ["*"],
-    "method": ["GET", "PUT", "POST", "DELETE", "HEAD", "OPTIONS"],
+    "origin": [
+      "https://oer-agenda.web.app",
+      "https://oer-agenda.firebaseapp.com"
+    ],
+    "method": ["GET"],
     "maxAgeSeconds": 3600
   }
 ]

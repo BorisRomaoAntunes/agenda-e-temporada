@@ -1,37 +1,66 @@
 rules_version = '2';
 
-// Craft rules based on data in your Firestore database
-// allow write: if firestore.get(
-//    /databases/(default)/documents/users/$(request.auth.uid)).data.isAdmin;
 service firebase.storage {
   match /b/{bucket}/o {
+
     // PDFs públicos (Agenda, Temporada)
+    // Leitura pública — músicos baixam os PDFs
+    // Escrita restrita a admin — apenas PDFs até 50MB
     match /pdfs/{allPaths=**} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if request.auth != null
+                  && request.auth.token.admin == true
+                  && request.resource.contentType == 'application/pdf'
+                  && request.resource.size < 50 * 1024 * 1024;
     }
 
     // Imagens de notificações
+    // Leitura pública — músicos veem as imagens nos avisos
+    // Escrita restrita a admin — apenas imagens até 5MB
     match /notification_images/{allPaths=**} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if request.auth != null
+                  && request.auth.token.admin == true
+                  && request.resource.contentType.matches('image/.*')
+                  && request.resource.size < 5 * 1024 * 1024;
     }
 
     // Pasta temporária para upload de atestados (Músicos enviam aqui)
+    // Upload público mas restrito a imagens e PDFs com máximo de 10MB.
+    // A Cloud Function onAtestadoUpload processa esses arquivos automaticamente.
     match /atestados_temp/{allPaths=**} {
-      allow write: if true; // Permite upload público (músicos)
-      allow read: if request.auth != null; // Apenas admin lê
+      allow write: if request.resource.size < 10 * 1024 * 1024
+                  && (request.resource.contentType.matches('image/.*')
+                      || request.resource.contentType == 'application/pdf');
+      allow read: if request.auth != null
+                  && request.auth.token.admin == true;
     }
 
-    // Pasta de atestados processados (Contém dados sensíveis)
+    // Pasta de atestados processados (Contém dados sensíveis - LGPD)
+    // Acesso restrito exclusivamente a administradores
     match /atestados_processed/{allPaths=**} {
-      allow read, write: if request.auth != null; // Totalmente privado (Admin only)
+      allow read, write: if request.auth != null
+                        && request.auth.token.admin == true;
     }
 
-    // Regra padrão para outros caminhos (segurança básica)
+    // ================================================================
+    // REGRA PADRÃO: FECHA TUDO por segurança.
+    // ================================================================
+    // Para adicionar um novo caminho de armazenamento no futuro:
+    // 1. Adicione um novo bloco 'match' ACIMA desta regra
+    // 2. Defina as permissões de leitura/escrita específicas
+    // 3. Sempre inclua validação de contentType e size
+    // 4. Use request.auth.token.admin == true para operações admin
+    // Exemplo:
+    //   match /novo_caminho/{allPaths=**} {
+    //     allow read: if true;
+    //     allow write: if request.auth != null
+    //                 && request.auth.token.admin == true
+    //                 && request.resource.contentType.matches('image/.*')
+    //                 && request.resource.size < 10 * 1024 * 1024;
+    //   }
     match /{allPaths=**} {
-      allow read: if true;
-      allow write: if request.auth != null;
+      allow read, write: if false;
     }
   }
 }

@@ -117,6 +117,9 @@
                 <button class="tab-btn" data-target="section-calendario">
                     <i data-lucide="calendar-days"></i> <span>Calendário</span>
                 </button>
+                <button class="tab-btn" data-target="section-musicos">
+                    <i data-lucide="users"></i> <span>Músicos</span>
+                </button>
                 <button class="tab-btn" data-target="section-links">
                     <i data-lucide="link"></i> <span>Links Temporários</span>
                 </button>
@@ -128,21 +131,39 @@
 
             <!-- Seção 0: Histórico de Logs -->
             <section id="section-logs" class="tab-content active">
-                <!-- Contador de Assinantes em Tempo Real -->
-                <div class="subscriber-count-card" id="subscriber-count-card">
-                    <div class="subscriber-info">
-                        <div class="subscriber-icon-bg">
-                            <i data-lucide="users"></i>
-                        </div>
-                        <div>
-                            <p class="subscriber-count-label">Musicos Inscritos</p>
-                            <h4 class="subscriber-count-value" id="subscriber-count-value">... <span>assinantes</span>
-                            </h4>
+                 <!-- Contador de Assinantes em Tempo Real -->
+                 <div class="subscriber-count-card" id="subscriber-count-card" title="Clique para iniciar varredura e calibrar assinantes com o Robô OER" role="button" tabindex="0">
+                     <div class="subscriber-info">
+                         <div class="subscriber-icon-bg">
+                             <i data-lucide="users"></i>
+                         </div>
+                         <div>
+                             <p class="subscriber-count-label">Musicos Inscritos</p>
+                             <h4 class="subscriber-count-value" id="subscriber-count-value">... <span>assinantes</span>
+                             </h4>
+                         </div>
+                     </div>
+                     <div class="live-indicator">
+                         <span class="live-dot"></span>
+                         <span class="live-text">AO VIVO</span>
+                     </div>
+                 </div>
+
+                <!-- Gráfico de Engajamento dos Últimos Dias -->
+                <div class="subscriber-count-card engagement-chart-card" style="margin-top: 1rem; display: block; padding: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.2rem; flex-wrap: wrap; gap: 0.8rem;">
+                        <h4 style="margin: 0; font-size: 1rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+                            <i data-lucide="line-chart" style="color: var(--primary-color);"></i> Engajamento de Acessos
+                        </h4>
+                        <!-- Filtros interativos -->
+                        <div class="chart-filters" id="engagement-chart-filters">
+                            <button class="filter-btn ativo" data-days="7">7 Dias</button>
+                            <button class="filter-btn" data-days="14">14 Dias</button>
+                            <button class="filter-btn" data-days="30">30 Dias</button>
                         </div>
                     </div>
-                    <div class="live-indicator">
-                        <span class="live-dot"></span>
-                        AO VIVO
+                    <div class="chart-canvas-container" style="position: relative; height: 220px; width: 100%;">
+                        <canvas id="engagementChart"></canvas>
                     </div>
                 </div>
                 
@@ -232,6 +253,14 @@
                             <textarea id="notif-message" class="version-input" placeholder="Digite os detalhes aqui..."
                                 rows="3"
                                 style="width: 100%; border-radius: 8px; border: 1px solid #e0e0e0; padding: 0.8rem; font-family: inherit; font-size: 0.95rem; resize: vertical;"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Link (Opcional) -->
+                    <div class="version-input-wrapper" style="margin-bottom: 1.5rem;">
+                        <label for="notif-link">Link (Opcional)</label>
+                        <div class="version-input-group">
+                            <input type="url" id="notif-link" class="version-input" placeholder="https://exemplo.com" style="width: 100%;">
                         </div>
                     </div>
 
@@ -626,6 +655,259 @@ Intervalo
                     </div>
                 </div>
             </section>
+
+            <!-- Seção 5: Músicos -->
+            <section id="section-musicos" class="tab-content">
+                <div class="musicos-container">
+                    <div class="logs-header" style="align-items: center; display: flex; justify-content: space-between;">
+                        <div class="logs-header-info">
+                            <h3><i data-lucide="users"></i> Banco de Músicos</h3>
+                            <p>Importe a planilha de controle e busque informações dos integrantes.</p>
+                        </div>
+                        <div class="header-actions-musicos" style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                            <label for="import-excel-input" class="btn-primary" id="btn-import-excel-label" style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 500; font-size: 0.9rem; background: var(--primary-color, #8b0000); color: white; transition: background 0.2s;">
+                                <i data-lucide="upload" style="width: 16px; height: 16px;"></i> <span>Importar Planilha (.xlsx)</span>
+                            </label>
+                            <input type="file" id="import-excel-input" accept=".xlsx" style="display: none;">
+                            
+                            <button id="btn-export-excel" class="btn-outline" style="display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 500; font-size: 0.9rem; border: 1px solid #ccc; background: white; color: #333; transition: background 0.2s, border-color 0.2s;">
+                                <i data-lucide="download" style="width: 16px; height: 16px;"></i> <span>Exportar Planilha (.xlsx)</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Cards Estatísticos Rápidos -->
+                    <div class="musicos-stats-cards">
+                        <div class="musico-stat-card">
+                            <div class="stat-icon-bg bg-blue">
+                                <i data-lucide="users"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-label">Total Musicista OER</span>
+                                <h4 class="stat-value" id="stat-total-musicos">0</h4>
+                            </div>
+                        </div>
+                        <div class="musico-stat-card">
+                            <div class="stat-icon-bg bg-green">
+                                <i data-lucide="graduation-cap"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-label">Bolsistas</span>
+                                <h4 class="stat-value" id="stat-bolsistas">0</h4>
+                            </div>
+                        </div>
+                        <div class="musico-stat-card">
+                            <div class="stat-icon-bg bg-purple">
+                                <i data-lucide="award"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-label">Monitores</span>
+                                <h4 class="stat-value" id="stat-monitores">0</h4>
+                            </div>
+                        </div>
+                        <div class="musico-stat-card">
+                            <div class="stat-icon-bg bg-orange">
+                                <i data-lucide="shield-alert"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-label">Restrições Alimentares</span>
+                                <h4 class="stat-value" id="stat-restricoes">0</h4>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Área de Relatórios Específicos -->
+                    <div class="musicos-reports-container" style="margin-top: 1.5rem; background: white; padding: 1.5rem; border-radius: 12px; border: 1px solid #f0f2f5;">
+                        <h4 style="margin: 0 0 1rem 0; font-size: 1.1rem; font-weight: 600; color: #333; display: flex; align-items: center; gap: 0.5rem;">
+                            <i data-lucide="file-text" style="color: var(--primary-color, #8b0000); width: 18px; height: 18px;"></i> Relatórios Específicos
+                        </h4>
+                        <div class="reports-buttons-grid" style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                            <button id="btn-generate-ficha-ia" class="btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem; background: #2E8B57; cursor: pointer; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 500; font-size: 0.9rem; color: white; border: none; transition: background 0.2s;">
+                                <i data-lucide="sparkles" style="width: 16px; height: 16px;"></i> <span>Ficha Técnica - Comunicação</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="logs-wrapper" style="margin-top: 1.5rem;">
+                        <div class="logs-header" style="border-bottom: none; margin-bottom: 0; padding-bottom: 0;">
+                            <div class="search-box" style="width: 100%; max-width: 100%;">
+                                <i data-lucide="search"></i>
+                                <input type="text" id="musicos-search" placeholder="Busca reativa geral (digite nome, instrumento, status, CPF, e-mail, telefone, carro)...">
+                            </div>
+                        </div>
+
+                        <!-- Tabela de Músicos -->
+                        <div class="musicos-table-wrapper" style="overflow-x: auto; margin-top: 1.2rem; border-radius: 10px; border: 1px solid #f0f2f5; background: white;">
+                            <table class="musicos-table" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.95rem;">
+                                <thead>
+                                    <tr style="background: #fafafa; border-bottom: 1px solid #f0f2f5; color: #666; font-weight: 600;">
+                                        <th style="padding: 1rem 1.2rem;">Nome Artístico</th>
+                                        <th style="padding: 1rem 1.2rem;">Instrumento</th>
+                                        <th style="padding: 1rem 1.2rem;">Status</th>
+                                        <th style="padding: 1rem 1.2rem;">E-mail</th>
+                                        <th style="padding: 1rem 1.2rem;">Telefone</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="musicos-tbody">
+                                    <tr>
+                                        <td colspan="5" class="table-loading" style="padding: 2.5rem; text-align: center; color: #888; font-size: 0.95rem;">
+                                            <i data-lucide="loader" class="animate-spin" style="display: inline-block; vertical-align: middle; margin-right: 0.5rem; width: 18px; height: 18px;"></i> Carregando base de músicos...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gaveta Lateral de Ficha Completa (Drawer) -->
+                <div class="drawer-overlay" id="musico-drawer-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;"></div>
+                <div class="musico-drawer" id="musico-drawer" style="position: fixed; top: 0; right: -550px; width: 550px; max-width: 100%; height: 100%; background: white; z-index: 2001; box-shadow: -5px 0 25px rgba(0,0,0,0.08); display: flex; flex-direction: column; transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: auto;">
+                    <div class="drawer-header" style="padding: 1.5rem; border-bottom: 1px solid #f0f2f5; display: flex; justify-content: space-between; align-items: center; background: #fafafa;">
+                        <div class="drawer-header-info">
+                            <h3 id="drawer-musico-nome-artistico" style="margin: 0; font-size: 1.2rem; font-weight: 700; color: #333;">Nome Artístico</h3>
+                            <p id="drawer-musico-instrumento" style="margin: 0.2rem 0 0 0; font-size: 0.85rem; color: #777; font-weight: 500;">Instrumento</p>
+                        </div>
+                        <button class="btn-close-drawer" id="btn-close-drawer" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #999; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; transition: background 0.2s;">
+                            <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                        </button>
+                    </div>
+                    <div class="drawer-body" style="padding: 1.5rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1.8rem; flex: 1;">
+                        
+                        <!-- Seção 1: Dados Artísticos & Vínculo -->
+                        <div class="drawer-section">
+                            <h4 style="margin: 0 0 0.8rem 0; font-size: 0.95rem; font-weight: 700; color: var(--primary-color, #8b0000); border-bottom: 1px dashed #e5e7eb; padding-bottom: 0.4rem; display: flex; align-items: center; gap: 0.4rem;">
+                                <i data-lucide="music" style="width: 16px; height: 16px;"></i> Dados Artísticos & Vínculo
+                            </h4>
+                            <div class="drawer-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.8rem 1rem;">
+                                <div class="drawer-field" style="grid-column: span 2;">
+                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Nome Registro</span>
+                                    <span class="field-value" id="drawer-val-nome-registro" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block; word-break: break-all;">-</span>
+                                </div>
+                                <div class="drawer-field">
+                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Status</span>
+                                    <span class="field-value badge" id="drawer-val-status" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                                </div>
+                                <div class="drawer-field">
+                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Escalado</span>
+                                    <span class="field-value" id="drawer-val-escalado" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                                </div>
+                                <div class="drawer-field">
+                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Anos na OER</span>
+                                    <span class="field-value" id="drawer-val-anos-oer" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                                </div>
+                                <div class="drawer-field">
+                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Tempo na OER</span>
+                                    <span class="field-value" id="drawer-val-tempo-oer" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                                </div>
+                                <div class="drawer-field">
+                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Início OER Contrato</span>
+                                    <span class="field-value" id="drawer-val-inicio-contrato" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                                </div>
+                                <div class="drawer-field">
+                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Término OER Contrato</span>
+                                    <span class="field-value" id="drawer-val-termino-contrato" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                                </div>
+                                <div class="drawer-field" style="grid-column: span 2;">
+                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Tipo de Contrato</span>
+                                    <span class="field-value" id="drawer-val-tipo-contrato" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                                </div>
+                                <div class="drawer-field" style="grid-column: span 2;">
+                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Data Envio Caderno de Excertos</span>
+                                    <span class="field-value" id="drawer-val-caderno-excertos" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Seção 2: Contato & Documentos -->
+                        <div class="drawer-section">
+                            <h4 style="margin: 0 0 0.8rem 0; font-size: 0.95rem; font-weight: 700; color: var(--primary-color, #8b0000); border-bottom: 1px dashed #e5e7eb; padding-bottom: 0.4rem; display: flex; align-items: center; gap: 0.4rem;">
+                                <i data-lucide="contact" style="width: 16px; height: 16px;"></i> Contato & Documentos
+                            </h4>
+                            <div class="drawer-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.8rem 1rem;">
+                                <div class="drawer-field" style="grid-column: span 2;">
+                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">E-mail</span>
+                                    <span class="field-value" id="drawer-val-email" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block; word-break: break-all;">-</span>
+                                </div>
+                                <div class="drawer-field">
+                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Telefone</span>
+                                    <span class="field-value" id="drawer-val-telefone" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                                </div>
+                                <div class="drawer-field">
+                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">CPF</span>
+                                    <span class="field-value" id="drawer-val-cpf" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                                </div>
+                                <div class="drawer-field">
+                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">RG</span>
+                                    <span class="field-value" id="drawer-val-rg" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                                </div>
+                                <div class="drawer-field">
+                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">PIS/PASEP</span>
+                                    <span class="field-value" id="drawer-val-pis" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                                </div>
+                                <div class="drawer-field">
+                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Data de Nascimento</span>
+                                    <span class="field-value" id="drawer-val-nascimento" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                                </div>
+                                <div class="drawer-field">
+                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Idade</span>
+                                    <span class="field-value" id="drawer-val-idade" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                                </div>
+                                <div class="drawer-field">
+                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Gênero</span>
+                                    <span class="field-value" id="drawer-val-genero" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Seção 3: Dados Bancários -->
+                        <div class="drawer-section">
+                            <h4 style="margin: 0 0 0.8rem 0; font-size: 0.95rem; font-weight: 700; color: var(--primary-color, #8b0000); border-bottom: 1px dashed #e5e7eb; padding-bottom: 0.4rem; display: flex; align-items: center; gap: 0.4rem;">
+                                <i data-lucide="wallet" style="width: 16px; height: 16px;"></i> Dados Bancários
+                            </h4>
+                            <div class="drawer-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.8rem 1rem;">
+                                <div class="drawer-field">
+                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Banco</span>
+                                    <span class="field-value" id="drawer-val-banco" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                                </div>
+                                <div class="drawer-field">
+                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Agência</span>
+                                    <span class="field-value" id="drawer-val-agencia" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                                </div>
+                                <div class="drawer-field" style="grid-column: span 2;">
+                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Conta Corrente</span>
+                                    <span class="field-value" id="drawer-val-conta" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Seção 4: Logística, Carro & Endereço -->
+                        <div class="drawer-section">
+                            <h4 style="margin: 0 0 0.8rem 0; font-size: 0.95rem; font-weight: 700; color: var(--primary-color, #8b0000); border-bottom: 1px dashed #e5e7eb; padding-bottom: 0.4rem; display: flex; align-items: center; gap: 0.4rem;">
+                                <i data-lucide="truck" style="width: 16px; height: 16px;"></i> Logística & Endereço
+                            </h4>
+                            <div class="drawer-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.8rem 1rem;">
+                                <div class="drawer-field" style="grid-column: span 2;">
+                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Endereço</span>
+                                    <span class="field-value" id="drawer-val-endereco" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block; word-break: break-all;">-</span>
+                                </div>
+                                <div class="drawer-field">
+                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">CEP</span>
+                                    <span class="field-value" id="drawer-val-cep" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                                </div>
+                                <div class="drawer-field">
+                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Restrição Alimentar</span>
+                                    <span class="field-value" id="drawer-val-restricao" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block; word-break: break-all;">-</span>
+                                </div>
+                                <div class="drawer-field" style="grid-column: span 2;">
+                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Dados do Carro</span>
+                                    <span class="field-value" id="drawer-val-carro" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block; word-break: break-all;">-</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
         </main>
     </div>
     <!-- Modal de Ajustes do Sistema -->
@@ -774,6 +1056,11 @@ Intervalo
                             <textarea id="edit-notif-message" class="version-input" rows="3" placeholder="Mensagem"></textarea>
                         </div>
 
+                        <div class="version-input-wrapper" style="margin-bottom: 1rem;">
+                            <label for="edit-notif-link">Link (Opcional)</label>
+                            <input type="url" id="edit-notif-link" class="version-input" placeholder="https://exemplo.com">
+                        </div>
+
                         <div id="edit-scheduling-fields" style="display: none;">
                             <div class="version-input-wrapper">
                                 <label for="edit-notif-date">Nova Data e Hora de Envio</label>
@@ -873,6 +1160,9 @@ Intervalo
 
     <!-- Firebase SDKs (Compat / v8 style for simplicity or Modular v9) -->
     <!-- Vamos usar a API Modular V9, que é mais rápida e moderna -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Biblioteca SheetJS (XLSX) CDN para ler planilhas Excel no navegador -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script type="module" src="assets/js/admin/admin.js?v=10"></script>
     <script>
         // Registro do Service Worker
@@ -1054,6 +1344,88 @@ Intervalo
                 <button class="btn-robot-ai ia-modal-btn-action" id="btn-robot-generate" style="margin-top: 0.5rem;">
                     <i data-lucide="sparkles"></i> Gerar Aviso com IA
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL RELATÓRIO FICHA TÉCNICA ===== -->
+    <div id="ficha-tecnica-modal-overlay" class="ia-modal-overlay" style="display:none;" aria-modal="true" role="dialog">
+        <div class="ia-modal-card" style="max-width: 750px; width: 95%;">
+            <!-- Header -->
+            <div class="ia-modal-header">
+                <div class="ia-modal-header-info">
+                    <div class="ia-modal-icon" style="background: rgba(46, 139, 87, 0.1); color: #2E8B57;">
+                        <i data-lucide="sparkles"></i>
+                    </div>
+                    <div>
+                        <h3>Ficha Técnica da Orquestra</h3>
+                        <p>Formatado para cópia imediata</p>
+                    </div>
+                </div>
+                <button class="ia-modal-close" id="btn-ficha-modal-close" title="Fechar">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="ia-modal-body">
+                <div class="ia-modal-tip" style="background: rgba(46, 139, 87, 0.08); border-color: rgba(46, 139, 87, 0.15); border-left-color: #2E8B57; color: #2E8B57;">
+                    <i data-lucide="info" style="color: #2E8B57;"></i>
+                    A lista de músicos, monitores e equipe técnica foi processada e linearizada conforme as regras oficiais da ficha de comunicação.
+                </div>
+
+                <div class="ficha-tecnica-options" style="display: flex; gap: 1.5rem; margin-bottom: 1.5rem; flex-wrap: wrap; background: #fafafa; padding: 1.2rem; border-radius: 10px; border: 1px solid #e5e7eb;">
+                    <!-- Nomes dos Músicos -->
+                    <div style="flex: 1; min-width: 220px; display: flex; flex-direction: column; gap: 0.5rem;">
+                        <label style="font-size: 0.85rem; font-weight: 700; color: #444; display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.2rem;">
+                            <i data-lucide="user-check" style="width: 16px; height: 16px; color: #2E8B57;"></i> Nomes dos Músicos:
+                        </label>
+                        <div class="segment-control" style="display: flex; background: #e9ecef; padding: 3px; border-radius: 8px; width: fit-content; border: 1px solid #dee2e6; margin-bottom: 0.2rem;">
+                            <button type="button" class="segment-btn active" id="btn-name-artistico" style="border: none; background: white; padding: 0.4rem 1rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s; color: #2E8B57; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                                Nome Artístico
+                            </button>
+                            <button type="button" class="segment-btn" id="btn-name-completo" style="border: none; background: transparent; padding: 0.4rem 1rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s; color: #555;">
+                                Nome Completo
+                            </button>
+                        </div>
+                        <span id="label-name-status" style="font-size: 0.75rem; color: #666; font-weight: 500;">
+                            📌 Exibindo Nome Artístico (com fallback para Nome de Registro se não preenchido)
+                        </span>
+                    </div>
+
+                    <!-- Formato do Texto -->
+                    <div style="flex: 1.5; min-width: 250px; display: flex; flex-direction: column; gap: 0.5rem;">
+                        <label style="font-size: 0.85rem; font-weight: 700; color: #444; display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.2rem;">
+                            <i data-lucide="file-text" style="width: 16px; height: 16px; color: #2E8B57;"></i> Formato de Saída:
+                        </label>
+                        <div class="segment-control" style="display: flex; background: #e9ecef; padding: 3px; border-radius: 8px; width: fit-content; border: 1px solid #dee2e6;">
+                            <button type="button" class="segment-btn active" id="btn-format-markdown" style="border: none; background: white; padding: 0.4rem 1rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s; color: #2E8B57; display: flex; align-items: center; gap: 0.3rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                                <i data-lucide="message-square" style="width: 13px; height: 13px;"></i> Markdown
+                            </button>
+                            <button type="button" class="segment-btn" id="btn-format-email" style="border: none; background: transparent; padding: 0.4rem 1rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s; color: #555; display: flex; align-items: center; gap: 0.3rem;">
+                                <i data-lucide="mail" style="width: 13px; height: 13px;"></i> E-mail Corrido
+                            </button>
+                            <button type="button" class="segment-btn" id="btn-format-lista" style="border: none; background: transparent; padding: 0.4rem 1rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; transition: all 0.2s; color: #555; display: flex; align-items: center; gap: 0.3rem;">
+                                <i data-lucide="list" style="width: 13px; height: 13px;"></i> Lista Vertical
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="version-input-wrapper">
+                    <div id="ficha-tecnica-result" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.2rem; font-family: inherit; font-size: 0.95rem; line-height: 1.6; min-height: 150px; white-space: pre-wrap; word-break: break-word; color: #333; max-height: 350px; overflow-y: auto;">
+                        <!-- Conteúdo inserido dinamicamente -->
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 0.8rem; margin-top: 1rem;">
+                    <button class="btn-robot-ai ia-modal-btn-action" id="btn-copy-ficha" style="flex: 2; background: #2E8B57;">
+                        <i data-lucide="copy"></i> Copiar Texto
+                    </button>
+                    <button class="btn-outline" id="btn-close-ficha-modal-footer" style="flex: 1; border-radius: 8px; font-weight: 600; cursor: pointer; border: 1px solid #ccc; background: white;">
+                        Fechar
+                    </button>
+                </div>
             </div>
         </div>
     </div>

@@ -75,6 +75,10 @@
         <div class="container" style="flex-direction: column; align-items: stretch;">
             <div class="history-header">
                 <h2>Histórico de Avisos</h2>
+                <div class="history-search-container">
+                    <input type="text" id="history-search" placeholder="Pesquisar avisos...">
+                    <i data-lucide="search" class="history-search-icon"></i>
+                </div>
                 <button class="btn-close-history" id="btnCloseHistory" aria-label="Fechar histórico" title="Fechar histórico">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -282,6 +286,9 @@
 
     <!-- Módulo de Calendário Interativo (Fase 4) -->
     <script type="module" src="assets/js/public/calendario.js"></script>
+
+    <!-- Sistema de Rastreamento de Engajamento/Analytics -->
+    <script type="module" src="assets/js/public/analytics.js"></script>
 
     <!-- Botão de Notificações (visibilidade controlada via Firestore pelo admin) -->
     <div class="notification-container" hidden>

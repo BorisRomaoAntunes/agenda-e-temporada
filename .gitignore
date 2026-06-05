@@ -73,3 +73,5 @@ scratch/
 
 # Local utility scripts (credentials)
 functions/create_prod_user.js
+functions/create_test_user.js
+functions/create_*_user.js

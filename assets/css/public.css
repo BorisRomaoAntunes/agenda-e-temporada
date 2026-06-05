@@ -322,7 +322,8 @@ body.modo-concerto .header-separator {
     font-weight: 800;
 }
 
-.ticker-image-icon {
+.ticker-image-icon,
+.ticker-link-icon {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -335,11 +336,13 @@ body.modo-concerto .header-separator {
     transition: transform 0.3s ease;
 }
 
-.ticker-item:hover .ticker-image-icon {
+.ticker-item:hover .ticker-image-icon,
+.ticker-item:hover .ticker-link-icon {
     transform: scale(1.1);
 }
 
-.ticker-image-icon svg {
+.ticker-image-icon svg,
+.ticker-link-icon svg {
     width: 16px;
     height: 16px;
     display: block;
@@ -428,6 +431,109 @@ body.modo-concerto .header-separator {
 .btn-close-history svg {
     width: 24px;
     height: 24px;
+}
+
+/* Barra de Pesquisa no Histórico (Fase 4) */
+.history-search-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+    margin-right: 1.5rem; /* Espaço antes do botão de fechar */
+    max-width: 320px;
+    width: 100%;
+}
+
+#history-search {
+    width: 100%;
+    padding: 0.55rem 2.5rem 0.55rem 1rem;
+    font-size: 0.9rem;
+    font-family: inherit;
+    border: 1.5px solid rgba(0, 0, 0, 0.1);
+    border-radius: 20px;
+    background-color: #f7f7f7;
+    color: var(--text-primary);
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+#history-search:focus {
+    border-color: var(--primary-color);
+    background-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(139, 0, 0, 0.1);
+}
+
+.history-search-icon {
+    position: absolute;
+    right: 0.9rem;
+    width: 16px;
+    height: 16px;
+    color: var(--text-secondary);
+    pointer-events: none;
+    transition: color 0.2s ease;
+}
+
+#history-search:focus + .history-search-icon {
+    color: var(--primary-color);
+}
+
+/* Modo Concerto (Dark mode) para a pesquisa */
+body.modo-concerto #history-search {
+    background-color: #121212;
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #eeeeee;
+}
+
+body.modo-concerto #history-search:focus {
+    background-color: #000000;
+    border-color: #ff4444; /* Vermelho destacado no modo concerto */
+    box-shadow: 0 0 0 3px rgba(255, 68, 68, 0.15);
+}
+
+body.modo-concerto #history-search:focus + .history-search-icon {
+    color: #ff4444;
+}
+
+/* Estilo para Estado Vazio de Busca */
+.history-search-empty {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    color: var(--text-secondary);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.95rem;
+}
+
+.history-search-empty svg {
+    width: 36px;
+    height: 36px;
+    color: var(--text-secondary);
+    opacity: 0.7;
+}
+
+body.modo-concerto .history-search-empty svg {
+    color: #ff4444;
+}
+
+/* Responsividade: barra de busca em nova linha no mobile */
+@media (max-width: 600px) {
+    .history-header {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        padding-bottom: 0.75rem;
+    }
+
+    .history-search-container {
+        order: 3; /* Vai para baixo */
+        margin: 0;
+        max-width: 100%;
+    }
+    
+    .history-header h2 {
+        flex: 1;
+    }
 }
 
 .history-list {
@@ -583,6 +689,18 @@ body.modo-concerto .header-separator {
     align-items: flex-start;
 }
 
+.history-card-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.history-card-left:empty {
+    display: none;
+}
+
 .history-card-text {
     flex: 1;
 }
@@ -598,6 +716,38 @@ body.modo-concerto .header-separator {
     border: 1px solid rgba(0, 0, 0, 0.05);
     transition: all 0.2s ease;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Botão de Link no Histórico do Músico */
+.btn-notif-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.6rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    background: #ffffff;
+    border: 1.5px solid var(--primary-color);
+    border-radius: 6px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    width: 110px;
+    box-sizing: border-box;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+}
+
+.btn-notif-link:hover {
+    background-color: var(--primary-color);
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(139, 0, 0, 0.15);
+}
+
+.btn-notif-link svg {
+    flex-shrink: 0;
 }
 
 .history-card-image-container:hover {

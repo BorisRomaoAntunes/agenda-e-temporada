@@ -104,7 +104,16 @@ onSnapshot(latestNoticeRef, (snap) => {
         </span>
     ` : '';
 
-    const tickerHtml = `<strong>${latest.title}</strong>${shortMessage ? ': ' + shortMessage : ''}${imageIconHtml}`;
+    const linkIconHtml = latest.linkUrl ? `
+        <span class="ticker-link-icon" title="Contém link">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+            </svg>
+        </span>
+    ` : '';
+
+    const tickerHtml = `<strong>${latest.title}</strong>${shortMessage ? ': ' + shortMessage : ''}${imageIconHtml}${linkIconHtml}`;
     
     tickerText.innerHTML = tickerHtml;
     if (tickerTextClone) tickerTextClone.innerHTML = tickerHtml;
@@ -116,10 +125,76 @@ let isHistoryLoading = false;
 let hasMoreHistory = true;
 let historyObserver = null;
 
+let allHistoryCache = null;
+let isFetchingHistoryForSearch = false;
+let activeHistorySearchQuery = '';
+
+function normalizeStr(str) {
+    if (!str) return '';
+    return str
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+}
+
+function buildHistoryCardElement(notif) {
+    const card = document.createElement('div');
+    card.className = 'history-card animate-fade-in';
+    
+    let dateStr = "Data não informada";
+    if (notif.createdAt) {
+        let dateObj = typeof notif.createdAt.toDate === 'function' ? notif.createdAt.toDate() : new Date(notif.createdAt);
+        dateStr = dateObj.toLocaleDateString('pt-BR') + ' às ' + dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    const imageHtml = notif.imageUrl ? `
+        <div class="history-card-image-container" onclick="openImageModal('${notif.imageUrl}')">
+            <img src="${notif.imageUrl}${notif.imageUrl.includes('?') ? '&' : '?'}v=${Date.now()}" alt="Imagem do aviso">
+        </div>
+    ` : '';
+
+    const linkBtnHtml = notif.linkUrl ? `
+        <a href="${notif.linkUrl}" target="_blank" class="btn-notif-link" title="Acessar Link">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M15 3h6v6"></path>
+                <path d="M10 14 21 3"></path>
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+            </svg>
+            <span>Acessar Link</span>
+        </a>
+    ` : '';
+
+    const leftColumnHtml = (imageHtml || linkBtnHtml) ? `
+        <div class="history-card-left">
+            ${imageHtml}
+            ${linkBtnHtml}
+        </div>
+    ` : '';
+
+    card.innerHTML = `
+        <div class="history-card-meta">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            ${dateStr}
+        </div>
+        <div class="history-card-content">
+            ${leftColumnHtml}
+            <div class="history-card-text">
+                <div class="history-card-title">${notif.title || 'Aviso'}</div>
+                <div class="history-card-body">${notif.message || ''}</div>
+            </div>
+        </div>
+    `;
+    return card;
+}
+
 window.loadNotificationHistory = async (isInitial = true) => {
     // Bloqueia se já estiver carregando ou se não houver mais e for scroll
     if (isHistoryLoading) return;
     if (!hasMoreHistory && !isInitial) return;
+    if (activeHistorySearchQuery && !isInitial) return; // Se estiver buscando, ignora scroll
     
     const historyList = document.getElementById('historyList');
     let sentinel = document.getElementById('historySentinel');
@@ -224,37 +299,7 @@ window.loadNotificationHistory = async (isInitial = true) => {
 
         snapshot.forEach((docSnap) => {
             const notif = docSnap.data();
-            const card = document.createElement('div');
-            card.className = 'history-card animate-fade-in';
-            
-            let dateStr = "Data não informada";
-            if (notif.createdAt) {
-                let dateObj = typeof notif.createdAt.toDate === 'function' ? notif.createdAt.toDate() : new Date(notif.createdAt);
-                dateStr = dateObj.toLocaleDateString('pt-BR') + ' às ' + dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-            }
-
-            const imageHtml = notif.imageUrl ? `
-                <div class="history-card-image-container" onclick="openImageModal('${notif.imageUrl}')">
-                    <img src="${notif.imageUrl}${notif.imageUrl.includes('?') ? '&' : '?'}v=${Date.now()}" alt="Imagem do aviso">
-                </div>
-            ` : '';
-
-            card.innerHTML = `
-                <div class="history-card-meta">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <polyline points="12 6 12 12 16 14"></polyline>
-                    </svg>
-                    ${dateStr}
-                </div>
-                <div class="history-card-content">
-                    ${imageHtml}
-                    <div class="history-card-text">
-                        <div class="history-card-title">${notif.title || 'Aviso'}</div>
-                        <div class="history-card-body">${notif.message || ''}</div>
-                    </div>
-                </div>
-            `;
+            const card = buildHistoryCardElement(notif);
             historyList.insertBefore(card, statusIndicator);
         });
 
@@ -306,7 +351,7 @@ function initHistoryObserver() {
     if (historyObserver) historyObserver.disconnect();
 
     historyObserver = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting && !isHistoryLoading && hasMoreHistory) {
+        if (entries[0].isIntersecting && !isHistoryLoading && hasMoreHistory && !activeHistorySearchQuery) {
             console.log("[History] Sentinela visível, carregando mais...");
             window.loadNotificationHistory(false);
         }
@@ -318,6 +363,150 @@ function initHistoryObserver() {
 
     historyObserver.observe(sentinel);
 }
+
+function initHistorySearch() {
+    const searchInput = document.getElementById('history-search');
+    if (!searchInput) return;
+
+    let debounceTimer;
+
+    searchInput.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(async () => {
+            const term = searchInput.value.trim();
+            const historyList = document.getElementById('historyList');
+            const sentinel = document.getElementById('historySentinel');
+            const statusIndicator = document.getElementById('historyLoadStatus');
+            if (!historyList) return;
+
+            // Se o campo estiver vazio, restaura o estado paginado normal
+            if (!term) {
+                activeHistorySearchQuery = '';
+                // Limpa mensagem de vazio
+                const emptyMsg = historyList.querySelector('.history-search-empty');
+                if (emptyMsg) emptyMsg.remove();
+                
+                // Recarrega histórico normal
+                window.loadNotificationHistory(true);
+                return;
+            }
+
+            activeHistorySearchQuery = term;
+            const normalizedQuery = normalizeStr(term);
+            const queryTokens = normalizedQuery.split(/\s+/).filter(Boolean);
+
+            // Se o cache estiver vazio, busca até 100 avisos do Firestore
+            if (!allHistoryCache) {
+                // Skeletons temporários durante a busca
+                // Limpa conteúdo atual mantendo sentinel e statusIndicator
+                Array.from(historyList.childNodes).forEach(node => {
+                    if (node !== sentinel && node !== statusIndicator) {
+                        node.remove();
+                    }
+                });
+
+                // Injeta Skeletons (3 itens)
+                for (let i = 0; i < 3; i++) {
+                    const skel = document.createElement('div');
+                    skel.className = 'history-card skeleton-item';
+                    skel.innerHTML = `
+                        <div class="history-card-meta skeleton-box" style="width: 120px; height: 14px; border-radius: 4px;"></div>
+                        <div class="history-card-content">
+                            <div class="history-card-text" style="width: 100%;">
+                                <div class="history-card-title skeleton-box" style="width: 60%; height: 20px; border-radius: 4px; margin-bottom: 8px;"></div>
+                                <div class="history-card-body skeleton-box" style="width: 100%; height: 16px; border-radius: 4px; margin-bottom: 4px;"></div>
+                                <div class="history-card-body skeleton-box" style="width: 80%; height: 16px; border-radius: 4px;"></div>
+                            </div>
+                        </div>
+                    `;
+                    historyList.insertBefore(skel, statusIndicator);
+                }
+
+                if (statusIndicator) statusIndicator.classList.remove('hidden');
+
+                try {
+                    isFetchingHistoryForSearch = true;
+                    const notificationsRef = collection(db, 'adminNotifications');
+                    const q = query(notificationsRef, orderBy('createdAt', 'desc'), limit(100));
+                    const snapshot = await getDocs(q);
+                    
+                    allHistoryCache = [];
+                    snapshot.forEach(doc => {
+                        allHistoryCache.push(doc.data());
+                    });
+                } catch (err) {
+                    console.error("Erro ao buscar histórico para pesquisa: ", err);
+                    Array.from(historyList.childNodes).forEach(node => {
+                        if (node !== sentinel && node !== statusIndicator) {
+                            node.remove();
+                        }
+                    });
+                    const errorMsg = document.createElement('div');
+                    errorMsg.className = 'history-empty';
+                    errorMsg.style.color = 'red';
+                    errorMsg.textContent = 'Erro ao carregar busca.';
+                    historyList.insertBefore(errorMsg, statusIndicator);
+                    isFetchingHistoryForSearch = false;
+                    return;
+                } finally {
+                    isFetchingHistoryForSearch = false;
+                }
+            }
+
+            // Filtragem local
+            const matchedNotifs = allHistoryCache.filter(notif => {
+                // Formata a data para pesquisa também se ela for informada
+                let dateStr = "";
+                if (notif.createdAt) {
+                    let dateObj = typeof notif.createdAt.toDate === 'function' ? notif.createdAt.toDate() : new Date(notif.createdAt);
+                    dateStr = dateObj.toLocaleDateString('pt-BR');
+                }
+
+                const searchContent = normalizeStr([
+                    notif.title || '',
+                    notif.message || '',
+                    notif.ocrText || '',
+                    dateStr
+                ].join(' '));
+
+                return queryTokens.every(token => searchContent.includes(token));
+            });
+
+            // Se o usuário limpou/alterou a pesquisa enquanto a busca terminava, abortamos o render
+            if (activeHistorySearchQuery !== term) return;
+
+            // Limpa tudo menos sentinel e statusIndicator
+            Array.from(historyList.childNodes).forEach(node => {
+                if (node !== sentinel && node !== statusIndicator) {
+                    node.remove();
+                }
+            });
+
+            if (statusIndicator) statusIndicator.classList.add('hidden');
+
+            // Esconde dica de scroll
+            const oldHint = document.getElementById('historyScrollHint');
+            if (oldHint) oldHint.remove();
+
+            if (matchedNotifs.length === 0) {
+                const div = document.createElement('div');
+                div.className = 'history-search-empty';
+                div.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-search-x"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="m8 8 6 6"/><path d="m14 8-6 6"/></svg> Nenhum resultado encontrado para "${term}".`;
+                historyList.insertBefore(div, statusIndicator);
+            } else {
+                matchedNotifs.forEach(notif => {
+                    const card = buildHistoryCardElement(notif);
+                    historyList.insertBefore(card, statusIndicator);
+                });
+            }
+
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        }, 300);
+    });
+}
+
 
 
 // ====== PERMISSÃO DE NOTIFICAÇÕES ======
@@ -338,6 +527,11 @@ function isStandalone() {
 // Função global para ser chamada pelo botão "Sim"
 window.requestFirebaseNotificationPermission = async () => {
     try {
+        if (lastAdminSettings.notificationsEnabled !== true) {
+            alert("⚠️ As notificações push estão temporariamente desativadas pela administração.");
+            return false;
+        }
+
         console.log('[Firebase] Solicitando permissão para notificações...');
         
         // Verifica se API de notificação é suportada
@@ -351,8 +545,8 @@ window.requestFirebaseNotificationPermission = async () => {
         if (permission === 'granted') {
             console.log('[Firebase] Permissão concedida. Gerando Token...');
             
-            // Registra o Service Worker explicitamente com o caminho correto do projeto!
-            const registration = await navigator.serviceWorker.register('./firebase-messaging-sw.js');
+            // Usa o Service Worker unificado do PWA (sw.js) que já está ativo no navegador
+            const registration = await navigator.serviceWorker.ready;
 
             // O VapidKey liga o navegador ao Firebase Console, usando nosso Service Worker customizado
             const currentToken = await getToken(messaging, { 
@@ -400,6 +594,10 @@ window.requestFirebaseNotificationPermission = async () => {
 
 // Receptor para caso a notificação chegue E o site esteja aberto na tela
 onMessage(messaging, (payload) => {
+    if (lastAdminSettings.notificationsEnabled !== true) {
+        console.log('[Firebase] Ignorando notificação recebida com o site aberto (notificações desativadas globalmente).');
+        return;
+    }
     console.log('[Firebase] Mensagem recebida com o site aberto: ', payload);
     // Como o site está aberto, podemos mostrar um alerta com o título da atualização
     alert(`Novo Aviso: ${payload.notification.title}\n\n${payload.notification.body}`);
@@ -426,6 +624,13 @@ document.addEventListener('DOMContentLoaded', () => {
         newsTicker.addEventListener('click', () => {
             const isOpen = historyPanel.classList.toggle('open');
             if (isOpen) {
+                // Reseta busca ao abrir
+                const searchInput = document.getElementById('history-search');
+                if (searchInput) {
+                    searchInput.value = '';
+                }
+                activeHistorySearchQuery = '';
+                allHistoryCache = null;
                 window.loadNotificationHistory(); // Dispara o carregamento apenas ao abrir
             }
         });
@@ -434,7 +639,17 @@ document.addEventListener('DOMContentLoaded', () => {
         btnCloseHistory.addEventListener('click', (e) => {
             e.stopPropagation(); // Evita reativar o letreiro ao fechar
             historyPanel.classList.remove('open');
+            // Limpa busca ao fechar
+            const searchInput = document.getElementById('history-search');
+            if (searchInput) {
+                searchInput.value = '';
+            }
+            activeHistorySearchQuery = '';
+            allHistoryCache = null;
         });
+
+        // Inicializa a barra de pesquisa
+        initHistorySearch();
     }
 
     // ====== LÓGICA DO SINO DE NOTIFICAÇÕES ======

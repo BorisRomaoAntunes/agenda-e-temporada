@@ -8,43 +8,58 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    // Verifica se o usuário autenticado possui o claim de administrador.
+    // Para conceder admin a um novo usuário, use o script scripts/set_admin_claim.js
+    function isAdmin() {
+      return request.auth != null && request.auth.token.admin == true;
+    }
+
     // Coleção "config" — configurações globais do app (PDFs, Feature Flags)
     match /config/{document} {
       allow read: if true;
-      allow write: if isSignedIn();
+      allow write: if isAdmin();
     }
 
     // Coleção "adminNotifications" — histórico de notificações push enviadas
     match /adminNotifications/{document} {
       allow read: if true;
-      allow write: if isSignedIn();
+      allow write: if isAdmin();
     }
 
     // Coleção "fcmTokens" — tokens para notificações push
+    // Músicos anônimos só podem CRIAR novos tokens (inscrição).
+    // Atualização e exclusão são restritas ao admin (Cloud Functions usam Admin SDK).
     match /fcmTokens/{document} {
-      allow read: if isSignedIn();
-      allow write: if true; // Permite que usuários se inscrevam sem login
+      allow read: if isAdmin();
+      allow create: if request.resource.data.keys().hasAll(['token'])
+                    && request.resource.data.token is string;
+      allow update, delete: if isAdmin();
     }
 
-    // Coleção "adminLogs" — histórico de auditoria do painel
+    // Coleção "adminLogs" — histórico de auditoria do painel (dados sensíveis)
     match /adminLogs/{document} {
-      allow read, write: if isSignedIn();
+      allow read, write: if isAdmin();
     }
 
     // Coleção "dynamicLinks" — botões temporários
     match /dynamicLinks/{document} {
       allow read: if true;
-      allow write: if isSignedIn();
+      allow write: if isAdmin();
     }
 
-    // Coleção "scheduledNotifications" — avisos agendados
+    // Coleção "scheduledNotifications" — avisos agendados (dados sensíveis)
     match /scheduledNotifications/{document} {
-      allow read, write: if isSignedIn();
+      allow read, write: if isAdmin();
     }
 
-    // Coleção "medicalCertificates" — módulo de atestados
+    // Coleção "medicalCertificates" — módulo de atestados (dados sensíveis - LGPD)
     match /medicalCertificates/{document} {
-      allow read, write: if isSignedIn();
+      allow read, write: if isAdmin();
+    }
+
+    // Coleção "musicos" — dados cadastrais completos dos músicos (sensíveis)
+    match /musicos/{document} {
+      allow read, write: if isAdmin();
     }
 
     // ==========================================
@@ -54,13 +69,22 @@ service cloud.firestore {
     // Coleção "eventos" — agenda diária
     match /eventos/{document} {
       allow read: if true;
-      allow write: if isSignedIn();
+      allow write: if isAdmin();
     }
 
     // Coleção "avisos_semana" — avisos globais da semana
     match /avisos_semana/{document} {
       allow read: if true;
-      allow write: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Coleção "engagement" — medidores de engajamento e acessos
+    // Músicos anônimos podem CRIAR registros de engajamento.
+    // Atualização e exclusão são restritas ao admin.
+    match /engagement/{document} {
+      allow read: if isAdmin();
+      allow create: if true;
+      allow update, delete: if isAdmin();
     }
 
     // Regra padrão de segurança (nega tudo por padrão)
