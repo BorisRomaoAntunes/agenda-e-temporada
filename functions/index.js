@@ -276,6 +276,21 @@ exports.dailySubscriberCheck = onSchedule({
     const fcmTokensRef = admin.firestore().collection("fcmTokens");
 
     try {
+        // Verificar se as notificações globais estão habilitadas no Firestore
+        let notifEnabled = true;
+        const settingsSnap = await admin.firestore().collection("config").doc("settings").get();
+        if (settingsSnap.exists) {
+            const settings = settingsSnap.data();
+            if (settings && settings.notificationsEnabled !== undefined) {
+                notifEnabled = settings.notificationsEnabled === true;
+            }
+        }
+
+        if (!notifEnabled) {
+            console.log("Robô OER: Notificações globais desativadas em config/settings. A verificação diária de assinantes foi ignorada.");
+            return;
+        }
+
         // 1. Faz a contagem real de documentos na coleção de tokens
         const countSnap = await fcmTokensRef.count().get();
         const actualTokenCount = countSnap.data().count;
@@ -363,7 +378,7 @@ exports.suggestNotificationText = onCall({
         throw new HttpsError("unauthenticated", "O usuário precisa estar autenticado.");
     }
 
-    const { userPrompt, includeContext, selectedContexts, image, type, version } = request.data;
+    const { userPrompt, includeContext, selectedContexts, image, type, version, linkUrl } = request.data;
     const apiKey = process.env.GEMINI_API_KEY || admin.remoteConfig().parameters?.GEMINI_API_KEY?.defaultValue?.value;
     
     if (!apiKey) {
@@ -476,6 +491,14 @@ Abaixo estão as informações disponíveis para você criar a sugestão de noti
             promptText += eventosText + "\n";
         }
 
+        if (linkUrl) {
+            promptText += `LINK ANEXADO AO AVISO:
+- URL: ${linkUrl}
+(Mencione ou oriente os músicos a clicarem no link anexo para conferir as informações, de forma elegante e natural se relevante).
+
+`;
+        }
+
         if (image && image.inlineData) {
             promptText += `ANÁLISE DE IMAGEM:
 Foi feito o upload de uma imagem (comunicado, cartaz, grade ou foto de partitura). Analise visualmente a imagem anexada para identificar detalhes importantes (como data, horário, local, repertório, instruções específicas ou naipes afetados) e use esses detalhes para elaborar o aviso.
@@ -559,7 +582,7 @@ exports.generateFichaTecnica = onCall({
 🔹 ORDEM DOS ELEMENTOS
 1º: Regentes (no início de tudo).
 2º: Naipes/Instrumentos com seus respectivos músicos.
-3º: Equipe Técnica (Coordenador, Inspetor, Produtor, Montadores, etc.).
+3º: Equipe Técnica (Coordenador Artístico, Inspetor, Produtor de Palco, Montadores, etc.).
 4º: Texto de legenda ao final de tudo.
 
 🔹 PONTUAÇÃO E CONEXÕES
@@ -572,7 +595,7 @@ exports.generateFichaTecnica = onCall({
 - Regentes: Começam com o cargo sem negrito e terminam com ponto final (Exemplo: Regente Titular Nome. Regente Assistente Nome.). Não levam asterisco.
 - Naipes de Instrumentos: O nome do instrumento/naipe deve vir obrigatoriamente em negrito (Exemplo: **Trompas**).
 - Equipe Técnica (ao final): 
-  * Os cargos "Coordenador Artístico", "Inspetor" e "Produtor de Palco" devem vir em negrito (Exemplo: **Inspetor** Nome.). Não levam asterisco.
+  * Os cargos "Coordenador Artístico", "Inspetor" e "Produtor de Palco" devem vir em negrito (Exemplo: **Inspetor** Nome. **Produtor de Palco** Nome.). Não levam asterisco.
   * O cargo "Montadores" e outros cargos finais não especificados vêm sem negrito (Exemplo: Montadores Nome e Nome.). Não levam asterisco.
 
 🔹 REGRAS ESPECÍFICAS DE HIERARQUIA (SPALLA E MONITOR)
@@ -585,6 +608,7 @@ exports.generateFichaTecnica = onCall({
 **Spalla
 
 🔹 LIMPEZA E PADRONIZAÇÃO DA LISTA
+- Remova/ignore completamente Angela De Santi Pernambuco (ou qualquer menção a ela como Coordenadora Artística). Ela não deve fazer parte da ficha técnica.
 - Ignore completamente linhas indicando observações originais como "*Nomes Artísticos" ou linhas em branco.
 - Remova duplicações e mantenha apenas os nomes válidos.
 - Mantenha os nomes dos naipes exatamente como fornecidos.
@@ -866,33 +890,52 @@ exports.onAtestadoUpload = functions.runWith({
         - Se não conseguir ler o nome, use "Nao_Identificado".`;
 
         // 5. Executar extração com Gemini 2.5 Flash (Modelo Atual em 2026)
-        const response = await ai.models.generateContent({
-            model: "gemini-2.5-flash",
-            contents: [
-                {
-                    role: "user",
-                    parts: [
-                        { text: prompt },
-                        {
-                            inlineData: {
-                                data: fileBuffer.toString("base64"),
-                                mimeType: contentType
-                            }
-                        }
-                    ]
-                }
-            ]
-        });
+        let aiData;
+        let geminiFailed = false;
+        let geminiErrorMsg = "";
 
-        const resultText = response.text || "";
-        console.log("[Atestados] Resposta da IA:", resultText);
-        
-        // Limpar o JSON (às vezes a IA coloca ```json ... ```)
-        const jsonMatch = resultText.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) throw new Error("A IA não retornou um JSON válido.");
-        
-        const aiData = JSON.parse(jsonMatch[0]);
-        console.log("[Atestados] Dados extraídos com sucesso:", aiData);
+        try {
+            const response = await ai.models.generateContent({
+                model: "gemini-2.5-flash",
+                contents: [
+                    {
+                        role: "user",
+                        parts: [
+                            { text: prompt },
+                            {
+                                inlineData: {
+                                    data: fileBuffer.toString("base64"),
+                                    mimeType: contentType
+                                }
+                            }
+                        ]
+                    }
+                ]
+            });
+
+            const resultText = response.text || "";
+            console.log("[Atestados] Resposta da IA:", resultText);
+            
+            // Limpar o JSON (às vezes a IA coloca ```json ... ```)
+            const jsonMatch = resultText.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) throw new Error("A IA não retornou um JSON válido.");
+            
+            aiData = JSON.parse(jsonMatch[0]);
+            console.log("[Atestados] Dados extraídos com sucesso:", aiData);
+        } catch (geminiError) {
+            console.error("[Atestados] Falha na API do Gemini:", geminiError);
+            geminiFailed = true;
+            geminiErrorMsg = geminiError.message || String(geminiError);
+            
+            // Fallback de dados para permitir preenchimento manual no Admin
+            aiData = {
+                nome: "Revisão Manual Requerida",
+                cid: null,
+                data_inicio: "",
+                dias: "",
+                resumo_cid: `Falha na extração automática da IA. A API do Gemini retornou um erro: ${geminiErrorMsg}. Por favor, verifique o documento anexado e preencha as informações manualmente.`
+            };
+        }
 
         // 5. Processamento de PDF
         let pdfDoc;
@@ -932,15 +975,27 @@ exports.onAtestadoUpload = functions.runWith({
         }
 
         // Título e Subtítulo
-        infoPage.drawText("RELATÓRIO DE ANÁLISE — ROBÔ OER", { 
-            x: 50, y: height - 120, size: 18, 
-            color: { type: 'RGB', red: 0.1, green: 0.1, blue: 0.1 } 
-        });
-        
-        infoPage.drawText("Documento processado via Inteligência Artificial para gestão administrativa.", { 
-            x: 50, y: height - 140, size: 9, 
-            color: { type: 'RGB', red: 0.4, green: 0.4, blue: 0.4 } 
-        });
+        if (geminiFailed) {
+            infoPage.drawText("ALERTA: FALHA NO PROCESSAMENTO AUTOMÁTICO", { 
+                x: 50, y: height - 120, size: 16, 
+                color: { type: 'RGB', red: 0.8, green: 0.1, blue: 0.1 } 
+            });
+            
+            infoPage.drawText("Não foi possível extrair os dados usando a Inteligência Artificial.", { 
+                x: 50, y: height - 140, size: 9, 
+                color: { type: 'RGB', red: 0.5, green: 0.2, blue: 0.2 } 
+            });
+        } else {
+            infoPage.drawText("RELATÓRIO DE ANÁLISE — ROBÔ OER", { 
+                x: 50, y: height - 120, size: 18, 
+                color: { type: 'RGB', red: 0.1, green: 0.1, blue: 0.1 } 
+            });
+            
+            infoPage.drawText("Documento processado via Inteligência Artificial para gestão administrativa.", { 
+                x: 50, y: height - 140, size: 9, 
+                color: { type: 'RGB', red: 0.4, green: 0.4, blue: 0.4 } 
+            });
+        }
 
         // Linha Divisória
         infoPage.drawLine({
@@ -951,10 +1006,10 @@ exports.onAtestadoUpload = functions.runWith({
         });
 
         // Cálculos e formatação de datas (DD/MM/YYYY)
-        let dataInicioFormatada = aiData.data_inicio || "N/A";
-        let dataFimFormatada = "N/A";
+        let dataInicioFormatada = "Pendente";
+        let dataFimFormatada = "Pendente";
 
-        if (aiData.data_inicio && aiData.dias !== undefined) {
+        if (!geminiFailed && aiData.data_inicio && aiData.dias !== undefined) {
             try {
                 const parts = aiData.data_inicio.split("-");
                 if (parts.length === 3) {
@@ -990,22 +1045,22 @@ exports.onAtestadoUpload = functions.runWith({
 
         const drawDataRow = (label, value, y) => {
             infoPage.drawText(label, { x: 50, y, size: 12, color: { type: 'RGB', red: 0.5, green: 0.5, blue: 0.5 } });
-            infoPage.drawText(value || "N/A", { x: 180, y, size: 12 });
+            infoPage.drawText(value || "Pendente", { x: 180, y, size: 12 });
         };
 
-        drawDataRow("Músico(a):", aiData.nome, startY);
-        drawDataRow("CID:", aiData.cid, startY - lineSpacing);
+        drawDataRow("Músico(a):", geminiFailed ? "Revisão Manual" : aiData.nome, startY);
+        drawDataRow("CID:", geminiFailed ? "Revisão Manual" : aiData.cid, startY - lineSpacing);
         drawDataRow("Início:", dataInicioFormatada, startY - lineSpacing * 2);
         drawDataRow("Término:", dataFimFormatada, startY - lineSpacing * 3);
-        drawDataRow("Período:", `${aiData.dias} dias`, startY - lineSpacing * 4);
+        drawDataRow("Período:", geminiFailed ? "Revisão Manual" : `${aiData.dias} dias`, startY - lineSpacing * 4);
 
         // Seção de Explicação
-        infoPage.drawText("EXPLICAÇÃO DA CONDIÇÃO (CID):", { 
+        infoPage.drawText(geminiFailed ? "DETALHES DO ERRO DA IA:" : "EXPLICAÇÃO DA CONDIÇÃO (CID):", { 
             x: 50, y: startY - 130, size: 12, 
-            color: { type: 'RGB', red: 0.1, green: 0.1, blue: 0.1 } 
+            color: geminiFailed ? { type: 'RGB', red: 0.8, green: 0.1, blue: 0.1 } : { type: 'RGB', red: 0.1, green: 0.1, blue: 0.1 } 
         });
 
-        const explanation = aiData.resumo_cid || "Nenhuma informação adicional extraída sobre o CID.";
+        const explanation = aiData.resumo_cid || "Nenhuma informação adicional.";
         infoPage.drawText(explanation, { 
             x: 50, y: startY - 155, size: 11, 
             maxWidth: 500,
@@ -1022,8 +1077,28 @@ exports.onAtestadoUpload = functions.runWith({
         const finalPdfBytes = await pdfDoc.save();
 
         // 6. Upload para pasta processada com nome padronizado
-        const cleanName = (aiData.nome || "Atestado").replace(/\s+/g, '_').normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9_]/g, "");
-        const finalFileName = `atestado_${cleanName}_${aiData.data_inicio}_${aiData.dias}dias.pdf`;
+        let datePart = "";
+        if (geminiFailed || !aiData.data_inicio) {
+            const today = new Date();
+            const dd = String(today.getDate()).padStart(2, '0');
+            const mm = String(today.getMonth() + 1).padStart(2, '0');
+            datePart = `${dd}.${mm}`;
+        } else {
+            // aiData.data_inicio está no formato YYYY-MM-DD
+            const parts = aiData.data_inicio.split("-");
+            if (parts.length === 3) {
+                datePart = `${parts[2]}.${parts[1]}`;
+            } else {
+                datePart = "00.00";
+            }
+        }
+
+        const cleanName = geminiFailed ? "Revisao_Manual" : (aiData.nome || "Atestado").replace(/\s+/g, '_').normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9_]/g, "");
+        const cleanCid = geminiFailed ? "" : (aiData.cid || "SemCID").replace(/\s+/g, '').replace(/[^a-zA-Z0-9.]/g, "");
+
+        const finalFileName = geminiFailed 
+            ? `atestado_${datePart}_${cleanName}_0dias.pdf`
+            : `atestado_${datePart}_${cleanName}_${cleanCid}_${aiData.dias}dias.pdf`;
         const finalPath = `atestados_processed/${finalFileName}`;
 
         await bucket.file(finalPath).save(finalPdfBytes, {
@@ -1031,42 +1106,54 @@ exports.onAtestadoUpload = functions.runWith({
                 contentType: "application/pdf",
                 metadata: {
                     processedBy: "RoboOER",
-                    originalName: path.basename(filePath)
+                    originalName: path.basename(filePath),
+                    geminiFailed: String(geminiFailed)
                 }
             }
         });
 
         // 7. Salvar no Firestore (medicalCertificates)
         await admin.firestore().collection("medicalCertificates").add({
-            nome: aiData.nome,
-            cid: aiData.cid,
-            dataInicio: aiData.data_inicio,
-            dias: aiData.dias,
-            resumoCid: aiData.resumo_cid,
+            nome: geminiFailed ? "" : aiData.nome,
+            cid: geminiFailed ? "" : aiData.cid,
+            dataInicio: geminiFailed ? "" : aiData.data_inicio,
+            dias: geminiFailed ? "" : aiData.dias,
+            resumoCid: geminiFailed ? "Falha na API do Gemini. Por favor, revise e preencha as informações manualmente." : aiData.resumo_cid,
             fileName: finalFileName,
             filePath: finalPath,
             status: "pendente",
             createdAt: new Date().toISOString(),
-            processedAt: new Date().toISOString()
+            processedAt: new Date().toISOString(),
+            geminiFailed: geminiFailed
         });
 
-        // 8. Log de Auditoria
-        await admin.firestore().collection("adminLogs").add({
-            type: "atestado",
-            message: `Atestado processado: ${aiData.nome}`,
-            details: `IA identificou CID ${aiData.cid} e ${aiData.dias} dias de afastamento.\n\nParecer da IA: ${aiData.resumo_cid || "Nenhuma explicação adicional."}`,
-            user: "Robô OER",
-            createdAt: new Date().toISOString()
-        });
+        // 8. Log de Auditoria / Notificação no Admin
+        if (geminiFailed) {
+            await admin.firestore().collection("adminLogs").add({
+                type: "erro",
+                message: "Atestado recebido, mas não foi possível processar automaticamente via IA.",
+                details: `O arquivo ${path.basename(filePath)} foi recebido e disponibilizado no painel administrativo para preenchimento manual.\n\nErro retornado pela API:\n${geminiErrorMsg}`,
+                user: "Robô OER",
+                createdAt: new Date().toISOString()
+            });
+        } else {
+            await admin.firestore().collection("adminLogs").add({
+                type: "atestado",
+                message: `Atestado processado: ${aiData.nome}`,
+                details: `IA identificou CID ${aiData.cid} e ${aiData.dias} dias de afastamento.\n\nParecer da IA: ${aiData.resumo_cid || "Nenhuma explicação adicional."}`,
+                user: "Robô OER",
+                createdAt: new Date().toISOString()
+            });
+        }
 
         // 9. Remover original (atestados_temp) para segurança
         await bucket.file(filePath).delete();
-        console.log(`[Atestados] Processamento concluído com sucesso: ${finalFileName}`);
+        console.log(`[Atestados] Processamento concluído ${geminiFailed ? 'com fallback de erro' : 'com sucesso'}: ${finalFileName}`);
 
     } catch (error) {
         console.error("[Atestados] Erro crítico no processamento:", error);
         
-        // Log de erro
+        // Log de erro crítico do sistema
         await admin.firestore().collection("adminLogs").add({
             type: "erro",
             message: `Falha ao processar atestado: ${path.basename(filePath)}`,

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Meta Tags Anti-Cache para iOS PWA -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Presença OER</title>
+    
+    <!-- Favicon e PWA tags (reutilizando da OER) -->
+    <link rel="icon" type="image/png" sizes="180x180" href="assets/img/favicon_admin_final-180.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/img/favicon_admin_final-180.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Presença OER">
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Ícones Lucide -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- CSS: Base + Custom Presença -->
+    <link rel="stylesheet" href="assets/css/common.css">
+    <link rel="stylesheet" href="assets/css/presenca.css">
+</head>
+<body>
+
+    <!-- Loader de Inicialização -->
+    <div class="loader-overlay" id="loader">
+        <div class="loader-spinner"></div>
+        <p style="font-weight: 600; color: #475569; font-size: 0.95rem;">Verificando autenticação...</p>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast"></div>
+
+    <!-- Header Section -->
+    <header class="header">
+        <div class="header-top">
+            <div class="header-title-container">
+                <button class="btn-back-admin" id="btnBackAdmin" title="Voltar ao Painel Admin">
+                    <i data-lucide="arrow-left" style="width: 24px; height: 24px;"></i>
+                </button>
+                <div class="header-title">
+                    <h1>Presença OER</h1>
+                </div>
+            </div>
+            <div class="date-picker-container">
+                <i data-lucide="calendar" style="width: 16px; height: 16px;"></i>
+                <input type="date" id="dateInput">
+            </div>
+        </div>
+        
+        <!-- Search Bar -->
+        <div class="search-container">
+            <i data-lucide="search" class="search-icon"></i>
+            <input type="text" id="searchInput" placeholder="Pesquisar por nome ou instrumento...">
+        </div>
+    </header>
+
+    <!-- Instructions Banner -->
+    <div class="instructions">
+        <i data-lucide="info" style="width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px;"></i>
+        <div>
+            <strong>Como usar:</strong> Toque no <strong>Nome do Músico</strong> para Presença rápida. Toque no <strong>Status</strong> para abrir o painel de opções. Selecionar Presença, Falta ou Atestado fecha o painel automaticamente.
+        </div>
+    </div>
+
+    <!-- Main List -->
+    <main class="list-container" id="musiciansList">
+        <div style="text-align: center; color: var(--text-secondary); padding: 3rem 1rem;">
+            <i data-lucide="loader" class="animate-spin" style="margin: 0 auto 1rem auto; width: 24px; height: 24px; display: block;"></i>
+            Carregando músicos...
+        </div>
+    </main>
+
+    <!-- Floating Notes Drawer (Overlay & Drawer) -->
+    <div class="drawer-overlay" id="overlay"></div>
+    
+    <!-- Edit Status Drawer -->
+    <div class="drawer" id="statusDrawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-title" id="drawerTitle">Nome do Músico</div>
+        <div class="drawer-subtitle" id="drawerSubtitle">Instrumento - Status Atual</div>
+        
+        <div class="options-grid">
+            <button class="opt-btn presenca" id="optBtnPresenca">
+                <i data-lucide="user-check" style="width: 24px; height: 24px;"></i>
+                <span>Presença</span>
+            </button>
+            <button class="opt-btn falta" id="optBtnFalta">
+                <i data-lucide="user-x" style="width: 24px; height: 24px;"></i>
+                <span>Falta</span>
+            </button>
+            <button class="opt-btn atestado" id="optBtnAtestado">
+                <i data-lucide="file-text" style="width: 24px; height: 24px;"></i>
+                <span>Atestado</span>
+            </button>
+        </div>
+
+        <!-- Seção de Atraso -->
+        <div class="delay-section">
+            <div class="delay-title">
+                <span>Registrar Atraso</span>
+                <span class="delay-value-display" id="delayValDisplay">Sem atraso</span>
+            </div>
+            
+            <!-- Simulador de Scroll Wheel iOS -->
+            <div class="wheel-container">
+                <div class="wheel-mask"></div>
+                <div class="wheel-highlight"></div>
+                <div class="wheel-scroller" id="delayWheel">
+                    <!-- Valores de atraso gerados por JS -->
+                </div>
+            </div>
+        </div>
+
+        <div class="drawer-actions">
+            <button class="btn btn-cancel" id="btnCancelDrawer">Cancelar</button>
+            <button class="btn btn-confirm btn-delay-confirm" id="btnDelayConfirm">Confirmar Atraso</button>
+        </div>
+    </div>
+
+    <!-- Daily Notes Drawer -->
+    <div class="drawer" id="notesDrawer">
+        <div class="drawer-handle"></div>
+        <div class="drawer-title">Anotações do Dia</div>
+        <div class="drawer-subtitle">Adicione observações gerais sobre o ensaio ou concertos de hoje.</div>
+        
+        <textarea class="notes-textarea" id="notesTextarea" placeholder="Digite aqui as observações, intercorrências ou ausências comunicadas de última hora..."></textarea>
+        
+        <div class="drawer-actions">
+            <button class="btn btn-cancel" id="btnCancelNotes">Voltar</button>
+            <button class="btn btn-confirm" id="btnSaveNotes">Salvar Anotações</button>
+        </div>
+    </div>
+
+    <!-- Bottom Action Bar -->
+    <footer class="bottom-bar">
+        <button class="notes-btn" id="btnOpenNotes">
+            <i data-lucide="sticky-note" style="width: 18px; height: 18px;"></i>
+            <span>Anotações</span>
+        </button>
+        <button class="save-btn" id="btnSaveOfficial">
+            <i data-lucide="cloud-lightning" style="width: 18px; height: 18px;"></i>
+            <span>Salvar Oficialmente</span>
+        </button>
+    </footer>
+
+    <!-- Firebase SDK & Custom Logics -->
+    <script type="module" src="assets/js/admin/presenca.js?v=1"></script>
+</body>
+</html>

@@ -53,26 +53,69 @@
                 <h2>Acesso Restrito</h2>
                 <p>Faça login para gerenciar os repertórios.</p>
             </div>
-            <form id="login-form">
-                <div class="input-group">
-                    <label for="email">E-mail</label>
-                    <input type="email" id="email" required placeholder="seu@email.com">
-                </div>
-                <div class="input-group">
-                    <label for="password">Senha</label>
-                    <div class="password-wrapper">
-                        <input type="password" id="password" required placeholder="••••••••">
-                        <button type="button" id="btn-toggle-password" class="btn-toggle-password"
-                            aria-label="Mostrar senha">
-                            <i data-lucide="eye"></i>
-                        </button>
+
+            <!-- View de Login -->
+            <div id="login-view" class="login-view">
+                <form id="login-form">
+                    <div class="input-group">
+                        <label for="email">E-mail</label>
+                        <input type="email" id="email" required placeholder="seu@email.com">
                     </div>
+                    <div class="input-group">
+                        <label for="password">Senha</label>
+                        <div class="password-wrapper">
+                            <input type="password" id="password" required placeholder="••••••••">
+                            <button type="button" id="btn-toggle-password" class="btn-toggle-password"
+                                aria-label="Mostrar senha">
+                                <i data-lucide="eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn-primary" id="btn-login">
+                        Entrar <i data-lucide="arrow-right"></i>
+                    </button>
+                    <div id="login-error" class="error-msg"></div>
+                    <div id="login-countdown" class="countdown-overlay" style="display: none;">
+                        <i data-lucide="timer"></i>
+                        <span>Aguarde <span class="countdown-time" id="countdown-time">30</span>s para tentar novamente</span>
+                    </div>
+                </form>
+                <a href="#" id="forgot-password-link" class="forgot-password-link">Esqueci minha senha</a>
+            </div>
+
+            <!-- View de Recuperação de Senha -->
+            <div id="recovery-view" class="recovery-view hidden">
+                <div class="recovery-icon">
+                    <i data-lucide="mail"></i>
                 </div>
-                <button type="submit" class="btn-primary" id="btn-login">
-                    Entrar <i data-lucide="arrow-right"></i>
+                <h3>Recuperar Senha</h3>
+                <p>Digite seu e-mail cadastrado. Enviaremos um link para redefinir sua senha.</p>
+                <form id="recovery-form">
+                    <div class="input-group">
+                        <label for="recovery-email">E-mail</label>
+                        <input type="email" id="recovery-email" required placeholder="seu@email.com">
+                    </div>
+                    <button type="submit" class="btn-primary" id="btn-send-recovery">
+                        Enviar link de recuperação <i data-lucide="send"></i>
+                    </button>
+                    <div id="recovery-error" class="error-msg"></div>
+                </form>
+                <button type="button" id="btn-back-login" class="btn-back-login">
+                    <i data-lucide="arrow-left"></i> Voltar ao login
                 </button>
-                <div id="login-error" class="error-msg"></div>
-            </form>
+            </div>
+
+            <!-- View de Confirmação (e-mail enviado) -->
+            <div id="success-view" class="success-view hidden">
+                <div class="success-icon">
+                    <i data-lucide="check-circle"></i>
+                </div>
+                <h3>Link enviado!</h3>
+                <p>Verifique sua caixa de entrada (e a pasta de spam). O link expira em 1 hora.</p>
+                <button type="button" id="btn-back-login-success" class="btn-primary">
+                    Voltar ao login <i data-lucide="arrow-left"></i>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -123,10 +166,6 @@
                 <button class="tab-btn" data-target="section-links">
                     <i data-lucide="link"></i> <span>Links Temporários</span>
                 </button>
-                <button class="tab-btn"
-                    onclick="window.open('https://docs.google.com/document/d/1LZcA7TGbL2J_O8Y8H7JUKAauF8B1PAElbnSDqjodTQw/edit?usp=sharing', '_blank'); document.querySelector('[data-target=\'section-logs\']').click();">
-                    <i data-lucide="file-text"></i> <span>Instrumentação</span>
-                </button>
             </nav>
 
             <!-- Seção 0: Histórico de Logs -->
@@ -147,6 +186,16 @@
                          <span class="live-dot"></span>
                          <span class="live-text">AO VIVO</span>
                      </div>
+                 </div>
+
+                 <!-- Botões de Acesso Rápido -->
+                 <div class="quick-actions-container">
+                     <a href="presenca.html" target="_blank" class="btn-quick-round btn-presenca" title="Presença OER">
+                         <i data-lucide="user-check"></i>
+                     </a>
+                     <a href="https://docs.google.com/document/d/1LZcA7TGbL2J_O8Y8H7JUKAauF8B1PAElbnSDqjodTQw/edit?usp=sharing" target="_blank" class="btn-quick-round btn-instrumentacao" title="Instrumentação">
+                         <i data-lucide="file-text"></i>
+                     </a>
                  </div>
 
                 <!-- Gráfico de Engajamento dos Últimos Dias -->
@@ -684,7 +733,7 @@ Intervalo
 
                     <!-- Cards Estatísticos Rápidos -->
                     <div class="musicos-stats-cards">
-                        <div class="musico-stat-card">
+                        <div class="musico-stat-card clickable-stat-card" id="card-total-musicos">
                             <div class="stat-icon-bg bg-blue">
                                 <i data-lucide="users"></i>
                             </div>
@@ -693,7 +742,7 @@ Intervalo
                                 <h4 class="stat-value" id="stat-total-musicos">0</h4>
                             </div>
                         </div>
-                        <div class="musico-stat-card">
+                        <div class="musico-stat-card clickable-stat-card" id="card-bolsistas">
                             <div class="stat-icon-bg bg-green">
                                 <i data-lucide="graduation-cap"></i>
                             </div>
@@ -702,7 +751,7 @@ Intervalo
                                 <h4 class="stat-value" id="stat-bolsistas">0</h4>
                             </div>
                         </div>
-                        <div class="musico-stat-card">
+                        <div class="musico-stat-card clickable-stat-card" id="card-monitores">
                             <div class="stat-icon-bg bg-purple">
                                 <i data-lucide="award"></i>
                             </div>
@@ -731,6 +780,9 @@ Intervalo
                             <button id="btn-generate-ficha-ia" class="btn-primary" title="Clique uma vez para carregar (usa cache se atualizado) ou clique duplo para forçar nova geração via IA" style="display: inline-flex; align-items: center; gap: 0.5rem; background: #2E8B57; cursor: pointer; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 500; font-size: 0.9rem; color: white; border: none; transition: background 0.2s;">
                                 <i data-lucide="sparkles" style="width: 16px; height: 16px;"></i> <span>Ficha Técnica - Comunicação</span>
                             </button>
+                            <button id="btn-generate-metas" class="btn-primary" title="Clique para gerar o relatório de metas e perfil de músicos em tempo real" style="display: inline-flex; align-items: center; gap: 0.5rem; background: #4a5568; cursor: pointer; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 500; font-size: 0.9rem; color: white; border: none; transition: background 0.2s;">
+                                <i data-lucide="bar-chart-2" style="width: 16px; height: 16px;"></i> <span>Resumo de Metas e Perfil</span>
+                            </button>
                         </div>
                     </div>
 
@@ -751,12 +803,13 @@ Intervalo
                                         <th style="padding: 1rem 1.2rem;">Instrumento</th>
                                         <th style="padding: 1rem 1.2rem;">Status</th>
                                         <th style="padding: 1rem 1.2rem;">Telefone</th>
+                                        <th style="padding: 1rem 1.2rem;">WhatsApp</th>
                                         <th style="padding: 1rem 1.2rem;">E-mail</th>
                                     </tr>
                                 </thead>
                                 <tbody id="musicos-tbody">
                                     <tr>
-                                        <td colspan="5" class="table-loading" style="padding: 2.5rem; text-align: center; color: #888; font-size: 0.95rem;">
+                                        <td colspan="6" class="table-loading" style="padding: 2.5rem; text-align: center; color: #888; font-size: 0.95rem;">
                                             <i data-lucide="loader" class="animate-spin" style="display: inline-block; vertical-align: middle; margin-right: 0.5rem; width: 18px; height: 18px;"></i> Carregando base de músicos...
                                         </td>
                                     </tr>
@@ -1021,7 +1074,71 @@ Intervalo
                     <p id="env-label" class="toggle-status">A carregar estado...</p>
                 </div>
 
-                <!-- Futuros ajustes podem ser adicionados aqui -->
+                <!-- Seção: Segurança da Conta -->
+                <div class="security-section">
+                    <div class="security-header" id="security-header">
+                        <div class="security-header-info">
+                            <div class="security-icon-bg">
+                                <i data-lucide="lock"></i>
+                            </div>
+                            <div>
+                                <h4>Segurança da Conta</h4>
+                                <p>Altere sua senha de acesso</p>
+                            </div>
+                        </div>
+                        <div class="security-chevron" id="security-chevron">
+                            <i data-lucide="chevron-down"></i>
+                        </div>
+                    </div>
+                    <div class="security-content" id="security-content">
+                        <div class="security-form">
+                            <div class="input-group">
+                                <label for="current-password">Senha Atual</label>
+                                <div class="password-wrapper">
+                                    <input type="password" id="current-password" required placeholder="••••••••">
+                                    <button type="button" class="btn-toggle-password btn-toggle-security" aria-label="Mostrar senha">
+                                        <i data-lucide="eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="input-group">
+                                <label for="new-password">Nova Senha</label>
+                                <div class="password-wrapper">
+                                    <input type="password" id="new-password" required placeholder="••••••••">
+                                    <button type="button" class="btn-toggle-password btn-toggle-security" aria-label="Mostrar senha">
+                                        <i data-lucide="eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="password-strength" id="password-strength" style="display: none;">
+                                <div class="strength-bar-container">
+                                    <div class="strength-bar-fill" id="strength-bar-fill"></div>
+                                </div>
+                                <span class="strength-label" id="strength-label"></span>
+                            </div>
+                            <ul class="password-requirements" id="password-requirements" style="display: none;">
+                                <li id="req-length"><i data-lucide="circle"></i> 8+ caracteres</li>
+                                <li id="req-upper"><i data-lucide="circle"></i> 1 maiúscula</li>
+                                <li id="req-number"><i data-lucide="circle"></i> 1 número</li>
+                                <li id="req-special"><i data-lucide="circle"></i> 1 especial</li>
+                            </ul>
+                            <div class="input-group">
+                                <label for="confirm-password">Confirmar Nova Senha</label>
+                                <div class="password-wrapper">
+                                    <input type="password" id="confirm-password" required placeholder="••••••••">
+                                    <button type="button" class="btn-toggle-password btn-toggle-security" aria-label="Mostrar senha">
+                                        <i data-lucide="eye"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <button type="button" class="btn-change-password" id="btn-change-password" disabled>
+                                <i data-lucide="shield-check"></i> Alterar Senha
+                            </button>
+                            <div id="security-error" class="security-error-msg"></div>
+                            <div id="security-success" class="security-success-msg"></div>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <p><i data-lucide="info"></i> As alterações são aplicadas instantaneamente para todos os músicos.</p>
@@ -1120,9 +1237,16 @@ Intervalo
                 <div class="atestado-data-form">
                     <input type="hidden" id="atestado-edit-id">
                     
-                    <div class="atestado-field-nome">
+                    <div class="atestado-field-nome" style="grid-column: span 2;">
                         <label>Nome do Músico (Extraído pela IA)</label>
-                        <input type="text" id="atestado-edit-nome" class="version-input" placeholder="Nome completo">
+                        <input type="text" id="atestado-edit-nome" class="version-input" placeholder="Nome completo" readonly>
+                    </div>
+
+                    <div class="atestado-field-musico" style="grid-column: span 2; margin-top: 0.5rem;">
+                        <label>Vincular ao Músico do Sistema <span style="color: red;">*</span></label>
+                        <select id="atestado-select-musico" class="version-input" style="height: 45px; border-radius: 8px;">
+                            <option value="">-- Selecione o Músico --</option>
+                        </select>
                     </div>
                     
                     <div class="atestado-field-cid">
@@ -1153,11 +1277,11 @@ Intervalo
 
                 <div class="atestado-modal-actions">
                     <button class="btn-robot-ai" id="btn-download-delete-atestado" style="justify-content: center; height: 50px; font-size: 1.1rem; width: 100%;">
-                        <i data-lucide="download-cloud"></i> Baixar e Apagar do Servidor
+                        <i data-lucide="download-cloud"></i> Baixar e Adicionar na Lista de Presença OER
                     </button>
                     <p style="font-size: 0.75rem; color: #888; text-align: center; margin-top: 0.5rem;">
                         <i data-lucide="shield-alert" style="width: 12px; height: 12px;"></i> 
-                        Ao clicar em Baixar e Apagar, o arquivo e os dados serão removidos permanentemente para garantir a privacidade.
+                        Ao clicar em Baixar e Adicionar, o arquivo e os dados serão removidos permanentemente para garantir a privacidade.
                     </p>
                 </div>
             </div>
@@ -1429,6 +1553,54 @@ Intervalo
                         <i data-lucide="copy"></i> Copiar Texto
                     </button>
                     <button class="btn-outline" id="btn-close-ficha-modal-footer" style="flex: 1; border-radius: 8px; font-weight: 600; cursor: pointer; border: 1px solid #ccc; background: white;">
+                        Fechar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- ===== MODAL RELATÓRIO METAS E PERFIL ===== -->
+    <div id="metas-perfil-modal-overlay" class="ia-modal-overlay" style="display:none;" aria-modal="true" role="dialog">
+        <div class="ia-modal-card" style="max-width: 600px; width: 95%;">
+            <!-- Header -->
+            <div class="ia-modal-header">
+                <div class="ia-modal-header-info">
+                    <div class="ia-modal-icon" style="background: rgba(74, 85, 104, 0.1); color: #4a5568;">
+                        <i data-lucide="bar-chart-2"></i>
+                    </div>
+                    <div>
+                        <h3>Resumo de Metas e Perfil</h3>
+                        <p>Formatado para cópia imediata</p>
+                    </div>
+                </div>
+                <button class="ia-modal-close" id="btn-metas-modal-close" title="Fechar">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="ia-modal-body">
+                <div class="ia-modal-tip" style="background: rgba(74, 85, 104, 0.08); border-color: rgba(74, 85, 104, 0.15); border-left-color: #4a5568; color: #4a5568;">
+                    <i data-lucide="info" style="color: #4a5568;"></i>
+                    Os números e percentuais demográficos abaixo foram extraídos em tempo real a partir dos músicos cadastrados.
+                </div>
+
+                <div class="version-input-wrapper" style="margin-top: 1.2rem;">
+                    <div id="metas-perfil-result" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.2rem; font-family: monospace; font-size: 0.95rem; line-height: 1.6; min-height: 150px; white-space: pre-wrap; word-break: break-word; color: #333; max-height: 300px; overflow-y: auto;">
+                        <!-- Conteúdo inserido dinamicamente -->
+                    </div>
+                </div>
+
+                <div id="metas-perfil-aviso-idade" style="margin-top: 0.5rem; font-size: 0.8rem; color: #718096; font-style: italic; display: none;">
+                    <!-- Aviso de idades em branco -->
+                </div>
+
+                <div style="display: flex; gap: 0.8rem; margin-top: 1rem;">
+                    <button class="btn-robot-ai ia-modal-btn-action" id="btn-copy-metas" style="flex: 2; background: #4a5568;">
+                        <i data-lucide="copy"></i> Copiar Texto
+                    </button>
+                    <button class="btn-outline" id="btn-close-metas-modal-footer" style="flex: 1; border-radius: 8px; font-weight: 600; cursor: pointer; border: 1px solid #ccc; background: white;">
                         Fechar
                     </button>
                 </div>

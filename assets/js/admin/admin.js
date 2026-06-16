@@ -12,7 +12,11 @@ import { app, auth, db, functions, storage } from "../firebase-config.js";
 import { 
     signInWithEmailAndPassword, 
     onAuthStateChanged, 
-    signOut 
+    signOut,
+    sendPasswordResetEmail,
+    reauthenticateWithCredential,
+    updatePassword,
+    EmailAuthProvider
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
 import { 
@@ -77,6 +81,21 @@ const toggleNewCalendarBtn = document.getElementById('toggle-new-calendar');
 const toggleNewCalendarStatusText = document.getElementById('toggle-calendar-status-text');
 
 let selectedNotifImage = null;
+let undoState = null;
+
+// Referências para Recuperação de Senha
+const forgotPasswordLink = document.getElementById('forgot-password-link');
+const loginView = document.getElementById('login-view');
+const recoveryView = document.getElementById('recovery-view');
+const successView = document.getElementById('success-view');
+const recoveryForm = document.getElementById('recovery-form');
+const btnBackLogin = document.getElementById('btn-back-login');
+const btnBackLoginSuccess = document.getElementById('btn-back-login-success');
+
+// Variáveis de Proteção Anti Brute-Force
+let loginAttempts = 0;
+let isLoginBlocked = false;
+let countdownInterval = null;
 
 // ================= AUTHENTICATION =================
 
@@ -114,6 +133,7 @@ onAuthStateChanged(auth, (user) => {
         initAtestadosManagement(); // Inicia a gestão de atestados médicos (Fase 3)
         initCalendarManagement(); // Inicia o módulo de calendário interativo
         initMusiciansManagement(); // Inicia o gerenciamento de músicos (importação e busca reativa)
+        initSecuritySection(); // Inicia a seção de segurança da conta
     } else {
         // Não logado
         dashboardContainer.classList.remove('active');
@@ -131,9 +151,74 @@ onAuthStateChanged(auth, (user) => {
     }
 });
 
-// Submit de Login
+// ================= TRADUÇÃO DE ERROS FIREBASE =================
+
+function translateFirebaseError(errorCode) {
+    const errors = {
+        'auth/invalid-email': 'O e-mail informado não é válido.',
+        'auth/user-disabled': 'Esta conta foi desativada.',
+        'auth/user-not-found': 'Nenhuma conta encontrada com este e-mail.',
+        'auth/wrong-password': 'Senha incorreta. Tente novamente.',
+        'auth/too-many-requests': 'Muitas tentativas. Aguarde alguns minutos e tente novamente.',
+        'auth/network-request-failed': 'Falha na conexão. Verifique sua internet.',
+        'auth/invalid-credential': 'E-mail ou senha incorretos.',
+        'auth/weak-password': 'A senha deve ter pelo menos 6 caracteres.',
+        'auth/requires-recent-login': 'Sessão expirada. Faça login novamente.',
+        'auth/email-already-in-use': 'Este e-mail já está em uso.',
+        'auth/missing-password': 'Preencha o campo de senha.',
+        'auth/missing-email': 'Preencha o campo de e-mail.',
+    };
+    return errors[errorCode] || 'Ocorreu um erro inesperado. Tente novamente.';
+}
+
+// ================= PROTEÇÃO ANTI BRUTE-FORCE =================
+
+function triggerShake() {
+    const loginCard = document.querySelector('.login-card');
+    if (loginCard) {
+        loginCard.classList.remove('shake');
+        // Force reflow para reiniciar a animação
+        void loginCard.offsetWidth;
+        loginCard.classList.add('shake');
+        setTimeout(() => loginCard.classList.remove('shake'), 600);
+    }
+}
+
+function startCountdown(seconds) {
+    isLoginBlocked = true;
+    const btn = document.getElementById('btn-login');
+    const countdownEl = document.getElementById('login-countdown');
+    const countdownTime = document.getElementById('countdown-time');
+    
+    btn.disabled = true;
+    countdownEl.style.display = 'flex';
+    let remaining = seconds;
+    countdownTime.textContent = remaining;
+    
+    if (countdownInterval) clearInterval(countdownInterval);
+    
+    countdownInterval = setInterval(() => {
+        remaining--;
+        countdownTime.textContent = remaining;
+        
+        if (remaining <= 0) {
+            clearInterval(countdownInterval);
+            countdownInterval = null;
+            isLoginBlocked = false;
+            btn.disabled = false;
+            countdownEl.style.display = 'none';
+        }
+    }, 1000);
+    
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+// Submit de Login (com proteção anti brute-force e mensagens PT-BR)
 loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
+    
+    if (isLoginBlocked) return;
+    
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     const btn = document.getElementById('btn-login');
@@ -145,11 +230,27 @@ loginForm.addEventListener('submit', async (e) => {
 
     try {
         await signInWithEmailAndPassword(auth, email, password);
+        // Login com sucesso — reseta contador
+        loginAttempts = 0;
     } catch (error) {
-        errorMsg.textContent = 'Erro: ' + (error.code || error.message);
+        loginAttempts++;
+        const friendlyMsg = translateFirebaseError(error.code);
+        errorMsg.textContent = friendlyMsg;
         console.error("Login erro completo:", error);
+        
+        // Animação de shake
+        triggerShake();
+        
+        // Brute-force protection
+        if (loginAttempts >= 5) {
+            startCountdown(120); // 2 minutos
+        } else if (loginAttempts >= 3) {
+            startCountdown(30); // 30 segundos
+        }
     } finally {
-        btn.disabled = false;
+        if (!isLoginBlocked) {
+            btn.disabled = false;
+        }
         btn.innerHTML = 'Entrar <i data-lucide="arrow-right"></i>';
         lucide.createIcons();
     }
@@ -171,6 +272,275 @@ btnTogglePassword.addEventListener('click', () => {
         : '<i data-lucide="eye"></i>';
     lucide.createIcons();
 });
+
+// ================= RECUPERAÇÃO DE SENHA =================
+
+function showView(viewToShow) {
+    [loginView, recoveryView, successView].forEach(v => {
+        if (v) v.classList.add('hidden');
+    });
+    if (viewToShow) viewToShow.classList.remove('hidden');
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+// Link "Esqueci minha senha"
+if (forgotPasswordLink) {
+    forgotPasswordLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        showView(recoveryView);
+        // Pré-preenche o e-mail se já digitou no login
+        const loginEmail = document.getElementById('email').value;
+        const recoveryEmail = document.getElementById('recovery-email');
+        if (loginEmail && recoveryEmail) {
+            recoveryEmail.value = loginEmail;
+        }
+    });
+}
+
+// Botão "Voltar ao login"
+if (btnBackLogin) {
+    btnBackLogin.addEventListener('click', () => {
+        showView(loginView);
+        const recoveryError = document.getElementById('recovery-error');
+        if (recoveryError) recoveryError.textContent = '';
+    });
+}
+
+// Botão "Voltar ao login" da view de sucesso
+if (btnBackLoginSuccess) {
+    btnBackLoginSuccess.addEventListener('click', () => {
+        showView(loginView);
+    });
+}
+
+// Submit de recuperação de senha
+if (recoveryForm) {
+    recoveryForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const email = document.getElementById('recovery-email').value;
+        const btn = document.getElementById('btn-send-recovery');
+        const errorMsg = document.getElementById('recovery-error');
+        
+        btn.disabled = true;
+        btn.innerHTML = 'Enviando... <i data-lucide="loader-2"></i>';
+        errorMsg.textContent = '';
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+        
+        try {
+            await sendPasswordResetEmail(auth, email);
+            showView(successView);
+        } catch (error) {
+            errorMsg.textContent = translateFirebaseError(error.code);
+            console.error("Erro ao enviar e-mail de recuperação:", error);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = 'Enviar link de recuperação <i data-lucide="send"></i>';
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+    });
+}
+
+// ================= TROCA DE SENHA (MODAL AJUSTES) =================
+
+function initSecuritySection() {
+    const securityHeader = document.getElementById('security-header');
+    const securityContent = document.getElementById('security-content');
+    const securityChevron = document.getElementById('security-chevron');
+    const newPasswordInput = document.getElementById('new-password');
+    const confirmPasswordInput = document.getElementById('confirm-password');
+    const currentPasswordInput = document.getElementById('current-password');
+    const btnChangePassword = document.getElementById('btn-change-password');
+    const securityError = document.getElementById('security-error');
+    const securitySuccess = document.getElementById('security-success');
+    const strengthBar = document.getElementById('strength-bar-fill');
+    const strengthLabel = document.getElementById('strength-label');
+    const strengthContainer = document.getElementById('password-strength');
+    const requirementsList = document.getElementById('password-requirements');
+    
+    if (!securityHeader || !securityContent) return;
+    
+    // Toggle expandir/colapsar
+    securityHeader.addEventListener('click', () => {
+        const isExpanded = securityContent.classList.contains('expanded');
+        securityContent.classList.toggle('expanded');
+        securityChevron.classList.toggle('expanded');
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    });
+    
+    // Toggles de visibilidade de senha no modal de segurança
+    document.querySelectorAll('.btn-toggle-security').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const input = btn.closest('.password-wrapper').querySelector('input');
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+            btn.innerHTML = isPassword 
+                ? '<i data-lucide="eye-off"></i>' 
+                : '<i data-lucide="eye"></i>';
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        });
+    });
+    
+    // Validação de força de senha em tempo real
+    function checkPasswordStrength(password) {
+        let score = 0;
+        const checks = {
+            length: password.length >= 8,
+            upper: /[A-Z]/.test(password),
+            number: /[0-9]/.test(password),
+            special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password),
+        };
+        
+        if (checks.length) score++;
+        if (checks.upper) score++;
+        if (checks.number) score++;
+        if (checks.special) score++;
+        
+        return { score, checks };
+    }
+    
+    function updateStrengthIndicator(password) {
+        if (!strengthBar || !strengthLabel) return;
+        
+        if (!password) {
+            strengthContainer.style.display = 'none';
+            requirementsList.style.display = 'none';
+            return;
+        }
+        
+        strengthContainer.style.display = 'block';
+        requirementsList.style.display = 'grid';
+        
+        const { score, checks } = checkPasswordStrength(password);
+        
+        // Atualiza barra
+        const widths = ['0%', '25%', '50%', '75%', '100%'];
+        const colors = ['#dc3545', '#dc3545', '#ffc107', '#28a745', '#28a745'];
+        const labels = ['', 'Fraca', 'Média', 'Boa', 'Forte'];
+        
+        strengthBar.style.width = widths[score];
+        strengthBar.style.backgroundColor = colors[score];
+        strengthLabel.textContent = labels[score];
+        strengthLabel.style.color = colors[score];
+        
+        // Atualiza checklist de requisitos
+        const reqLength = document.getElementById('req-length');
+        const reqUpper = document.getElementById('req-upper');
+        const reqNumber = document.getElementById('req-number');
+        const reqSpecial = document.getElementById('req-special');
+        
+        function updateReq(el, met) {
+            if (!el) return;
+            if (met) {
+                el.classList.add('met');
+                el.querySelector('i').setAttribute('data-lucide', 'check-circle');
+            } else {
+                el.classList.remove('met');
+                el.querySelector('i').setAttribute('data-lucide', 'circle');
+            }
+        }
+        
+        updateReq(reqLength, checks.length);
+        updateReq(reqUpper, checks.upper);
+        updateReq(reqNumber, checks.number);
+        updateReq(reqSpecial, checks.special);
+        
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+    
+    function validateChangeForm() {
+        if (!btnChangePassword) return;
+        const current = currentPasswordInput?.value || '';
+        const newPass = newPasswordInput?.value || '';
+        const confirm = confirmPasswordInput?.value || '';
+        const { score } = checkPasswordStrength(newPass);
+        
+        btnChangePassword.disabled = !(current && newPass && confirm && score >= 4);
+    }
+    
+    // Listeners em tempo real
+    if (newPasswordInput) {
+        newPasswordInput.addEventListener('input', () => {
+            updateStrengthIndicator(newPasswordInput.value);
+            validateChangeForm();
+        });
+    }
+    
+    if (confirmPasswordInput) {
+        confirmPasswordInput.addEventListener('input', validateChangeForm);
+    }
+    
+    if (currentPasswordInput) {
+        currentPasswordInput.addEventListener('input', validateChangeForm);
+    }
+    
+    // Botão de alterar senha
+    if (btnChangePassword) {
+        btnChangePassword.addEventListener('click', async () => {
+            const currentPass = currentPasswordInput.value;
+            const newPass = newPasswordInput.value;
+            const confirmPass = confirmPasswordInput.value;
+            
+            securityError.textContent = '';
+            securitySuccess.textContent = '';
+            
+            // Validações
+            if (newPass !== confirmPass) {
+                securityError.textContent = 'As senhas não coincidem.';
+                return;
+            }
+            
+            const { score } = checkPasswordStrength(newPass);
+            if (score < 4) {
+                securityError.textContent = 'A senha não atende todos os requisitos.';
+                return;
+            }
+            
+            if (newPass === currentPass) {
+                securityError.textContent = 'A nova senha deve ser diferente da atual.';
+                return;
+            }
+            
+            btnChangePassword.disabled = true;
+            btnChangePassword.innerHTML = '<i data-lucide="loader-2"></i> Alterando...';
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+            
+            try {
+                const user = auth.currentUser;
+                // Reautenticação obrigatória
+                const credential = EmailAuthProvider.credential(user.email, currentPass);
+                await reauthenticateWithCredential(user, credential);
+                
+                // Atualizar senha
+                await updatePassword(user, newPass);
+                
+                // Sucesso
+                securitySuccess.textContent = 'Senha alterada com sucesso!';
+                showNotification('Senha alterada com sucesso!', 'success');
+                
+                // Limpar campos
+                currentPasswordInput.value = '';
+                newPasswordInput.value = '';
+                confirmPasswordInput.value = '';
+                updateStrengthIndicator('');
+                validateChangeForm();
+                
+                // Limpar mensagem de sucesso após 5s
+                setTimeout(() => {
+                    securitySuccess.textContent = '';
+                }, 5000);
+                
+            } catch (error) {
+                console.error('Erro ao alterar senha:', error);
+                securityError.textContent = translateFirebaseError(error.code);
+            } finally {
+                btnChangePassword.disabled = false;
+                btnChangePassword.innerHTML = '<i data-lucide="shield-check"></i> Alterar Senha';
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+                validateChangeForm();
+            }
+        });
+    }
+}
 
 // ================= UPLOAD LOGIC =================
 
@@ -376,18 +746,38 @@ function initManualRobot() {
     btnRobot.addEventListener('click', () => {
         const titleInput = document.getElementById('notif-title');
         const messageInput = document.getElementById('notif-message');
+        const linkInput = document.getElementById('notif-link');
         const currentTitle = titleInput ? titleInput.value.trim() : '';
         const currentMessage = messageInput ? messageInput.value.trim() : '';
+        const currentLink = linkInput ? linkInput.value.trim() : '';
 
-        if (currentTitle && currentMessage) {
-            // Ambos preenchidos: correção direta
-            correctNotificationDirectly(currentTitle, currentMessage);
+        // Se houver qualquer texto escrito, imagem selecionada ou link, roda a correção direta
+        if (currentTitle || currentMessage || selectedNotifImage || currentLink) {
+            correctNotificationDirectly(currentTitle, currentMessage, currentLink, selectedNotifImage);
         } else {
-            // Um ou ambos vazios: copia o que estiver preenchido (se houver) para o modal
-            const prefilledText = currentTitle || currentMessage || '';
-            openRobotModal(prefilledText);
+            // Se tudo estiver vazio, abre o modal
+            openRobotModal('');
         }
     });
+
+    // Atalho de desfazer Ctrl+Z / Cmd+Z nos campos de texto
+    const titleInput = document.getElementById('notif-title');
+    const messageInput = document.getElementById('notif-message');
+
+    const handleUndo = (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+            if (undoState) {
+                e.preventDefault();
+                titleInput.value = undoState.title;
+                messageInput.value = undoState.message;
+                undoState = null; // Limpa para evitar múltiplos undos indesejados
+                showNotification('Texto original restaurado! 🎼🤖', 'success');
+            }
+        }
+    };
+
+    if (titleInput) titleInput.addEventListener('keydown', handleUndo);
+    if (messageInput) messageInput.addEventListener('keydown', handleUndo);
 
     // Fechamento do Modal
     if (btnClose) {
@@ -712,6 +1102,12 @@ async function generateNotificationWithAI() {
         console.log("🤖 [Robô OER] Sugestão de IA recebida com sucesso:", result.data);
         const { title, message } = result.data;
 
+        // Salva estado para o desfazer (Ctrl+Z)
+        undoState = {
+            title: titleInput.value,
+            message: messageInput.value
+        };
+
         // Preenche os campos principais do aviso
         titleInput.value = title || '';
         messageInput.value = message || '';
@@ -749,7 +1145,7 @@ async function generateNotificationWithAI() {
 /**
  * Realiza a correção e aprimoramento direto do título e mensagem sem abrir o modal
  */
-async function correctNotificationDirectly(currentTitle, currentMessage) {
+async function correctNotificationDirectly(currentTitle, currentMessage, currentLink, selectedImage) {
     const btnRobot = document.getElementById('btn-ai-robot');
     const titleInput = document.getElementById('notif-title');
     const messageInput = document.getElementById('notif-message');
@@ -761,27 +1157,58 @@ async function correctNotificationDirectly(currentTitle, currentMessage) {
     btnRobot.classList.add('loading');
 
     try {
-        const userPrompt = `Por favor, revise, corrija a gramática e melhore a redação deste aviso. 
+        const payload = {
+            userPrompt: `Por favor, revise, corrija a gramática e melhore a redação deste aviso. 
 Título atual: "${currentTitle}"
 Mensagem atual: "${currentMessage}"
-Retorne a sugestão ideal mantendo o contexto original.`;
+Retorne a sugestão ideal mantendo o contexto original.`,
+            includeContext: true // Mantém o contexto de ensaios/temporada se disponível
+        };
+
+        if (currentLink) {
+            payload.linkUrl = currentLink;
+        }
+
+        if (selectedImage) {
+            console.log("🤖 [Robô OER] Convertendo imagem selecionada para Base64 para envio multimodal...");
+            const base64Data = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    const result = reader.result;
+                    const base64String = result.split(',')[1];
+                    resolve(base64String);
+                };
+                reader.onerror = (err) => reject(err);
+                reader.readAsDataURL(selectedImage);
+            });
+
+            payload.image = {
+                inlineData: {
+                    mimeType: selectedImage.type,
+                    data: base64Data
+                }
+            };
+        }
 
         console.log("🤖 [Robô OER] Chamando Cloud Function suggestNotificationText para correção direta...");
         const suggestTextFn = httpsCallable(functions, 'suggestNotificationText');
-        const result = await suggestTextFn({
-            userPrompt,
-            includeContext: true // Mantém o contexto de ensaios/temporada se disponível
-        });
+        const result = await suggestTextFn(payload);
 
         console.log("🤖 [Robô OER] Correção direta concluída com sucesso:", result.data);
         const { title, message } = result.data;
+
+        // Salva estado para o desfazer (Ctrl+Z)
+        undoState = {
+            title: titleInput.value,
+            message: messageInput.value
+        };
 
         // Preenche os campos principais do aviso com os textos corrigidos
         if (title) titleInput.value = title;
         if (message) messageInput.value = message;
 
         // Feedback de sucesso
-        showNotification('O Robô OER aprimorou o seu aviso! 🎼🤖', 'success');
+        showNotification('O Robô OER aprimorou o seu aviso! Use Ctrl+Z (ou Cmd+Z) se quiser desfazer. 🎼🤖', 'success');
 
     } catch (error) {
         console.error("🤖 [Robô OER] Erro na correção direta com a IA:", error);
@@ -2874,27 +3301,7 @@ function loadAdminLinks() {
 }
 
 
-// ================= CONVERSÃO DE VÍRGULA PARA PONTO =================
-// Garante que se o usuário digitar vírgula (teclado PT-BR), ela vire ponto instantaneamente
-document.addEventListener('input', (e) => {
-    if (e.target && e.target.classList.contains('version-input')) {
-        const start = e.target.selectionStart;
-        const end = e.target.selectionEnd;
-        const oldValue = e.target.value;
-        const newValue = oldValue.replace(',', '.');
-        
-        if (oldValue !== newValue) {
-            e.target.value = newValue;
-            // Mantém a posição do cursor após a substituição
-            e.target.setSelectionRange(start, end);
-        }
-    }
-});
-
-/**
- * FASE 3: GESTÃO DE ATESTADOS MÉDICOS
- * Gerencia a visualização, edição e arquivamento de atestados processados pela IA.
- */
+// ================= CONVERSÃO DE VÍRGULA PARA PONTO ================
 function initAtestadosManagement() {
     const atestadosGrid = document.getElementById('atestados-grid');
     const atestadosGridContainer = document.getElementById('atestados-grid-container');
@@ -2912,10 +3319,11 @@ function initAtestadosManagement() {
     const inputEditFim = document.getElementById('atestado-edit-fim');
     const inputEditDias = document.getElementById('atestado-edit-dias');
     const inputEditResumo = document.getElementById('atestado-edit-resumo');
+    const selectMusico = document.getElementById('atestado-select-musico');
     
-    const btnSaveEdit = document.getElementById('btn-save-atestado-edit');
     const btnDownloadDelete = document.getElementById('btn-download-delete-atestado');
     let currentAtestadoPath = ''; // Armazena o caminho do arquivo para deleção segura
+    let musiciansList = [];
 
     // Helper: Calcular data final
     function calculateEndDate(startDateStr, days) {
@@ -2924,6 +3332,92 @@ function initAtestadosManagement() {
         const end = new Date(start);
         end.setDate(start.getDate() + parseInt(days) - 1);
         return end.toISOString().split('T')[0];
+    }
+
+    // Helper: Obter array de datas no intervalo
+    function getDatesInRange(startDateStr, endDateStr) {
+        const dates = [];
+        if (!startDateStr || !endDateStr) return dates;
+        let current = new Date(startDateStr + 'T00:00:00');
+        const end = new Date(endDateStr + 'T00:00:00');
+        while (current <= end) {
+            dates.push(current.toISOString().split('T')[0]);
+            current.setDate(current.getDate() + 1);
+        }
+        return dates;
+    }
+
+    // Helper: Carregar Músicos Ativos
+    async function loadMusiciansList() {
+        try {
+            const musiciansRef = collection(db, "musicos");
+            const snapshot = await getDocs(musiciansRef);
+            musiciansList = [];
+            snapshot.forEach(docSnap => {
+                const data = docSnap.data();
+                const status = (data.Status || '').toLowerCase().trim();
+                
+                if (status.includes('emm')) return;
+                
+                const nomeRegLower = (data['NOME REGISTRO'] || '').toLowerCase();
+                const nomeArtLower = (data.NOMEARTISTICO || '').toLowerCase();
+                if (nomeRegLower.includes('angela de santi') || nomeArtLower.includes('angela de santi')) return;
+                if (status.includes('desligado') || data.statusFirebase === 'desligado' || data.statusFirebase === 'inativo') return;
+
+                const isBolsistaOrMonitor = status.includes("bolsista") || status.includes("monitor") || status.includes("spalla");
+
+                if (isBolsistaOrMonitor) {
+                    const nomeArtistico = (data.NOMEARTISTICO || '').trim();
+                    const nomeCompleto = (data['NOME REGISTRO'] || '').trim();
+                    const nome = nomeArtistico || nomeCompleto || "Sem Nome";
+                    
+                    musiciansList.push({
+                        id: docSnap.id,
+                        nome: nome,
+                        nomeRegistro: nomeCompleto,
+                        nomeArtistico: nomeArtistico
+                    });
+                }
+            });
+            
+            musiciansList.sort((a, b) => a.nome.localeCompare(b.nome));
+
+            if (selectMusico) {
+                selectMusico.innerHTML = '<option value="">-- Selecione o Músico --</option>';
+                musiciansList.forEach(m => {
+                    const option = document.createElement('option');
+                    option.value = m.id;
+                    option.textContent = m.nome;
+                    selectMusico.appendChild(option);
+                });
+            }
+        } catch (error) {
+            console.error("Erro ao carregar lista de músicos para atestados:", error);
+        }
+    }
+
+    // Inicializar carregamento de músicos
+    loadMusiciansList();
+
+    // Helper: Tentar encontrar músico pelo nome extraído
+    function findMatchingMusicianId(aiName) {
+        if (!aiName) return "";
+        const target = aiName.toLowerCase().trim();
+        
+        let match = musiciansList.find(m => m.nome.toLowerCase() === target);
+        if (match) return match.id;
+        
+        match = musiciansList.find(m => target.includes(m.nome.toLowerCase()) || m.nome.toLowerCase().includes(target));
+        if (match) return match.id;
+        
+        match = musiciansList.find(m => {
+            const reg = m.nomeRegistro.toLowerCase();
+            const art = m.nomeArtistico.toLowerCase();
+            return target.includes(reg) || reg.includes(target) || target.includes(art) || art.includes(target);
+        });
+        if (match) return match.id;
+        
+        return "";
     }
 
     // Atualizar campo de fim automaticamente
@@ -2948,7 +3442,6 @@ function initAtestadosManagement() {
         atestadosGridContainer.classList.add('visible');
         atestadosGrid.innerHTML = '';
 
-        // Se houver mais de 1 card, permite scroll lateral
         if (snapshot.size > 1) {
             atestadosGrid.classList.add('is-scrollable');
         } else {
@@ -2961,7 +3454,6 @@ function initAtestadosManagement() {
             atestadosGrid.appendChild(card);
         });
         
-        // Reinicializa ícones Lucide
         if (window.lucide) lucide.createIcons();
     });
 
@@ -2992,7 +3484,6 @@ function initAtestadosManagement() {
             </div>
         `;
 
-        // Evento de clique no botão Revisar
         div.querySelector('.btn-view-atestado').addEventListener('click', () => openAtestadoModal(id, data));
 
         return div;
@@ -3009,12 +3500,17 @@ function initAtestadosManagement() {
         inputEditResumo.value = data.resumoCid || '';
         
         updateEndDateUI(); // Calcula o fim ao abrir
+
+        // Selecionar o músico correspondente no dropdown
+        if (selectMusico) {
+            const matchedId = findMatchingMusicianId(data.nome);
+            selectMusico.value = matchedId;
+        }
         
         // Limpar visualizador antes de carregar
         modalPdfViewer.src = '';
         
         try {
-            // Se já tivermos a URL processada, usamos ela. Caso contrário, geramos via storage.
             if (data.processedFileUrl) {
                 modalPdfViewer.src = data.processedFileUrl;
             } else if (data.filePath) {
@@ -3042,49 +3538,85 @@ function initAtestadosManagement() {
 
     if (btnCloseAtestadoModal) btnCloseAtestadoModal.addEventListener('click', closeAtestadoModal);
 
-    // 5. Baixar e Apagar (Ação Unificada de Arquivamento)
+    // 5. Baixar e Adicionar na Lista de Presença OER (Ação Unificada de Arquivamento e Integração)
     if (btnDownloadDelete) {
         btnDownloadDelete.addEventListener('click', async () => {
-            // Validação de Segurança: Verificar se o administrador está logado
             if (!auth.currentUser) {
                 showNotification('Sessão expirada ou não autorizada. Faça login novamente.', 'error');
                 return;
             }
 
+            const musicianId = selectMusico ? selectMusico.value : '';
+            if (!musicianId) {
+                showNotification('Por favor, selecione e vincule o músico correspondente.', 'error');
+                if (selectMusico) selectMusico.focus();
+                return;
+            }
+
             const id = inputEditId.value;
             const nomeMusico = inputEditNome.value;
+            const selectedMusicoText = selectMusico.options[selectMusico.selectedIndex].text;
             const cid = inputEditCid.value;
             const dias = inputEditDias.value;
             const inicio = inputEditInicio.value;
             const fim = inputEditFim.value;
             const resumo = inputEditResumo.value;
             
-            if (!confirm(`Tem certeza que deseja baixar o atestado de "${nomeMusico}" e apagar os dados do servidor?\n\nAs correções feitas nos campos serão salvas apenas no histórico de logs.`)) {
+            if (!confirm(`Tem certeza que deseja baixar o atestado e adicionar na lista de presença do músico "${selectedMusicoText}"?\n\nIsso atualizará retroativamente as presenças marcadas como falta/pendente e removerá o arquivo do servidor.`)) {
                 return;
             }
 
             try {
                 const btn = btnDownloadDelete;
-                const originalText = btn.innerHTML;
                 btn.disabled = true;
                 btn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Processando...';
                 if (window.lucide) lucide.createIcons();
 
-                // 1. Criar Log de Auditoria
+                // 1. Atualizar Listas de Presença no Firestore (apenas se a lista do dia existir)
+                console.log("📅 [Atestados] Integrando com o sistema de presenças...");
+                const dates = getDatesInRange(inicio, fim);
+                let updatedDates = [];
+
+                for (const date of dates) {
+                    const presenceDocRef = doc(db, "presencas", date);
+                    const presenceSnap = await getDoc(presenceDocRef);
+                    if (presenceSnap.exists()) {
+                        const presenceData = presenceSnap.data();
+                        const registros = presenceData.registros || {};
+                        const currentStatus = registros[musicianId] ? registros[musicianId].status : 'none';
+                        
+                        // Altera apenas se estiver falta ou pendente ('none' ou inexistente)
+                        if (currentStatus === 'falta' || currentStatus === 'none' || !registros[musicianId]) {
+                            registros[musicianId] = {
+                                status: 'atestado',
+                                minutes: 0
+                            };
+                            await updateDoc(presenceDocRef, {
+                                registros: registros,
+                                ultimaAtualizacao: new Date().toISOString(),
+                                usuarioResponsavel: auth.currentUser.email || 'admin'
+                            });
+                            updatedDates.push(date);
+                        }
+                    }
+                }
+
+                // 2. Criar Log de Auditoria
                 try {
                     const formatBR = (iso) => iso ? iso.split('-').reverse().join('/') : '---';
-                    const detailsText = `CID: ${cid} | Período: ${formatBR(inicio)} a ${formatBR(fim)} (${dias} dias)\n\nParecer: ${resumo}`;
-                    await saveLog("atestado", `Atestado revisado e arquivado: ${nomeMusico}`, null, detailsText);
+                    const datesFormatted = updatedDates.map(d => formatBR(d)).join(', ');
+                    const detailsText = `Músico Vinculado: ${selectedMusicoText} (ID: ${musicianId})\nCID: ${cid}\nPeríodo: ${formatBR(inicio)} a ${formatBR(fim)} (${dias} dias)\nDatas de Presença Atualizadas: ${updatedDates.length > 0 ? datesFormatted : 'Nenhuma (lista não iniciada ou sem faltas)'}\nParecer: ${resumo}`;
+                    await saveLog("atestado", `Atestado homologado e integrado: ${nomeMusico}`, null, detailsText);
                 } catch (logErr) {
                     console.error("⚠️ [Atestados] Erro no log:", logErr);
                 }
 
-                // 2. Buscar o arquivo (Blob) - FAZER ANTES DE APAGAR
+                // 3. Buscar o arquivo (Blob) - FAZER ANTES DE APAGAR
                 console.log("📥 [Atestados] Preparando download...");
                 const fileRef = ref(storage, currentAtestadoPath);
                 const blob = await getBlob(fileRef);
 
-                // 3. Apagar do Servidor (Storage e Firestore) - FAZER ANTES DO DOWNLOAD
+                // 4. Apagar do Servidor (Storage e Firestore) - FAZER ANTES DO DOWNLOAD
                 console.log("🔥 [Atestados] Limpando servidor...");
                 try {
                     await deleteObject(fileRef);
@@ -3095,16 +3627,16 @@ function initAtestadosManagement() {
                     await deleteDoc(docRef);
                 } catch (e) { console.error("Erro firestore:", e); }
 
-                // 4. Fechar Interface Imediatamente
+                // 5. Fechar Interface Imediatamente
                 closeAtestadoModal();
-                showNotification('Arquivado com sucesso!', 'success');
+                showNotification(`Homologado com sucesso! ${updatedDates.length} dia(s) atualizados.`, 'success');
 
-                // 5. Disparar o Download/Preview (Último passo)
+                // 6. Disparar o Download/Preview (Último passo)
                 if (blob) {
                     const blobUrl = URL.createObjectURL(blob);
                     const link = document.createElement('a');
                     link.href = blobUrl;
-                    const safeNome = nomeMusico.replace(/\s+/g, '_');
+                    const safeNome = selectedMusicoText.replace(/\s+/g, '_');
                     link.download = `atestado_${safeNome}_${dias}_dias_${cid}.pdf`;
                     document.body.appendChild(link);
                     link.click();
@@ -3113,11 +3645,11 @@ function initAtestadosManagement() {
                     setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
                 }
             } catch (error) {
-                console.error("Erro ao arquivar atestado:", error);
-                showNotification(`Erro ao processar arquivamento: ${error.message}`, 'error');
+                console.error("Erro ao homologar atestado:", error);
+                showNotification(`Erro ao processar homologação: ${error.message}`, 'error');
             } finally {
                 btnDownloadDelete.disabled = false;
-                btnDownloadDelete.innerHTML = '<i data-lucide="download-cloud"></i> Baixar e Apagar do Servidor';
+                btnDownloadDelete.innerHTML = '<i data-lucide="download-cloud"></i> Baixar e Adicionar na Lista de Presença OER';
                 if (window.lucide) lucide.createIcons();
             }
         });
@@ -4026,6 +4558,70 @@ function initMusiciansManagement() {
     const drawerOverlay = document.getElementById('musico-drawer-overlay');
     const btnCloseDrawer = document.getElementById('btn-close-drawer');
 
+    // Cards estatísticos clicáveis para cópia de e-mails
+    const cardTotal = document.getElementById('card-total-musicos');
+    const cardBolsistas = document.getElementById('card-bolsistas');
+    const cardMonitores = document.getElementById('card-monitores');
+
+    const copiarEmailsFiltrados = (filtroFn, tipoNome) => {
+        if (!allMusicians || allMusicians.length === 0) {
+            showNotification("Nenhum músico disponível para obter e-mails.", "warning");
+            return;
+        }
+
+        const filtered = allMusicians.filter(m => {
+            if (m.statusFirebase === 'desligado' || m.statusFirebase === 'inativo') return false;
+            return filtroFn(m);
+        });
+
+        const emails = filtered
+            .map(m => (m.EMAIL || '').toString().trim())
+            .filter(email => email && email !== '' && email !== '-');
+
+        const uniqueEmails = [...new Set(emails)];
+
+        if (uniqueEmails.length === 0) {
+            showNotification(`Nenhum e-mail válido encontrado para ${tipoNome}.`, "warning");
+            return;
+        }
+
+        const emailString = uniqueEmails.join('; ');
+
+        navigator.clipboard.writeText(emailString)
+            .then(() => {
+                showNotification(`${uniqueEmails.length} e-mails de ${tipoNome} copiados!`, "success");
+            })
+            .catch(err => {
+                console.error("Erro ao copiar e-mails:", err);
+                showNotification("Não foi possível copiar os e-mails automaticamente.", "error");
+            });
+    };
+
+    if (cardTotal) {
+        cardTotal.addEventListener('click', () => {
+            copiarEmailsFiltrados(m => {
+                const status = (m.Status || '').toLowerCase();
+                return status.includes('bolsista') || status.includes('monitor');
+            }, "Músicos da OER");
+        });
+    }
+
+    if (cardBolsistas) {
+        cardBolsistas.addEventListener('click', () => {
+            copiarEmailsFiltrados(m => {
+                return (m.Status || '').toLowerCase().includes('bolsista');
+            }, "Bolsistas");
+        });
+    }
+
+    if (cardMonitores) {
+        cardMonitores.addEventListener('click', () => {
+            copiarEmailsFiltrados(m => {
+                return (m.Status || '').toLowerCase().includes('monitor');
+            }, "Monitores");
+        });
+    }
+
     // Função utilitária para obter o link correto do WhatsApp a partir do número cadastrado
     const obterLinkWhatsapp = (telefone) => {
         if (!telefone || telefone === '-') return '';
@@ -4043,6 +4639,84 @@ function initMusiciansManagement() {
         }
         
         return `https://wa.me/${digitos}`;
+    };
+
+    // Função utilitária para tratar e segmentar múltiplos telefones de forma inteligente
+    const parseTelefones = (telefoneStr) => {
+        if (!telefoneStr || telefoneStr === '-') return [];
+        
+        let lines = [];
+        if (telefoneStr.includes('\n')) {
+            lines = telefoneStr.split('\n');
+        } else {
+            lines = [telefoneStr];
+        }
+        
+        let parts = [];
+        for (let line of lines) {
+            line = line.trim();
+            if (!line) continue;
+            
+            if (line.includes('/')) {
+                parts.push(...line.split('/'));
+            } else if (line.includes(';')) {
+                parts.push(...line.split(';'));
+            } else {
+                parts.push(line);
+            }
+        }
+        
+        const result = [];
+        let accumulatedLabel = '';
+        
+        for (let part of parts) {
+            part = part.trim();
+            if (!part) continue;
+            
+            const cleanDigits = part.replace(/[^\d]/g, '');
+            
+            if (cleanDigits.length >= 8) {
+                const phoneMatch = part.match(/(?:(?:\+?55\s*)?\(?\d{2}\)?\s*)?\d{4,5}[-\s]?\d{4}/);
+                if (phoneMatch) {
+                    const number = phoneMatch[0];
+                    let inlineLabel = part.replace(number, '').replace(/[:\-\/]/g, '').trim();
+                    
+                    let finalLabel = '';
+                    if (accumulatedLabel) {
+                        finalLabel = accumulatedLabel;
+                        if (inlineLabel) {
+                            finalLabel += ` (${inlineLabel})`;
+                        }
+                        accumulatedLabel = '';
+                    } else {
+                        finalLabel = inlineLabel || 'Telefone';
+                    }
+                    
+                    result.push({
+                        display: part,
+                        label: finalLabel,
+                        number: number,
+                        whatsappLink: obterLinkWhatsapp(number)
+                    });
+                } else {
+                    result.push({
+                        display: part,
+                        label: accumulatedLabel || 'Telefone',
+                        number: part,
+                        whatsappLink: obterLinkWhatsapp(part)
+                    });
+                    accumulatedLabel = '';
+                }
+            } else {
+                if (accumulatedLabel) {
+                    accumulatedLabel += ' - ' + part;
+                } else {
+                    accumulatedLabel = part;
+                }
+            }
+        }
+        
+        return result;
     };
 
     // Função utilitária para calcular idade com segurança a partir de vários formatos de data do Excel / String
@@ -4120,7 +4794,7 @@ function initMusiciansManagement() {
             renderMusiciansTable(allMusicians);
         }, (error) => {
             console.error("Erro ao escutar coleção de músicos:", error);
-            tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #dc3545; padding: 2rem;">Erro ao carregar músicos: ${error.message}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #dc3545; padding: 2rem;">Erro ao carregar músicos: ${error.message}</td></tr>`;
         });
     }
 
@@ -4165,7 +4839,7 @@ function initMusiciansManagement() {
         if (!tbody) return;
         
         if (musicians.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="5" class="table-empty" style="padding: 2.5rem; text-align: center; color: #888;">Nenhum músico cadastrado ou ativo. Importe uma planilha para começar.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="6" class="table-empty" style="padding: 2.5rem; text-align: center; color: #888;">Nenhum músico cadastrado ou ativo. Importe uma planilha para começar.</td></tr>`;
             return;
         }
 
@@ -4184,19 +4858,48 @@ function initMusiciansManagement() {
             else if (statusLower.includes('reg.titular') || statusLower.includes('titular')) badgeClass = 'reg-titular';
             else if (statusLower.includes('extra')) badgeClass = 'musico-extra';
             else if (statusLower.includes('desligado')) badgeClass = 'desligado';
-            const whatsappLink = obterLinkWhatsapp(musico.TELEFONE);
-            let telefoneHtml = musico.TELEFONE || '-';
-            if (whatsappLink && musico.TELEFONE !== '-') {
-                telefoneHtml = `
-                    <div class="phone-column-container">
-                        <span class="phone-number-text">${musico.TELEFONE}</span>
-                        <a href="${whatsappLink}" target="_blank" class="whatsapp-quick-link" title="Chamar no WhatsApp" onclick="event.stopPropagation();">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" style="fill: currentColor;">
+            const telefones = parseTelefones(musico.TELEFONE);
+            let telefoneHtml = '';
+            if (telefones.length > 0) {
+                telefoneHtml = `<div class="phone-list-container" style="display: flex; flex-direction: column; gap: 0.25rem;">`;
+                telefones.forEach(t => {
+                    telefoneHtml += `
+                        <div class="phone-column-container" style="display: flex; align-items: center; gap: 0.4rem;">
+                            <span class="phone-number-text" title="${t.label !== 'Telefone' ? t.label : ''}">${t.display}</span>
+                            ${t.whatsappLink ? `
+                            <a href="${t.whatsappLink}" target="_blank" class="whatsapp-quick-link" title="Chamar no WhatsApp (${t.label})" onclick="event.stopPropagation();">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" style="fill: currentColor; width: 14px; height: 14px;">
+                                    <path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L3 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7 .9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/>
+                                </svg>
+                            </a>
+                            ` : ''}
+                        </div>
+                    `;
+                });
+                telefoneHtml += `</div>`;
+            } else {
+                telefoneHtml = '-';
+            }
+
+            // Gerar múltiplos botões de WhatsApp lado a lado na nova coluna dedicada para desktop
+            let whatsappHtml = '';
+            const whatsappsValidos = telefones.filter(t => t.whatsappLink);
+            if (whatsappsValidos.length > 0) {
+                whatsappHtml = `<div class="whatsapp-col-container">`;
+                whatsappsValidos.forEach((t, idx) => {
+                    const labelStr = t.label && t.label !== 'Telefone' ? t.label : `Whats ${whatsappsValidos.length > 1 ? idx + 1 : ''}`;
+                    whatsappHtml += `
+                        <a href="${t.whatsappLink}" target="_blank" class="btn-whatsapp-col" title="Chamar no WhatsApp (${t.label})" onclick="event.stopPropagation();">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512">
                                 <path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L3 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7 .9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/>
                             </svg>
+                            <span>${labelStr}</span>
                         </a>
-                    </div>
-                `;
+                    `;
+                });
+                whatsappHtml += `</div>`;
+            } else {
+                whatsappHtml = '-';
             }
 
             tr.innerHTML = `
@@ -4204,6 +4907,7 @@ function initMusiciansManagement() {
                 <td style="padding: 1rem 1.2rem; color: #495057;">${musico.INSTRUMENTOS || '-'}</td>
                 <td style="padding: 1rem 1.2rem;"><span class="field-value badge ${badgeClass}">${musico.Status || '-'}</span></td>
                 <td style="padding: 1rem 1.2rem; color: #666; font-size: 0.9rem;">${telefoneHtml}</td>
+                <td style="padding: 1rem 1.2rem; color: #666; font-size: 0.9rem;">${whatsappHtml}</td>
                 <td style="padding: 1rem 1.2rem; color: #666; font-size: 0.9rem;">${musico.EMAIL || '-'}</td>
             `;
 
@@ -4229,6 +4933,10 @@ function initMusiciansManagement() {
                 return;
             }
 
+            // Dividir a busca em termos individuais separados por espaço
+            const searchTerms = queryText.split(/\s+/).filter(term => term !== "");
+
+            // 1. Filtrar músicos: todos os termos digitados devem ser encontrados em pelo menos um campo do músico (AND lógico)
             const filtered = allMusicians.filter(musico => {
                 const searchFields = [
                     musico.NOMEARTISTICO,
@@ -4242,17 +4950,91 @@ function initMusiciansManagement() {
                     musico['Endereço'],
                     musico.CEP,
                     musico['Dados Carro']
-                ];
-                
-                return searchFields.some(field => {
-                    if (!field) return false;
-                    const normalizedField = field.toString().toLowerCase()
-                        .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                    return normalizedField.includes(queryText);
+                ].map(field => field ? field.toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "");
+
+                return searchTerms.every(term => {
+                    return searchFields.some(field => field.includes(term));
                 });
             });
 
-            renderMusiciansTable(filtered);
+            // 2. Calcular pontuação (score) de relevância para cada músico filtrado
+            const scored = filtered.map(musico => {
+                let score = 0;
+
+                const nomeArtistico = (musico.NOMEARTISTICO || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                const nomeRegistro = (musico['NOME REGISTRO'] || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                const instrumento = (musico.INSTRUMENTOS || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                const status = (musico.Status || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                const email = (musico.EMAIL || "").toLowerCase();
+                const telefone = (musico.TELEFONE || "").toLowerCase();
+                const cpf = (musico.CPF || "").toLowerCase();
+
+                searchTerms.forEach(term => {
+                    // Nome Artístico (Relevância máxima)
+                    if (nomeArtistico === term) {
+                        score += 1000;
+                    } else if (nomeArtistico.startsWith(term)) {
+                        score += 500;
+                    } else if (nomeArtistico.includes(term)) {
+                        score += 200;
+                    }
+
+                    // Nome de Registro (Relevância alta)
+                    if (nomeRegistro === term) {
+                        score += 800;
+                    } else if (nomeRegistro.startsWith(term)) {
+                        score += 400;
+                    } else if (nomeRegistro.includes(term)) {
+                        score += 150;
+                    }
+
+                    // Instrumento (Relevância moderada)
+                    if (instrumento === term) {
+                        score += 100;
+                    } else if (instrumento.includes(term)) {
+                        score += 50;
+                    }
+
+                    // Status (Relevância menor)
+                    if (status === term) {
+                        score += 80;
+                    } else if (status.includes(term)) {
+                        score += 30;
+                    }
+
+                    // Demais dados (e-mail, telefone, CPF)
+                    if (email.includes(term)) score += 20;
+                    if (telefone.includes(term)) score += 20;
+                    if (cpf.includes(term)) score += 20;
+                });
+
+                return { musico, score };
+            });
+
+            // 3. Ordenar decrescente pelo score
+            scored.sort((a, b) => {
+                if (b.score !== a.score) {
+                    return b.score - a.score;
+                }
+
+                // Primeiro critério de desempate: Status ativo (Bolsista ou Monitor)
+                const aStatus = (a.musico.Status || "").toLowerCase();
+                const bStatus = (b.musico.Status || "").toLowerCase();
+                const aAtivo = aStatus.includes("bolsista") || aStatus.includes("monitor");
+                const bAtivo = bStatus.includes("bolsista") || bStatus.includes("monitor");
+
+                if (aAtivo !== bAtivo) {
+                    return aAtivo ? -1 : 1;
+                }
+
+                // Segundo critério de desempate: Ordem Alfabética pelo Nome Artístico
+                const nomeA = (a.musico.NOMEARTISTICO || "").toLowerCase();
+                const nomeB = (b.musico.NOMEARTISTICO || "").toLowerCase();
+                return nomeA.localeCompare(nomeB);
+            });
+
+            const sortedFiltered = scored.map(item => item.musico);
+            renderMusiciansTable(sortedFiltered);
         });
     }
 
@@ -4304,22 +5086,29 @@ function initMusiciansManagement() {
         // Contatos e Docs
         document.getElementById('drawer-val-email').textContent = formatValue(musico.EMAIL);
         
-        const whatsappLinkDrawer = obterLinkWhatsapp(musico.TELEFONE);
-        const telefoneVal = formatValue(musico.TELEFONE);
         const drawerTelefoneEl = document.getElementById('drawer-val-telefone');
-        if (whatsappLinkDrawer && telefoneVal !== '-') {
-            drawerTelefoneEl.innerHTML = `
-                <div style="display: inline-flex; align-items: center; gap: 0.5rem;">
-                    <span>${telefoneVal}</span>
-                    <a href="${whatsappLinkDrawer}" target="_blank" class="whatsapp-quick-link" title="Chamar no WhatsApp" style="display: inline-flex; align-items: center; color: #25D366; transition: transform 0.2s; padding: 2px;">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" style="width: 16px; height: 16px; fill: currentColor;">
-                            <path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L3 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7 .9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/>
-                        </svg>
-                    </a>
-                </div>
-            `;
+        const telefones = parseTelefones(musico.TELEFONE);
+        if (telefones.length > 0) {
+            let html = `<div style="display: flex; flex-direction: column; gap: 0.4rem;">`;
+            telefones.forEach(t => {
+                html += `
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span style="font-weight: 500; font-size: 0.95rem;">${t.display}</span>
+                        ${t.label !== 'Telefone' ? `<span style="font-size: 0.8rem; color: #888; background: #f0f2f5; padding: 2px 6px; border-radius: 4px;">${t.label}</span>` : ''}
+                        ${t.whatsappLink ? `
+                        <a href="${t.whatsappLink}" target="_blank" class="whatsapp-quick-link" title="Chamar no WhatsApp" style="display: inline-flex; align-items: center; color: #25D366; transition: transform 0.2s; padding: 2px;">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512" style="width: 16px; height: 16px; fill: currentColor;">
+                                <path d="M380.9 97.1C339 55.1 283.2 32 223.9 32c-122.4 0-222 99.6-222 222 0 39.1 10.2 77.3 29.6 111L3 480l117.7-30.9c32.4 17.7 68.9 27 106.1 27h.1c122.3 0 224.1-99.6 224.1-222 0-59.3-25.2-115-67.1-157zm-157 341.6c-33.2 0-65.7-8.9-94-25.7l-6.7-4-69.8 18.3L72 359.2l-4.4-7c-18.5-29.4-28.2-63.3-28.2-98.2 0-101.7 82.8-184.5 184.6-184.5 49.3 0 95.6 19.2 130.4 54.1 34.8 34.9 56.2 81.2 56.1 130.5 0 101.8-84.9 184.6-186.6 184.6zm101.2-138.2c-5.5-2.8-32.8-16.2-37.9-18-5.1-1.9-8.8-2.8-12.5 2.8-3.7 5.6-14.3 18-17.6 21.8-3.2 3.7-6.5 4.2-12 1.4-32.6-16.3-54-29.1-75.5-66-5.7-9.8 5.7-9.1 16.3-30.3 1.8-3.7 .9-6.9-.5-9.7-1.4-2.8-12.5-30.1-17.1-41.2-4.5-10.8-9.1-9.3-12.5-9.5-3.2-.2-6.9-.2-10.6-.2-3.7 0-9.7 1.4-14.8 6.9-5.1 5.6-19.4 19-19.4 46.3 0 27.3 19.9 53.7 22.6 57.4 2.8 3.7 39.1 59.7 94.8 83.8 35.2 15.2 49 16.5 66.6 13.9 10.7-1.6 32.8-13.4 37.4-26.4 4.6-13 4.6-24.1 3.2-26.4-1.3-2.5-5-3.9-10.5-6.6z"/>
+                            </svg>
+                        </a>
+                        ` : ''}
+                    </div>
+                `;
+            });
+            html += `</div>`;
+            drawerTelefoneEl.innerHTML = html;
         } else {
-            drawerTelefoneEl.textContent = telefoneVal;
+            drawerTelefoneEl.textContent = '-';
         }
         document.getElementById('drawer-val-cpf').textContent = formatValue(musico.CPF);
         document.getElementById('drawer-val-rg').textContent = formatValue(musico.RG);
@@ -4600,6 +5389,11 @@ function initMusiciansManagement() {
             // Filtro EMM (Angela): ignorar qualquer profissional cujo status contenha 'emm'
             if (status.includes('emm')) return;
 
+            // Filtro de segurança: ignorar Angela De Santi Pernambuco de forma definitiva
+            const nomeRegLower = (m['NOME REGISTRO'] || '').toLowerCase();
+            const nomeArtLower = (m.NOMEARTISTICO || '').toLowerCase();
+            if (nomeRegLower.includes('angela de santi') || nomeArtLower.includes('angela de santi')) return;
+
             // Ignorar músicos desligados ou inativos
             if (status.includes('desligado') || m.statusFirebase === 'desligado' || m.statusFirebase === 'inativo') return;
 
@@ -4622,12 +5416,12 @@ function initMusiciansManagement() {
                 regentes.push({ nome, cargo: cargoExibicao });
             }
             // Equipe Técnica
-            else if (status.includes('coo') || status.includes('coord') || status.includes('inspetor') || status.includes('produc') || status.includes('produç') || status.includes('montage') || status.includes('montador')) {
+            else if (status.includes('coo') || status.includes('coord') || status.includes('inspetor') || status.includes('produt') || status.includes('produc') || status.includes('produç') || status.includes('montage') || status.includes('montador')) {
                 if (status.includes('coo') || status.includes('coord')) {
                     equipeTecnica["Coordenador Artístico"].push(nome);
                 } else if (status.includes('inspetor')) {
                     equipeTecnica["Inspetor"].push(nome);
-                } else if (status.includes('produc') || status.includes('produç')) {
+                } else if (status.includes('produt') || status.includes('produc') || status.includes('produç')) {
                     equipeTecnica["Produtor de Palco"].push(nome);
                 } else if (status.includes('montage') || status.includes('montador')) {
                     equipeTecnica["Montadores"].push(nome);
@@ -5162,6 +5956,253 @@ function initMusiciansManagement() {
                 setTimeout(() => {
                     btnCopyFicha.innerHTML = originalText;
                     btnCopyFicha.style.background = '#2E8B57';
+                    if (window.lucide) lucide.createIcons();
+                }, 2000);
+                
+                showNotification("Texto copiado para a área de transferência!", "success");
+            } catch (err) {
+                console.error("Erro ao copiar texto:", err);
+                showNotification("Erro ao copiar texto.", "error");
+            }
+        });
+    }
+
+    // 9. Relatório de Metas e Perfil de Músicos
+    const btnGenerateMetas = document.getElementById('btn-generate-metas');
+    const modalMetas = document.getElementById('metas-perfil-modal-overlay');
+    const btnCloseMetas = document.getElementById('btn-metas-modal-close');
+    const btnCloseMetasFooter = document.getElementById('btn-close-metas-modal-footer');
+    const btnCopyMetas = document.getElementById('btn-copy-metas');
+    const resultMetasContainer = document.getElementById('metas-perfil-result');
+    const avisoIdadeContainer = document.getElementById('metas-perfil-aviso-idade');
+
+    const metasPorNaipe = {
+        "primeiro violino": 16,
+        "segundos violino": 16,
+        "viola": 10,
+        "violoncelo": 10,
+        "contrabaixo": 8,
+        "flauta": 4,
+        "oboe": 4,
+        "clarinete": 4,
+        "fagote": 4,
+        "trompa": 6,
+        "trompete": 4,
+        "trombone": 5,
+        "tuba": 1,
+        "percussao": 5,
+        "piano": 1,
+        "harpa": 1
+    };
+
+    const nomesExibicaoNaipes = {
+        "primeiro violino": "Primeiros Violinos",
+        "segundos violino": "Segundos Violinos",
+        "viola": "Violas",
+        "violoncelo": "Violoncelos",
+        "contrabaixo": "Contrabaixos",
+        "flauta": "Flautas",
+        "oboe": "Oboés",
+        "clarinete": "Clarinetes",
+        "fagote": "Fagotes",
+        "trompa": "Trompa",
+        "trompete": "Trompete",
+        "trombone": "Trombones",
+        "tuba": "Tuba",
+        "percussao": "Percussão",
+        "piano": "Piano",
+        "harpa": "Harpa"
+    };
+
+    const normalizarGenero = (generoVal) => {
+        if (!generoVal) return null;
+        const s = generoVal.toString().toLowerCase().trim();
+        if (s.startsWith('masc') || s === 'm' || s === 'homem') return 'masculino';
+        if (s.startsWith('fem') || s === 'f' || s === 'mulher') return 'feminino';
+        return null;
+    };
+
+    if (btnGenerateMetas) {
+        btnGenerateMetas.addEventListener('click', () => {
+            if (!allMusicians || allMusicians.length === 0) {
+                showNotification("Nenhum músico carregado ainda.", "warning");
+                return;
+            }
+
+            // Filtrar ativos (Ignora inativos, desligados e equipe de apoio/admin)
+            const ativos = allMusicians.filter(m => {
+                if (m.statusFirebase === 'desligado' || m.statusFirebase === 'inativo') return false;
+                const status = (m.Status || '').toLowerCase();
+                return status.includes('bolsista') || status.includes('monitor');
+            });
+
+            const bolsistas = ativos.filter(m => (m.Status || '').toLowerCase().includes('bolsista'));
+            const monitores = ativos.filter(m => (m.Status || '').toLowerCase().includes('monitor'));
+
+            const numBolsistas = bolsistas.length;
+            const numMonitores = monitores.length;
+            const numGeral = numBolsistas + numMonitores;
+
+            // Metas principais
+            const metaBolsistas = 83;
+            const metaMonitores = 16;
+            const metaGeral = 99;
+
+            // Formatação do Status/Falta
+            const formatarMeta = (atual, meta) => {
+                if (atual === meta) {
+                    return `(Meta: ${meta})`;
+                } else if (atual > meta) {
+                    return `(Meta: ${meta} | Excedente: +${atual - meta})`;
+                } else {
+                    return `(Meta: ${meta} | Faltam: ${meta - atual})`;
+                }
+            };
+
+            const strBolsistasMeta = formatarMeta(numBolsistas, metaBolsistas);
+            const strMonitoresMeta = formatarMeta(numMonitores, metaMonitores);
+            const strGeralMeta = formatarMeta(numGeral, metaGeral);
+
+            // Excedentes por Naipe
+            const contagemNaipes = {};
+            ativos.forEach(m => {
+                const naipeNormalizado = normalizarNaipe(m.INSTRUMENTOS);
+                if (naipeNormalizado) {
+                    contagemNaipes[naipeNormalizado] = (contagemNaipes[naipeNormalizado] || 0) + 1;
+                }
+            });
+
+            const excedentesNaipes = [];
+            Object.keys(metasPorNaipe).forEach(naipeKey => {
+                const atualNaipe = contagemNaipes[naipeKey] || 0;
+                const metaNaipe = metasPorNaipe[naipeKey];
+                if (atualNaipe > metaNaipe) {
+                    const nomeNaipe = nomesExibicaoNaipes[naipeKey] || naipeKey;
+                    excedentesNaipes.push(`${nomeNaipe} +${atualNaipe - metaNaipe}`);
+                }
+            });
+
+            let strExcedenteNaipes = "";
+            if (excedentesNaipes.length > 0) {
+                strExcedenteNaipes = `\n_(Excedente: ${excedentesNaipes.join(', ')})_`;
+            }
+
+            // Perfil dos bolsistas (Idade)
+            const idadesBolsistas = [];
+            let bolsistasSemIdade = 0;
+
+            bolsistas.forEach(m => {
+                const idade = calcularIdade(m['DATA DE NACIMENTO ']) || (typeof m.IDADE === 'number' && m.IDADE < 120 ? m.IDADE : null);
+                if (idade !== null) {
+                    idadesBolsistas.push(idade);
+                } else {
+                    bolsistasSemIdade++;
+                }
+            });
+
+            let mediaIdade = 0;
+            let maisNovo = 0;
+            let maisVelho = 0;
+
+            if (idadesBolsistas.length > 0) {
+                const soma = idadesBolsistas.reduce((acc, curr) => acc + curr, 0);
+                mediaIdade = Math.round(soma / idadesBolsistas.length);
+                maisNovo = Math.min(...idadesBolsistas);
+                maisVelho = Math.max(...idadesBolsistas);
+            }
+
+            // Gêneros (Apenas Bolsistas)
+            let bolsistasMasc = 0;
+            let bolsistasFem = 0;
+            bolsistas.forEach(m => {
+                const gen = normalizarGenero(m.GENERO || m['GÊNERO']);
+                if (gen === 'masculino') bolsistasMasc++;
+                else if (gen === 'feminino') bolsistasFem++;
+            });
+
+            // Gêneros Geral (Bolsistas + Monitores)
+            let geralMasc = 0;
+            let geralFem = 0;
+            ativos.forEach(m => {
+                const gen = normalizarGenero(m.GENERO || m['GÊNERO']);
+                if (gen === 'masculino') geralMasc++;
+                else if (gen === 'feminino') geralFem++;
+            });
+
+            // Data atual da solicitação
+            const dataHoje = new Date();
+            const dia = String(dataHoje.getDate()).padStart(2, '0');
+            const mes = String(dataHoje.getMonth() + 1).padStart(2, '0');
+            const ano = dataHoje.getFullYear();
+            const hora = String(dataHoje.getHours()).padStart(2, '0');
+            const minuto = String(dataHoje.getMinutes()).padStart(2, '0');
+            const strDataAtualizado = `${dia}/${mes}/${ano}`;
+
+            // Gerar o relatório formatado
+            const relatorioText = `*Relatório Quantidade de Musicistas OER - ${mes}/${ano}*
+_(Atualizado: ${strDataAtualizado})_
+
+*BOLSISTAS*: ${numBolsistas} atuais ${strBolsistasMeta}
+*Monitores*: ${numMonitores} atuais ${strMonitoresMeta}
+*Total GERAL*: ${numGeral} atuais ${strGeralMeta}${strExcedenteNaipes}
+
+*Perfil dos Bolsistas*
+*Idade:*
+Média: ${mediaIdade} anos
+Mais novo: ${maisNovo} anos
+Mais velho: ${maisVelho} anos
+
+*Gênero _(Apenas Bolsistas)_:*
+Masculino: ${bolsistasMasc}
+Feminino: ${bolsistasFem}
+
+_(obs.: Caso precise também da quantidade gênero considerando o total geral de monitores e bolsistas reunidos, os números atuais são ${geralMasc} homens e ${geralFem} mulheres)._`;
+
+            // Preencher o modal
+            if (resultMetasContainer) {
+                resultMetasContainer.textContent = relatorioText;
+            }
+
+            // Mostrar aviso de idades em branco
+            if (avisoIdadeContainer) {
+                if (bolsistasSemIdade > 0) {
+                    avisoIdadeContainer.textContent = `⚠️ Observação: ${bolsistasSemIdade} bolsista(s) foram desconsiderados do cálculo de idade por falta de data de nascimento no cadastro.`;
+                    avisoIdadeContainer.style.display = 'block';
+                } else {
+                    avisoIdadeContainer.style.display = 'none';
+                }
+            }
+
+            // Abrir o modal
+            if (modalMetas) {
+                modalMetas.style.display = 'flex';
+            }
+        });
+    }
+
+    // Ouvintes de Fechamento do Modal de Metas
+    const fecharMetasModal = () => {
+        if (modalMetas) modalMetas.style.display = 'none';
+    };
+
+    if (btnCloseMetas) btnCloseMetas.addEventListener('click', fecharMetasModal);
+    if (btnCloseMetasFooter) btnCloseMetasFooter.addEventListener('click', fecharMetasModal);
+
+    // Botão de Copiar Relatório de Metas
+    if (btnCopyMetas && resultMetasContainer) {
+        btnCopyMetas.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(resultMetasContainer.textContent);
+
+                // Feedback visual de cópia bem-sucedida
+                const originalText = btnCopyMetas.innerHTML;
+                btnCopyMetas.innerHTML = '<i data-lucide="check" style="width: 16px; height: 16px;"></i> Copiado!';
+                btnCopyMetas.style.background = '#4CAF50';
+                if (window.lucide) lucide.createIcons();
+                
+                setTimeout(() => {
+                    btnCopyMetas.innerHTML = originalText;
+                    btnCopyMetas.style.background = '#4a5568';
                     if (window.lucide) lucide.createIcons();
                 }, 2000);
                 

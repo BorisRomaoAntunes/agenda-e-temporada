@@ -208,6 +208,391 @@
     min-height: 20px;
 }
 
+/* ================= ESQUECI SENHA & RECUPERAÇÃO ================= */
+
+.forgot-password-link {
+    display: block;
+    text-align: center;
+    margin-top: 1rem;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    text-decoration: none;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.forgot-password-link:hover {
+    color: var(--primary-color);
+    text-decoration: underline;
+}
+
+/* Views alternáveis dentro do login-card */
+.login-view,
+.recovery-view,
+.success-view {
+    transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.login-view.hidden,
+.recovery-view.hidden,
+.success-view.hidden {
+    display: none;
+}
+
+.recovery-view,
+.success-view {
+    text-align: center;
+}
+
+.recovery-icon {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 1.2rem;
+    background: rgba(139, 0, 0, 0.08);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-color);
+}
+
+.recovery-icon svg {
+    width: 28px;
+    height: 28px;
+}
+
+.recovery-view h3,
+.success-view h3 {
+    font-size: 1.25rem;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.recovery-view p,
+.success-view p {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 1.5rem;
+    line-height: 1.5;
+}
+
+.recovery-view .input-group {
+    text-align: left;
+}
+
+.btn-back-login {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 1.2rem;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: inherit;
+    transition: var(--transition);
+}
+
+.btn-back-login:hover {
+    color: var(--primary-color);
+}
+
+.btn-back-login svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Ícone de sucesso animado */
+.success-icon {
+    width: 72px;
+    height: 72px;
+    margin: 0 auto 1.2rem;
+    background: rgba(40, 167, 69, 0.1);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #28a745;
+    animation: successPop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.success-icon svg {
+    width: 32px;
+    height: 32px;
+}
+
+@keyframes successPop {
+    0% { transform: scale(0); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.success-msg {
+    color: #28a745;
+    font-size: 0.85rem;
+    text-align: center;
+    margin-top: 0.8rem;
+}
+
+/* Animação de shake no card ao errar */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    10%, 30%, 50%, 70%, 90% { transform: translateX(-6px); }
+    20%, 40%, 60%, 80% { transform: translateX(6px); }
+}
+
+.login-card.shake {
+    animation: shake 0.5s ease-in-out;
+}
+
+/* Countdown do brute-force */
+.countdown-overlay {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-top: 0.8rem;
+    padding: 0.6rem 1rem;
+    background: rgba(220, 53, 69, 0.06);
+    border-radius: 8px;
+    border: 1px solid rgba(220, 53, 69, 0.15);
+}
+
+.countdown-overlay svg {
+    width: 16px;
+    height: 16px;
+    color: #dc3545;
+}
+
+.countdown-overlay .countdown-time {
+    font-weight: 700;
+    color: #dc3545;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ================= SEGURANÇA DA CONTA (Modal Ajustes) ================= */
+
+.security-section {
+    margin-top: 2rem;
+    border-top: 1px solid #e5e7eb;
+    padding-top: 1.5rem;
+}
+
+.security-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    padding: 0.8rem 0;
+    transition: var(--transition);
+    user-select: none;
+}
+
+.security-header:hover {
+    opacity: 0.8;
+}
+
+.security-header-info {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.security-header-info .security-icon-bg {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(139, 0, 0, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary-color);
+}
+
+.security-header-info .security-icon-bg svg {
+    width: 20px;
+    height: 20px;
+}
+
+.security-header-info h4 {
+    font-size: 1rem;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.security-header-info p {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin: 0.15rem 0 0;
+}
+
+.security-chevron {
+    transition: transform 0.3s ease;
+    color: var(--text-secondary);
+}
+
+.security-chevron svg {
+    width: 20px;
+    height: 20px;
+}
+
+.security-chevron.expanded {
+    transform: rotate(180deg);
+}
+
+.security-content {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease, opacity 0.3s ease;
+    opacity: 0;
+}
+
+.security-content.expanded {
+    max-height: 600px;
+    opacity: 1;
+}
+
+.security-form {
+    padding: 1rem 0 0.5rem;
+}
+
+.security-form .input-group {
+    margin-bottom: 1.2rem;
+}
+
+.security-form .input-group label {
+    display: block;
+    margin-bottom: 0.4rem;
+    font-weight: 500;
+    font-size: 0.85rem;
+    color: var(--text-primary);
+}
+
+.security-form .input-group input {
+    width: 100%;
+    padding: 0.7rem 1rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 0.95rem;
+    transition: var(--transition);
+    box-sizing: border-box;
+}
+
+.security-form .input-group input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(139, 0, 0, 0.1);
+}
+
+/* Barra de força de senha */
+.password-strength {
+    margin-top: -0.6rem;
+    margin-bottom: 1.2rem;
+}
+
+.strength-bar-container {
+    height: 4px;
+    background: #e5e7eb;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 0.4rem;
+}
+
+.strength-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.4s ease, background-color 0.4s ease;
+    width: 0;
+}
+
+.strength-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    transition: color 0.3s ease;
+}
+
+/* Requisitos de senha */
+.password-requirements {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1.2rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.3rem;
+}
+
+.password-requirements li {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    transition: color 0.3s ease;
+}
+
+.password-requirements li svg {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+
+.password-requirements li.met {
+    color: #28a745;
+}
+
+.password-requirements li.met svg {
+    color: #28a745;
+}
+
+.security-form .btn-change-password {
+    width: 100%;
+    padding: 0.8rem;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: var(--transition);
+    font-family: inherit;
+}
+
+.security-form .btn-change-password:hover:not(:disabled) {
+    background-color: var(--secondary-color);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(139, 0, 0, 0.2);
+}
+
+.security-form .btn-change-password:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.security-error-msg {
+    color: #dc3545;
+    font-size: 0.82rem;
+    text-align: center;
+    margin-top: 0.8rem;
+    min-height: 18px;
+}
+
+.security-success-msg {
+    color: #28a745;
+    font-size: 0.82rem;
+    text-align: center;
+    margin-top: 0.8rem;
+    min-height: 18px;
+}
+
 /* ================= DASHBOARD ================= */
 #dashboard-container {
     flex-direction: column;
@@ -3803,6 +4188,43 @@ input:checked + .slider:before {
     box-shadow: 0 2px 8px rgba(0,0,0,0.02);
 }
 
+.musico-stat-card.clickable-stat-card {
+    cursor: pointer;
+    position: relative;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.musico-stat-card.clickable-stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+    border-color: #cbd5e1;
+}
+
+.musico-stat-card.clickable-stat-card::after {
+    content: "Clique para copiar e-mails";
+    position: absolute;
+    bottom: -32px;
+    left: 50%;
+    transform: translateX(-50%) translateY(5px);
+    background: rgba(33, 37, 41, 0.95);
+    color: #fff;
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 500;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 100;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.musico-stat-card.clickable-stat-card:hover::after {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
 .musico-stat-card .stat-icon-bg {
     width: 45px;
     height: 45px;
@@ -4151,6 +4573,101 @@ input:checked + .slider:before {
     }
     .musicos-table th:nth-child(5),
     .musicos-table td:nth-child(5) {
+        display: none !important;
+    }
+    .musicos-table th:nth-child(6),
+    .musicos-table td:nth-child(6) {
         order: 5;
     }
 }
+
+/* Botão do WhatsApp na nova coluna dedicada */
+.whatsapp-col-container {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.btn-whatsapp-col {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #25D366;
+    color: white !important;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    text-decoration: none;
+    gap: 0.4rem;
+    transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 2px 4px rgba(37, 211, 102, 0.15);
+}
+
+.btn-whatsapp-col:hover {
+    background-color: #128C7E;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(18, 140, 126, 0.25);
+}
+
+.btn-whatsapp-col svg {
+    width: 14px;
+    height: 14px;
+    fill: currentColor;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/* Container de Ações Rápidas (Botões Redondos acima do Gráfico) */
+.quick-actions-container {
+    display: flex;
+    gap: 1.2rem;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.btn-quick-round {
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease, filter 0.2s ease;
+    color: white !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    text-decoration: none;
+}
+
+.btn-quick-round:hover {
+    transform: scale(1.1) translateY(-2px);
+    filter: brightness(1.15);
+    box-shadow: 0 8px 16px -2px rgba(0, 0, 0, 0.15), 0 4px 8px -2px rgba(0, 0, 0, 0.1);
+}
+
+.btn-quick-round:active {
+    transform: scale(0.95);
+}
+
+.btn-quick-round i,
+.btn-quick-round svg {
+    width: 28px;
+    height: 28px;
+}
+
+.btn-quick-round.btn-presenca {
+    background-color: #10b981; /* Verde esmeralda */
+    box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.3), 0 2px 4px -1px rgba(16, 185, 129, 0.2);
+}
+
+.btn-quick-round.btn-instrumentacao {
+    background-color: #3b82f6; /* Azul royal */
+    box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3), 0 2px 4px -1px rgba(59, 130, 246, 0.2);
+}
+
+
