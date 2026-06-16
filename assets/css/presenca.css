@@ -199,10 +199,19 @@ body {
     letter-spacing: 0.05em;
     color: var(--text-secondary);
     margin-bottom: 0.6rem;
-    padding-left: 0.4rem;
+    padding: 0.5rem 0.4rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    
+    /* Configurações Sticky */
+    position: sticky;
+    top: var(--header-height, 128px);
+    z-index: 90;
+    background-color: var(--bg-primary);
+    box-shadow: 0 4px 6px -4px rgba(0,0,0,0.05);
+    margin-top: -0.5rem; /* Compensa o padding superior adicionado */
+    border-radius: 4px;
 }
 
 .naipe-count {

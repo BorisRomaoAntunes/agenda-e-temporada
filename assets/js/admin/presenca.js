@@ -86,6 +86,17 @@ async function initApp() {
     dateInput.value = today;
     selectedDate = today;
 
+    // Configurar altura dinâmica do header para os sticky dos naipes
+    const headerEl = document.querySelector('.header');
+    if (headerEl) {
+        const updateHeaderHeight = () => {
+            // Pequeno desconto para o header se alinhar perfeitamente sem borda vazada
+            document.documentElement.style.setProperty('--header-height', `${headerEl.offsetHeight - 1}px`);
+        };
+        updateHeaderHeight();
+        window.addEventListener('resize', updateHeaderHeight);
+    }
+
     // Carregar Músicos
     await loadMusicians();
 
