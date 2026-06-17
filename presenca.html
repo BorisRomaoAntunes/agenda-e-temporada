@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <!-- Meta Tags Anti-Cache para iOS PWA -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
@@ -56,10 +56,11 @@
             </div>
         </div>
         
-        <!-- Search Bar -->
-        <div class="search-container">
-            <i data-lucide="search" class="search-icon"></i>
-            <input type="text" id="searchInput" placeholder="Pesquisar por nome ou instrumento...">
+        <!-- Filters Bar -->
+        <div class="filters-container">
+            <button class="filter-pill" data-filter="pendente">Pendente</button>
+            <button class="filter-pill" data-filter="nao-escalado">Não Escalados</button>
+            <button class="filter-pill" data-filter="faltas-atrasos">Faltas e Atrasos</button>
         </div>
     </header>
 
@@ -100,6 +101,10 @@
             <button class="opt-btn atestado" id="optBtnAtestado">
                 <i data-lucide="file-text" style="width: 24px; height: 24px;"></i>
                 <span>Atestado</span>
+            </button>
+            <button class="opt-btn nao-escalado" id="optBtnNaoEscalado">
+                <i data-lucide="calendar-off" style="width: 24px; height: 24px;"></i>
+                <span>Não Escalado</span>
             </button>
         </div>
 
@@ -142,14 +147,28 @@
 
     <!-- Bottom Action Bar -->
     <footer class="bottom-bar">
-        <button class="notes-btn" id="btnOpenNotes">
-            <i data-lucide="sticky-note" style="width: 18px; height: 18px;"></i>
-            <span>Anotações</span>
-        </button>
-        <button class="save-btn" id="btnSaveOfficial">
-            <i data-lucide="cloud-lightning" style="width: 18px; height: 18px;"></i>
-            <span>Salvar Oficialmente</span>
-        </button>
+        <div class="bottom-bar-actions">
+            <button class="btn-search-bottom" id="btnToggleSearch" title="Pesquisar">
+                <i data-lucide="search" style="width: 20px; height: 20px;"></i>
+            </button>
+            <button class="notes-btn" id="btnOpenNotes">
+                <i data-lucide="sticky-note" style="width: 18px; height: 18px;"></i>
+                <span>Anotações</span>
+            </button>
+            <button class="save-btn" id="btnSaveOfficial">
+                <i data-lucide="cloud-lightning" style="width: 18px; height: 18px;"></i>
+                <span>Salvar</span>
+            </button>
+        </div>
+        
+        <!-- Expandable Search Input -->
+        <div class="bottom-search-wrapper" id="bottomSearchWrapper">
+            <i data-lucide="search" class="bottom-search-icon"></i>
+            <input type="text" id="searchInput" class="bottom-search-input" placeholder="Pesquisar...">
+            <button class="btn-close-search" id="btnCloseSearch">
+                <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+            </button>
+        </div>
     </footer>
 
     <!-- Firebase SDK & Custom Logics -->

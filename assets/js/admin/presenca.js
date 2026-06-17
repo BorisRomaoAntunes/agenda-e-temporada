@@ -42,6 +42,7 @@ const btnCancelDrawer = document.getElementById("btnCancelDrawer");
 const optBtnPresenca = document.getElementById("optBtnPresenca");
 const optBtnFalta = document.getElementById("optBtnFalta");
 const optBtnAtestado = document.getElementById("optBtnAtestado");
+const optBtnNaoEscalado = document.getElementById("optBtnNaoEscalado");
 
 // Drawer de Anotações
 const notesDrawer = document.getElementById("notesDrawer");
@@ -53,16 +54,26 @@ const btnSaveNotes = document.getElementById("btnSaveNotes");
 // Botão Salvar Oficialmente
 const btnSaveOfficial = document.getElementById("btnSaveOfficial");
 
+// Busca expansível e Filtros
+const btnToggleSearch = document.getElementById("btnToggleSearch");
+const btnCloseSearch = document.getElementById("btnCloseSearch");
+const bottomSearchWrapper = document.getElementById("bottomSearchWrapper");
+const bottomBar = document.querySelector(".bottom-bar");
+const filterPills = document.querySelectorAll(".filter-pill");
+
 // Estado da Aplicação
 let currentUserEmail = "";
 let allMusicians = []; // Lista carregada do Firestore
-let attendanceData = {}; // { musicoId: { status: 'presenca'|'falta'|'atestado'|'atraso', minutes: 0 } }
+let attendanceData = {}; // { musicoId: { status: 'presenca'|'falta'|'atestado'|'atraso'|'nao_escalado', minutes: 0 } }
 let notesText = "";
 let selectedDate = "";
 let activeMusicianId = null;
 let selectedStatusTemp = null;
 let selectedDelayTemp = 0;
 let existedInFirestore = false; // Indica se a lista da data selecionada já estava salva no Firestore
+const clickTimestamps = {}; // Controle de duplo clique por músico
+let scrollTimeout; // Controle do debounce de scroll
+let activeFilter = null; // Filtro ativo: 'nao-escalado' | 'faltas-atrasos' | null
 
 // Valores de atraso para o seletor scroll (minutos)
 const delayValues = [0, 5, 10, 15, 20, 25, 30, 40, 50, 60, 75, 90, 120, 150, 180];
@@ -106,8 +117,45 @@ async function initApp() {
     // Carregar dados da data atual (ou rascunho)
     await loadDateData(selectedDate);
 
+    // Restaurar a posição de rolagem salva
+    setTimeout(() => {
+        const savedScroll = localStorage.getItem("presenca_scroll_pos");
+        if (savedScroll !== null) {
+            window.scrollTo({ top: parseInt(savedScroll, 10), behavior: 'smooth' });
+        }
+    }, 150);
+
     // Eventos
     searchInput.addEventListener("input", renderMusicians);
+
+    // Busca expansível na barra inferior
+    btnToggleSearch.addEventListener("click", () => {
+        bottomBar.classList.add("search-active");
+        searchInput.focus();
+    });
+    btnCloseSearch.addEventListener("click", () => {
+        bottomBar.classList.remove("search-active");
+        searchInput.value = "";
+        renderMusicians();
+    });
+
+    // Filtros (pílulas)
+    filterPills.forEach(pill => {
+        pill.addEventListener("click", () => {
+            const filter = pill.dataset.filter;
+            if (activeFilter === filter) {
+                // Desativar filtro
+                activeFilter = null;
+                pill.classList.remove("active");
+            } else {
+                // Ativar novo filtro e desativar o anterior
+                filterPills.forEach(p => p.classList.remove("active"));
+                activeFilter = filter;
+                pill.classList.add("active");
+            }
+            renderMusicians();
+        });
+    });
     dateInput.addEventListener("change", handleDateChange);
     btnBackAdmin.addEventListener("click", () => window.location.replace("admin.html"));
 
@@ -117,6 +165,7 @@ async function initApp() {
     optBtnPresenca.addEventListener("click", () => instantSelectStatus("presenca"));
     optBtnFalta.addEventListener("click", () => instantSelectStatus("falta"));
     optBtnAtestado.addEventListener("click", () => instantSelectStatus("atestado"));
+    optBtnNaoEscalado.addEventListener("click", () => instantSelectStatus("nao_escalado"));
     btnDelayConfirm.addEventListener("click", applyDelayChange);
 
     // Callbacks de Anotações
@@ -127,6 +176,14 @@ async function initApp() {
     // Salvar Oficialmente
     btnSaveOfficial.addEventListener("click", saveOfficialData);
     
+    // Salvar a posição do scroll continuamente (com debounce para performance)
+    window.addEventListener("scroll", () => {
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+            localStorage.setItem("presenca_scroll_pos", window.scrollY);
+        }, 200);
+    });
+
     // Inicializar ícones Lucide
     if (window.lucide) {
         window.lucide.createIcons();
@@ -277,10 +334,25 @@ function renderMusicians() {
     // Agrupar músicos por Instrumento/Naipe normalizado
     const groups = {};
     allMusicians.forEach(m => {
+        // Filtro por texto (busca)
         const matchName = m.Nome.toLowerCase().includes(query);
         const matchInst = m.Instrumento.toLowerCase().includes(query);
+        const matchText = query === "" || matchName || matchInst;
+
+        // Filtro por pílulas de status
+        let matchFilter = true;
+        if (activeFilter) {
+            const statusInfo = attendanceData[m.id] || { status: "none", minutes: 0 };
+            if (activeFilter === "nao-escalado") {
+                matchFilter = statusInfo.status === "nao_escalado";
+            } else if (activeFilter === "faltas-atrasos") {
+                matchFilter = statusInfo.status === "falta" || statusInfo.status === "atraso";
+            } else if (activeFilter === "pendente") {
+                matchFilter = statusInfo.status === "none";
+            }
+        }
         
-        if (query === "" || matchName || matchInst) {
+        if (matchText && matchFilter) {
             // Normalização do naipe para agrupamento correto
             const instNormalizado = normalizarNaipe(m.Instrumento);
             let naipeEncontrado = ordemNaipes.find(n => normalizarNaipe(n) === instNormalizado);
@@ -334,6 +406,7 @@ function renderMusicians() {
             if (statusInfo.status === "presenca") badgeLabel = "Presença";
             else if (statusInfo.status === "falta") badgeLabel = "Falta";
             else if (statusInfo.status === "atestado") badgeLabel = "Atestado";
+            else if (statusInfo.status === "nao_escalado") badgeLabel = "Não Escalado";
             else if (statusInfo.status === "atraso") {
                 const mVal = statusInfo.minutes;
                 if (mVal >= 60) {
@@ -362,9 +435,20 @@ function renderMusicians() {
                 </div>
             `;
 
-            // Clique no nome: Presença rápida alternada
+            // Clique no nome: Presença rápida alternada (suporta duplo clique)
             card.querySelector(`#info-${m.id}`).addEventListener("click", () => {
-                handleQuickPresence(m);
+                const now = new Date().getTime();
+                const lastClickTime = clickTimestamps[m.id] || 0;
+                
+                if (now - lastClickTime < 400) {
+                    // Duplo clique detectado
+                    handleDoubleQuickPresence(m);
+                    clickTimestamps[m.id] = 0; // Reseta para evitar triplo clique
+                } else {
+                    // Clique simples
+                    handleQuickPresence(m);
+                    clickTimestamps[m.id] = now;
+                }
             });
 
             // Clique no badge: Abre painel de opções
@@ -406,6 +490,14 @@ function handleQuickPresence(musician) {
     showToast(`Presença rápida: ${musician.Nome.split(' ')[0]}`);
 }
 
+// Alternar para Não Escalado via duplo clique
+function handleDoubleQuickPresence(musician) {
+    attendanceData[musician.id] = { status: "nao_escalado", minutes: 0 };
+    saveDraft();
+    renderMusicians();
+    showToast(`Não escalado: ${musician.Nome.split(' ')[0]}`);
+}
+
 // Abrir Drawer de Status
 function openDrawerForMusician(musician) {
     activeMusicianId = musician.id;
@@ -437,7 +529,7 @@ function instantSelectStatus(status) {
     saveDraft();
     renderMusicians();
     closeDrawer();
-    showToast(`Registrado: ${status === 'presenca' ? 'Presença' : status === 'falta' ? 'Falta' : 'Atestado'}`);
+    showToast(`Registrado: ${status === 'presenca' ? 'Presença' : status === 'falta' ? 'Falta' : status === 'atestado' ? 'Atestado' : 'Não Escalado'}`);
 }
 
 // Aplicar Alteração de Atraso
@@ -457,12 +549,13 @@ function applyDelayChange() {
 
 // Atualizar Destaques no Drawer
 function updateDrawerButtonsVisuals() {
-    const btns = [optBtnPresenca, optBtnFalta, optBtnAtestado];
+    const btns = [optBtnPresenca, optBtnFalta, optBtnAtestado, optBtnNaoEscalado];
     btns.forEach(btn => btn.classList.remove("selected"));
 
     if (selectedStatusTemp === "presenca") optBtnPresenca.classList.add("selected");
     else if (selectedStatusTemp === "falta") optBtnFalta.classList.add("selected");
     else if (selectedStatusTemp === "atestado") optBtnAtestado.classList.add("selected");
+    else if (selectedStatusTemp === "nao_escalado") optBtnNaoEscalado.classList.add("selected");
 
     // Exibir/Ocultar botão Confirmar Atraso
     if (selectedDelayTemp > 0) {
@@ -528,12 +621,13 @@ async function saveOfficialData() {
         });
 
         // 2. Contabilizar totais para detalhes do Log
-        let presencas = 0, faltas = 0, atestados = 0, atrasos = 0;
+        let presencas = 0, faltas = 0, atestados = 0, atrasos = 0, naoEscalados = 0;
         registrados.forEach(r => {
             if (r.status === 'presenca') presencas++;
             else if (r.status === 'falta') faltas++;
             else if (r.status === 'atestado') atestados++;
             else if (r.status === 'atraso') atrasos++;
+            else if (r.status === 'nao_escalado') naoEscalados++;
         });
 
         // 3. Definir tipo e mensagem do log com base na auditoria
@@ -549,7 +643,18 @@ async function saveOfficialData() {
             message: logMessage,
             createdAt: new Date().toISOString(),
             user: currentUserEmail,
-            details: `Presentes: ${presencas} | Faltas: ${faltas} | Atestados: ${atestados} | Atrasos: ${atrasos}`
+            details: (() => {
+                const total = presencas + naoEscalados;
+                const partesParen = [`Presentes: ${presencas}`];
+                if (naoEscalados > 0) partesParen.push(`Não Escalados: ${naoEscalados}`);
+                let resultado = `Total: ${total} (${partesParen.join(' | ')})`;
+                const extras = [];
+                if (atestados > 0) extras.push(`Atestados: ${atestados}`);
+                if (atrasos > 0) extras.push(`Atrasos: ${atrasos}`);
+                if (faltas > 0) extras.push(`Faltas: ${faltas}`);
+                if (extras.length > 0) resultado += ` | ${extras.join(' | ')}`;
+                return resultado;
+            })()
         });
 
         // 5. Limpar rascunho local
@@ -638,7 +743,7 @@ function buildDelayWheel() {
                 }
                 
                 // Atualiza destaques visuais do Drawer
-                const btns = [optBtnPresenca, optBtnFalta, optBtnAtestado];
+                const btns = [optBtnPresenca, optBtnFalta, optBtnAtestado, optBtnNaoEscalado];
                 btns.forEach(btn => btn.classList.remove("selected"));
                 if (selectedStatusTemp === "presenca" && val === 0) {
                     optBtnPresenca.classList.add("selected");

@@ -6213,4 +6213,88 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
             }
         });
     }
+    
+    // Inicializar Áreas Copiáveis do Drawer
+    initCopyableFields();
+}
+
+/**
+ * Adiciona a funcionalidade de copiar ao clicar nas áreas do drawer do músico.
+ * Varre todos os campos (.drawer-field e .drawer-header-info), adiciona as classes 
+ * e ícones, e configura o Event Listener.
+ */
+function initCopyableFields() {
+    const fieldsToCopy = document.querySelectorAll('#musico-drawer .drawer-field, #musico-drawer .drawer-header-info');
+    
+    fieldsToCopy.forEach(field => {
+        // Ignorar se já foi inicializado
+        if (field.classList.contains('copyable-area')) return;
+        
+        // Adiciona classe e ícone
+        field.classList.add('copyable-area');
+        
+        // O ícone será inserido logo no final do container
+        const iconHTML = `<i data-lucide="copy" class="copy-icon-indicator"></i>`;
+        
+        // Em .drawer-header-info o H3 é o primeiro filho, o P o segundo
+        // Nos .drawer-field, .field-value é onde o texto real está.
+        // O CSS com display: inline-flex (ou grid com flex) fará o alinhamento
+        field.insertAdjacentHTML('beforeend', iconHTML);
+        
+        field.addEventListener('click', async (e) => {
+            // Evitar que cliques em links dentro do campo ativem a cópia (ex: Link do WhatsApp)
+            if (e.target.closest('a') || e.target.closest('button')) {
+                return;
+            }
+
+            let textToCopy = '';
+            
+            // Lógica de extração de texto
+            if (field.classList.contains('drawer-header-info')) {
+                const h3 = field.querySelector('h3');
+                textToCopy = h3 ? h3.textContent.trim() : '';
+            } else {
+                const valEl = field.querySelector('.field-value');
+                if (!valEl) return;
+                
+                // Limpeza especial para campo de telefone e afins, ignorando conteúdo de badges/links
+                // Clone the node to manipulate and extract text cleanly
+                const clone = valEl.cloneNode(true);
+                const spansToRemove = clone.querySelectorAll('span:nth-child(2), a'); // Remove "Telefone", "Celular" badges e links WhatsApp
+                spansToRemove.forEach(el => el.remove());
+                
+                textToCopy = clone.textContent.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+                
+                // Se for hífen, não há o que copiar
+                if (textToCopy === '-') return;
+            }
+            
+            if (!textToCopy) return;
+
+            try {
+                await navigator.clipboard.writeText(textToCopy);
+                
+                // Feedback visual
+                const iconEl = field.querySelector('.copy-icon-indicator');
+                if (iconEl) {
+                    field.classList.add('copied');
+                    iconEl.setAttribute('data-lucide', 'check');
+                    if (window.lucide) window.lucide.createIcons();
+                    
+                    setTimeout(() => {
+                        field.classList.remove('copied');
+                        iconEl.setAttribute('data-lucide', 'copy');
+                        if (window.lucide) window.lucide.createIcons();
+                    }, 2000);
+                }
+            } catch (err) {
+                console.error("Falha ao copiar:", err);
+            }
+        });
+    });
+    
+    // Atualizar os ícones lucide recém inseridos
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
 }

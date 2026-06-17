@@ -18,6 +18,8 @@
     --color-medical-bg: #eff6ff;
     --color-delay: #f59e0b;
     --color-delay-bg: #fffbeb;
+    --color-not-scheduled: #475569;
+    --color-not-scheduled-bg: #f1f5f9;
     
     --radius-sm: 6px;
     --radius-md: 10px;
@@ -35,7 +37,7 @@
 body {
     background-color: var(--bg-primary);
     color: var(--text-primary);
-    padding-bottom: 95px;
+    padding-bottom: calc(95px + env(safe-area-inset-bottom));
     min-height: 100vh;
 }
 
@@ -82,6 +84,7 @@ body {
     background: #ffffff;
     border-bottom: 1px solid var(--border-color);
     padding: 1rem;
+    padding-top: calc(1rem + env(safe-area-inset-top));
     position: sticky;
     top: 0;
     z-index: 100;
@@ -137,36 +140,44 @@ body {
     cursor: pointer;
 }
 
-/* Search Bar */
-.search-container {
-    position: relative;
+/* Filters Bar (Pills) */
+.filters-container {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.1rem 0 0 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
 }
 
-.search-container input {
-    width: 100%;
-    padding: 0.65rem 1rem 0.65rem 2.5rem;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    font-size: 0.9rem;
+.filters-container::-webkit-scrollbar {
+    display: none;
+}
+
+.filter-pill {
+    flex-shrink: 0;
+    padding: 0.4rem 0.9rem;
+    border-radius: 50px;
+    border: 1.5px solid var(--border-color);
     background: #f8fafc;
-    outline: none;
-    transition: all 0.2s;
-}
-
-.search-container input:focus {
-    border-color: #3b82f6;
-    background: #ffffff;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.search-icon {
-    position: absolute;
-    left: 0.8rem;
-    top: 50%;
-    transform: translateY(-50%);
     color: var(--text-secondary);
-    width: 18px;
-    height: 18px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    white-space: nowrap;
+    font-family: inherit;
+}
+
+.filter-pill:active {
+    transform: scale(0.96);
+}
+
+.filter-pill.active {
+    background: #0f172a;
+    color: #ffffff;
+    border-color: #0f172a;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.25);
 }
 
 /* Instructions Banner */
@@ -340,6 +351,16 @@ body {
     border: none;
 }
 
+.musician-card.nao-escalado {
+    background-color: var(--color-not-scheduled-bg);
+    border-color: #cbd5e1;
+}
+.musician-card.nao-escalado .status-badge {
+    background-color: var(--color-not-scheduled);
+    color: white;
+    border: none;
+}
+
 /* Drawer / Bottom Sheet */
 .drawer-overlay {
     position: fixed;
@@ -370,6 +391,7 @@ body {
     box-shadow: 0 -8px 24px rgba(0,0,0,0.15);
     z-index: 1000;
     padding: 1.5rem;
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
     transform: translateY(100%);
     transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
     max-height: 85vh;
@@ -402,7 +424,7 @@ body {
 
 .options-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 0.75rem;
     margin-bottom: 1.5rem;
 }
@@ -445,6 +467,14 @@ body {
 .opt-btn.atestado.selected {
     background: var(--color-medical-bg);
     border-color: var(--color-medical);
+}
+
+.opt-btn.nao-escalado {
+    color: var(--color-not-scheduled);
+}
+.opt-btn.nao-escalado.selected {
+    background: var(--color-not-scheduled-bg);
+    border-color: var(--color-not-scheduled);
 }
 
 /* Delay Selector (iOS Scroll wheel simulation) */
@@ -589,11 +619,44 @@ body {
     background: #ffffff;
     border-top: 1px solid var(--border-color);
     padding: 0.8rem 1rem;
+    padding-bottom: calc(0.8rem + env(safe-area-inset-bottom));
+    z-index: 90;
+    box-shadow: 0 -4px 12px rgba(0,0,0,0.05);
+}
+
+.bottom-bar-actions {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    z-index: 90;
-    box-shadow: 0 -4px 12px rgba(0,0,0,0.05);
+    gap: 0.5rem;
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.bottom-bar.search-active .bottom-bar-actions {
+    opacity: 0;
+    pointer-events: none;
+    position: absolute;
+    transform: translateY(10px);
+}
+
+.btn-search-bottom {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1.5px solid var(--border-color);
+    background: #f8fafc;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.btn-search-bottom:active {
+    transform: scale(0.92);
+    background: #e2e8f0;
 }
 
 .notes-btn {
@@ -622,6 +685,81 @@ body {
     align-items: center;
     gap: 0.5rem;
     cursor: pointer;
+    flex: 1;
+    justify-content: center;
+}
+
+/* Expandable Bottom Search */
+.bottom-search-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    opacity: 0;
+    pointer-events: none;
+    position: absolute;
+    top: 50%;
+    left: 1rem;
+    right: 1rem;
+    transform: translateY(-50%) translateY(10px);
+    transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.bottom-bar.search-active .bottom-search-wrapper {
+    opacity: 1;
+    pointer-events: auto;
+    position: relative;
+    top: auto;
+    left: auto;
+    right: auto;
+    transform: translateY(0);
+}
+
+.bottom-search-icon {
+    position: absolute;
+    left: 0.85rem;
+    color: var(--text-secondary);
+    width: 18px;
+    height: 18px;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.bottom-search-input {
+    flex: 1;
+    padding: 0.7rem 1rem 0.7rem 2.6rem;
+    border: 1.5px solid var(--border-color);
+    border-radius: 50px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    background: #f8fafc;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.bottom-search-input:focus {
+    border-color: #3b82f6;
+    background: #ffffff;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.btn-close-search {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: none;
+    background: #f1f5f9;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+
+.btn-close-search:active {
+    background: #e2e8f0;
+    transform: scale(0.92);
 }
 
 /* Toast notifications */

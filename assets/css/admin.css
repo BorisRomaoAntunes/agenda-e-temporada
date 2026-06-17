@@ -4670,4 +4670,47 @@ input:checked + .slider:before {
     box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.3), 0 2px 4px -1px rgba(59, 130, 246, 0.2);
 }
 
+/* Copyable Area (Gaveta do Músico) */
+.copyable-area {
+    cursor: pointer;
+    position: relative;
+    transition: background-color 0.2s ease;
+    border-radius: 4px;
+    padding: 2px 4px;
+    margin: -2px -4px; /* Compensar o padding para não quebrar o layout */
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    user-select: none; /* Evitar seleção de texto no duplo clique */
+}
+
+.copyable-area:hover,
+.copyable-area:active {
+    background-color: rgba(0, 0, 0, 0.04);
+}
+
+.copy-icon-indicator {
+    width: 14px;
+    height: 14px;
+    color: #a1a1aa; /* Cinza claro */
+    opacity: 0.7;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.copyable-area:hover .copy-icon-indicator {
+    opacity: 1;
+    color: #71717a;
+}
+
+.copyable-area.copied {
+    background-color: rgba(34, 197, 94, 0.1) !important;
+}
+
+.copyable-area.copied .copy-icon-indicator {
+    color: #22c55e !important; /* Verde */
+    opacity: 1 !important;
+    transform: scale(1.1);
+}
+
 
