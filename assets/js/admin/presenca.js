@@ -9,7 +9,9 @@ import {
     collection,
     addDoc,
     getDocs,
-    enableIndexedDbPersistence
+    enableIndexedDbPersistence,
+    query,
+    where
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 // Habilitar persistência offline do Firestore
@@ -43,6 +45,9 @@ const optBtnPresenca = document.getElementById("optBtnPresenca");
 const optBtnFalta = document.getElementById("optBtnFalta");
 const optBtnAtestado = document.getElementById("optBtnAtestado");
 const optBtnNaoEscalado = document.getElementById("optBtnNaoEscalado");
+const optBtnJustificado = document.getElementById("optBtnJustificado");
+const justificationSection = document.getElementById("justificationSection");
+const justificationTextarea = document.getElementById("justificationTextarea");
 
 // Drawer de Anotações
 const notesDrawer = document.getElementById("notesDrawer");
@@ -166,6 +171,8 @@ async function initApp() {
     optBtnFalta.addEventListener("click", () => instantSelectStatus("falta"));
     optBtnAtestado.addEventListener("click", () => instantSelectStatus("atestado"));
     optBtnNaoEscalado.addEventListener("click", () => instantSelectStatus("nao_escalado"));
+    optBtnJustificado.addEventListener("click", () => selectJustificadoStatus());
+    justificationTextarea.addEventListener("input", handleJustificationInput);
     btnDelayConfirm.addEventListener("click", applyDelayChange);
 
     // Callbacks de Anotações
@@ -236,24 +243,24 @@ async function loadMusicians() {
         allMusicians = [];
         snapshot.forEach(docSnap => {
             const data = docSnap.data();
-            const status = (data.Status || '').toLowerCase().trim();
+            const status = (data.Status || '').toString().toLowerCase().trim();
             
             // Filtros de segurança e inativos (idênticos ao admin.js)
             if (status.includes('emm')) return;
             
-            const nomeRegLower = (data['NOME REGISTRO'] || '').toLowerCase();
-            const nomeArtLower = (data.NOMEARTISTICO || '').toLowerCase();
+            const nomeRegLower = (data['NOME REGISTRO'] || '').toString().toLowerCase();
+            const nomeArtLower = (data.NOMEARTISTICO || '').toString().toLowerCase();
             if (nomeRegLower.includes('angela de santi') || nomeArtLower.includes('angela de santi')) return;
-            if (status.includes('desligado') || data.statusFirebase === 'desligado' || data.statusFirebase === 'inativo') return;
+            if (status.includes('desligado') || (data.statusFirebase || '').toString() === 'desligado' || (data.statusFirebase || '').toString() === 'inativo') return;
 
             const isBolsistaOrMonitor = status.includes("bolsista") || status.includes("monitor") || status.includes("spalla");
 
             if (isBolsistaOrMonitor) {
-                const nomeArtistico = (data.NOMEARTISTICO || '').trim();
-                const nomeCompleto = (data['NOME REGISTRO'] || '').trim();
+                const nomeArtistico = (data.NOMEARTISTICO || '').toString().trim();
+                const nomeCompleto = (data['NOME REGISTRO'] || '').toString().trim();
                 const nome = nomeArtistico || nomeCompleto || "Sem Nome";
                 
-                const instrumento = (data.INSTRUMENTOS || '').trim() || "Outros";
+                const instrumento = (data.INSTRUMENTOS || '').toString().trim() || "Outros";
 
                 allMusicians.push({
                     id: docSnap.id,
@@ -299,10 +306,70 @@ async function loadDateData(dateStr) {
                 notesTextarea.value = notesText;
                 showToast(`Rascunho local carregado para ${formatDateDisplay(dateStr)}.`);
             } else {
-                // Preenche tudo como Pendente por padrão
-                allMusicians.forEach(m => {
-                    attendanceData[m.id] = { status: "none", minutes: 0 };
-                });
+                // 3. Se não houver rascunho local, consulta a base de eventos para preenchimento inteligente
+                try {
+                    const eventosRef = collection(db, "eventos");
+                    const q = query(eventosRef, where("date", "==", dateStr), where("status", "==", "Confirmado"));
+                    const querySnapshot = await getDocs(q);
+                    
+                    let eventosDoDia = [];
+                    querySnapshot.forEach(doc => {
+                        eventosDoDia.push(doc.data());
+                    });
+                    
+                    if (eventosDoDia.length > 0) {
+                        // Verifica se há alguma folga programada
+                        const temFolga = eventosDoDia.some(e => e.tipo === 'folga');
+                        
+                        if (temFolga) {
+                            // Se for folga, marca todos como "Não Escalado"
+                            allMusicians.forEach(m => {
+                                attendanceData[m.id] = { status: "nao_escalado", minutes: 0 };
+                            });
+                            showToast(`Presença inteligente: Folga programada. Todos marcados como Não Escalado.`);
+                        } else {
+                            // Verifica se há ensaios de naipe
+                            const ensaiosNaipe = eventosDoDia.filter(e => e.tipo === 'ensaio_naipe');
+                            const temTuttiOuConcerto = eventosDoDia.some(e => e.tipo === 'ensaio_tutti' || e.tipo === 'concerto');
+                            
+                            if (ensaiosNaipe.length > 0 && !temTuttiOuConcerto) {
+                                // Apenas ensaios de naipe: escalamos apenas quem for dos naipes correspondentes
+                                const naipesEscalados = ensaiosNaipe.map(e => normalizarNaipe(e.naipe || '')).filter(Boolean);
+                                
+                                allMusicians.forEach(m => {
+                                    const musicoNaipe = normalizarNaipe(m.Instrumento || '');
+                                    // Verifica se o naipe do músico corresponde a algum dos naipes do ensaio
+                                    const estaEscalado = naipesEscalados.some(ne => 
+                                        ne.includes(musicoNaipe) || musicoNaipe.includes(ne)
+                                    );
+                                    
+                                    if (estaEscalado) {
+                                        attendanceData[m.id] = { status: "none", minutes: 0 };
+                                    } else {
+                                        attendanceData[m.id] = { status: "nao_escalado", minutes: 0 };
+                                    }
+                                });
+                                showToast(`Presença inteligente: Ensaio de Naipe (${ensaiosNaipe.map(e => e.naipe).join(', ')}).`);
+                            } else {
+                                // Tutti ou Concerto (ou ambos): todos são escalados por padrão
+                                allMusicians.forEach(m => {
+                                    attendanceData[m.id] = { status: "none", minutes: 0 };
+                                });
+                            }
+                        }
+                    } else {
+                        // Sem eventos cadastrados: todos como pendentes por padrão
+                        allMusicians.forEach(m => {
+                            attendanceData[m.id] = { status: "none", minutes: 0 };
+                        });
+                    }
+                } catch (eventError) {
+                    console.error("Erro ao carregar eventos para presença inteligente:", eventError);
+                    // Fallback para preenchimento padrão caso a consulta falhe
+                    allMusicians.forEach(m => {
+                        attendanceData[m.id] = { status: "none", minutes: 0 };
+                    });
+                }
             }
         }
         renderMusicians();
@@ -398,7 +465,7 @@ function renderMusicians() {
             const card = document.createElement("div");
             const statusInfo = attendanceData[m.id] || { status: "none", minutes: 0 };
             
-            card.className = `musician-card ${statusInfo.status !== 'none' ? statusInfo.status : ''}`;
+            card.className = `musician-card ${statusInfo.status !== 'none' ? statusInfo.status.replace(/_/g, '-') : ''}`;
             card.id = `musician-card-${m.id}`;
 
             // Determinar o texto de exibição do status
@@ -407,7 +474,11 @@ function renderMusicians() {
             else if (statusInfo.status === "falta") badgeLabel = "Falta";
             else if (statusInfo.status === "atestado") badgeLabel = "Atestado";
             else if (statusInfo.status === "nao_escalado") badgeLabel = "Não Escalado";
-            else if (statusInfo.status === "atraso") {
+            else if (statusInfo.status === "justificado") {
+                const justMsg = statusInfo.justificativa ? `: ${statusInfo.justificativa}` : "";
+                const shortJust = justMsg.length > 15 ? justMsg.substring(0, 15) + "..." : justMsg;
+                badgeLabel = `Justificado${shortJust}`;
+            } else if (statusInfo.status === "atraso") {
                 const mVal = statusInfo.minutes;
                 if (mVal >= 60) {
                     const hrs = Math.floor(mVal / 60);
@@ -509,6 +580,12 @@ function openDrawerForMusician(musician) {
     drawerTitle.innerText = musician.Nome;
     drawerSubtitle.innerText = `${musician.Instrumento} • ${musician.Status}`;
 
+    if (selectedStatusTemp === "justificado") {
+        justificationTextarea.value = current.justificativa || "";
+    } else {
+        justificationTextarea.value = "";
+    }
+
     updateDrawerButtonsVisuals();
     scrollToDelayValue(selectedDelayTemp);
     updateDelayDisplay(selectedDelayTemp);
@@ -532,6 +609,46 @@ function instantSelectStatus(status) {
     showToast(`Registrado: ${status === 'presenca' ? 'Presença' : status === 'falta' ? 'Falta' : status === 'atestado' ? 'Atestado' : 'Não Escalado'}`);
 }
 
+// Selecionar status Justificado
+function selectJustificadoStatus() {
+    if (!activeMusicianId) return;
+
+    selectedStatusTemp = "justificado";
+    selectedDelayTemp = 0;
+
+    updateDrawerButtonsVisuals();
+
+    const current = attendanceData[activeMusicianId] || {};
+    const currentJustificativa = current.status === "justificado" ? (current.justificativa || "") : "";
+    justificationTextarea.value = currentJustificativa;
+
+    // Salvar no attendanceData imediatamente para que a mudança reflita em tempo real
+    attendanceData[activeMusicianId] = {
+        status: "justificado",
+        minutes: 0,
+        justificativa: currentJustificativa
+    };
+
+    saveDraft();
+    renderMusicians();
+    
+    // Focar no campo de texto para facilitar o PWA mobile
+    setTimeout(() => {
+        justificationTextarea.focus();
+    }, 100);
+}
+
+// Manipular input da justificativa
+function handleJustificationInput(e) {
+    if (!activeMusicianId) return;
+
+    if (attendanceData[activeMusicianId] && attendanceData[activeMusicianId].status === "justificado") {
+        attendanceData[activeMusicianId].justificativa = e.target.value;
+        saveDraft();
+        renderMusicians();
+    }
+}
+
 // Aplicar Alteração de Atraso
 function applyDelayChange() {
     if (!activeMusicianId) return;
@@ -549,16 +666,36 @@ function applyDelayChange() {
 
 // Atualizar Destaques no Drawer
 function updateDrawerButtonsVisuals() {
-    const btns = [optBtnPresenca, optBtnFalta, optBtnAtestado, optBtnNaoEscalado];
-    btns.forEach(btn => btn.classList.remove("selected"));
+    const btns = [optBtnPresenca, optBtnFalta, optBtnAtestado, optBtnNaoEscalado, optBtnJustificado];
+    btns.forEach(btn => btn?.classList.remove("selected"));
 
     if (selectedStatusTemp === "presenca") optBtnPresenca.classList.add("selected");
     else if (selectedStatusTemp === "falta") optBtnFalta.classList.add("selected");
     else if (selectedStatusTemp === "atestado") optBtnAtestado.classList.add("selected");
     else if (selectedStatusTemp === "nao_escalado") optBtnNaoEscalado.classList.add("selected");
+    else if (selectedStatusTemp === "justificado") optBtnJustificado.classList.add("selected");
+
+    // Exibir/Ocultar seção de justificativa e botão Justificado (comportamento transformável)
+    if (selectedStatusTemp === "justificado") {
+        justificationSection.style.display = "flex";
+        optBtnJustificado.style.display = "none";
+    } else {
+        justificationSection.style.display = "none";
+        optBtnJustificado.style.display = "flex";
+    }
+
+    // Exibir/Ocultar seção de atraso/rodinha
+    const delaySection = document.querySelector(".delay-section");
+    if (delaySection) {
+        if (selectedStatusTemp === "nao_escalado") {
+            delaySection.style.display = "none";
+        } else {
+            delaySection.style.display = "block";
+        }
+    }
 
     // Exibir/Ocultar botão Confirmar Atraso
-    if (selectedDelayTemp > 0) {
+    if (selectedDelayTemp > 0 && selectedStatusTemp === "atraso") {
         btnDelayConfirm.style.display = "inline-flex";
     } else {
         btnDelayConfirm.style.display = "none";
@@ -567,6 +704,21 @@ function updateDrawerButtonsVisuals() {
 
 // Fechar Qualquer Drawer
 function closeDrawer() {
+    // Se o Drawer de status estava aberto, verificar se há justificativa vazia
+    if (statusDrawer.classList.contains("open") && activeMusicianId) {
+        const current = attendanceData[activeMusicianId];
+        if (current && current.status === "justificado") {
+            const justificativaLimpa = (current.justificativa || "").trim();
+            if (justificativaLimpa === "") {
+                attendanceData[activeMusicianId] = { status: "none", minutes: 0 };
+                saveDraft();
+                renderMusicians();
+                showToast("Justificativa vazia: status revertido para Pendente.");
+            }
+        }
+        activeMusicianId = null;
+    }
+
     overlay.classList.remove("open");
     statusDrawer.classList.remove("open");
     notesDrawer.classList.remove("open");
@@ -597,6 +749,14 @@ function saveNotes() {
 
 // Salvar Oficialmente no Firestore e Gerar Log
 async function saveOfficialData() {
+    // Varredura preventiva para limpar justificativas vazias
+    Object.keys(attendanceData).forEach(mId => {
+        const item = attendanceData[mId];
+        if (item && item.status === 'justificado' && (!item.justificativa || item.justificativa.trim() === '')) {
+            attendanceData[mId] = { status: 'none', minutes: 0 };
+        }
+    });
+
     const totalMusicos = allMusicians.length;
     const registrados = Object.values(attendanceData).filter(x => x.status !== 'none');
     
@@ -621,13 +781,14 @@ async function saveOfficialData() {
         });
 
         // 2. Contabilizar totais para detalhes do Log
-        let presencas = 0, faltas = 0, atestados = 0, atrasos = 0, naoEscalados = 0;
+        let presencas = 0, faltas = 0, atestados = 0, atrasos = 0, naoEscalados = 0, justificados = 0;
         registrados.forEach(r => {
             if (r.status === 'presenca') presencas++;
             else if (r.status === 'falta') faltas++;
             else if (r.status === 'atestado') atestados++;
             else if (r.status === 'atraso') atrasos++;
             else if (r.status === 'nao_escalado') naoEscalados++;
+            else if (r.status === 'justificado') justificados++;
         });
 
         // 3. Definir tipo e mensagem do log com base na auditoria
@@ -652,6 +813,7 @@ async function saveOfficialData() {
                 if (atestados > 0) extras.push(`Atestados: ${atestados}`);
                 if (atrasos > 0) extras.push(`Atrasos: ${atrasos}`);
                 if (faltas > 0) extras.push(`Faltas: ${faltas}`);
+                if (justificados > 0) extras.push(`Justificados: ${justificados}`);
                 if (extras.length > 0) resultado += ` | ${extras.join(' | ')}`;
                 return resultado;
             })()

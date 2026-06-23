@@ -20,6 +20,8 @@
     --color-delay-bg: #fffbeb;
     --color-not-scheduled: #475569;
     --color-not-scheduled-bg: #f1f5f9;
+    --color-justified: #a855f7;
+    --color-justified-bg: #faf5ff;
     
     --radius-sm: 6px;
     --radius-md: 10px;
@@ -39,6 +41,7 @@ body {
     color: var(--text-primary);
     padding-bottom: calc(95px + env(safe-area-inset-bottom));
     min-height: 100vh;
+    min-height: 100svh; /* svh: small viewport height — ignora barra de URL dinâmica do iOS Safari */
 }
 
 /* Loader global */
@@ -157,6 +160,9 @@ body {
 .filter-pill {
     flex-shrink: 0;
     padding: 0.4rem 0.9rem;
+    min-height: 44px; /* mín. 44px — Apple HIG */
+    display: inline-flex;
+    align-items: center;
     border-radius: 50px;
     border: 1.5px solid var(--border-color);
     background: #f8fafc;
@@ -361,6 +367,16 @@ body {
     border: none;
 }
 
+.musician-card.justificado {
+    background-color: var(--color-justified-bg);
+    border-color: #f3e8ff;
+}
+.musician-card.justificado .status-badge {
+    background-color: var(--color-justified);
+    color: white;
+    border: none;
+}
+
 /* Drawer / Bottom Sheet */
 .drawer-overlay {
     position: fixed;
@@ -477,6 +493,42 @@ body {
     border-color: var(--color-not-scheduled);
 }
 
+.opt-btn.justificado {
+    color: var(--color-justified);
+    grid-column: span 2; /* Ocupa as 2 colunas */
+}
+.opt-btn.justificado.selected {
+    background: var(--color-justified-bg);
+    border-color: var(--color-justified);
+}
+
+/* Justification Input Container */
+.justification-input-container {
+    grid-column: span 2;
+    display: flex;
+    flex-direction: column;
+}
+
+.justification-textarea {
+    width: 100%;
+    height: 76px;
+    padding: 0.75rem;
+    border: 1.5px solid #ddd6fe;
+    border-radius: var(--radius-md);
+    font-size: 0.9rem;
+    outline: none;
+    resize: none;
+    font-family: inherit;
+    background-color: var(--color-justified-bg);
+    transition: all 0.2s ease;
+}
+
+.justification-textarea:focus {
+    border-color: var(--color-justified);
+    background-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.15);
+}
+
 /* Delay Selector (iOS Scroll wheel simulation) */
 .delay-section {
     border-top: 1px solid var(--border-color);
@@ -546,6 +598,7 @@ body {
     height: 100%;
     align-items: center;
     padding: 0 45%;
+    touch-action: pan-x; /* Indica ao browser que é scroll horizontal, evita conflito de gestos Android */
 }
 
 .wheel-scroller::-webkit-scrollbar {
@@ -743,8 +796,8 @@ body {
 }
 
 .btn-close-search {
-    width: 38px;
-    height: 38px;
+    width: 44px; /* mín. 44px — Apple HIG */
+    height: 44px;
     border-radius: 50%;
     border: none;
     background: #f1f5f9;
@@ -766,6 +819,7 @@ body {
 .toast {
     position: fixed;
     top: 20px;
+    top: calc(20px + env(safe-area-inset-top)); /* Respeita notch/Dynamic Island do iPhone */
     left: 50%;
     transform: translateX(-50%) translateY(-20px);
     background: #0f172a;

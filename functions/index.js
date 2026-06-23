@@ -1,4 +1,4 @@
-const { onDocumentCreated, onDocumentDeleted } = require("firebase-functions/v2/firestore");
+const { onDocumentCreated, onDocumentDeleted, onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { defineSecret } = require("firebase-functions/params");
@@ -1195,9 +1195,9 @@ Retorne APENAS um JSON válido com esta estrutura:
 {
   "eventos": [{
     "date": "YYYY-MM-DD",
-    "tipo": "ensaio_tutti" | "ensaio_naipe" | "concerto",
+    "tipo": "ensaio_tutti" | "ensaio_naipe" | "concerto" | "folga",
     "naipe": "string ou null",
-    "descricaoEnsaio": "Tutti" | "GERAL" | "OER" | "OER + Cantora Solista" | "string",
+    "descricaoEnsaio": "Tutti" | "GERAL" | "OER" | "OER + Cantora Solista" | "Folga" | "string",
     "horarioInicio": "HH:MM",
     "horarioFim": "HH:MM",
     "local": "string",
@@ -1226,6 +1226,7 @@ REGRAS:
 - Avisos globais da semana (IMPORTANTE:, Lembrando:) → "avisos_semana".
 - "Cronograma sujeito a alterações." ou "Sujeito a alteração." → IGNORAR de avisos e repertórios do evento (o sistema visual já possui aviso padrão).
 - Datas no formato YYYY-MM-DD.
+- Folga: Se o cronograma indicar que não haverá ensaio/atividade em determinada data (ex: "Folga", "Sem ensaio", "Dispensado", "Folgas programadas"), crie um evento com tipo "folga" e descricaoEnsaio "Folga" ou "Folga Programada". Todos os outros campos do evento podem ser nulos ou conter valores padrão.
 
 REGRAS DE INFERÊNCIA DE DADOS (EM CASO DE OMISSÃO):
 1. STATUS:
@@ -1449,4 +1450,431 @@ ${corrected ? `Divergência detectada e auto-curada! O contador do painel foi aj
 });
 
 // A função callable temporária backfillOcr foi removida com sucesso após a execução bem-sucedida da migração na produção.
+
+/**
+ * Função utilitária para download de PDF, extração de eventos via Gemini,
+ * e sincronização (criação/atualização/exclusão) no banco de dados.
+ */
+async function processAndSyncSchedule(type, url, filename, displayVersion) {
+    const db = admin.firestore();
+    const apiKey = process.env.GEMINI_API_KEY || admin.remoteConfig().parameters?.GEMINI_API_KEY?.defaultValue?.value;
+    if (!apiKey) throw new Error("GEMINI_API_KEY não configurada.");
+
+    const genAI = new GoogleGenAI({ apiKey });
+
+    // 1. Download do PDF usando fetch nativo
+    console.log(`[processAndSyncSchedule] Baixando PDF de: ${url}`);
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error(`Falha ao baixar PDF do Storage. HTTP status: ${response.status}`);
+    }
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const pdfBase64 = buffer.toString('base64');
+
+    // 2. Montar prompt do Gemini com suporte a tipo 'folga'
+    const prompt = `Você é um assistente que extrai cronogramas de ensaios e concertos de e-mails
+da Orquestra Experimental de Repertório (OER).
+
+Retorne APENAS um JSON válido com esta estrutura:
+{
+  "eventos": [{
+    "date": "YYYY-MM-DD",
+    "tipo": "ensaio_tutti" | "ensaio_naipe" | "concerto" | "folga",
+    "naipe": "string ou null",
+    "descricaoEnsaio": "Tutti" | "GERAL" | "OER" | "OER + Cantora Solista" | "Folga" | "string",
+    "horarioInicio": "HH:MM",
+    "horarioFim": "HH:MM",
+    "local": "string",
+    "localComplemento": "string ou null",
+    "localMapsUrl": "string ou null",
+    "status": "Confirmado" | "Cancelado",
+    "concertoNome": "string ou null",
+    "repertorio": ["COMPOSITOR Nome da obra"],
+    "avisos": ["string"]
+  }],
+  "avisos_semana": [{
+    "texto": "string",
+    "tipo": "info" | "warning" | "danger"
+  }]
+}
+
+REGRAS:
+- Cada ensaio de naipe e cada ensaio tutti são documentos SEPARADOS mesmo no mesmo dia.
+- Repertório: formato "COMPOSITOR Nome da obra" (COMPOSITOR em maiúsculas).
+- Separadores "/" e "e" entre obras → itens separados no array.
+- Se houver "Intervalo" entre peças → inserir "--- Intervalo ---" como item do array.
+- "Repertório completo" aceito como valor literal.
+- "Metacosmos" sozinho como repertório → valor literal aceito.
+- localComplemento vem entre parênteses após o local (ex: "prédio Corpos Artísticos").
+- "concertoNome" é o nome do programa/série (ex: "Metacosmos"), não o tipo do evento.
+- Avisos globais da semana (IMPORTANTE:, Lembrando:) → "avisos_semana".
+- "Cronograma sujeito a alterações." ou "Sujeito a alteração." → IGNORAR de avisos e repertórios do evento (o sistema visual já possui aviso padrão).
+- Datas no formato YYYY-MM-DD.
+- Folga: Se o cronograma indicar que não haverá ensaio/atividade em determinada data (ex: "Folga", "Sem ensaio", "Dispensado", "Folgas programadas"), crie um evento com tipo "folga" e descricaoEnsaio "Folga" ou "Folga Programada". Todos os outros campos do evento podem ser nulos ou conter valores padrão.
+
+REGRAS DE INFERÊNCIA DE DADOS (EM CASO DE OMISSÃO):
+1. STATUS:
+   - Todo evento criado deve ter status = "Confirmado" por padrão.
+   - Se o texto indicar que o ensaio ou concerto foi suspenso ou não ocorrerá (ex: "não haverá ensaio", "ensaio cancelado", "concerto suspenso"), defina status = "Cancelado".
+
+2. HORÁRIOS PADRÃO (se omitidos):
+   - Concertos aos domingos no Teatro Municipal (TMSP) → horárioInicio padrão: "11:00". (Exceção rara: em janeiro, às 17h, se indicado).
+   - Concertos de Camerata ou Oficina na Sala do Conservatório → horárioInicio padrão: "19:00" se for sexta-feira, ou "18:00" se for sábado.
+   - Apresentações "No Vale" (geralmente às quintas-feiras) → horárioInicio padrão: "16:00".
+   - Reavaliações de Músicos → horárioInicio padrão: "13:00" e horárioFim padrão: "16:30".
+   - Testes Externos (Audições) → horárioInicio padrão: "13:00" ou "14:00".
+
+3. LOCAIS PADRÃO E NORMALIZAÇÃO (se omitidos):
+   - Concerto da orquestra completa (Tutti) sem local especificado → local padrão: "Teatro Municipal de São Paulo (TMSP)".
+   - Ensaios de Naipe, Ensaios Gerais (orquestra reduzida), Reavaliações de Músicos ou Testes Externos (Audições) sem local especificado → local padrão: "Sala de Ensaios do TMSP (Subsolo)".
+   - Concertos de Camerata ou Oficina → local padrão: "Sala do Conservatório (Praça das Artes)".
+   - Normalização Estrita de String: Se o local contiver o texto "Sala de Ensaio" ou variações aproximadas, salve OBRIGATORIAMENTE como "Sala de Ensaios do TMSP (Subsolo)".
+
+4. LINKS DE MAPAS (Google Maps):
+   - Se houver qualquer link do Google Maps (ex: maps.app.goo.gl ou google.com/maps) no texto ou e-mail, extraia essa URL completa e defina-a no campo "localMapsUrl".
+   - Remova a URL crua do campo "localComplemento" ou "local" para evitar exibição poluída na interface.
+
+Texto do e-mail: Veja o documento PDF anexo.`;
+
+    console.log(`[processAndSyncSchedule] Chamando Gemini 2.5 Flash...`);
+    const parts = [
+        { text: prompt },
+        {
+            inlineData: {
+                data: pdfBase64,
+                mimeType: "application/pdf"
+            }
+        }
+    ];
+
+    const responseGenAI = await genAI.models.generateContent({
+        model: "gemini-2.5-flash",
+        contents: [
+            {
+                role: "user",
+                parts: parts
+            }
+        ]
+    });
+
+    const resultText = (typeof responseGenAI.text === "function") ? responseGenAI.text() : (responseGenAI.text || "");
+    const jsonMatch = resultText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+        throw new Error("A IA não retornou um JSON válido. Resposta: " + resultText.substring(0, 300));
+    }
+
+    const data = JSON.parse(jsonMatch[0]);
+    const eventosNovos = data.eventos || [];
+    const avisosSemana = data.avisos_semana || [];
+
+    console.log(`[processAndSyncSchedule] Extraídos ${eventosNovos.length} eventos e ${avisosSemana.length} avisos da semana.`);
+
+    if (eventosNovos.length === 0) {
+        console.log("[processAndSyncSchedule] Nenhum evento encontrado para sincronizar.");
+        return { added: 0, updated: 0, deleted: 0 };
+    }
+
+    // Ordenar as datas para achar a faixa
+    const datasValidas = eventosNovos.map(e => e.date).filter(Boolean).sort();
+    if (datasValidas.length === 0) {
+        throw new Error("Os eventos extraídos não possuem datas válidas.");
+    }
+    const minDate = datasValidas[0];
+    const maxDate = datasValidas[datasValidas.length - 1];
+
+    console.log(`[processAndSyncSchedule] Faixa de datas identificada: ${minDate} até ${maxDate}`);
+
+    // Buscar eventos existentes no Firestore no intervalo
+    const eventosRef = db.collection("eventos");
+    const snapshot = await eventosRef.where("date", ">=", minDate).where("date", "<=", maxDate).get();
+
+    const eventosExistentes = [];
+    snapshot.forEach(doc => {
+        eventosExistentes.push({ id: doc.id, ...doc.data() });
+    });
+
+    console.log(`[processAndSyncSchedule] Encontrados ${eventosExistentes.length} eventos existentes no banco neste intervalo.`);
+
+    let addedCount = 0;
+    let updatedCount = 0;
+    let deletedCount = 0;
+
+    // Ações de criação e atualização
+    for (const novo of eventosNovos) {
+        if (!novo.date) continue;
+
+        // Tenta achar um correspondente no banco (mesma data, tipo e naipe)
+        const match = eventosExistentes.find(ext => 
+            ext.date === novo.date && 
+            ext.tipo === novo.tipo && 
+            (novo.tipo !== "ensaio_naipe" || ext.naipe === novo.naipe)
+        );
+
+        const eventoDoc = {
+            date: novo.date,
+            tipo: novo.tipo || "ensaio_tutti",
+            naipe: novo.naipe || null,
+            descricaoEnsaio: novo.descricaoEnsaio || "Ensaio",
+            horarioInicio: novo.horarioInicio || "00:00",
+            horarioFim: novo.horarioFim || "00:00",
+            local: novo.local || "",
+            localComplemento: novo.localComplemento || null,
+            localMapsUrl: novo.localMapsUrl || null,
+            status: novo.status || "Confirmado",
+            concertoNome: novo.concertoNome || null,
+            repertorio: (novo.repertorio && novo.repertorio.length > 0) ? novo.repertorio : null,
+            avisos: (novo.avisos && novo.avisos.length > 0) ? novo.avisos : null,
+            mesRef: novo.date.substring(0, 7),
+            updatedAt: FieldValue.serverTimestamp()
+        };
+
+        if (match) {
+            // Verificar se houve alguma mudança relevante
+            let mudou = false;
+            const camposParaComparar = [
+                "descricaoEnsaio", "horarioInicio", "horarioFim", "local", 
+                "localComplemento", "localMapsUrl", "status", "concertoNome"
+            ];
+            
+            for (const campo of camposParaComparar) {
+                if (eventoDoc[campo] !== match[campo]) {
+                    mudou = true;
+                    break;
+                }
+            }
+
+            // Comparar repertórios
+            const repNovo = JSON.stringify(eventoDoc.repertorio || []);
+            const repVelho = JSON.stringify(match.repertorio || []);
+            if (repNovo !== repVelho) mudou = true;
+
+            // Comparar avisos
+            const avNovo = JSON.stringify(eventoDoc.avisos || []);
+            const avVelho = JSON.stringify(match.avisos || []);
+            if (avNovo !== avVelho) mudou = true;
+
+            if (mudou) {
+                await eventosRef.doc(match.id).update(eventoDoc);
+                updatedCount++;
+                console.log(`[processAndSyncSchedule] Evento atualizado: ${novo.date} - ${novo.tipo}`);
+            }
+        } else {
+            // Criar novo
+            const finalDoc = {
+                ...eventoDoc,
+                createdAt: FieldValue.serverTimestamp(),
+                criadoPor: "sistema_ia"
+            };
+            await eventosRef.add(finalDoc);
+            addedCount++;
+            console.log(`[processAndSyncSchedule] Evento criado: ${novo.date} - ${novo.tipo}`);
+        }
+    }
+
+    // Ações de exclusão: eventos existentes que NÃO estão nos novos eventos
+    for (const existente of eventosExistentes) {
+        const match = eventosNovos.find(novo => 
+            novo.date === existente.date && 
+            novo.tipo === existente.tipo && 
+            (existente.tipo !== "ensaio_naipe" || novo.naipe === existente.naipe)
+        );
+
+        if (!match) {
+            await eventosRef.doc(existente.id).delete();
+            deletedCount++;
+            console.log(`[processAndSyncSchedule] Evento antigo excluído: ${existente.date} - ${existente.tipo}`);
+        }
+    }
+
+    // Salvar avisos_semana extras se houver
+    if (avisosSemana.length > 0) {
+        const avisosRef = db.collection("avisos_semana");
+        for (const aviso of avisosSemana) {
+            if (!aviso.texto) continue;
+            await avisosRef.add({
+                texto: aviso.texto,
+                tipo: aviso.tipo || "info",
+                createdAt: FieldValue.serverTimestamp()
+            });
+        }
+        console.log(`[processAndSyncSchedule] Salvos ${avisosSemana.length} avisos da semana na coleção avisos_semana.`);
+    }
+
+    return { added: addedCount, updated: updatedCount, deleted: deletedCount, minDate, maxDate };
+}
+
+/**
+ * Trigger que roda em background ao atualizar config/pdfs.
+ * Baixa e sincroniza automaticamente a agenda/temporada no calendário.
+ */
+exports.syncScheduleOnPDFUpload = onDocumentWritten({
+    document: "config/pdfs",
+    secrets: [geminiApiKey],
+    timeoutSeconds: 300,
+    memory: "512MiB"
+}, async (event) => {
+    const beforeData = event.data.before ? event.data.before.data() : null;
+    const afterData = event.data.after ? event.data.after.data() : null;
+
+    if (!afterData || !afterData.pdfs) {
+        console.log("[syncScheduleOnPDFUpload] Documento pdfs foi excluído ou está sem pdfs.");
+        return;
+    }
+
+    const types = ["agenda", "temporada"];
+    for (const type of types) {
+        const beforePdf = beforeData && beforeData.pdfs ? beforeData.pdfs[type] : null;
+        const afterPdf = afterData.pdfs[type];
+
+        if (afterPdf && (!beforePdf || beforePdf.version !== afterPdf.version)) {
+            console.log(`[syncScheduleOnPDFUpload] Detectada atualização na ${type}: v${afterPdf.displayVersion}`);
+            
+            try {
+                const syncResult = await processAndSyncSchedule(
+                    type, 
+                    afterPdf.url, 
+                    afterPdf.arquivo, 
+                    afterPdf.displayVersion
+                );
+
+                // Gravar log de sucesso com tipo bot
+                await admin.firestore().collection("adminLogs").add({
+                    type: "bot",
+                    message: `🤖 [Robô OER] Sincronização automática concluída para ${type.toUpperCase()}.`,
+                    details: `Arquivo: ${afterPdf.arquivo} (v${afterPdf.displayVersion})\n- Faixa: ${syncResult.minDate} até ${syncResult.maxDate}\n- Adicionados: ${syncResult.added} novos eventos\n- Atualizados: ${syncResult.updated} eventos\n- Excluídos: ${syncResult.deleted} eventos antigos.`,
+                    user: "sistema",
+                    link: afterPdf.url,
+                    createdAt: new Date().toISOString()
+                });
+
+                console.log(`[syncScheduleOnPDFUpload] Sincronização automática concluída com sucesso para ${type}!`);
+            } catch (err) {
+                console.error(`[syncScheduleOnPDFUpload] Erro na sincronização automática da ${type}:`, err);
+
+                // Gravar log de erro no histórico
+                await admin.firestore().collection("adminLogs").add({
+                    type: "erro",
+                    message: `❌ [Robô OER] Falha na sincronização automática de ${type.toUpperCase()}.`,
+                    details: `Erro na leitura ou processamento do PDF: ${err.message}\n\nPor favor, tente refazer o processo clicando no botão "Tentar Novamente" abaixo ou entre em contato com o Administrador para corrigir o ERRO.`,
+                    user: "sistema",
+                    link: afterPdf.url,
+                    fileType: type,
+                    fileName: afterPdf.arquivo,
+                    fileVersion: afterPdf.displayVersion,
+                    retryCount: 0,
+                    createdAt: new Date().toISOString()
+                });
+            }
+        }
+    }
+});
+
+/**
+ * Função callable para reprocessamento manual de PDF a partir de um log de erro.
+ */
+exports.reprocessSchedulePDF = onCall({
+    region: "us-central1",
+    timeoutSeconds: 300,
+    memory: "512MiB",
+    secrets: [geminiApiKey]
+}, async (request) => {
+    if (!request.auth) {
+        throw new HttpsError("unauthenticated", "Autenticação obrigatória.");
+    }
+    const { logId } = request.data;
+    if (!logId) {
+        throw new HttpsError("invalid-argument", "Forneça o ID do log de erro.");
+    }
+
+    const db = admin.firestore();
+    const logRef = db.collection("adminLogs").doc(logId);
+    const logSnap = await logRef.get();
+    if (!logSnap.exists) {
+        throw new HttpsError("not-found", "Log de erro não encontrado.");
+    }
+
+    const logData = logSnap.data();
+    if (logData.type !== 'erro' || !logData.fileType || !logData.link) {
+        throw new HttpsError("invalid-argument", "Log não elegível para reprocessamento.");
+    }
+
+    const retryCount = (logData.retryCount || 0) + 1;
+    if (retryCount > 3) {
+        throw new HttpsError("failed-precondition", "Limite de 3 tentativas de reprocessamento excedido para este arquivo.");
+    }
+
+    // Atualiza contador de tentativas no log de erro
+    await logRef.update({ retryCount });
+
+    try {
+        console.log(`[reprocessSchedulePDF] Iniciando reprocessamento. Tentativa ${retryCount}/3 para ${logData.fileType}`);
+        const syncResult = await processAndSyncSchedule(
+            logData.fileType, 
+            logData.link, 
+            logData.fileName || logData.message, 
+            logData.fileVersion || "1.0"
+        );
+
+        // Gravar log de sucesso do Robô OER
+        await db.collection("adminLogs").add({
+            type: "bot",
+            message: `🤖 [Robô OER] Sincronização automática concluída via reprocessamento para ${logData.fileType.toUpperCase()}.`,
+            details: `Reprocessamento bem-sucedido após erro anterior.\n- Faixa: ${syncResult.minDate} até ${syncResult.maxDate}\n- Adicionados: ${syncResult.added} novos eventos\n- Atualizados: ${syncResult.updated} eventos\n- Excluídos: ${syncResult.deleted} eventos antigos.`,
+            user: request.auth.token.email || "sistema",
+            link: logData.link,
+            createdAt: new Date().toISOString()
+        });
+
+        // Deleta o log de erro anterior após o sucesso
+        await logRef.delete();
+
+        return { success: true, message: "Arquivo reprocessado e sincronizado com sucesso!" };
+    } catch (error) {
+        console.error(`[reprocessSchedulePDF] Erro na tentativa ${retryCount}/3:`, error);
+        
+        // Atualiza a mensagem de erro com a nova falha e a contagem
+        await logRef.update({
+            details: `Erro (Tentativa ${retryCount}/3): ${error.message}\n\nPor favor, tente refazer o processo clicando no botão "Tentar Novamente" abaixo ou entre em contato com o Administrador para corrigir o ERRO.`
+        });
+        
+        throw new HttpsError("internal", `Erro no reprocessamento (Tentativa ${retryCount}/3): ${error.message}`);
+    }
+});
+
+/**
+ * Função callable para forçar a sincronização dos PDFs atuais com o calendário.
+ */
+exports.forceSyncCalendar = onCall({
+    region: "us-central1",
+    timeoutSeconds: 300,
+    memory: "512MiB",
+    secrets: [geminiApiKey]
+}, async (request) => {
+    if (!request.auth) {
+        throw new HttpsError("unauthenticated", "Autenticação obrigatória.");
+    }
+    const db = admin.firestore();
+    const configRef = db.collection("config").doc("pdfs");
+    const configSnap = await configRef.get();
+    if (!configSnap.exists) {
+        throw new HttpsError("not-found", "Documento pdfs não encontrado.");
+    }
+    const data = configSnap.data();
+    if (!data.pdfs) {
+        throw new HttpsError("failed-precondition", "Nenhum PDF cadastrado.");
+    }
+
+    let count = 0;
+    // Modifica a versão/timestamp para disparar a trigger de upload
+    for (const type of ["agenda", "temporada"]) {
+        if (data.pdfs[type]) {
+            data.pdfs[type].version = Date.now() + count;
+            data.pdfs[type].updatedAt = new Date().toISOString();
+            count++;
+        }
+    }
+    await configRef.set(data);
+    return { success: true, message: "Forçada sincronização! A trigger syncScheduleOnPDFUpload foi disparada em segundo plano." };
+});
 

@@ -10,16 +10,28 @@
     --transition: all 0.3s ease;
 }
 
+/* ================= MOBILE GLOBAL FIXES ================= */
+/* Elimina flash de toque cinza/azul no iOS */
+* {
+    -webkit-tap-highlight-color: transparent;
+}
+/* Elimina delay de 300ms e activa fast-tap em todos os botões e links */
+button, a, [role="button"], input[type="submit"], input[type="button"], label {
+    touch-action: manipulation;
+}
+
 .admin-body {
     background-color: var(--admin-bg);
     margin: 0;
     min-height: 100vh;
+    min-height: 100dvh; /* dvh: ignora barra de URL dinâmica do iOS Safari */
     overflow-x: hidden;
 }
 
 .admin-container {
     display: none; /* Oculto por padrão, JS controla o .active */
     min-height: 100vh;
+    min-height: 100dvh;
     animation: fadeIn 0.4s ease-out;
 }
 
@@ -729,17 +741,19 @@
     pointer-events: none;
 }
 
-.btn-robot-ai:hover::before {
-    left: 120%;
-}
+@media (hover: hover) and (pointer: fine) {
+    .btn-robot-ai:hover::before {
+        left: 120%;
+    }
 
-.btn-robot-ai:hover {
-    transform: translateY(-2px) scale(1.03);
-    background-position: 100% 0%;
-    box-shadow: 
-        0 4px 16px rgba(139, 0, 0, 0.3),
-        0 0 20px rgba(184, 134, 11, 0.15);
-    filter: brightness(1.08);
+    .btn-robot-ai:hover {
+        transform: translateY(-2px) scale(1.03);
+        background-position: 100% 0%;
+        box-shadow: 
+            0 4px 16px rgba(139, 0, 0, 0.3),
+            0 0 20px rgba(184, 134, 11, 0.15);
+        filter: brightness(1.08);
+    }
 }
 
 .btn-robot-ai:active {
@@ -929,9 +943,11 @@
     transition: var(--transition);
 }
 
-.upload-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+@media (hover: hover) and (pointer: fine) {
+    .upload-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    }
 }
 
 .card-icon {
@@ -1078,7 +1094,9 @@
 .notification-area {
     position: fixed;
     bottom: 20px;
+    bottom: max(20px, env(safe-area-inset-bottom)); /* Respeita área de gesto do iPhone */
     right: 20px;
+    right: max(20px, env(safe-area-inset-right));
     z-index: 99999;
     display: flex;
     flex-direction: column;
@@ -1631,10 +1649,12 @@
     width: 100%;
 }
 
-.log-item:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0,0,0,0.06);
-    border-color: #e0e0e0;
+@media (hover: hover) and (pointer: fine) {
+    .log-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+        border-color: #e0e0e0;
+    }
 }
 
 .log-icon {
@@ -1700,6 +1720,29 @@
 .log-icon.type-erro {
     background: rgba(220, 53, 69, 0.1);
     color: #dc3545;
+}
+
+.btn-retry-sync {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: #dc3545;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    margin-top: 0.6rem;
+    transition: background 0.2s ease, opacity 0.2s ease;
+}
+.btn-retry-sync:hover {
+    background: #c82333;
+}
+.btn-retry-sync:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
 }
 
 .log-content {
@@ -2027,9 +2070,11 @@
     margin: 0 auto;
 }
 
-.admin-notif-item:hover {
-    box-shadow: 0 6px 20px rgba(0,0,0,0.08);
-    transform: translateY(-2px);
+@media (hover: hover) and (pointer: fine) {
+    .admin-notif-item:hover {
+        box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+        transform: translateY(-2px);
+    }
 }
 
 /* Estilo para Avisos Agendados (Pendentes) */
@@ -2108,8 +2153,8 @@
     background: rgba(220, 53, 69, 0.05);
     color: #dc3545;
     border: 1px solid rgba(220, 53, 69, 0.1);
-    width: 38px;
-    height: 38px;
+    width: 44px; /* mín. 44px — Apple HIG */
+    height: 44px;
     border-radius: 8px;
     display: flex;
     align-items: center;
@@ -2120,11 +2165,13 @@
     margin-left: 1rem;
 }
 
-.btn-delete-notif:hover {
-    background: #dc3545;
-    color: white;
-    transform: scale(1.05);
-    box-shadow: 0 4px 10px rgba(220, 53, 69, 0.2);
+@media (hover: hover) and (pointer: fine) {
+    .btn-delete-notif:hover {
+        background: #dc3545;
+        color: white;
+        transform: scale(1.05);
+        box-shadow: 0 4px 10px rgba(220, 53, 69, 0.2);
+    }
 }
 
 /* Container para botões de ação do card */
@@ -2139,8 +2186,8 @@
     background: rgba(13, 110, 253, 0.05);
     color: #0d6efd;
     border: 1px solid rgba(13, 110, 253, 0.1);
-    width: 38px;
-    height: 38px;
+    width: 44px; /* mín. 44px — Apple HIG */
+    height: 44px;
     border-radius: 8px;
     display: flex;
     align-items: center;
@@ -2149,11 +2196,13 @@
     transition: all 0.2s ease;
 }
 
-.btn-edit-notif:hover {
-    background: #0d6efd;
-    color: white;
-    transform: scale(1.05);
-    box-shadow: 0 4px 10px rgba(13, 110, 253, 0.2);
+@media (hover: hover) and (pointer: fine) {
+    .btn-edit-notif:hover {
+        background: #0d6efd;
+        color: white;
+        transform: scale(1.05);
+        box-shadow: 0 4px 10px rgba(13, 110, 253, 0.2);
+    }
 }
 
 .admin-notif-empty {
@@ -2650,9 +2699,11 @@
     width: 100%;
     max-width: 500px;
     max-height: 90vh;
+    max-height: 90dvh; /* dvh: ignora barra de URL dinâmica do iOS */
     border-radius: 20px;
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     animation: modalScaleIn 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
     border: 1px solid rgba(255, 255, 255, 0.3);
     position: relative;
@@ -2726,8 +2777,8 @@
 .btn-close-modal {
     background: #f0f0f0;
     border: none;
-    width: 32px;
-    height: 32px;
+    width: 44px; /* mín. 44px — Apple HIG */
+    height: 44px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -2737,10 +2788,12 @@
     transition: var(--transition);
 }
 
-.btn-close-modal:hover {
-    background: #e0e0e0;
-    color: var(--primary-color);
-    transform: rotate(90deg);
+@media (hover: hover) and (pointer: fine) {
+    .btn-close-modal:hover {
+        background: #e0e0e0;
+        color: var(--primary-color);
+        transform: rotate(90deg);
+    }
 }
 
 .settings-modal-card .modal-body {
@@ -2995,7 +3048,8 @@
     grid-template-rows: 1fr auto; /* O formulário ocupa o topo, ações ancoradas na base */
     gap: 1.5rem 2.5rem;
     padding: 2rem;
-    height: 75vh; /* Altura fixa para simetria */
+    height: 75vh; /* Fallback para browsers antigos */
+    height: 75dvh; /* dvh: não muda quando barra de URL do iOS aparece/some */
     max-height: 800px;
     overflow: hidden; /* Remove scroll do container principal */
 }
@@ -3033,7 +3087,7 @@
 
 /* Labels menores para economizar espaço vertical */
 .atestado-data-form label {
-    font-size: 0.7rem;
+    font-size: 0.75rem; /* Aumentado de 0.7rem: abaixo de 12px é ilegível no iOS */
     text-transform: uppercase;
     letter-spacing: 0.8px;
     margin-bottom: 6px;
@@ -3124,13 +3178,16 @@
         height: 100px; /* Mais compacto no mobile */
     }
     
-    @media (max-width: 500px) {
-        .atestado-data-form {
-            grid-template-columns: 1fr;
-        }
-        .atestado-field-nome, .atestado-field-inicio, .atestado-field-fim, .atestado-field-resumo, .atestado-field-cid, .atestado-field-dias {
-            grid-column: span 1;
-        }
+}
+
+/* Corrigido: media query aninhada é CSS Level 4 (não suportado no iOS Safari < 17.2) */
+/* Movida para fora como regra independente */
+@media (max-width: 500px) {
+    .atestado-data-form {
+        grid-template-columns: 1fr;
+    }
+    .atestado-field-nome, .atestado-field-inicio, .atestado-field-fim, .atestado-field-resumo, .atestado-field-cid, .atestado-field-dias {
+        grid-column: span 1;
     }
 }
 
@@ -3229,6 +3286,8 @@
 /* ================= MODAL IA CALENDÁRIO ================= */
 .ia-modal-overlay {
     position: fixed;
+    /* Fallback para iOS < 14.1 que não suporta inset */
+    top: 0; right: 0; bottom: 0; left: 0;
     inset: 0;
     background: rgba(15, 15, 25, 0.55);
     backdrop-filter: blur(6px);
@@ -3306,8 +3365,8 @@
 }
 
 .ia-modal-close {
-    width: 36px;
-    height: 36px;
+    width: 44px; /* mín. 44px — Apple HIG */
+    height: 44px;
     border: none;
     background: #f4f4f6;
     border-radius: 50%;
@@ -3320,10 +3379,12 @@
     flex-shrink: 0;
 }
 
-.ia-modal-close:hover {
-    background: #ffe5e5;
-    color: var(--primary-color);
-    transform: scale(1.1);
+@media (hover: hover) and (pointer: fine) {
+    .ia-modal-close:hover {
+        background: #ffe5e5;
+        color: var(--primary-color);
+        transform: scale(1.1);
+    }
 }
 
 .ia-modal-close i, .ia-modal-close svg {
@@ -3398,7 +3459,9 @@
     .ia-modal-card {
         border-radius: 16px;
         max-height: 90vh;
+        max-height: 90dvh; /* dvh: ignora barra de URL dinâmica do iOS */
         overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
     }
 
     .ia-modal-body {
@@ -3430,7 +3493,8 @@
     .calendario-col-lista {
         position: sticky;
         top: 110px; /* Alinhado perfeitamente abaixo do header fixo */
-        max-height: calc(100vh - 160px); /* Ocupa dinamicamente a área visível */
+        max-height: calc(100vh - 160px); /* Fallback */
+        max-height: calc(100dvh - 160px); /* dvh: ignora barra de URL dinâmica do iOS */
         display: flex;
         flex-direction: column;
     }
@@ -3440,7 +3504,8 @@
         display: flex;
         flex-direction: column;
         height: 100%;
-        max-height: calc(100vh - 160px);
+        max-height: calc(100vh - 160px); /* Fallback */
+        max-height: calc(100dvh - 160px);
     }
 
     /* Lista com scroll independente e adaptativo */
@@ -3513,9 +3578,11 @@
     flex-shrink: 0;
 }
 
-.event-admin-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+@media (hover: hover) and (pointer: fine) {
+    .event-admin-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
 }
 
 .event-admin-card-header {
@@ -3571,6 +3638,7 @@
 .event-admin-type-badge.ensaio_tutti { background: rgba(40, 167, 69, 0.15); color: #28a745; }
 .event-admin-type-badge.ensaio_naipe { background: rgba(0, 123, 255, 0.15); color: #007bff; }
 .event-admin-type-badge.concerto { background: rgba(255, 193, 7, 0.2); color: #d39e00; }
+.event-admin-type-badge.folga { background: rgba(108, 117, 125, 0.15); color: #6c757d; }
 
 .event-admin-title {
     font-size: 1.1rem;
@@ -4029,8 +4097,8 @@ input:checked + .slider:before {
     color: white;
     border: none;
     border-radius: 50%;
-    width: 28px;
-    height: 28px;
+    width: 44px; /* mín. 44px — Apple HIG */
+    height: 44px;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -4091,15 +4159,15 @@ input:checked + .slider:before {
         display: none !important;
     }
     .admin-notif-btn {
-        width: 32px !important;
-        height: 32px !important;
+        width: 44px !important; /* Corrigido: era 32px em mobile — deve ser MAIOR, não menor */
+        height: 44px !important;
         padding: 0 !important;
         justify-content: center !important;
         gap: 0 !important;
     }
     .admin-notif-btn svg {
-        width: 18px !important;
-        height: 18px !important;
+        width: 20px !important;
+        height: 20px !important;
     }
 }
 
@@ -4713,4 +4781,37 @@ input:checked + .slider:before {
     transform: scale(1.1);
 }
 
+/* ==========================================================================
+   Seção de Relatórios Específicos (Bolsistas / Admin)
+   ========================================================================== */
+.btn-report-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 1.25rem 1rem;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+    flex: 1 1 140px;
+    max-width: 180px;
+    aspect-ratio: 1 / 1;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+}
 
+.btn-report-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    filter: brightness(1.1);
+}
+
+.btn-report-card svg {
+    width: 28px !important;
+    height: 28px !important;
+    margin-bottom: 0.75rem;
+}

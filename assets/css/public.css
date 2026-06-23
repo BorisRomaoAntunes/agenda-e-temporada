@@ -3,6 +3,16 @@
    Requer: common.css carregado antes
    ============================================ */
 
+/* ================= MOBILE GLOBAL FIXES ================= */
+/* Elimina flash de toque cinza/azul no iOS */
+* {
+    -webkit-tap-highlight-color: transparent;
+}
+/* Elimina delay de 300ms e activa fast-tap em botões e links */
+button, a, [role="button"], input[type="submit"], input[type="button"] {
+    touch-action: manipulation;
+}
+
 /* Header */
 .main-header {
     background-color: #ffffff;
@@ -876,7 +886,8 @@ body.modo-concerto .history-search-empty svg {
     padding: var(--spacing-unit);
     justify-content: center;
     width: 100%;
-    min-height: calc(100vh - var(--header-height) - 100px);
+    min-height: calc(100vh - var(--header-height) - 100px); /* Fallback */
+    min-height: calc(100dvh - var(--header-height) - 100px); /* dvh: ignora barra de URL dinâmica do iOS */
 }
 
 /* PDF Grid - Dois visualizadores lado a lado */
@@ -1656,7 +1667,9 @@ body.force-mobile .btn-form {
 .notification-container {
     position: fixed;
     bottom: 120px;
+    bottom: calc(120px + env(safe-area-inset-bottom)); /* Respeita área de gesto do iPhone */
     right: 2rem;
+    right: calc(2rem + env(safe-area-inset-right));
     z-index: 1000;
 }
 
@@ -1779,7 +1792,7 @@ body.force-mobile .btn-form {
     position: absolute;
     bottom: 80px;
     right: 0;
-    width: 250px;
+    width: min(250px, calc(100vw - 2rem)); /* Evita overflow em telas muito estreitas */
     background-color: #ffffff;
     border-radius: 12px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
@@ -1921,6 +1934,11 @@ body.force-mobile .btn-form {
     overflow: hidden;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
     animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    /* Garante que não ultrapasse a tela em iPhones pequenos */
+    max-height: 90vh;
+    max-height: 90svh; /* svh = small viewport height — ignora barra de URL do iOS */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 @keyframes modalPop {
@@ -2039,22 +2057,26 @@ body.modo-concerto .btn-form.btn-atestado .btn-form-label {
     border: none;
     cursor: pointer;
     color: #999;
-    padding: 0.5rem;
+    padding: 0;
     border-radius: 50%;
     transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 44px; /* mín. 44px — Apple HIG */
+    height: 44px;
 }
 
-.btn-close-modal:hover {
-    background: rgba(0, 0, 0, 0.05);
-    color: #333;
-}
+@media (hover: hover) and (pointer: fine) {
+    .btn-close-modal:hover {
+        background: rgba(0, 0, 0, 0.05);
+        color: #333;
+    }
 
-.modo-concerto .btn-close-modal:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: #fff;
+    .modo-concerto .btn-close-modal:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: #fff;
+    }
 }
 
 .modal-body {
@@ -2440,6 +2462,8 @@ body.modo-concerto .btn-form.btn-atestado .btn-form-label {
     margin-bottom: 1.5rem;
     scrollbar-width: none;
     /* Firefox */
+    touch-action: pan-x; /* Indica ao browser que é scroll horizontal, evita conflito de gestos */
+    -webkit-overflow-scrolling: touch; /* Scroll inercial suave no iOS */
 }
 
 .calendario-filtros::-webkit-scrollbar {
@@ -2447,11 +2471,13 @@ body.modo-concerto .btn-form.btn-atestado .btn-form-label {
     /* Chrome */
 }
 
+/* Área de toque mínima para filtros */
 .filtro-btn {
     display: flex;
     align-items: center;
     gap: 0.4rem;
     padding: 0.4rem 1rem;
+    min-height: 44px; /* mín. 44px — Apple HIG */
     border-radius: 20px;
     border: 1px solid rgba(0, 0, 0, 0.1);
     background: white;
@@ -2528,6 +2554,8 @@ body.modo-concerto .btn-form.btn-atestado .btn-form-label {
     /* scroll-behavior gerenciado via JS (instant na carga, smooth na interação) */
     scrollbar-width: none;
     -ms-overflow-style: none;
+    touch-action: pan-x; /* Indica ao browser que é scroll horizontal, evita conflito de gestos */
+    -webkit-overflow-scrolling: touch; /* Scroll inercial suave no iOS */
 }
 
 .calendario-strip::-webkit-scrollbar {

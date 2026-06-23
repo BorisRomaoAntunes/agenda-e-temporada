@@ -12,7 +12,8 @@
     </script>
 
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="format-detection" content="telephone=no">
     <!-- Meta Tags Anti-Cache para iOS PWA -->
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
@@ -36,7 +37,7 @@
 
     <!-- Estilos Base + Admin -->
     <link rel="stylesheet" href="assets/css/common.css">
-    <link rel="stylesheet" href="assets/css/admin.css?v=7">
+    <link rel="stylesheet" href="assets/css/admin.css?v=8">
 
     <!-- Ícones Lucide -->
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -59,12 +60,12 @@
                 <form id="login-form">
                     <div class="input-group">
                         <label for="email">E-mail</label>
-                        <input type="email" id="email" required placeholder="seu@email.com">
+                        <input type="email" id="email" autocomplete="username" required placeholder="seu@email.com">
                     </div>
                     <div class="input-group">
                         <label for="password">Senha</label>
                         <div class="password-wrapper">
-                            <input type="password" id="password" required placeholder="••••••••">
+                            <input type="password" id="password" autocomplete="current-password" required placeholder="••••••••">
                             <button type="button" id="btn-toggle-password" class="btn-toggle-password"
                                 aria-label="Mostrar senha">
                                 <i data-lucide="eye"></i>
@@ -93,7 +94,7 @@
                 <form id="recovery-form">
                     <div class="input-group">
                         <label for="recovery-email">E-mail</label>
-                        <input type="email" id="recovery-email" required placeholder="seu@email.com">
+                        <input type="email" id="recovery-email" autocomplete="email" required placeholder="seu@email.com">
                     </div>
                     <button type="submit" class="btn-primary" id="btn-send-recovery">
                         Enviar link de recuperação <i data-lucide="send"></i>
@@ -244,7 +245,7 @@
                         </div>
                         <div class="search-box">
                             <i data-lucide="search"></i>
-                            <input type="text" id="log-search" placeholder="Pesquisar no histórico (ex: nome, data, categoria)...">
+                            <input type="text" id="log-search" autocomplete="off" placeholder="Pesquisar no histórico (ex: nome, data, categoria)...">
                         </div>
                     </div>
 
@@ -776,12 +777,18 @@ Intervalo
                         <h4 style="margin: 0 0 1rem 0; font-size: 1.1rem; font-weight: 600; color: #333; display: flex; align-items: center; gap: 0.5rem;">
                             <i data-lucide="file-text" style="color: var(--primary-color, #8b0000); width: 18px; height: 18px;"></i> Relatórios Específicos
                         </h4>
-                        <div class="reports-buttons-grid" style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                            <button id="btn-generate-ficha-ia" class="btn-primary" title="Clique uma vez para carregar (usa cache se atualizado) ou clique duplo para forçar nova geração via IA" style="display: inline-flex; align-items: center; gap: 0.5rem; background: #2E8B57; cursor: pointer; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 500; font-size: 0.9rem; color: white; border: none; transition: background 0.2s;">
-                                <i data-lucide="sparkles" style="width: 16px; height: 16px;"></i> <span>Ficha Técnica - Comunicação</span>
+                        <div class="reports-buttons-grid" style="display: flex; gap: 1.2rem; flex-wrap: wrap;">
+                            <button id="btn-generate-ficha-ia" class="btn-report-card" title="Clique uma vez para carregar (usa cache se atualizado) ou clique duplo para forçar nova geração via IA" style="background: #2E8B57;">
+                                <i data-lucide="sparkles"></i> <span>Ficha Técnica - Comunicação</span>
                             </button>
-                            <button id="btn-generate-metas" class="btn-primary" title="Clique para gerar o relatório de metas e perfil de músicos em tempo real" style="display: inline-flex; align-items: center; gap: 0.5rem; background: #4a5568; cursor: pointer; padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 500; font-size: 0.9rem; color: white; border: none; transition: background 0.2s;">
-                                <i data-lucide="bar-chart-2" style="width: 16px; height: 16px;"></i> <span>Resumo de Metas e Perfil</span>
+                            <button id="btn-generate-metas" class="btn-report-card" title="Clique para gerar o relatório de metas e perfil de músicos em tempo real" style="background: #4a5568;">
+                                <i data-lucide="bar-chart-2"></i> <span>Resumo de Metas e Perfil</span>
+                            </button>
+                            <button id="btn-generate-presenca-mensal" class="btn-report-card" title="Clique para gerar o relatório de presença mensal em PDF para impressão" style="background: #8b0000;">
+                                <i data-lucide="calendar-check"></i> <span>Lista de Presença Mensal (PDF)</span>
+                            </button>
+                            <button id="btn-generate-faltas-atrasos" class="btn-report-card" title="Clique para gerar a lista de faltas e atrasos dos bolsistas em formato de texto" style="background: #b45309;">
+                                <i data-lucide="file-text"></i> <span>Faltas e Atrasos (Texto)</span>
                             </button>
                         </div>
                     </div>
@@ -790,7 +797,7 @@ Intervalo
                         <div class="logs-header" style="border-bottom: none; margin-bottom: 0; padding-bottom: 0;">
                             <div class="search-box" style="width: 100%; max-width: 100%;">
                                 <i data-lucide="search"></i>
-                                <input type="text" id="musicos-search" placeholder="Busca reativa geral (digite nome, instrumento, status, CPF, e-mail, telefone, carro)...">
+                                <input type="text" id="musicos-search" autocomplete="off" placeholder="Busca reativa geral (digite nome, instrumento, status, CPF, e-mail, telefone, carro)...">
                             </div>
                         </div>
 
@@ -821,13 +828,13 @@ Intervalo
 
                 <!-- Gaveta Lateral de Ficha Completa (Drawer) -->
                 <div class="drawer-overlay" id="musico-drawer-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;"></div>
-                <div class="musico-drawer" id="musico-drawer" style="position: fixed; top: 0; right: -550px; width: 550px; max-width: 100%; height: 100%; background: white; z-index: 2001; box-shadow: -5px 0 25px rgba(0,0,0,0.08); display: flex; flex-direction: column; transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: auto;">
+                <div class="musico-drawer" id="musico-drawer" style="position: fixed; top: 0; right: -100%; width: min(550px, 100%); max-width: 100%; height: 100%; background: white; z-index: 2001; box-shadow: -5px 0 25px rgba(0,0,0,0.08); display: flex; flex-direction: column; transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: auto;">
                     <div class="drawer-header" style="padding: 1.5rem; border-bottom: 1px solid #f0f2f5; display: flex; justify-content: space-between; align-items: center; background: #fafafa;">
                         <div class="drawer-header-info">
                             <h3 id="drawer-musico-nome-artistico" style="margin: 0; font-size: 1.2rem; font-weight: 700; color: #333;">Nome Artístico</h3>
                             <p id="drawer-musico-instrumento" style="margin: 0.2rem 0 0 0; font-size: 0.85rem; color: #777; font-weight: 500;">Instrumento</p>
                         </div>
-                        <button class="btn-close-drawer" id="btn-close-drawer" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #999; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 50%; transition: background 0.2s;">
+                        <button class="btn-close-drawer" id="btn-close-drawer" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #999; display: flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 50%; transition: background 0.2s; touch-action: manipulation; -webkit-tap-highlight-color: transparent;">
                             <i data-lucide="x" style="width: 20px; height: 20px;"></i>
                         </button>
                     </div>
@@ -1095,7 +1102,7 @@ Intervalo
                             <div class="input-group">
                                 <label for="current-password">Senha Atual</label>
                                 <div class="password-wrapper">
-                                    <input type="password" id="current-password" required placeholder="••••••••">
+                                    <input type="password" id="current-password" autocomplete="current-password" required placeholder="••••••••">
                                     <button type="button" class="btn-toggle-password btn-toggle-security" aria-label="Mostrar senha">
                                         <i data-lucide="eye"></i>
                                     </button>
@@ -1104,7 +1111,7 @@ Intervalo
                             <div class="input-group">
                                 <label for="new-password">Nova Senha</label>
                                 <div class="password-wrapper">
-                                    <input type="password" id="new-password" required placeholder="••••••••">
+                                    <input type="password" id="new-password" autocomplete="new-password" required placeholder="••••••••">
                                     <button type="button" class="btn-toggle-password btn-toggle-security" aria-label="Mostrar senha">
                                         <i data-lucide="eye"></i>
                                     </button>
@@ -1125,7 +1132,7 @@ Intervalo
                             <div class="input-group">
                                 <label for="confirm-password">Confirmar Nova Senha</label>
                                 <div class="password-wrapper">
-                                    <input type="password" id="confirm-password" required placeholder="••••••••">
+                                    <input type="password" id="confirm-password" autocomplete="new-password" required placeholder="••••••••">
                                     <button type="button" class="btn-toggle-password btn-toggle-security" aria-label="Mostrar senha">
                                         <i data-lucide="eye"></i>
                                     </button>
@@ -1238,8 +1245,8 @@ Intervalo
                     <input type="hidden" id="atestado-edit-id">
                     
                     <div class="atestado-field-nome" style="grid-column: span 2;">
-                        <label>Nome do Músico (Extraído pela IA)</label>
-                        <input type="text" id="atestado-edit-nome" class="version-input" placeholder="Nome completo" readonly>
+                        <label>Nome do Músico (Extraído pela IA / Editável)</label>
+                        <input type="text" id="atestado-edit-nome" class="version-input" placeholder="Nome completo">
                     </div>
 
                     <div class="atestado-field-musico" style="grid-column: span 2; margin-top: 0.5rem;">
@@ -1293,7 +1300,7 @@ Intervalo
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Biblioteca SheetJS (XLSX) CDN para ler planilhas Excel no navegador -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script type="module" src="assets/js/admin/admin.js?v=10"></script>
+    <script type="module" src="assets/js/admin/admin.js?v=11"></script>
     <script>
         // Registro do Service Worker
         if ('serviceWorker' in navigator) {
@@ -1325,6 +1332,21 @@ Intervalo
                     const targetId = tab.getAttribute('data-target');
                     const targetSection = document.getElementById(targetId);
                     if (targetSection) targetSection.classList.add('active');
+
+                    // Garantia contra preenchimento automático (autofill) de email na busca de músicos
+                    if (targetId === 'section-musicos') {
+                        const limparBuscaMusicos = () => {
+                            const mSearch = document.getElementById('musicos-search');
+                            if (mSearch && mSearch.value !== '') {
+                                mSearch.value = '';
+                                mSearch.dispatchEvent(new Event('input'));
+                            }
+                        };
+                        limparBuscaMusicos();
+                        // Executa também após um curto atraso para anular o preenchimento tardio do navegador
+                        setTimeout(limparBuscaMusicos, 50);
+                        setTimeout(limparBuscaMusicos, 150);
+                    }
                 });
             });
         }
@@ -1601,6 +1623,116 @@ Intervalo
                         <i data-lucide="copy"></i> Copiar Texto
                     </button>
                     <button class="btn-outline" id="btn-close-metas-modal-footer" style="flex: 1; border-radius: 8px; font-weight: 600; cursor: pointer; border: 1px solid #ccc; background: white;">
+                        Fechar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL RELATÓRIO PRESENÇA MENSAL ===== -->
+    <div id="presenca-mensal-modal-overlay" class="ia-modal-overlay" style="display:none;" aria-modal="true" role="dialog">
+        <div class="ia-modal-card" style="max-width: 600px; width: 95%;">
+            <!-- Header -->
+            <div class="ia-modal-header">
+                <div class="ia-modal-header-info">
+                    <div class="ia-modal-icon" style="background: rgba(139, 0, 0, 0.1); color: #8b0000;">
+                        <i data-lucide="calendar-check"></i>
+                    </div>
+                    <div>
+                        <h3>Relatório de Presença Mensal</h3>
+                        <p>Configure o mês e as informações de cabeçalho</p>
+                    </div>
+                </div>
+                <button class="ia-modal-close" id="btn-presenca-modal-close" title="Fechar">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="ia-modal-body" style="display: flex; flex-direction: column; gap: 1.2rem;">
+                <div class="ia-modal-tip" style="background: rgba(139, 0, 0, 0.05); border-color: rgba(139, 0, 0, 0.1); border-left-color: #8b0000; color: #8b0000; display: flex; align-items: center; gap: 0.5rem; padding: 0.8rem; border-radius: 6px; font-size: 0.9rem;">
+                    <i data-lucide="info" style="color: #8b0000; flex-shrink: 0;"></i>
+                    <span>Selecione o mês e ajuste as informações de cabeçalho. Os eventos serão buscados do Firestore automaticamente.</span>
+                </div>
+
+                <!-- Seleção do Mês -->
+                <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                    <label for="presenca-mensal-mes" style="font-size: 0.85rem; font-weight: 700; color: #444;">Selecione o Mês / Ano:</label>
+                    <select id="presenca-mensal-mes" class="form-control" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #ccc; font-size: 0.95rem;"></select>
+                </div>
+
+                <!-- Caixa Central (Concertos/Apresentações) -->
+                <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                    <label for="presenca-mensal-concertos" style="font-size: 0.85rem; font-weight: 700; color: #444;">Concertos e Atividades (Centro do Cabeçalho):</label>
+                    <textarea id="presenca-mensal-concertos" class="form-control" style="width: 100%; height: 100px; padding: 0.6rem; border-radius: 8px; border: 1px solid #ccc; font-size: 0.9rem; resize: vertical;" placeholder="Carregando eventos do mês..."></textarea>
+                </div>
+
+                <!-- Caixa Direita (Anotações/Folgas) -->
+                <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                    <label for="presenca-mensal-anotacoes" style="font-size: 0.85rem; font-weight: 700; color: #444;">Anotações e Folgas (Direita do Cabeçalho):</label>
+                    <textarea id="presenca-mensal-anotacoes" class="form-control" style="width: 100%; height: 80px; padding: 0.6rem; border-radius: 8px; border: 1px solid #ccc; font-size: 0.9rem; resize: vertical;" placeholder="Anotações do mês..."></textarea>
+                </div>
+
+                <!-- Ações -->
+                <div style="display: flex; gap: 0.8rem; margin-top: 0.5rem;">
+                    <button class="btn-primary" id="btn-generate-presenca-pdf" style="flex: 2; background: #8b0000; border: none; color: white; padding: 0.75rem; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                        <i data-lucide="file-text"></i> Gerar Relatório
+                    </button>
+                    <button class="btn-outline" id="btn-close-presenca-modal-footer" style="flex: 1; border-radius: 8px; font-weight: 600; cursor: pointer; border: 1px solid #ccc; background: white; padding: 0.75rem;">
+                        Fechar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL RELATÓRIO FALTAS E ATRASOS MENSAL ===== -->
+    <div id="faltas-atrasos-modal-overlay" class="ia-modal-overlay" style="display:none;" aria-modal="true" role="dialog">
+        <div class="ia-modal-card" style="max-width: 600px; width: 95%;">
+            <!-- Header -->
+            <div class="ia-modal-header">
+                <div class="ia-modal-header-info">
+                    <div class="ia-modal-icon" style="background: rgba(180, 83, 9, 0.1); color: #b45309;">
+                        <i data-lucide="file-text"></i>
+                    </div>
+                    <div>
+                        <h3>Relatório de Faltas e Atrasos (Bolsistas)</h3>
+                        <p>Lista consolidada em formato de texto pronto para cópia</p>
+                    </div>
+                </div>
+                <button class="ia-modal-close" id="btn-faltas-atrasos-modal-close" title="Fechar">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="ia-modal-body" style="display: flex; flex-direction: column; gap: 1.2rem;">
+                <div class="ia-modal-tip" style="background: rgba(180, 83, 9, 0.05); border-color: rgba(180, 83, 9, 0.1); border-left-color: #b45309; color: #b45309; display: flex; align-items: center; gap: 0.5rem; padding: 0.8rem; border-radius: 6px; font-size: 0.9rem;">
+                    <i data-lucide="info" style="color: #b45309; flex-shrink: 0;"></i>
+                    <span>Selecione o mês para gerar o texto consolidado. Faltas e atrasos são calculados automaticamente para músicos bolsistas ativos.</span>
+                </div>
+
+                <!-- Seleção do Mês -->
+                <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                    <label for="faltas-atrasos-mes" style="font-size: 0.85rem; font-weight: 700; color: #444;">Selecione o Mês / Ano:</label>
+                    <select id="faltas-atrasos-mes" class="form-control" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #ccc; font-size: 0.95rem;"></select>
+                </div>
+
+                <!-- Caixa de Resultado -->
+                <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                    <label style="font-size: 0.85rem; font-weight: 700; color: #444;">Conteúdo para Cópia:</label>
+                    <div id="faltas-atrasos-result" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.2rem; font-family: inherit; font-size: 0.95rem; line-height: 1.6; min-height: 150px; white-space: pre-wrap; word-break: break-word; color: #333; max-height: 300px; overflow-y: auto;">
+                        <!-- Conteúdo inserido dinamicamente -->
+                    </div>
+                </div>
+
+                <!-- Ações -->
+                <div style="display: flex; gap: 0.8rem; margin-top: 0.5rem;">
+                    <button class="btn-primary" id="btn-copy-faltas-atrasos" style="flex: 2; background: #b45309; border: none; color: white; padding: 0.75rem; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                        <i data-lucide="copy"></i> Copiar Texto
+                    </button>
+                    <button class="btn-outline" id="btn-close-faltas-atrasos-modal-footer" style="flex: 1; border-radius: 8px; font-weight: 600; cursor: pointer; border: 1px solid #ccc; background: white; padding: 0.75rem;">
                         Fechar
                     </button>
                 </div>

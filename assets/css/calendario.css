@@ -7,6 +7,7 @@
     --cal-bordo: #8B0000;
     --cal-ambar: #C8972A;
     --cal-naipe: #C24B4B;
+    --cal-folga: #64748b;
     --cal-bg-card: #ffffff;
     --cal-text: #333333;
     --cal-text-muted: #666666;
@@ -153,6 +154,7 @@
 .cal-event-card.ensaio_tutti { border-left-color: var(--cal-bordo); }
 .cal-event-card.ensaio_naipe { border-left-color: var(--cal-naipe); }
 .cal-event-card.concerto { border-left-color: var(--cal-ambar); }
+.cal-event-card.folga { border-left-color: var(--cal-folga); }
 
 .cal-event-time {
     font-size: 0.85rem;
