@@ -16,7 +16,8 @@ import {
     sendPasswordResetEmail,
     reauthenticateWithCredential,
     updatePassword,
-    EmailAuthProvider
+    EmailAuthProvider,
+    signInWithCustomToken
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
 
 import { 
@@ -36,7 +37,8 @@ import {
     serverTimestamp,
     where,
     deleteField,
-    writeBatch
+    writeBatch,
+    Timestamp
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { 
     getStorage, 
@@ -135,6 +137,7 @@ onAuthStateChanged(auth, (user) => {
         initCalendarManagement(); // Inicia o módulo de calendário interativo
         initMusiciansManagement(); // Inicia o gerenciamento de músicos (importação e busca reativa)
         initSecuritySection(); // Inicia a seção de segurança da conta
+        initBiometrics(user); // Inicializa biometria (logado)
     } else {
         // Não logado
         dashboardContainer.classList.remove('active');
@@ -149,6 +152,7 @@ onAuthStateChanged(auth, (user) => {
             window.engagementChartInstance.destroy();
             window.engagementChartInstance = null;
         }
+        initBiometrics(null); // Inicializa biometria (não logado)
     }
 });
 
@@ -3060,10 +3064,18 @@ function setupLinks() {
         const idInput = document.getElementById('link-id');
         const nameInput = document.getElementById('link-name');
         const urlInput = document.getElementById('link-url');
+        const fromInput = document.getElementById('link-available-from');
+        const untilInput = document.getElementById('link-available-until');
         
         const docId = idInput ? idInput.value : '';
         const name = nameInput.value.trim();
         const url = urlInput.value.trim();
+        
+        const fromVal = fromInput ? fromInput.value : '';
+        const untilVal = untilInput ? untilInput.value : '';
+        
+        const availableFrom = fromVal ? Timestamp.fromDate(new Date(fromVal)) : null;
+        const availableUntil = untilVal ? Timestamp.fromDate(new Date(untilVal)) : null;
 
         if (!name || !url) {
             showNotification('Preencha o nome e a URL do link.', 'error');
@@ -3085,7 +3097,9 @@ function setupLinks() {
                 await updateDoc(doc(db, 'dynamicLinks', docId), {
                     name: name,
                     url: url,
-                    icon: selectedIcon
+                    icon: selectedIcon,
+                    availableFrom: availableFrom,
+                    availableUntil: availableUntil
                 });
 
                 showNotification('Link atualizado com sucesso!', 'success');
@@ -3101,11 +3115,15 @@ function setupLinks() {
                     url: url,
                     icon: selectedIcon,
                     active: true,
-                    createdAt: serverTimestamp()
+                    createdAt: serverTimestamp(),
+                    availableFrom: availableFrom,
+                    availableUntil: availableUntil
                 });
 
                 nameInput.value = '';
                 urlInput.value = '';
+                if (fromInput) fromInput.value = '';
+                if (untilInput) untilInput.value = '';
                 if (counterSpan) {
                     counterSpan.textContent = '0/30';
                     counterSpan.style.color = 'var(--text-secondary)';
@@ -3152,11 +3170,27 @@ function setupLinks() {
     loadAdminLinks();
 }
 
+// Auxiliar para formatar data/hora Firestore Timestamp para datetime-local (YYYY-MM-DDTHH:MM)
+function formatDateTimeLocal(timestamp) {
+    if (!timestamp) return '';
+    const date = timestamp.toDate ? timestamp.toDate() : (timestamp.seconds ? new Date(timestamp.seconds * 1000) : new Date(timestamp));
+    if (isNaN(date.getTime())) return '';
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+
 // Funções para controle de Edição de Links
-window.startEditLink = function(id, name, url, icon) {
+window.startEditLink = function(id, name, url, icon, availableFrom, availableUntil) {
     const idInput = document.getElementById('link-id');
     const nameInput = document.getElementById('link-name');
     const urlInput = document.getElementById('link-url');
+    const fromInput = document.getElementById('link-available-from');
+    const untilInput = document.getElementById('link-available-until');
     const formTitle = document.getElementById('link-form-title');
     const formDesc = document.getElementById('link-form-desc');
     const btnCreate = document.getElementById('btn-create-link');
@@ -3173,6 +3207,8 @@ window.startEditLink = function(id, name, url, icon) {
         }
     }
     if (urlInput) urlInput.value = url;
+    if (fromInput) fromInput.value = availableFrom || '';
+    if (untilInput) untilInput.value = availableUntil || '';
     
     // Atualiza ícone selecionado
     selectedIcon = icon || 'link';
@@ -3210,6 +3246,8 @@ window.resetLinkForm = function() {
     const idInput = document.getElementById('link-id');
     const nameInput = document.getElementById('link-name');
     const urlInput = document.getElementById('link-url');
+    const fromInput = document.getElementById('link-available-from');
+    const untilInput = document.getElementById('link-available-until');
     const formTitle = document.getElementById('link-form-title');
     const formDesc = document.getElementById('link-form-desc');
     const btnCreate = document.getElementById('btn-create-link');
@@ -3218,6 +3256,8 @@ window.resetLinkForm = function() {
     if (idInput) idInput.value = '';
     if (nameInput) nameInput.value = '';
     if (urlInput) urlInput.value = '';
+    if (fromInput) fromInput.value = '';
+    if (untilInput) untilInput.value = '';
     
     const counterSpan = document.getElementById('link-name-counter');
     if (counterSpan) {
@@ -3272,6 +3312,27 @@ function loadAdminLinks() {
             const dateObj = data.createdAt ? data.createdAt.toDate() : new Date();
             const formattedDate = dateObj.toLocaleDateString('pt-BR') + ' às ' + dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
+            let availabilityText = '';
+            if (data.availableFrom || data.availableUntil) {
+                const formatTime = (ts) => {
+                    const d = ts.toDate ? ts.toDate() : new Date(ts);
+                    const day = String(d.getDate()).padStart(2, '0');
+                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                    const weekdayAbbr = d.toLocaleDateString('pt-BR', { weekday: 'short' });
+                    const capitalizedWeekday = weekdayAbbr.charAt(0).toUpperCase() + weekdayAbbr.slice(1).replace('.', '');
+                    const hours = String(d.getHours()).padStart(2, '0');
+                    const minutes = String(d.getMinutes()).padStart(2, '0');
+                    return `${day}/${month} (${capitalizedWeekday}) às ${hours}:${minutes}`;
+                };
+                if (data.availableFrom && data.availableUntil) {
+                    availabilityText = `Disponível de ${formatTime(data.availableFrom)} até ${formatTime(data.availableUntil)}`;
+                } else if (data.availableFrom) {
+                    availabilityText = `Disponível a partir de ${formatTime(data.availableFrom)}`;
+                } else if (data.availableUntil) {
+                    availabilityText = `Disponível até ${formatTime(data.availableUntil)}`;
+                }
+            }
+
             const item = document.createElement('div');
             item.className = 'admin-notif-item';
             
@@ -3289,6 +3350,7 @@ function loadAdminLinks() {
                     <p class="admin-notif-message"><a href="${data.url}" target="_blank" style="color: #2E8B57; text-decoration: none;">${data.url}</a></p>
                     <div class="admin-notif-meta">
                         <i data-lucide="clock" style="width: 12px; height: 12px;"></i> Criado em ${formattedDate}
+                        ${availabilityText ? `<br><i data-lucide="calendar" style="width: 12px; height: 12px; margin-top: 4px;"></i> <strong>${availabilityText}</strong>` : ''}
                     </div>
                 </div>
                 <div style="display: flex; align-items: center; gap: 1rem;">
@@ -3296,7 +3358,7 @@ function loadAdminLinks() {
                         <input type="checkbox" class="toggle-link-status" data-id="${id}" data-name="${data.name}" data-url="${data.url}" ${isChecked}>
                         <span class="toggle-slider"></span>
                     </label>
-                    <button class="btn-edit-notif" title="Editar Link" data-id="${id}" data-name="${data.name}" data-url="${data.url}" data-icon="${iconName}">
+                    <button class="btn-edit-notif" title="Editar Link" data-id="${id}" data-name="${data.name}" data-url="${data.url}" data-icon="${iconName}" data-from="${formatDateTimeLocal(data.availableFrom)}" data-until="${formatDateTimeLocal(data.availableUntil)}">
                         <i data-lucide="edit-2"></i>
                     </button>
                     <button class="btn-delete-notif" title="Apagar Link" data-id="${id}" data-name="${data.name}" data-url="${data.url}">
@@ -3336,8 +3398,10 @@ function loadAdminLinks() {
                 const name = btn.getAttribute('data-name');
                 const url = btn.getAttribute('data-url');
                 const icon = btn.getAttribute('data-icon');
+                const availableFrom = btn.getAttribute('data-from');
+                const availableUntil = btn.getAttribute('data-until');
                 
-                window.startEditLink(docId, name, url, icon);
+                window.startEditLink(docId, name, url, icon, availableFrom, availableUntil);
             });
         });
 
@@ -3636,10 +3700,13 @@ function initAtestadosManagement() {
                 btn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Processando...';
                 if (window.lucide) lucide.createIcons();
 
-                // 1. Atualizar Listas de Presença no Firestore (apenas se a lista do dia existir)
+                // 1. Atualizar Listas de Presença no Firestore
+                // - Se a lista do dia existir: atualiza o status do músico
+                // - Se for data futura sem lista: cria o documento com o atestado
                 console.log("📅 [Atestados] Integrando com o sistema de presenças...");
                 const dates = getDatesInRange(inicio, fim);
                 let updatedDates = [];
+                const today = new Date().toISOString().split('T')[0];
 
                 for (const date of dates) {
                     const presenceDocRef = doc(db, "presencas", date);
@@ -3662,7 +3729,36 @@ function initAtestadosManagement() {
                             });
                             updatedDates.push(date);
                         }
+                    } else if (date >= today) {
+                        // Data futura ainda sem lista iniciada: cria o documento com o atestado
+                        console.log(`📋 [Atestados] Criando registro futuro para ${date}...`);
+                        const registros = {};
+                        registros[musicianId] = { status: 'atestado', minutes: 0 };
+                        await setDoc(presenceDocRef, {
+                            registros: registros,
+                            ultimaAtualizacao: new Date().toISOString(),
+                            usuarioResponsavel: auth.currentUser.email || 'admin',
+                            criadoPorAtestado: true
+                        });
+                        updatedDates.push(date);
                     }
+                }
+
+                // 1.5. Salvar na coleção de homologados para futura referência/listas futuras
+                console.log("💾 [Atestados] Salvando homologação no banco...");
+                try {
+                    await addDoc(collection(db, "medicalCertificates_approved"), {
+                        musicianId: musicianId,
+                        nomeMusico: selectedMusicoText,
+                        cid: cid || '',
+                        dias: parseInt(dias) || 0,
+                        dataInicio: inicio,
+                        dataFim: fim,
+                        resumo: resumo || '',
+                        createdAt: new Date().toISOString()
+                    });
+                } catch (dbErr) {
+                    console.error("⚠️ [Atestados] Erro ao salvar atestado homologado:", dbErr);
                 }
 
                 // 2. Criar Log de Auditoria
@@ -5454,10 +5550,11 @@ function initMusiciansManagement() {
             // Filtro EMM (Angela): ignorar qualquer profissional cujo status contenha 'emm'
             if (status.includes('emm')) return;
 
-            // Filtro de segurança: ignorar Angela De Santi Pernambuco de forma definitiva
+            // Filtro de segurança: ignorar Angela De Santi Pernambuco e Pedro Luís Silva Pernambuco de forma definitiva
             const nomeRegLower = (m['NOME REGISTRO'] || '').toLowerCase();
             const nomeArtLower = (m.NOMEARTISTICO || '').toLowerCase();
             if (nomeRegLower.includes('angela de santi') || nomeArtLower.includes('angela de santi')) return;
+            if (nomeRegLower.includes('pedro luís silva') || nomeRegLower.includes('pedro luis silva') || nomeArtLower.includes('pedro pernambuco')) return;
 
             // Ignorar músicos desligados ou inativos
             if (status.includes('desligado') || m.statusFirebase === 'desligado' || m.statusFirebase === 'inativo') return;
@@ -5588,7 +5685,10 @@ function initMusiciansManagement() {
         const ordemCargos = ["Coordenador Artístico", "Inspetor", "Produtor de Palco", "Montadores"];
         ordemCargos.forEach(cargo => {
             const list = equipeTecnica[cargo] || [];
-            if (list.length > 0) {
+            if (cargo === "Coordenador Artístico") {
+                // Deixa em branco (sem nomes após o cargo)
+                partes.push(`**${cargo}**`);
+            } else if (list.length > 0) {
                 if (cargo === "Montadores") {
                     partes.push(`Montadores ${formatarGrupoNomesHTML(list)}`);
                 } else {
@@ -5651,7 +5751,10 @@ function initMusiciansManagement() {
         const ordemCargos = ["Coordenador Artístico", "Inspetor", "Produtor de Palco", "Montadores"];
         ordemCargos.forEach(cargo => {
             const list = equipeTecnica[cargo] || [];
-            if (list.length > 0) {
+            if (cargo === "Coordenador Artístico") {
+                // Deixa em branco (sem nomes após o cargo)
+                corpoPartes.push(`<strong>${cargo}</strong>`);
+            } else if (list.length > 0) {
                 if (cargo === "Montadores") {
                     corpoPartes.push(`Montadores ${formatarGrupoNomesHTML(list)}`);
                 } else {
@@ -5725,7 +5828,10 @@ function initMusiciansManagement() {
         const ordemCargos = ["Coordenador Artístico", "Inspetor", "Produtor de Palco", "Montadores"];
         ordemCargos.forEach(cargo => {
             const list = equipeTecnica[cargo] || [];
-            if (list.length > 0) {
+            if (cargo === "Coordenador Artístico") {
+                // Deixa em branco (sem nomes após o cargo)
+                html += `<strong>${cargo}</strong><br><br>`;
+            } else if (list.length > 0) {
                 html += `<strong>${cargo}</strong><br>`;
                 if (cargo === "Montadores") {
                     html += `${formatarGrupoNomesHTML(list)}<br><br>`;
@@ -7373,5 +7479,295 @@ function initCopyableFields() {
     // Atualizar os ícones lucide recém inseridos
     if (window.lucide) {
         window.lucide.createIcons();
+    }
+}
+
+// ================= LOGIN BIOMÉTRICO (WEBAUTHN / PASSKEYS) =================
+
+// Helpers de conversão Base64URL <-> ArrayBuffer
+function base64urlToArrayBuffer(base64url) {
+    const padding = '='.repeat((4 - base64url.length % 4) % 4);
+    const base64 = (base64url + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray.buffer;
+}
+
+function arrayBufferToBase64url(buffer) {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+    }
+    const base64 = window.btoa(binary);
+    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+async function initBiometrics(user) {
+    const btnBiometricLogin = document.getElementById('btn-biometric-login');
+    const btnRegisterBiometry = document.getElementById('btn-register-biometry');
+    const biometricStatusDesc = document.getElementById('biometric-status-desc');
+    const biometryError = document.getElementById('biometry-error');
+    const biometrySuccess = document.getElementById('biometry-success');
+    
+    // Elementos do Modal de Prompt/Incentivo
+    const biometricPromptModal = document.getElementById('biometric-prompt-modal');
+    const btnBiometricPromptCancel = document.getElementById('btn-biometric-prompt-cancel');
+    const btnBiometricPromptActivate = document.getElementById('btn-biometric-prompt-activate');
+
+    // Verificar suporte do navegador a autenticadores locais (biometria)
+    const isBiometrySupported = window.PublicKeyCredential && 
+        (typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function') &&
+        await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+
+    if (!isBiometrySupported) {
+        console.log('[Biometria] Dispositivo/Navegador não suporta biometria local.');
+        if (btnBiometricLogin) btnBiometricLogin.classList.add('hidden');
+        if (biometricStatusDesc) biometricStatusDesc.textContent = 'Este dispositivo ou navegador não suporta login biométrico.';
+        if (btnRegisterBiometry) btnRegisterBiometry.disabled = true;
+        return;
+    }
+
+    if (user) {
+        // --- USUÁRIO LOGADO ---
+        if (btnBiometricLogin) btnBiometricLogin.classList.add('hidden'); // Ocultar botão de login
+
+        // Configurar botão de Registro no Modal de Ajustes
+        const userEmail = user.email;
+        const registeredEmail = localStorage.getItem('biometrics_email');
+        const isRegistered = localStorage.getItem('biometrics_registered') === 'true' && registeredEmail === userEmail;
+
+        if (isRegistered) {
+            if (biometricStatusDesc) biometricStatusDesc.textContent = `Biometria ativa neste dispositivo para o e-mail: ${userEmail}`;
+            if (btnRegisterBiometry) {
+                btnRegisterBiometry.innerHTML = '<i data-lucide="refresh-cw"></i> Recadastrar';
+                btnRegisterBiometry.className = 'btn-outline';
+            }
+        } else {
+            if (biometricStatusDesc) biometricStatusDesc.textContent = 'Faça o cadastro da biometria deste dispositivo para fazer login rápido.';
+            if (btnRegisterBiometry) {
+                btnRegisterBiometry.innerHTML = '<i data-lucide="plus-circle"></i> Cadastrar';
+                btnRegisterBiometry.className = 'btn-primary';
+                btnRegisterBiometry.style.padding = '0.5rem 1rem';
+                btnRegisterBiometry.style.fontSize = '0.85rem';
+            }
+
+            // Banner/Prompt de incentivo pós-login (apenas se ainda não recusado nesta sessão do navegador)
+            const promptDismissed = sessionStorage.getItem('biometrics_prompt_dismissed') === 'true';
+            if (!promptDismissed && biometricPromptModal) {
+                setTimeout(() => {
+                    biometricPromptModal.style.display = 'flex';
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                }, 1500);
+            }
+        }
+
+        // Listener de Registro (Ajustes)
+        if (btnRegisterBiometry && !btnRegisterBiometry._hasListener) {
+            btnRegisterBiometry._hasListener = true;
+            btnRegisterBiometry.addEventListener('click', () => registerFlow(userEmail));
+        }
+
+        // Listener do Prompt de Incentivo
+        if (btnBiometricPromptCancel && !btnBiometricPromptCancel._hasListener) {
+            btnBiometricPromptCancel._hasListener = true;
+            btnBiometricPromptCancel.addEventListener('click', () => {
+                biometricPromptModal.style.display = 'none';
+                sessionStorage.setItem('biometrics_prompt_dismissed', 'true');
+            });
+        }
+
+        if (btnBiometricPromptActivate && !btnBiometricPromptActivate._hasListener) {
+            btnBiometricPromptActivate._hasListener = true;
+            btnBiometricPromptActivate.addEventListener('click', async () => {
+                biometricPromptModal.style.display = 'none';
+                await registerFlow(userEmail);
+            });
+        }
+
+    } else {
+        // --- USUÁRIO DESLOGADO ---
+        const registeredEmail = localStorage.getItem('biometrics_email');
+        const isRegistered = localStorage.getItem('biometrics_registered') === 'true' && registeredEmail;
+
+        if (isRegistered && btnBiometricLogin) {
+            btnBiometricLogin.classList.remove('hidden');
+            btnBiometricLogin.innerHTML = `<i data-lucide="fingerprint"></i> Entrar como ${registeredEmail}`;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+            
+            // Listener de Login Biométrico
+            if (!btnBiometricLogin._hasListener) {
+                btnBiometricLogin._hasListener = true;
+                btnBiometricLogin.addEventListener('click', () => loginBiometricFlow(registeredEmail));
+            }
+        } else {
+            if (btnBiometricLogin) btnBiometricLogin.classList.add('hidden');
+        }
+    }
+
+    // --- FUNÇÃO DO FLUXO DE REGISTRO ---
+    async function registerFlow(email) {
+        if (biometryError) biometryError.textContent = '';
+        if (biometrySuccess) biometrySuccess.textContent = '';
+        if (btnRegisterBiometry) btnRegisterBiometry.disabled = true;
+
+        try {
+            const generateOptionsFn = httpsCallable(functions, 'generateRegistrationOptions');
+            const verifyRegistrationFn = httpsCallable(functions, 'verifyRegistration');
+
+            // 1. Obter opções do backend
+            const optionsResponse = await generateOptionsFn();
+            const options = optionsResponse.data;
+
+            // 2. Ajustar dados binários vindos do JSON (Base64URL) para ArrayBuffer
+            options.challenge = base64urlToArrayBuffer(options.challenge);
+            options.user.id = base64urlToArrayBuffer(options.user.id);
+            if (options.excludeCredentials) {
+                options.excludeCredentials = options.excludeCredentials.map(cred => ({
+                    ...cred,
+                    id: base64urlToArrayBuffer(cred.id)
+                }));
+            }
+
+            // 3. Chamar a API nativa do navegador
+            const credential = await navigator.credentials.create({
+                publicKey: options
+            });
+
+            if (!credential) {
+                throw new Error('O navegador não retornou a credencial biométrica.');
+            }
+
+            // 4. Preparar payload para o backend (converter buffers para Base64URL)
+            const response = credential.response;
+            const registrationResponsePayload = {
+                id: credential.id,
+                rawId: arrayBufferToBase64url(credential.rawId),
+                type: credential.type,
+                response: {
+                    attestationObject: arrayBufferToBase64url(response.attestationObject),
+                    clientDataJSON: arrayBufferToBase64url(response.clientDataJSON),
+                    transports: typeof response.getTransports === 'function' ? response.getTransports() : []
+                }
+            };
+
+            // 5. Enviar para verificação
+            const verifyResponse = await verifyRegistrationFn({
+                registrationResponse: registrationResponsePayload
+            });
+
+            if (verifyResponse.data && verifyResponse.data.verified) {
+                localStorage.setItem('biometrics_registered', 'true');
+                localStorage.setItem('biometrics_email', email);
+                
+                if (biometrySuccess) biometrySuccess.textContent = 'Biometria cadastrada com sucesso!';
+                if (biometricStatusDesc) biometricStatusDesc.textContent = `Biometria ativa neste dispositivo para o e-mail: ${email}`;
+                if (btnRegisterBiometry) {
+                    btnRegisterBiometry.innerHTML = '<i data-lucide="refresh-cw"></i> Recadastrar';
+                    btnRegisterBiometry.className = 'btn-outline';
+                }
+                sessionStorage.setItem('biometrics_prompt_dismissed', 'true');
+            } else {
+                throw new Error('O servidor não pôde verificar a biometria.');
+            }
+
+        } catch (err) {
+            console.error('[Biometria] Erro no registro:', err);
+            let msg = 'Erro ao cadastrar biometria.';
+            if (err.name === 'NotAllowedError') {
+                msg = 'O cadastro foi cancelado ou negado pelo usuário.';
+            } else if (err.message) {
+                msg = err.message;
+            }
+            if (biometryError) biometryError.textContent = msg;
+        } finally {
+            if (btnRegisterBiometry) btnRegisterBiometry.disabled = false;
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+    }
+
+    // --- FUNÇÃO DO FLUXO DE LOGIN ---
+    async function loginBiometricFlow(email) {
+        const errorMsg = document.getElementById('login-error');
+        if (errorMsg) errorMsg.textContent = '';
+        if (btnBiometricLogin) {
+            btnBiometricLogin.disabled = true;
+            btnBiometricLogin.innerHTML = '<i data-lucide="loader-2" style="width: 14px; height: 14px;" class="animate-spin"></i> Conectando...';
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        try {
+            const generateAuthOptionsFn = httpsCallable(functions, 'generateAuthenticationOptions');
+            const verifyAuthenticationFn = httpsCallable(functions, 'verifyAuthentication');
+
+            // 1. Obter opções de autenticação
+            const optionsResponse = await generateAuthOptionsFn({ email });
+            const options = optionsResponse.data;
+
+            // 2. Converter chaves binárias (Base64URL) para ArrayBuffer
+            options.challenge = base64urlToArrayBuffer(options.challenge);
+            if (options.allowCredentials) {
+                options.allowCredentials = options.allowCredentials.map(cred => ({
+                    ...cred,
+                    id: base64urlToArrayBuffer(cred.id)
+                }));
+            }
+
+            // 3. Solicitar biometria no dispositivo
+            const assertion = await navigator.credentials.get({
+                publicKey: options
+            });
+
+            if (!assertion) {
+                throw new Error('Falha ao ler dados da biometria.');
+            }
+
+            // 4. Preparar payload de asserção para o backend
+            const response = assertion.response;
+            const assertionResponsePayload = {
+                id: assertion.id,
+                rawId: arrayBufferToBase64url(assertion.rawId),
+                type: assertion.type,
+                response: {
+                    authenticatorData: arrayBufferToBase64url(response.authenticatorData),
+                    clientDataJSON: arrayBufferToBase64url(response.clientDataJSON),
+                    signature: arrayBufferToBase64url(response.signature),
+                    userHandle: response.userHandle ? arrayBufferToBase64url(response.userHandle) : null
+                }
+            };
+
+            // 5. Enviar para verificação no backend e receber o Custom Token
+            const verifyResponse = await verifyAuthenticationFn({
+                email,
+                authenticationResponse: assertionResponsePayload
+            });
+
+            if (verifyResponse.data && verifyResponse.data.verified && verifyResponse.data.customToken) {
+                // 6. Logar no Firebase usando o Custom Token
+                await signInWithCustomToken(auth, verifyResponse.data.customToken);
+            } else {
+                throw new Error('Falha na autenticação do servidor.');
+            }
+
+        } catch (err) {
+            console.error('[Biometria] Erro no login:', err);
+            let msg = 'Erro ao autenticar com biometria.';
+            if (err.name === 'NotAllowedError') {
+                msg = 'Login biométrico cancelado pelo usuário.';
+            } else if (err.message) {
+                msg = err.message;
+            }
+            if (errorMsg) errorMsg.textContent = msg;
+            triggerShake();
+        } finally {
+            if (btnBiometricLogin) {
+                btnBiometricLogin.disabled = false;
+                btnBiometricLogin.innerHTML = `<i data-lucide="fingerprint"></i> Entrar com biometria`;
+            }
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
     }
 }
