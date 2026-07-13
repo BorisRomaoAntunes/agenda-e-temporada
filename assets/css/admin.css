@@ -251,6 +251,10 @@ button, a, [role="button"], input[type="submit"], input[type="button"], label {
     display: none;
 }
 
+.hidden {
+    display: none !important;
+}
+
 .recovery-view,
 .success-view {
     text-align: center;
@@ -3041,17 +3045,24 @@ button, a, [role="button"], input[type="submit"], input[type="button"], label {
 /* MODAL DE ATESTADO - LAYOUT PREMIUM */
 .atestado-modal-body {
     display: grid;
-    grid-template-areas: 
-        "preview form"
-        "preview actions";
+    grid-template-areas: "preview sidebar";
     grid-template-columns: 1fr 420px;
-    grid-template-rows: 1fr auto; /* O formulário ocupa o topo, ações ancoradas na base */
     gap: 1.5rem 2.5rem;
     padding: 2rem;
     height: 75vh; /* Fallback para browsers antigos */
     height: 75dvh; /* dvh: não muda quando barra de URL do iOS aparece/some */
     max-height: 800px;
     overflow: hidden; /* Remove scroll do container principal */
+}
+
+.atestado-sidebar {
+    grid-area: sidebar;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow-y: auto;
+    gap: 1.5rem;
+    padding-right: 0.5rem;
 }
 
 .atestado-preview-container {
@@ -3148,15 +3159,23 @@ button, a, [role="button"], input[type="submit"], input[type="button"], label {
         overflow: visible; /* Evita scroll no corpo principal */
     }
     
-    .atestado-data-form {
+    .atestado-sidebar {
         order: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        height: auto;
+        overflow: visible;
+        padding-right: 0;
+    }
+
+    .atestado-data-form {
         grid-template-columns: 1fr 1fr; /* Mantém 2 colunas para CID/Dias se houver espaço */
         gap: 0.8rem;
         flex: 0 0 auto; /* Ocupa apenas o necessário */
     }
 
     .atestado-modal-actions {
-        order: 2; /* Botão agora vem antes do PDF */
         margin-top: 0;
         padding: 0.8rem 0;
         border-top: 1px solid rgba(0,0,0,0.05);
@@ -3164,7 +3183,7 @@ button, a, [role="button"], input[type="submit"], input[type="button"], label {
     }
 
     .atestado-preview-container {
-        order: 3; /* PDF por último no mobile */
+        order: 2; /* PDF por último no mobile */
         flex: none; /* Ocupa o restante do espaço disponível */
         height: 400px; 
         min-height: 200px;
@@ -4815,3 +4834,223 @@ input:checked + .slider:before {
     height: 28px !important;
     margin-bottom: 0.75rem;
 }
+
+/* ==========================================================================
+   Estilos Personalizados para o Cronômetro do Intervalo
+   ========================================================================== */
+
+.admin-interval-card {
+    background: var(--admin-card-bg);
+    border: 1px solid #eef2f6;
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-top: 1rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.01);
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.admin-interval-card:hover {
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
+    border-color: rgba(139, 0, 0, 0.15);
+}
+
+.admin-interval-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.admin-interval-icon-wrapper {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 165, 0, 0.15) 100%);
+    color: #b8860b;
+    width: 46px;
+    height: 46px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.2);
+}
+
+.admin-interval-title {
+    margin: 0;
+    font-size: 1.15rem;
+    color: var(--text-primary);
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.admin-interval-subtitle {
+    margin: 0.15rem 0 0 0;
+    font-size: 0.825rem;
+    color: var(--text-secondary);
+}
+
+.admin-interval-controls {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.2rem;
+    border-top: 1px solid #f1f3f5;
+    border-bottom: 1px solid #f1f3f5;
+    padding: 1.2rem 0;
+    margin-bottom: 1.2rem;
+}
+
+@media (max-width: 480px) {
+    .admin-interval-controls {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+}
+
+.admin-interval-control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.admin-interval-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.admin-interval-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    padding: 0.35rem 0.75rem;
+    border-radius: 20px;
+    background-color: #e5e7eb;
+    color: #4b5563;
+    width: fit-content;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+}
+
+.admin-interval-input-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.admin-interval-input {
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    border-radius: 8px;
+    border: 1.5px solid #e2e8f0;
+    background: #ffffff;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: center;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+}
+
+.admin-interval-input:focus {
+    border-color: var(--primary-color);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(139, 0, 0, 0.1);
+}
+
+.admin-interval-info-banner {
+    background: linear-gradient(135deg, rgba(138, 43, 226, 0.03) 0%, rgba(138, 43, 226, 0.07) 100%);
+    border: 1px solid rgba(138, 43, 226, 0.15);
+    border-radius: 12px;
+    padding: 1rem 1.2rem;
+    margin-bottom: 1.2rem;
+    animation: fadeInSlideUp 0.3s ease-out;
+}
+
+@keyframes fadeInSlideUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.admin-interval-info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.875rem;
+}
+
+.admin-interval-info-row:not(:last-child) {
+    margin-bottom: 0.5rem;
+    border-bottom: 1px dashed rgba(138, 43, 226, 0.1);
+    padding-bottom: 0.5rem;
+}
+
+.admin-interval-info-label {
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.admin-interval-info-val {
+    color: var(--text-primary);
+    font-weight: 700;
+}
+
+.admin-interval-btn-start {
+    width: 100%;
+    background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+    border: none;
+    color: white;
+    font-weight: 600;
+    font-size: 0.95rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.admin-interval-btn-start:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(16, 185, 129, 0.3);
+    filter: brightness(1.05);
+}
+
+.admin-interval-btn-start:active {
+    transform: translateY(1px);
+    box-shadow: 0 2px 6px rgba(16, 185, 129, 0.2);
+}
+
+.admin-interval-btn-stop {
+    width: 100%;
+    background: transparent;
+    border: 1.5px solid #EF4444;
+    color: #EF4444;
+    font-weight: 600;
+    font-size: 0.95rem;
+    padding: 0.72rem 1.5rem;
+    border-radius: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.admin-interval-btn-stop:hover {
+    background-color: rgba(239, 68, 68, 0.05);
+    border-color: #DC2626;
+    color: #DC2626;
+    transform: translateY(-1px);
+}
+
+.admin-interval-btn-stop:active {
+    transform: translateY(1px);
+}
+

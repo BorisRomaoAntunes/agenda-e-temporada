@@ -75,6 +75,9 @@
                     <button type="submit" class="btn-primary" id="btn-login">
                         Entrar <i data-lucide="arrow-right"></i>
                     </button>
+                    <button type="button" class="btn-outline hidden" id="btn-biometric-login" style="margin-top: 12px; justify-content: center; width: 100%;">
+                        <i data-lucide="fingerprint"></i> Entrar com Face ID / Touch ID
+                    </button>
                     <div id="login-error" class="error-msg"></div>
                     <div id="login-countdown" class="countdown-overlay" style="display: none;">
                         <i data-lucide="timer"></i>
@@ -198,6 +201,55 @@
                          <i data-lucide="file-text"></i>
                      </a>
                  </div>
+
+                 <!-- Card para o Cronômetro do Intervalo -->
+                  <div class="admin-interval-card">
+                      <div class="admin-interval-header">
+                          <div class="admin-interval-icon-wrapper">
+                              <i data-lucide="timer" style="width: 22px; height: 22px;"></i>
+                          </div>
+                          <div>
+                              <h4 class="admin-interval-title">Cronômetro do Intervalo</h4>
+                              <p class="admin-interval-subtitle">Controle em tempo real no site dos músicos</p>
+                          </div>
+                      </div>
+
+                      <div class="admin-interval-controls">
+                          <div class="admin-interval-control-group">
+                              <span class="admin-interval-label">Status do Cronômetro</span>
+                              <span id="interval-status-badge" class="admin-interval-badge">
+                                  <i data-lucide="circle" style="width: 8px; height: 8px; fill: currentColor;"></i> Inativo
+                              </span>
+                          </div>
+                          <div class="admin-interval-control-group" style="text-align: right; align-items: flex-end;">
+                              <label for="interval-duration-input" class="admin-interval-label">Duração (minutos)</label>
+                              <div class="admin-interval-input-wrapper" style="width: 90px;">
+                                  <input type="number" id="interval-duration-input" class="admin-interval-input" value="25" min="1" max="180">
+                              </div>
+                          </div>
+                      </div>
+
+                      <!-- Detalhes do Horário de Início e Retorno -->
+                      <div id="interval-admin-info" class="admin-interval-info-banner" style="display: none;">
+                          <div class="admin-interval-info-row">
+                              <span class="admin-interval-info-label">Iniciado às:</span>
+                              <strong id="interval-start-time" class="admin-interval-info-val">-</strong>
+                          </div>
+                          <div class="admin-interval-info-row">
+                              <span class="admin-interval-info-label">Retorno do ensaio:</span>
+                              <strong id="interval-end-time" class="admin-interval-info-val" style="color: var(--primary-color);">-</strong>
+                          </div>
+                      </div>
+
+                      <div style="display: flex; gap: 1rem; width: 100%;">
+                          <button class="admin-interval-btn-start" id="btn-interval-start">
+                              <i data-lucide="play"></i> Iniciar Intervalo
+                          </button>
+                          <button class="admin-interval-btn-stop" id="btn-interval-stop" style="display: none;">
+                              <i data-lucide="square"></i> Parar Cronômetro
+                          </button>
+                      </div>
+                  </div>
 
                 <!-- Gráfico de Engajamento dos Últimos Dias -->
                 <div class="subscriber-count-card engagement-chart-card" style="margin-top: 1rem; display: block; padding: 1.5rem;">
@@ -517,6 +569,17 @@
                         </div>
                     </div>
 
+                    <div class="version-input-wrapper" style="margin-bottom: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 200px;">
+                            <label for="link-available-from">Disponível a partir de (Opcional)</label>
+                            <input type="datetime-local" id="link-available-from" class="version-input" style="width: 100%;">
+                        </div>
+                        <div style="flex: 1; min-width: 200px;">
+                            <label for="link-available-until">Disponível até (Opcional)</label>
+                            <input type="datetime-local" id="link-available-until" class="version-input" style="width: 100%;">
+                        </div>
+                    </div>
+
                     <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin-top: 1rem;">
                         <button class="btn-primary" id="btn-create-link" style="flex: 1;">
                             <i data-lucide="plus"></i> Criar Botão
@@ -526,6 +589,8 @@
                         </button>
                     </div>
                 </div>
+
+
 
                 <div id="admin-links-list-wrapper" class="admin-notif-wrapper">
                     <div class="logs-header">
@@ -1146,6 +1211,36 @@ Intervalo
                         </div>
                     </div>
                 </div>
+                
+                <!-- Seção: Login Biométrico -->
+                <div class="security-section" style="margin-top: 1.5rem;">
+                    <div class="security-header" id="biometrics-settings-header" style="cursor: default;">
+                        <div class="security-header-info">
+                            <div class="security-icon-bg" style="background: rgba(0, 102, 204, 0.1); color: #0066cc;">
+                                <i data-lucide="fingerprint"></i>
+                            </div>
+                            <div>
+                                <h4>Biometria (Face ID / Touch ID)</h4>
+                                <p>Gerencie o login biométrico neste dispositivo</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="security-content active" style="padding: 1rem 0 0 0; display: block;">
+                        <div class="settings-item" style="border: none; padding: 0; display: flex; align-items: center; justify-content: space-between;">
+                            <div class="settings-item-info">
+                                <div>
+                                    <h5 style="margin: 0 0 0.25rem 0; font-size: 0.95rem; font-weight: 600; color: var(--text-primary);">Acesso por Biometria</h5>
+                                    <p id="biometric-status-desc" style="margin: 0; font-size: 0.85rem; color: var(--text-secondary);">Cadastre a biometria deste dispositivo para fazer login rápido.</p>
+                                </div>
+                            </div>
+                            <button type="button" class="btn-outline" id="btn-register-biometry" style="padding: 0.5rem 0.75rem; font-size: 0.85rem;">
+                                <i data-lucide="plus-circle"></i> Cadastrar
+                            </button>
+                        </div>
+                        <div id="biometry-error" class="security-error-msg" style="margin-top: 0.5rem; color: #ff3b30; font-size: 0.85rem;"></div>
+                        <div id="biometry-success" class="security-success-msg" style="margin-top: 0.5rem; color: #2e8b57; font-size: 0.85rem;"></div>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <p><i data-lucide="info"></i> As alterações são aplicadas instantaneamente para todos os músicos.</p>
@@ -1241,56 +1336,83 @@ Intervalo
                 <div class="atestado-preview-container">
                     <iframe id="atestado-pdf-viewer" src="" frameborder="0"></iframe>
                 </div>
-                <div class="atestado-data-form">
-                    <input type="hidden" id="atestado-edit-id">
-                    
-                    <div class="atestado-field-nome" style="grid-column: span 2;">
-                        <label>Nome do Músico (Extraído pela IA / Editável)</label>
-                        <input type="text" id="atestado-edit-nome" class="version-input" placeholder="Nome completo">
+                
+                <div class="atestado-sidebar">
+                    <div class="atestado-data-form">
+                        <input type="hidden" id="atestado-edit-id">
+                        
+                        <div class="atestado-field-nome" style="grid-column: span 2;">
+                            <label>Nome do Músico (Extraído pela IA / Editável)</label>
+                            <input type="text" id="atestado-edit-nome" class="version-input" placeholder="Nome completo">
+                        </div>
+
+                        <div class="atestado-field-musico" style="grid-column: span 2; margin-top: 0.5rem;">
+                            <label>Vincular ao Músico do Sistema <span style="color: red;">*</span></label>
+                            <select id="atestado-select-musico" class="version-input" style="height: 45px; border-radius: 8px;">
+                                <option value="">-- Selecione o Músico --</option>
+                            </select>
+                        </div>
+                        
+                        <div class="atestado-field-cid">
+                            <label>CID</label>
+                            <input type="text" id="atestado-edit-cid" class="version-input" placeholder="Ex: Z02.7">
+                        </div>
+
+                        <div class="atestado-field-dias">
+                            <label>Duração (Dias)</label>
+                            <input type="number" id="atestado-edit-dias" class="version-input" placeholder="0">
+                        </div>
+
+                        <div class="atestado-field-inicio">
+                            <label>Início do Afastamento</label>
+                            <input type="date" id="atestado-edit-inicio" class="version-input">
+                        </div>
+
+                        <div class="atestado-field-fim">
+                            <label>Fim do Afastamento</label>
+                            <input type="date" id="atestado-edit-fim" class="version-input readonly-field" readonly>
+                        </div>
+
+                        <div class="atestado-field-resumo">
+                            <label>Resumo da Condição / Explicação do CID</label>
+                            <textarea id="atestado-edit-resumo" class="version-input" rows="4" placeholder="Explicação gerada pela IA..."></textarea>
+                        </div>
                     </div>
 
-                    <div class="atestado-field-musico" style="grid-column: span 2; margin-top: 0.5rem;">
-                        <label>Vincular ao Músico do Sistema <span style="color: red;">*</span></label>
-                        <select id="atestado-select-musico" class="version-input" style="height: 45px; border-radius: 8px;">
-                            <option value="">-- Selecione o Músico --</option>
-                        </select>
-                    </div>
-                    
-                    <div class="atestado-field-cid">
-                        <label>CID</label>
-                        <input type="text" id="atestado-edit-cid" class="version-input" placeholder="Ex: Z02.7">
-                    </div>
-
-                    <div class="atestado-field-dias">
-                        <label>Duração (Dias)</label>
-                        <input type="number" id="atestado-edit-dias" class="version-input" placeholder="0">
-                    </div>
-
-                    <div class="atestado-field-inicio">
-                        <label>Início do Afastamento</label>
-                        <input type="date" id="atestado-edit-inicio" class="version-input">
-                    </div>
-
-                    <div class="atestado-field-fim">
-                        <label>Fim do Afastamento</label>
-                        <input type="date" id="atestado-edit-fim" class="version-input readonly-field" readonly>
-                    </div>
-
-                    <div class="atestado-field-resumo">
-                        <label>Resumo da Condição / Explicação do CID</label>
-                        <textarea id="atestado-edit-resumo" class="version-input" rows="4" placeholder="Explicação gerada pela IA..."></textarea>
+                    <div class="atestado-modal-actions">
+                        <button class="btn-outline-cancel" id="btn-delete-only-atestado" style="justify-content: center; height: 50px; font-size: 1.1rem; width: 100%;">
+                            <i data-lucide="trash-2"></i> Apagar Atestado Sem Adicionar na Lista
+                        </button>
+                        <button class="btn-robot-ai" id="btn-download-delete-atestado" style="justify-content: center; height: 50px; font-size: 1.1rem; width: 100%;">
+                            <i data-lucide="download-cloud"></i> Baixar e Adicionar na Lista de Presença OER
+                        </button>
+                        <p style="font-size: 0.75rem; color: #888; text-align: center; margin-top: 0.5rem;">
+                            <i data-lucide="shield-alert" style="width: 12px; height: 12px;"></i> 
+                            Ao clicar em Baixar e Adicionar, o arquivo e os dados serão removidos permanentemente para garantir a privacidade.
+                        </p>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
 
-                <div class="atestado-modal-actions">
-                    <button class="btn-robot-ai" id="btn-download-delete-atestado" style="justify-content: center; height: 50px; font-size: 1.1rem; width: 100%;">
-                        <i data-lucide="download-cloud"></i> Baixar e Adicionar na Lista de Presença OER
-                    </button>
-                    <p style="font-size: 0.75rem; color: #888; text-align: center; margin-top: 0.5rem;">
-                        <i data-lucide="shield-alert" style="width: 12px; height: 12px;"></i> 
-                        Ao clicar em Baixar e Adicionar, o arquivo e os dados serão removidos permanentemente para garantir a privacidade.
-                    </p>
-                </div>
+    <!-- Modal de Incentivo para Biometria -->
+    <div id="biometric-prompt-modal" class="modal-overlay" style="display: none; z-index: 10000; align-items: center; justify-content: center;">
+        <div class="settings-modal-card" style="max-width: 400px; text-align: center; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.15);">
+            <div style="background: rgba(0, 102, 204, 0.1); color: #0066cc; width: 64px; height: 64px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem auto;">
+                <i data-lucide="fingerprint" style="width: 32px; height: 32px;"></i>
+            </div>
+            <h3 style="margin-bottom: 0.5rem; font-size: 1.25rem; font-weight: 600; color: var(--text-primary);">Login por Biometria</h3>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.5; margin-bottom: 1.5rem;">
+                Identificamos que este dispositivo suporta Face ID ou Touch ID. Deseja ativar o login biométrico para facilitar seus próximos acessos neste navegador?
+            </p>
+            <div style="display: flex; gap: 10px; justify-content: center;">
+                <button type="button" class="btn-outline" id="btn-biometric-prompt-cancel" style="flex: 1; justify-content: center;">
+                    Agora não
+                </button>
+                <button type="button" class="btn-primary" id="btn-biometric-prompt-activate" style="flex: 1; justify-content: center;">
+                    Ativar
+                </button>
             </div>
         </div>
     </div>
