@@ -114,45 +114,34 @@ let isNotificationsEnabled = true; // Estado global das notificações push
 onAuthStateChanged(auth, (user) => {
     if (user) {
         // Logado
-        if (loginContainer) loginContainer.classList.remove('active');
-        if (dashboardContainer) dashboardContainer.classList.add('active');
-        const emailEl = document.getElementById('user-email');
-        if (emailEl) emailEl.textContent = user.email || '';
-
-        const safeInit = (fnName, fn) => {
-            try {
-                if (typeof fn === 'function') fn();
-            } catch (err) {
-                console.error(`[Admin Init] Erro em ${fnName}:`, err);
-            }
-        };
-
-        safeInit("initToggleListener", initToggleListener);
-        safeInit("initSubscriberCounter", initSubscriberCounter);
-        safeInit("setupChartFilters", setupChartFilters);
-        safeInit("initEngagementChart", initEngagementChart);
-        safeInit("loadLogs", loadLogs);
-        safeInit("loadAdminNotifications", loadAdminNotifications);
-        safeInit("setupLinks", setupLinks);
-        safeInit("setupIntervalTimer", setupIntervalTimer);
-        safeInit("initManualRobot", initManualRobot);
-        safeInit("initLogFilters", initLogFilters);
-        safeInit("initLogSearch", initLogSearch);
-        safeInit("initLogRetryListener", initLogRetryListener);
-        safeInit("initScheduleUI", initScheduleUI);
-        safeInit("initSettingsModal", initSettingsModal);
-        safeInit("initEditNotifModal", initEditNotifModal);
-        safeInit("initEmulatorToggle", initEmulatorToggle);
-        safeInit("syncTickerWithLatest", syncTickerWithLatest);
-        safeInit("initAtestadosManagement", initAtestadosManagement);
-        safeInit("initCalendarManagement", initCalendarManagement);
-        safeInit("initMusiciansManagement", initMusiciansManagement);
-        safeInit("initSecuritySection", initSecuritySection);
-        safeInit("initBiometrics", () => initBiometrics(user));
+        loginContainer.classList.remove('active');
+        dashboardContainer.classList.add('active');
+        document.getElementById('user-email').textContent = user.email;
+        initToggleListener(); // Inicia o toggle só após autenticação
+        initSubscriberCounter(); // Inicia o contador de assinantes
+        setupChartFilters(); // Configura os filtros do gráfico de engajamento
+        initEngagementChart(); // Inicia o gráfico de engajamento com a quantidade padrão
+        loadLogs(); // Carrega o histórico de logs ao logar
+        loadAdminNotifications(); // Carrega a lista de notificações ativas
+        setupLinks(); // Inicia configurações e listagem dos links temporários
+        initManualRobot(); // Inicia o Robô OER Manual
+        initLogFilters(); // Inicia os filtros do histórico
+        initLogSearch();  // Inicia o campo de busca no histórico
+        initLogRetryListener(); // Inicia o listener de retentativas de sincronização nos logs de erro
+        initScheduleUI(); // Inicia a UI de agendamento de notificações
+        initSettingsModal(); // Inicia a lógica do modal de ajustes
+        initEditNotifModal(); // Inicia a lógica do modal de edição de notificações
+        initEmulatorToggle(); // Inicia o toggle de emulação
+        syncTickerWithLatest(); // Força sincronização do letreiro na inicialização
+        initAtestadosManagement(); // Inicia a gestão de atestados médicos (Fase 3)
+        initCalendarManagement(); // Inicia o módulo de calendário interativo
+        initMusiciansManagement(); // Inicia o gerenciamento de músicos (importação e busca reativa)
+        initSecuritySection(); // Inicia a seção de segurança da conta
+        initBiometrics(user); // Inicializa biometria (logado)
     } else {
         // Não logado
-        if (dashboardContainer) dashboardContainer.classList.remove('active');
-        if (loginContainer) loginContainer.classList.add('active');
+        dashboardContainer.classList.remove('active');
+        loginContainer.classList.add('active');
         if (unsubscribeToggle) { unsubscribeToggle(); unsubscribeToggle = null; }
         if (unsubscribeAppToggle) { unsubscribeAppToggle(); unsubscribeAppToggle = null; }
         if (unsubscribeSubscribers) { unsubscribeSubscribers(); unsubscribeSubscribers = null; }
@@ -163,11 +152,7 @@ onAuthStateChanged(auth, (user) => {
             window.engagementChartInstance.destroy();
             window.engagementChartInstance = null;
         }
-        try {
-            initBiometrics(null);
-        } catch (e) {
-            console.error("[Admin Init] Erro biometria deslogado:", e);
-        }
+        initBiometrics(null); // Inicializa biometria (não logado)
     }
 });
 
@@ -210,23 +195,23 @@ function startCountdown(seconds) {
     const countdownEl = document.getElementById('login-countdown');
     const countdownTime = document.getElementById('countdown-time');
     
-    if (btn) btn.disabled = true;
-    if (countdownEl) countdownEl.style.display = 'flex';
+    btn.disabled = true;
+    countdownEl.style.display = 'flex';
     let remaining = seconds;
-    if (countdownTime) countdownTime.textContent = remaining;
+    countdownTime.textContent = remaining;
     
     if (countdownInterval) clearInterval(countdownInterval);
     
     countdownInterval = setInterval(() => {
         remaining--;
-        if (countdownTime) countdownTime.textContent = remaining;
+        countdownTime.textContent = remaining;
         
         if (remaining <= 0) {
             clearInterval(countdownInterval);
             countdownInterval = null;
             isLoginBlocked = false;
-            if (btn) btn.disabled = false;
-            if (countdownEl) countdownEl.style.display = 'none';
+            btn.disabled = false;
+            countdownEl.style.display = 'none';
         }
     }, 1000);
     
@@ -234,73 +219,64 @@ function startCountdown(seconds) {
 }
 
 // Submit de Login (com proteção anti brute-force e mensagens PT-BR)
-if (loginForm) {
-    loginForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
+loginForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    if (isLoginBlocked) return;
+    
+    const email = document.getElementById('email').value;
+    const password = document.getElementById('password').value;
+    const btn = document.getElementById('btn-login');
+    const errorMsg = document.getElementById('login-error');
+
+    btn.disabled = true;
+    btn.innerHTML = 'Conectando...';
+    errorMsg.textContent = '';
+
+    try {
+        await signInWithEmailAndPassword(auth, email, password);
+        // Login com sucesso — reseta contador
+        loginAttempts = 0;
+    } catch (error) {
+        loginAttempts++;
+        const friendlyMsg = translateFirebaseError(error.code);
+        errorMsg.textContent = friendlyMsg;
+        console.error("Login erro completo:", error);
         
-        if (isLoginBlocked) return;
+        // Animação de shake
+        triggerShake();
         
-        const emailEl = document.getElementById('email');
-        const passwordEl = document.getElementById('password');
-        const btn = document.getElementById('btn-login');
-        const errorMsg = document.getElementById('login-error');
-
-        if (!emailEl || !passwordEl || !btn) return;
-
-        const email = emailEl.value.trim();
-        const password = passwordEl.value;
-
-        btn.disabled = true;
-        btn.innerHTML = 'Conectando...';
-        if (errorMsg) errorMsg.textContent = '';
-
-        try {
-            await signInWithEmailAndPassword(auth, email, password);
-            // Login com sucesso — reseta contador
-            loginAttempts = 0;
-        } catch (error) {
-            loginAttempts++;
-            const friendlyMsg = translateFirebaseError(error.code);
-            if (errorMsg) errorMsg.textContent = friendlyMsg;
-            console.error("Login erro completo:", error);
-            
-            // Animação de shake
-            triggerShake();
-            
-            // Brute-force protection
-            if (loginAttempts >= 5) {
-                startCountdown(120); // 2 minutos
-            } else if (loginAttempts >= 3) {
-                startCountdown(30); // 30 segundos
-            }
-        } finally {
-            if (!isLoginBlocked) {
-                btn.disabled = false;
-            }
-            btn.innerHTML = 'Entrar <i data-lucide="arrow-right"></i>';
-            if (typeof lucide !== 'undefined') lucide.createIcons();
+        // Brute-force protection
+        if (loginAttempts >= 5) {
+            startCountdown(120); // 2 minutos
+        } else if (loginAttempts >= 3) {
+            startCountdown(30); // 30 segundos
         }
-    });
-}
+    } finally {
+        if (!isLoginBlocked) {
+            btn.disabled = false;
+        }
+        btn.innerHTML = 'Entrar <i data-lucide="arrow-right"></i>';
+        lucide.createIcons();
+    }
+});
 
 // Logout
-if (btnLogout) btnLogout.addEventListener('click', () => signOut(auth));
+btnLogout.addEventListener('click', () => signOut(auth));
 
 // ================= TOGGLE PASSWORD =================
 const btnTogglePassword = document.getElementById('btn-toggle-password');
 const passwordInput = document.getElementById('password');
 
-if (btnTogglePassword && passwordInput) {
-    btnTogglePassword.addEventListener('click', () => {
-        const isPassword = passwordInput.type === 'password';
-        passwordInput.type = isPassword ? 'text' : 'password';
-        // Troca o ícone do olho
-        btnTogglePassword.innerHTML = isPassword 
-            ? '<i data-lucide="eye-off"></i>' 
-            : '<i data-lucide="eye"></i>';
-        if (typeof lucide !== 'undefined') lucide.createIcons();
-    });
-}
+btnTogglePassword.addEventListener('click', () => {
+    const isPassword = passwordInput.type === 'password';
+    passwordInput.type = isPassword ? 'text' : 'password';
+    // Troca o ícone do olho
+    btnTogglePassword.innerHTML = isPassword 
+        ? '<i data-lucide="eye-off"></i>' 
+        : '<i data-lucide="eye"></i>';
+    lucide.createIcons();
+});
 
 // ================= RECUPERAÇÃO DE SENHA =================
 
@@ -1263,23 +1239,6 @@ const btnSendNotif = document.getElementById('btn-send-notif');
 const inputNotifTitle = document.getElementById('notif-title');
 const inputNotifMessage = document.getElementById('notif-message');
 const inputNotifLink = document.getElementById('notif-link');
-const inputNotifLinkText = document.getElementById('notif-link-text');
-const charCountNotifLinkText = document.getElementById('notif-link-text-char-count');
-
-if (inputNotifLinkText && charCountNotifLinkText) {
-    inputNotifLinkText.addEventListener('input', () => {
-        charCountNotifLinkText.textContent = `${inputNotifLinkText.value.length}/30`;
-    });
-}
-
-const inputEditNotifLinkText = document.getElementById('edit-notif-link-text');
-const charCountEditNotifLinkText = document.getElementById('edit-notif-link-text-char-count');
-
-if (inputEditNotifLinkText && charCountEditNotifLinkText) {
-    inputEditNotifLinkText.addEventListener('input', () => {
-        charCountEditNotifLinkText.textContent = `${inputEditNotifLinkText.value.length}/30`;
-    });
-}
 
 // Lógica de Prévia da Imagem da Notificação
 if (inputNotifImage) {
@@ -1318,8 +1277,6 @@ if (btnSendNotif) {
         const title   = inputNotifTitle.value.trim();
         const message = inputNotifMessage.value.trim();
         const linkUrl = inputNotifLink ? inputNotifLink.value.trim() : '';
-        const inputNotifLinkText = document.getElementById('notif-link-text');
-        const linkText = inputNotifLinkText ? inputNotifLinkText.value.trim() : '';
 
         if (!title || !message) {
             showNotification('Por favor, preencha o título e a mensagem do aviso.', 'error');
@@ -1364,7 +1321,6 @@ if (btnSendNotif) {
                     message,
                     ...(imageUrl ? { imageUrl } : {}),
                     ...(linkUrl ? { linkUrl } : {}),
-                    ...(linkText ? { linkText } : {}),
                     scheduledAt: scheduleData.scheduledAt
                 });
 
@@ -1395,8 +1351,7 @@ if (btnSendNotif) {
                     sentBy: auth.currentUser ? auth.currentUser.email : 'admin',
                     ...(imageUrl ? { imageUrl } : {}),
                     ...(imageStoragePath ? { imageStoragePath } : {}),
-                    ...(linkUrl ? { linkUrl } : {}),
-                    ...(linkText ? { linkText } : {})
+                    ...(linkUrl ? { linkUrl } : {})
                 };
 
                 await addDoc(collection(db, 'adminNotifications'), notifData);
@@ -1414,10 +1369,6 @@ if (btnSendNotif) {
             inputNotifTitle.value   = '';
             inputNotifMessage.value = '';
             if (inputNotifLink) inputNotifLink.value = '';
-            if (inputNotifLinkText) {
-                inputNotifLinkText.value = '';
-                if (charCountNotifLinkText) charCountNotifLinkText.textContent = '0/30';
-            }
             if (btnRemoveNotifImage) btnRemoveNotifImage.click();
 
         } catch (error) {
@@ -1577,7 +1528,6 @@ function openEditNotifModal(docId, collectionName, data) {
     const titleInput = document.getElementById('edit-notif-title');
     const messageInput = document.getElementById('edit-notif-message');
     const linkInput = document.getElementById('edit-notif-link');
-    const linkTextInput = document.getElementById('edit-notif-link-text');
     const dateInput = document.getElementById('edit-notif-date');
     const idInput = document.getElementById('edit-notif-id');
     const collInput = document.getElementById('edit-notif-collection');
@@ -1610,13 +1560,6 @@ function openEditNotifModal(docId, collectionName, data) {
     messageInput.value = data.message || '';
     if (linkInput) {
         linkInput.value = data.linkUrl || '';
-    }
-    if (linkTextInput) {
-        linkTextInput.value = data.linkText || '';
-        const charCountEdit = document.getElementById('edit-notif-link-text-char-count');
-        if (charCountEdit) {
-            charCountEdit.textContent = `${linkTextInput.value.length}/30`;
-        }
     }
 
     // Se for agendado, mostra o campo de data e preenche com o valor atual
@@ -1653,8 +1596,6 @@ async function saveNotificationEdit() {
     const message = document.getElementById('edit-notif-message').value;
     const linkInput = document.getElementById('edit-notif-link');
     const link = linkInput ? linkInput.value.trim() : '';
-    const linkTextInput = document.getElementById('edit-notif-link-text');
-    const linkText = linkTextInput ? linkTextInput.value.trim() : '';
     const dateVal = document.getElementById('edit-notif-date').value;
     const saveBtn = document.getElementById('btn-save-edit-notif');
 
@@ -1677,8 +1618,7 @@ async function saveNotificationEdit() {
         const updates = {
             title: title.trim(),
             message: message.trim(),
-            linkUrl: link ? link : deleteField(),
-            linkText: linkText ? linkText : deleteField()
+            linkUrl: link ? link : deleteField()
         };
 
         if (editNotifImageDeleted) {
@@ -2324,9 +2264,9 @@ async function loadAdminNotifications() {
 
                 // Preparação para futura funcionalidade de links nos comunicados
                 const linkBtnHtml = data.linkUrl ? `
-                    <a href="${data.linkUrl}" target="_blank" class="btn-outline admin-notif-btn" title="${data.linkText || 'Acessar Link'}" style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.6rem; font-size: 0.75rem; border-radius: 6px; cursor: pointer; border: 1px solid #ddd; background: #fff; color: #555; text-decoration: none; transition: all 0.2s ease;">
+                    <a href="${data.linkUrl}" target="_blank" class="btn-outline admin-notif-btn" title="Acessar Link" style="display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.3rem 0.6rem; font-size: 0.75rem; border-radius: 6px; cursor: pointer; border: 1px solid #ddd; background: #fff; color: #555; text-decoration: none; transition: all 0.2s ease;">
                         <i data-lucide="external-link" style="width: 16px; height: 16px;"></i>
-                        <span class="admin-notif-btn-text">${data.linkText || 'Acessar Link'}</span>
+                        <span class="admin-notif-btn-text">Acessar Link</span>
                     </a>
                 ` : '';
 
@@ -3230,135 +3170,6 @@ function setupLinks() {
     loadAdminLinks();
 }
 
-// ================= CRONÔMETRO DO INTERVALO =================
-function setupIntervalTimer() {
-    const btnStart = document.getElementById('btn-interval-start');
-    const btnStop = document.getElementById('btn-interval-stop');
-    const durationInput = document.getElementById('interval-duration-input');
-    const statusBadge = document.getElementById('interval-status-badge');
-    const adminInfo = document.getElementById('interval-admin-info');
-    const startTimeText = document.getElementById('interval-start-time');
-    const endTimeText = document.getElementById('interval-end-time');
-
-    if (!btnStart) return;
-
-    // Helper para formatar hora/minuto local
-    const formatTimeHM = (date) => {
-        return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-    };
-
-    // Escuta estado em tempo real
-    onSnapshot(doc(db, 'config', 'intervalTimer'), (docSnap) => {
-        const data = docSnap.exists() ? docSnap.data() : null;
-        const now = new Date();
-        
-        let isActive = false;
-        if (data && data.active === true && data.endTime) {
-            const endDate = data.endTime.toDate ? data.endTime.toDate() : new Date(data.endTime.seconds * 1000);
-            if (endDate > now) {
-                isActive = true;
-            }
-        }
-
-        if (isActive) {
-            // Atualiza status badge
-            statusBadge.style.backgroundColor = '#D1FAE5';
-            statusBadge.style.color = '#065F46';
-            statusBadge.innerHTML = '<i data-lucide="check-circle" style="width: 8px; height: 8px; fill: currentColor;"></i> Ativo';
-            
-            // Botões
-            btnStart.style.display = 'none';
-            btnStop.style.display = 'block';
-            
-            // Info
-            const startDate = data.startedAt ? (data.startedAt.toDate ? data.startedAt.toDate() : new Date(data.startedAt.seconds * 1000)) : now;
-            const endDate = data.endTime.toDate ? data.endTime.toDate() : new Date(data.endTime.seconds * 1000);
-            
-            startTimeText.textContent = formatTimeHM(startDate);
-            endTimeText.textContent = formatTimeHM(endDate);
-            adminInfo.style.display = 'block';
-
-            if (data.duration) {
-                durationInput.value = data.duration;
-            }
-        } else {
-            // Inativo
-            statusBadge.style.backgroundColor = '#E5E7EB';
-            statusBadge.style.color = '#4B5563';
-            statusBadge.innerHTML = '<i data-lucide="circle" style="width: 8px; height: 8px; fill: currentColor;"></i> Inativo';
-            
-            // Botões
-            btnStart.style.display = 'block';
-            btnStop.style.display = 'none';
-            
-            // Info
-            adminInfo.style.display = 'none';
-        }
-
-        if (window.lucide) {
-            lucide.createIcons();
-        }
-    });
-
-    // Ação ao clicar em Iniciar
-    btnStart.addEventListener('click', async () => {
-        const minutes = parseInt(durationInput.value) || 25;
-        if (minutes < 1 || minutes > 180) {
-            showNotification('Insira uma duração entre 1 e 180 minutos.', 'error');
-            return;
-        }
-
-        try {
-            btnStart.disabled = true;
-            btnStart.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Iniciando...';
-            if (window.lucide) lucide.createIcons();
-
-            const startedAt = new Date();
-            const endTime = new Date(startedAt.getTime() + minutes * 60 * 1000);
-
-            await setDoc(doc(db, 'config', 'intervalTimer'), {
-                active: true,
-                startedAt: startedAt,
-                endTime: endTime,
-                duration: minutes
-            });
-
-            showNotification('Intervalo iniciado com sucesso!', 'success');
-            await saveLog('intervalo-iniciado', `Intervalo de ${minutes} min iniciado`, null, `O administrador iniciou o cronômetro do intervalo com duração de ${minutes} minutos.`);
-        } catch (error) {
-            console.error('Erro ao iniciar intervalo:', error);
-            showNotification('Erro ao iniciar o intervalo.', 'error');
-        } finally {
-            btnStart.disabled = false;
-            btnStart.innerHTML = '<i data-lucide="play"></i> Iniciar Intervalo';
-            if (window.lucide) lucide.createIcons();
-        }
-    });
-
-    // Ação ao clicar em Parar
-    btnStop.addEventListener('click', async () => {
-        try {
-            btnStop.disabled = true;
-            btnStop.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Parando...';
-            if (window.lucide) lucide.createIcons();
-
-            await updateDoc(doc(db, 'config', 'intervalTimer'), {
-                active: false
-            });
-
-            showNotification('Intervalo encerrado!', 'success');
-            await saveLog('intervalo-parado', 'Intervalo encerrado manualmente', null, 'O administrador encerrou o cronômetro do intervalo manualmente.');
-        } catch (error) {
-            console.error('Erro ao parar intervalo:', error);
-            showNotification('Erro ao parar o intervalo.', 'error');
-        } finally {
-            btnStop.disabled = false;
-            btnStop.innerHTML = '<i data-lucide="square"></i> Parar Cronômetro';
-            if (window.lucide) lucide.createIcons();
-        }
-    });
-}
-
 // Auxiliar para formatar data/hora Firestore Timestamp para datetime-local (YYYY-MM-DDTHH:MM)
 function formatDateTimeLocal(timestamp) {
     if (!timestamp) return '';
@@ -3639,7 +3450,6 @@ function initAtestadosManagement() {
     const selectMusico = document.getElementById('atestado-select-musico');
     
     const btnDownloadDelete = document.getElementById('btn-download-delete-atestado');
-    const btnDeleteOnlyAtestado = document.getElementById('btn-delete-only-atestado');
     let currentAtestadoPath = ''; // Armazena o caminho do arquivo para deleção segura
     let musiciansList = [];
 
@@ -4000,75 +3810,6 @@ function initAtestadosManagement() {
             } finally {
                 btnDownloadDelete.disabled = false;
                 btnDownloadDelete.innerHTML = '<i data-lucide="download-cloud"></i> Baixar e Adicionar na Lista de Presença OER';
-                if (window.lucide) lucide.createIcons();
-            }
-        });
-    }
-
-    // 6. Apenas Apagar o Atestado (Sem homologação/integração)
-    if (btnDeleteOnlyAtestado) {
-        btnDeleteOnlyAtestado.addEventListener('click', async () => {
-            if (!auth.currentUser) {
-                showNotification('Sessão expirada ou não autorizada. Faça login novamente.', 'error');
-                return;
-            }
-
-            const id = inputEditId.value;
-            const nomeMusico = inputEditNome.value || 'Desconhecido';
-            const cid = inputEditCid.value || '---';
-            const dias = inputEditDias.value || '0';
-            const inicio = inputEditInicio.value || '---';
-
-            if (!confirm(`Tem certeza que deseja apagar permanentemente o atestado de "${nomeMusico}" (CID: ${cid}, ${dias} dias)?\n\nEsta ação é irreversível, removerá o arquivo do servidor e NÃO registrará o atestado na lista de presença do músico.`)) {
-                return;
-            }
-
-            try {
-                const btn = btnDeleteOnlyAtestado;
-                btn.disabled = true;
-                btn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Apagando...';
-                if (window.lucide) lucide.createIcons();
-
-                // 1. Apagar o arquivo do Firebase Storage (se houver caminho)
-                if (currentAtestadoPath) {
-                    console.log("🔥 [Atestados] Removendo arquivo do Storage:", currentAtestadoPath);
-                    const fileRef = ref(storage, currentAtestadoPath);
-                    try {
-                        await deleteObject(fileRef);
-                    } catch (e) {
-                        console.error("Erro ao deletar arquivo do Storage:", e);
-                    }
-                }
-
-                // 2. Apagar o documento da coleção medicalCertificates no Firestore
-                if (id) {
-                    console.log("🔥 [Atestados] Removendo registro do Firestore:", id);
-                    const docRef = doc(db, "medicalCertificates", id);
-                    try {
-                        await deleteDoc(docRef);
-                    } catch (e) {
-                        console.error("Erro ao deletar documento do Firestore:", e);
-                    }
-                }
-
-                // 3. Criar Log de Auditoria
-                try {
-                    const detailsText = `Administrador: ${auth.currentUser.email || 'admin'}\nMúsico original no arquivo: ${nomeMusico}\nCID: ${cid}\nDias: ${dias}\nData início: ${inicio}`;
-                    await saveLog("atestado-excluido", `Atestado excluído sem homologação: ${nomeMusico}`, null, detailsText);
-                } catch (logErr) {
-                    console.error("⚠️ [Atestados] Erro no log de exclusão:", logErr);
-                }
-
-                // 4. Fechar Interface e Notificar
-                closeAtestadoModal();
-                showNotification('Atestado excluído com sucesso.', 'success');
-
-            } catch (error) {
-                console.error("Erro ao excluir atestado:", error);
-                showNotification(`Erro ao excluir atestado: ${error.message}`, 'error');
-            } finally {
-                btnDeleteOnlyAtestado.disabled = false;
-                btnDeleteOnlyAtestado.innerHTML = '<i data-lucide="trash-2"></i> Apagar Atestado Sem Adicionar na Lista';
                 if (window.lucide) lucide.createIcons();
             }
         });
@@ -5202,7 +4943,7 @@ function initMusiciansManagement() {
             allMusicians = [];
             snapshot.forEach(docSnap => {
                 const data = docSnap.data();
-                if (data.statusFirebase !== "inativo" && data.statusFirebase !== "desligado") {
+                if (data.statusFirebase !== "inativo") {
                     allMusicians.push({ id: docSnap.id, ...data });
                 }
             });
@@ -5566,109 +5307,7 @@ function initMusiciansManagement() {
     if (btnCloseDrawer) btnCloseDrawer.addEventListener('click', closeMusicoDrawer);
     if (drawerOverlay) drawerOverlay.addEventListener('click', closeMusicoDrawer);
 
-    // 6. Importação da Planilha (.xlsx) com SheetJS e Modal de Confirmação (Diff)
-    const modalDiff = document.getElementById('modal-confirm-import-excel');
-    const btnCloseDiff = document.getElementById('btn-close-import-diff-modal');
-    const btnCancelDiff = document.getElementById('btn-cancel-import-diff');
-    const btnConfirmDiff = document.getElementById('btn-confirm-import-diff');
-    const diffTabsContainer = document.getElementById('import-diff-tabs');
-    const diffListContainer = document.getElementById('import-diff-list-container');
-    const sheetNameEl = document.getElementById('import-diff-sheet-name');
-
-    let pendingImportData = null; // Armazena os dados do diff antes de confirmar
-
-    const closeModalDiff = () => {
-        if (modalDiff) modalDiff.style.display = 'none';
-        pendingImportData = null;
-        if (importInput) importInput.value = '';
-    };
-
-    if (btnCloseDiff) btnCloseDiff.addEventListener('click', closeModalDiff);
-    if (btnCancelDiff) btnCancelDiff.addEventListener('click', closeModalDiff);
-
-    if (diffTabsContainer) {
-        diffTabsContainer.addEventListener('click', (e) => {
-            const btn = e.target.closest('.diff-tab-btn');
-            if (!btn || !pendingImportData) return;
-
-            diffTabsContainer.querySelectorAll('.diff-tab-btn').forEach(b => {
-                b.classList.remove('active');
-                b.style.borderBottom = 'none';
-                b.style.color = '#64748b';
-            });
-
-            btn.classList.add('active');
-            btn.style.borderBottom = '2px solid var(--primary-color, #8b0000)';
-            btn.style.color = 'var(--primary-color, #8b0000)';
-
-            const tabName = btn.getAttribute('data-tab');
-            renderDiffTabContent(tabName);
-        });
-    }
-
-    // Função utilitária para converter datas do Excel / String para o formato YYYY-MM-DD
-    const parseDateToYYYYMMDD = (val) => {
-        if (!val || val === '-') return null;
-        let d = null;
-        if (!isNaN(val) && typeof val === 'number') {
-            d = new Date((val - 25569) * 86400 * 1000);
-        } else if (typeof val === 'string') {
-            const str = val.trim();
-            const partes = str.split('/');
-            if (partes.length === 3) {
-                const dia = parseInt(partes[0], 10);
-                const mes = parseInt(partes[1], 10) - 1;
-                const ano = parseInt(partes[2], 10);
-                d = new Date(ano, mes, dia);
-            } else {
-                const parsed = Date.parse(str);
-                if (!isNaN(parsed)) d = new Date(parsed);
-            }
-        }
-        if (d && !isNaN(d.getTime())) {
-            const yyyy = d.getFullYear();
-            const mm = String(d.getMonth() + 1).padStart(2, '0');
-            const dd = String(d.getDate()).padStart(2, '0');
-            return `${yyyy}-${mm}-${dd}`;
-        }
-        return null;
-    };
-
-    function renderDiffTabContent(tabName) {
-        if (!diffListContainer || !pendingImportData) return;
-        const list = pendingImportData[tabName] || [];
-
-        if (list.length === 0) {
-            diffListContainer.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 1.5rem; font-size: 0.9rem;">Nenhum músico nesta categoria.</div>`;
-            return;
-        }
-
-        let html = `<ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem;">`;
-        list.forEach(item => {
-            const nome = item.NOMEARTISTICO || item['NOME REGISTRO'] || item.Nome || 'Músico sem nome';
-            const inst = item.INSTRUMENTOS || item.Instrumento || 'Sem instrumento';
-            const cpf = item.CPF || item.cpfId || '-';
-            const statusLabel = item.Status || item.statusOld || '';
-            const dataSaidaDisplay = item.dataSaida ? item.dataSaida.split('-').reverse().join('/') : '';
-
-            html += `
-                <li style="background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.6rem 0.8rem; display: flex; align-items: center; justify-content: space-between; font-size: 0.88rem;">
-                    <div>
-                        <strong style="color: #1e293b; font-weight: 600;">${nome}</strong>
-                        <span style="color: #64748b; font-size: 0.8rem; margin-left: 0.5rem;">(${inst})</span>
-                        ${statusLabel ? `<span style="font-size: 0.75rem; background: #f1f5f9; padding: 2px 6px; border-radius: 4px; color: #475569; margin-left: 0.4rem;">${statusLabel}</span>` : ''}
-                        ${tabName === 'inativados' && dataSaidaDisplay ? `<span style="font-size: 0.75rem; background: #fef2f2; border: 1px solid #fecaca; color: #b91c1c; padding: 2px 6px; border-radius: 4px; margin-left: 0.4rem; font-weight: 600;">Saída: ${dataSaidaDisplay}</span>` : ''}
-                    </div>
-                    <div style="font-family: monospace; font-size: 0.78rem; color: #94a3b8;">
-                        CPF: ${cpf}
-                    </div>
-                </li>
-            `;
-        });
-        html += `</ul>`;
-        diffListContainer.innerHTML = html;
-    }
-
+    // 6. Importação da Planilha (.xlsx) com SheetJS
     if (importInput) {
         importInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
@@ -5678,7 +5317,7 @@ function initMusiciansManagement() {
             const label = document.getElementById('btn-import-excel-label');
             const originalHTML = label.innerHTML;
             label.style.pointerEvents = 'none';
-            label.innerHTML = '<i data-lucide="loader-2" class="spin" style="width: 16px; height: 16px;"></i> <span>Analisando...</span>';
+            label.innerHTML = '<i data-lucide="loader-2" class="spin" style="width: 16px; height: 16px;"></i> <span>Processando...</span>';
             if (window.lucide) lucide.createIcons();
 
             const reader = new FileReader();
@@ -5688,14 +5327,13 @@ function initMusiciansManagement() {
                     const data = new Uint8Array(event.target.result);
                     const workbook = XLSX.read(data, { type: 'array' });
                     
-                    // 1. Buscar aba de dados de forma flexível (aceita "dados gerais", "dados", "músicos")
+                    // Buscar aba de dados de forma flexível (aceita "dados", "Dados" ou "Dados Gerais")
                     let sheetName = workbook.SheetNames.find(name => {
                         const n = name.trim().toLowerCase();
-                        return n === 'dados gerais' || n === 'dados' || n === 'músicos' || n === 'musicos';
+                        return n === 'dados' || n === 'dados gerais';
                     });
-
                     if (!sheetName) {
-                        sheetName = workbook.SheetNames[0];
+                        throw new Error('Aba "dados" ou "Dados Gerais" não encontrada na planilha. Verifique o nome da aba.');
                     }
 
                     const sheet = workbook.Sheets[sheetName];
@@ -5705,50 +5343,21 @@ function initMusiciansManagement() {
                         throw new Error(`A aba "${sheetName}" está vazia.`);
                     }
 
-                    // 2. Buscar aba "CANCELADOS" para mapear Data de Saída
-                    const canceladosMap = {}; // cpfId -> dataSaida (YYYY-MM-DD)
-                    const canceladosSheetName = workbook.SheetNames.find(name => {
-                        const n = name.trim().toLowerCase();
-                        return n === 'cancelados' || n === 'desligados';
-                    });
+                    showNotification(`Processando ${rows.length} linhas...`, "info");
 
-                    if (canceladosSheetName) {
-                        const canceladosSheet = workbook.Sheets[canceladosSheetName];
-                        const canceladosRows = XLSX.utils.sheet_to_json(canceladosSheet, { defval: "" });
-                        canceladosRows.forEach(cRow => {
-                            let rawCpf = (cRow.CPF || cRow.cpf || "").toString().trim();
-                            if (!rawCpf) return;
-                            const cpfId = rawCpf.replace(/[^\d]/g, "");
-                            if (!cpfId) return;
-
-                            let rawDataSaida = cRow['DATA DE SAÍDA'] || cRow['DATA DE SAIDA'] || cRow['Data de Saída'] || cRow['Data Saida'] || cRow['DESLIGAMENTO'] || cRow['Desligamento'] || "";
-                            const parsedDate = parseDateToYYYYMMDD(rawDataSaida);
-                            if (parsedDate) {
-                                canceladosMap[cpfId] = parsedDate;
-                            }
-                        });
-                    }
-
-                    // Validar se contém colunas essenciais
+                    // Validar se as colunas principais existem
                     const firstRow = rows[0];
                     if (!firstRow.hasOwnProperty('CPF') && !firstRow.hasOwnProperty('NOME REGISTRO')) {
                         throw new Error('Estrutura inválida. A planilha deve conter as colunas "CPF" e "NOME REGISTRO".');
                     }
 
-                    // Buscar todos os músicos existentes no Firestore
-                    const currentDocsSnap = await getDocs(collection(db, "musicos"));
-                    const currentMap = {};
-                    currentDocsSnap.forEach(docSnap => {
-                        currentMap[docSnap.id] = { id: docSnap.id, ...docSnap.data() };
-                    });
-
-                    const novos = [];
-                    const atualizados = [];
-                    const reativados = [];
-                    const inativados = [];
+                    // Iniciar Sincronização com o Firestore
+                    let updatedCount = 0;
+                    let desligadosCount = 0;
                     const incomingCpfs = new Set();
-                    const validRows = [];
-                    const todayStr = new Date().toISOString().split('T')[0];
+
+                    // Instanciar batch
+                    const batch = writeBatch(db);
 
                     rows.forEach(row => {
                         let rawCpf = (row.CPF || "").toString().trim();
@@ -5758,173 +5367,63 @@ function initMusiciansManagement() {
                         if (!cpfId) return;
 
                         incomingCpfs.add(cpfId);
-                        validRows.push({ cpfId, row });
 
-                        const existing = currentMap[cpfId];
-                        if (!existing) {
-                            novos.push({ cpfId, ...row });
-                        } else {
-                            const isCurrentlyInactive = existing.statusFirebase === "inativo" || existing.statusFirebase === "desligado";
-                            if (isCurrentlyInactive) {
-                                reativados.push({ cpfId, ...row, statusOld: existing.Status || 'Inativo' });
-                            } else {
-                                // Verificar se houve alteração em algum campo principal
-                                let changed = false;
-                                for (const key in row) {
-                                    if (key === 'CPF') continue;
-                                    const newVal = (row[key] || "").toString().trim();
-                                    const oldVal = (existing[key] || "").toString().trim();
-                                    if (newVal !== oldVal) {
-                                        changed = true;
-                                        break;
-                                    }
-                                }
-                                if (changed) {
-                                    atualizados.push({ cpfId, ...row });
-                                }
+                        // Montar objeto de dados
+                        const docData = {};
+                        for (const key in row) {
+                            if (row.hasOwnProperty(key)) {
+                                docData[key] = row[key];
                             }
+                        }
+
+                        // Forçar campo de status no Firebase
+                        docData.statusFirebase = "ativo";
+                        docData.updatedAt = serverTimestamp();
+
+                        const docRef = doc(db, "musicos", cpfId);
+                        batch.set(docRef, docData, { merge: true });
+                        updatedCount++;
+                    });
+
+                    // Identificar músicos no Firestore que não estão na planilha importada e marcá-los como "desligados"
+                    const currentDocsSnap = await getDocs(collection(db, "musicos"));
+                    currentDocsSnap.forEach(docSnap => {
+                        const dbCpf = docSnap.id;
+                        const data = docSnap.data();
+                        if (!incomingCpfs.has(dbCpf) && data.statusFirebase !== "inativo" && data.statusFirebase !== "desligado") {
+                            const docRef = doc(db, "musicos", dbCpf);
+                            batch.update(docRef, { 
+                                statusFirebase: "desligado",
+                                Status: "Desligado",
+                                updatedAt: serverTimestamp()
+                            });
+                            desligadosCount++;
                         }
                     });
 
-                    // Identificar quais músicos ativos no banco deixaram de existir na planilha
-                    for (const dbCpf in currentMap) {
-                        const m = currentMap[dbCpf];
-                        const isCurrentlyActive = m.statusFirebase !== "inativo" && m.statusFirebase !== "desligado";
-                        if (isCurrentlyActive && !incomingCpfs.has(dbCpf)) {
-                            const dataSaidaVal = canceladosMap[dbCpf] || todayStr;
-                            inativados.push({ cpfId: dbCpf, dataSaida: dataSaidaVal, ...m });
-                        }
-                    }
+                    // Salvar o timestamp da importação para expirar o cache da Ficha Técnica
+                    const importRef = doc(db, "config", "musiciansImport");
+                    batch.set(importRef, { lastImportTime: serverTimestamp() }, { merge: true });
 
-                    // Guardar pendência para confirmação no modal
-                    pendingImportData = {
-                        sheetName,
-                        validRows,
-                        incomingCpfs,
-                        novos,
-                        atualizados,
-                        reativados,
-                        inativados,
-                        todayStr
-                    };
+                    // Gravar Lote
+                    await batch.commit();
 
-                    // Atualizar UI do Modal
-                    if (sheetNameEl) sheetNameEl.textContent = `Planilha: Aba "${sheetName}"` + (canceladosSheetName ? ` + "${canceladosSheetName}"` : '');
-                    document.getElementById('diff-count-novos').textContent = novos.length;
-                    document.getElementById('diff-count-atualizados').textContent = atualizados.length;
-                    document.getElementById('diff-count-reativados').textContent = reativados.length;
-                    document.getElementById('diff-count-inativados').textContent = inativados.length;
-
-                    // Selecionar primeira aba com itens
-                    let defaultTab = 'novos';
-                    if (novos.length > 0) defaultTab = 'novos';
-                    else if (atualizados.length > 0) defaultTab = 'atualizados';
-                    else if (reativados.length > 0) defaultTab = 'reativados';
-                    else defaultTab = 'inativados';
-
-                    if (diffTabsContainer) {
-                        diffTabsContainer.querySelectorAll('.diff-tab-btn').forEach(b => {
-                            const t = b.getAttribute('data-tab');
-                            if (t === defaultTab) {
-                                b.classList.add('active');
-                                b.style.borderBottom = '2px solid var(--primary-color, #8b0000)';
-                                b.style.color = 'var(--primary-color, #8b0000)';
-                            } else {
-                                b.classList.remove('active');
-                                b.style.borderBottom = 'none';
-                                b.style.color = '#64748b';
-                            }
-                        });
-                    }
-
-                    renderDiffTabContent(defaultTab);
-
-                    // Abrir modal de confirmação
-                    if (modalDiff) modalDiff.style.display = 'flex';
-                    if (window.lucide) lucide.createIcons();
+                    showNotification(`Sucesso! ${updatedCount} músicos atualizados. ${desligadosCount} marcados como desligados.`, "success");
+                    
+                    // Salvar log de auditoria
+                    await saveLog("sistema", `Planilha de músicos importada com sucesso (${updatedCount} cadastros atualizados, ${desligadosCount} marcados como desligados)`, auth.currentUser.email);
 
                 } catch (error) {
-                    console.error("Erro ao analisar planilha:", error);
-                    showNotification("Erro na análise: " + error.message, "error");
+                    console.error("Erro ao importar planilha:", error);
+                    showNotification("Erro na importação: " + error.message, "error");
                 } finally {
+                    importInput.value = '';
                     label.style.pointerEvents = 'auto';
                     label.innerHTML = originalHTML;
                     if (window.lucide) lucide.createIcons();
                 }
             };
         });
-    }
-
-    // Ação do Botão "Confirmar Importação" no Modal
-    if (btnConfirmDiff) {
-        btnConfirmDiff.addEventListener('click', async () => {
-            if (!pendingImportData) return;
-
-            const originalBtnHtml = btnConfirmDiff.innerHTML;
-            btnConfirmDiff.disabled = true;
-            btnConfirmDiff.innerHTML = `<i data-lucide="loader-2" class="spin" style="width: 16px; height: 16px;"></i> <span>Gravando no banco...</span>`;
-            if (window.lucide) lucide.createIcons();
-
-            try {
-                const { validRows, incomingCpfs, novos, atualizados, reativados, inativados, todayStr } = pendingImportData;
-                const batch = writeBatch(db);
-
-                let updatedCount = 0;
-                let inativadosCount = 0;
-
-                // 1. Gravar/Atualizar os músicos da planilha
-                validRows.forEach(({ cpfId, row }) => {
-                    const docData = {};
-                    for (const key in row) {
-                        if (row.hasOwnProperty(key)) {
-                            docData[key] = row[key];
-                        }
-                    }
-
-                    // Forçar status ativo no Firebase
-                    docData.statusFirebase = "ativo";
-                    docData.updatedAt = serverTimestamp();
-
-                    const docRef = doc(db, "musicos", cpfId);
-                    batch.set(docRef, docData, { merge: true });
-                    updatedCount++;
-                });
-
-                // 2. Marcar ausentes como inativos e gravar dataSaida
-                inativados.forEach(m => {
-                    const docRef = doc(db, "musicos", m.cpfId);
-                    batch.update(docRef, {
-                        statusFirebase: "inativo",
-                        Status: "Inativo",
-                        dataSaida: m.dataSaida || todayStr,
-                        updatedAt: serverTimestamp()
-                    });
-                    inativadosCount++;
-                });
-
-                // 3. Salvar timestamp para expiração de cache
-                const importRef = doc(db, "config", "musiciansImport");
-                batch.set(importRef, { lastImportTime: serverTimestamp() }, { merge: true });
-
-                // 4. Executar lote
-                await batch.commit();
-
-                showNotification(`Importação concluída! ${novos.length} novos, ${atualizados.length} atualizados, ${reativados.length} reativados e ${inativadosCount} inativados.`, "success");
-
-                // Audit Log
-                await saveLog("sistema", `Importação de planilha concluída: ${updatedCount} gravados/atualizados, ${inativadosCount} inativados com dataSaida.`, auth.currentUser?.email || 'admin');
-
-                closeModalDiff();
-            } catch (error) {
-                console.error("Erro ao gravar importação:", error);
-                showNotification("Erro ao gravar no banco: " + error.message, "error");
-            } finally {
-                btnConfirmDiff.disabled = false;
-                btnConfirmDiff.innerHTML = originalBtnHtml;
-                if (window.lucide) lucide.createIcons();
-            }
-        });
-    }
     }
 
     // 7. Exportação da Planilha (.xlsx) com SheetJS (Apenas Bolsistas e Monitores)
@@ -6973,8 +6472,7 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
             
             const querySnapshot = await getDocs(eventosQuery);
             const concertos = [];
-            const recessos = [];
-            const outrasAnotacoes = [];
+            const anotacoes = [];
             
             querySnapshot.forEach(docSnap => {
                 const evt = docSnap.data();
@@ -6988,82 +6486,10 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                     const nomeDoConcerto = evt.concertoNome || evt.descricaoEnsaio || 'Concerto';
                     concertos.push(`${diaEvt}/${mes} - ${nomeDoConcerto}`);
                 } else {
-                    const desc = evt.descricaoEnsaio || (evt.tipo === 'folga' ? 'Folga' : evt.tipo === 'feriado' ? 'Feriado' : evt.tipo === 'recesso' ? 'Recesso' : 'Ensaio');
-                    const descLower = desc.toLowerCase();
-                    
-                    const ehRecesso = tipoLower === 'recesso' || descLower.includes('recesso');
-                    const ehFolgaOuFeriado = tipoLower === 'folga' || tipoLower === 'feriado' || descLower.includes('folga') || descLower.includes('feriado');
-                    
-                    if (ehRecesso) {
-                        recessos.push({
-                            date: evt.date,
-                            dia: diaEvt,
-                            mes: mes,
-                            desc: desc
-                        });
-                    } else if (ehFolgaOuFeriado) {
-                        outrasAnotacoes.push({
-                            date: evt.date,
-                            dia: diaEvt,
-                            mes: mes,
-                            desc: desc
-                        });
-                    }
+                    const desc = evt.descricaoEnsaio || (evt.tipo === 'folga' ? 'Folga' : 'Ensaio');
+                    anotacoes.push(`${diaEvt}/${mes} - ${desc}`);
                 }
             });
-            
-            // Agrupar recessos consecutivos cronologicamente
-            const itemsAnotacoes = [];
-            
-            if (recessos.length > 0) {
-                let inicio = recessos[0];
-                let anterior = recessos[0];
-                
-                const fecharGrupo = (ini, ant) => {
-                    const d = new Date(ini.date + 'T12:00:00');
-                    if (ini.date === ant.date) {
-                        itemsAnotacoes.push({
-                            date: d,
-                            text: `${ini.dia}/${ini.mes} - Recesso`
-                        });
-                    } else {
-                        itemsAnotacoes.push({
-                            date: d,
-                            text: `Recesso (${ini.dia}/${ini.mes} a ${ant.dia}/${ant.mes})`
-                        });
-                    }
-                };
-                
-                for (let i = 1; i < recessos.length; i++) {
-                    const atual = recessos[i];
-                    const dateAnt = new Date(anterior.date + 'T12:00:00');
-                    const dateAtu = new Date(atual.date + 'T12:00:00');
-                    const diffDays = Math.round((dateAtu - dateAnt) / (1000 * 60 * 60 * 24));
-                    
-                    if (diffDays === 1) {
-                        anterior = atual;
-                    } else {
-                        fecharGrupo(inicio, anterior);
-                        inicio = atual;
-                        anterior = atual;
-                    }
-                }
-                fecharGrupo(inicio, anterior);
-            }
-            
-            // Adicionar outras anotações (folgas e feriados avulsos)
-            outrasAnotacoes.forEach(item => {
-                const d = new Date(item.date + 'T12:00:00');
-                itemsAnotacoes.push({
-                    date: d,
-                    text: `${item.dia}/${item.mes} - ${item.desc}`
-                });
-            });
-            
-            // Ordenar todos os itens cronologicamente
-            itemsAnotacoes.sort((a, b) => a.date - b.date);
-            
-            const anotacoes = itemsAnotacoes.map(item => item.text);
             
             if (concertos.length > 0) {
                 textareaConcertos.value = concertos.join('\n');
@@ -7174,29 +6600,20 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                 });
                 
                 const justificativas = [];
-                const notasDiarias = [];
                 for (let dia = 1; dia <= totalDias; dia++) {
                     const dataStr = `${ano}-${mesStr}-${String(dia).padStart(2, '0')}`;
                     const pres = presencasPorData[dataStr];
-                    if (pres) {
-                        if (pres.registros) {
-                            Object.entries(pres.registros).forEach(([musicoId, registro]) => {
-                                if (registro.status === 'justificado' && registro.justificativa) {
-                                    const musico = allMusicians.find(m => m.id === musicoId);
-                                    const nomeMusico = musico ? (musico.NOMEARTISTICO || musico['NOME REGISTRO']) : 'Músico Desconhecido';
-                                    const dataFormatada = `${String(dia).padStart(2, '0')}/${mesStr}`;
-                                    justificativas.push({
-                                        texto: `${dataFormatada} - ${nomeMusico}: ${registro.justificativa.trim()}`
-                                    });
-                                }
-                            });
-                        }
-                        if (pres.anotacoes && pres.anotacoes.trim() !== '') {
-                            const dataFormatada = `${String(dia).padStart(2, '0')}/${mesStr}`;
-                            notasDiarias.push({
-                                texto: `${dataFormatada} - ${pres.anotacoes.trim().replace(/\n/g, '<br>')}`
-                            });
-                        }
+                    if (pres && pres.registros) {
+                        Object.entries(pres.registros).forEach(([musicoId, registro]) => {
+                            if (registro.status === 'justificado' && registro.justificativa) {
+                                const musico = allMusicians.find(m => m.id === musicoId);
+                                const nomeMusico = musico ? (musico.NOMEARTISTICO || musico['NOME REGISTRO']) : 'Músico Desconhecido';
+                                const dataFormatada = `${String(dia).padStart(2, '0')}/${mesStr}`;
+                                justificativas.push({
+                                    texto: `${dataFormatada} - ${nomeMusico}: ${registro.justificativa.trim()}`
+                                });
+                            }
+                        });
                     }
                 }
                 
@@ -7316,13 +6733,6 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                     justificativasHtml = justificativas.map(j => `<li>${j.texto}</li>`).join('');
                 } else {
                     justificativasHtml = '<li>Nenhuma justificativa de ausência registrada para este período.</li>';
-                }
-                
-                let notasDiariasHtml = '';
-                if (notasDiarias.length > 0) {
-                    notasDiariasHtml = notasDiarias.map(n => `<li>${n.texto}</li>`).join('');
-                } else {
-                    notasDiariasHtml = '<li>Nenhuma anotação diária registrada para este período.</li>';
                 }
                 
                 const docHtml = `
@@ -7596,7 +7006,7 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
         
         .footer-grid {
             display: grid;
-            grid-template-columns: 220px 1fr 1fr;
+            grid-template-columns: 280px 1fr;
             gap: 15px;
         }
         
@@ -7605,12 +7015,7 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
             padding-right: 15px;
         }
         
-        .footer-justificativas {
-            border-right: 1px solid #ccc;
-            padding-right: 15px;
-        }
-        
-        .footer-legend h4, .footer-justificativas h4, .footer-notas-diarias h4 {
+        .footer-legend h4, .footer-justificativas h4 {
             margin: 0 0 5px 0;
             font-size: 7.5pt;
             font-weight: 700;
@@ -7641,13 +7046,14 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
             font-size: 6pt;
         }
         
-        .footer-justificativas ul, .footer-notas-diarias ul {
+        .footer-justificativas ul {
             margin: 0;
             padding-left: 12px;
             font-size: 6.5pt;
             line-height: 1.3;
             color: #333;
-            list-style-type: disc;
+            max-height: 120px;
+            overflow-y: auto;
         }
         
         @media print {
@@ -7737,12 +7143,6 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                     <h4>Legenda / Justificativas de Ausência</h4>
                     <ul>
                         ${justificativasHtml}
-                    </ul>
-                </div>
-                <div class="footer-notas-diarias">
-                    <h4>Notações Diárias - Inspetor</h4>
-                    <ul>
-                        ${notasDiariasHtml}
                     </ul>
                 </div>
             </div>

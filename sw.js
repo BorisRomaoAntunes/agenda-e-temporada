@@ -91,21 +91,20 @@ self.addEventListener('notificationclick', function(event) {
 // ==========================================
 // CONFIGURAÇÃO DO PWA & CACHE OFFLINE
 // ==========================================
-const CACHE_NAME = 'oer-agenda-v17';
+const CACHE_NAME = 'oer-agenda-v1';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
+    '/admin.html',
     '/assets/css/public.css',
     '/assets/js/public/version-tracker.js',
     '/assets/js/public/notifications.js',
     '/assets/js/public/dynamic-links.js',
+    '/assets/js/admin/admin.js',
     '/assets/js/firebase-config.js',
     '/manifest.json',
     'https://unpkg.com/lucide@latest',
     'https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js'
-    // NOTA: admin.html e assets/js/admin/admin.js foram REMOVIDOS intencionalmente.
-    // Eles já têm Cache-Control: no-cache nos headers do Firebase Hosting.
-    // Cachear esses arquivos no SW causava o bug de login (versão antiga sendo servida).
 ];
 
 // Instalação: Cacheia os ativos estáticos
