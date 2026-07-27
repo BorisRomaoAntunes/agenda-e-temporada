@@ -114,35 +114,45 @@ let isNotificationsEnabled = true; // Estado global das notificações push
 onAuthStateChanged(auth, (user) => {
     if (user) {
         // Logado
-        loginContainer.classList.remove('active');
-        dashboardContainer.classList.add('active');
-        document.getElementById('user-email').textContent = user.email;
-        initToggleListener(); // Inicia o toggle só após autenticação
-        initSubscriberCounter(); // Inicia o contador de assinantes
-        setupChartFilters(); // Configura os filtros do gráfico de engajamento
-        initEngagementChart(); // Inicia o gráfico de engajamento com a quantidade padrão
-        loadLogs(); // Carrega o histórico de logs ao logar
-        loadAdminNotifications(); // Carrega a lista de notificações ativas
-        setupLinks(); // Inicia configurações e listagem dos links temporários
-        setupIntervalTimer(); // Inicia o cronômetro do intervalo em tempo real
-        initManualRobot(); // Inicia o Robô OER Manual
-        initLogFilters(); // Inicia os filtros do histórico
-        initLogSearch();  // Inicia o campo de busca no histórico
-        initLogRetryListener(); // Inicia o listener de retentativas de sincronização nos logs de erro
-        initScheduleUI(); // Inicia a UI de agendamento de notificações
-        initSettingsModal(); // Inicia a lógica do modal de ajustes
-        initEditNotifModal(); // Inicia a lógica do modal de edição de notificações
-        initEmulatorToggle(); // Inicia o toggle de emulação
-        syncTickerWithLatest(); // Força sincronização do letreiro na inicialização
-        initAtestadosManagement(); // Inicia a gestão de atestados médicos (Fase 3)
-        initCalendarManagement(); // Inicia o módulo de calendário interativo
-        initMusiciansManagement(); // Inicia o gerenciamento de músicos (importação e busca reativa)
-        initSecuritySection(); // Inicia a seção de segurança da conta
-        initBiometrics(user); // Inicializa biometria (logado)
+        if (loginContainer) loginContainer.classList.remove('active');
+        if (dashboardContainer) dashboardContainer.classList.add('active');
+        const emailEl = document.getElementById('user-email');
+        if (emailEl) emailEl.textContent = user.email || '';
+
+        const safeInit = (fnName, fn) => {
+            try {
+                if (typeof fn === 'function') fn();
+            } catch (err) {
+                console.error(`[Admin Init] Erro em ${fnName}:`, err);
+            }
+        };
+
+        safeInit("initToggleListener", initToggleListener);
+        safeInit("initSubscriberCounter", initSubscriberCounter);
+        safeInit("setupChartFilters", setupChartFilters);
+        safeInit("initEngagementChart", initEngagementChart);
+        safeInit("loadLogs", loadLogs);
+        safeInit("loadAdminNotifications", loadAdminNotifications);
+        safeInit("setupLinks", setupLinks);
+        safeInit("setupIntervalTimer", setupIntervalTimer);
+        safeInit("initManualRobot", initManualRobot);
+        safeInit("initLogFilters", initLogFilters);
+        safeInit("initLogSearch", initLogSearch);
+        safeInit("initLogRetryListener", initLogRetryListener);
+        safeInit("initScheduleUI", initScheduleUI);
+        safeInit("initSettingsModal", initSettingsModal);
+        safeInit("initEditNotifModal", initEditNotifModal);
+        safeInit("initEmulatorToggle", initEmulatorToggle);
+        safeInit("syncTickerWithLatest", syncTickerWithLatest);
+        safeInit("initAtestadosManagement", initAtestadosManagement);
+        safeInit("initCalendarManagement", initCalendarManagement);
+        safeInit("initMusiciansManagement", initMusiciansManagement);
+        safeInit("initSecuritySection", initSecuritySection);
+        safeInit("initBiometrics", () => initBiometrics(user));
     } else {
         // Não logado
-        dashboardContainer.classList.remove('active');
-        loginContainer.classList.add('active');
+        if (dashboardContainer) dashboardContainer.classList.remove('active');
+        if (loginContainer) loginContainer.classList.add('active');
         if (unsubscribeToggle) { unsubscribeToggle(); unsubscribeToggle = null; }
         if (unsubscribeAppToggle) { unsubscribeAppToggle(); unsubscribeAppToggle = null; }
         if (unsubscribeSubscribers) { unsubscribeSubscribers(); unsubscribeSubscribers = null; }
@@ -153,7 +163,11 @@ onAuthStateChanged(auth, (user) => {
             window.engagementChartInstance.destroy();
             window.engagementChartInstance = null;
         }
-        initBiometrics(null); // Inicializa biometria (não logado)
+        try {
+            initBiometrics(null);
+        } catch (e) {
+            console.error("[Admin Init] Erro biometria deslogado:", e);
+        }
     }
 });
 
@@ -196,23 +210,23 @@ function startCountdown(seconds) {
     const countdownEl = document.getElementById('login-countdown');
     const countdownTime = document.getElementById('countdown-time');
     
-    btn.disabled = true;
-    countdownEl.style.display = 'flex';
+    if (btn) btn.disabled = true;
+    if (countdownEl) countdownEl.style.display = 'flex';
     let remaining = seconds;
-    countdownTime.textContent = remaining;
+    if (countdownTime) countdownTime.textContent = remaining;
     
     if (countdownInterval) clearInterval(countdownInterval);
     
     countdownInterval = setInterval(() => {
         remaining--;
-        countdownTime.textContent = remaining;
+        if (countdownTime) countdownTime.textContent = remaining;
         
         if (remaining <= 0) {
             clearInterval(countdownInterval);
             countdownInterval = null;
             isLoginBlocked = false;
-            btn.disabled = false;
-            countdownEl.style.display = 'none';
+            if (btn) btn.disabled = false;
+            if (countdownEl) countdownEl.style.display = 'none';
         }
     }, 1000);
     
@@ -220,64 +234,73 @@ function startCountdown(seconds) {
 }
 
 // Submit de Login (com proteção anti brute-force e mensagens PT-BR)
-loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    if (isLoginBlocked) return;
-    
-    const email = document.getElementById('email').value;
-    const password = document.getElementById('password').value;
-    const btn = document.getElementById('btn-login');
-    const errorMsg = document.getElementById('login-error');
-
-    btn.disabled = true;
-    btn.innerHTML = 'Conectando...';
-    errorMsg.textContent = '';
-
-    try {
-        await signInWithEmailAndPassword(auth, email, password);
-        // Login com sucesso — reseta contador
-        loginAttempts = 0;
-    } catch (error) {
-        loginAttempts++;
-        const friendlyMsg = translateFirebaseError(error.code);
-        errorMsg.textContent = friendlyMsg;
-        console.error("Login erro completo:", error);
+if (loginForm) {
+    loginForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
         
-        // Animação de shake
-        triggerShake();
+        if (isLoginBlocked) return;
         
-        // Brute-force protection
-        if (loginAttempts >= 5) {
-            startCountdown(120); // 2 minutos
-        } else if (loginAttempts >= 3) {
-            startCountdown(30); // 30 segundos
+        const emailEl = document.getElementById('email');
+        const passwordEl = document.getElementById('password');
+        const btn = document.getElementById('btn-login');
+        const errorMsg = document.getElementById('login-error');
+
+        if (!emailEl || !passwordEl || !btn) return;
+
+        const email = emailEl.value.trim();
+        const password = passwordEl.value;
+
+        btn.disabled = true;
+        btn.innerHTML = 'Conectando...';
+        if (errorMsg) errorMsg.textContent = '';
+
+        try {
+            await signInWithEmailAndPassword(auth, email, password);
+            // Login com sucesso — reseta contador
+            loginAttempts = 0;
+        } catch (error) {
+            loginAttempts++;
+            const friendlyMsg = translateFirebaseError(error.code);
+            if (errorMsg) errorMsg.textContent = friendlyMsg;
+            console.error("Login erro completo:", error);
+            
+            // Animação de shake
+            triggerShake();
+            
+            // Brute-force protection
+            if (loginAttempts >= 5) {
+                startCountdown(120); // 2 minutos
+            } else if (loginAttempts >= 3) {
+                startCountdown(30); // 30 segundos
+            }
+        } finally {
+            if (!isLoginBlocked) {
+                btn.disabled = false;
+            }
+            btn.innerHTML = 'Entrar <i data-lucide="arrow-right"></i>';
+            if (typeof lucide !== 'undefined') lucide.createIcons();
         }
-    } finally {
-        if (!isLoginBlocked) {
-            btn.disabled = false;
-        }
-        btn.innerHTML = 'Entrar <i data-lucide="arrow-right"></i>';
-        lucide.createIcons();
-    }
-});
+    });
+}
 
 // Logout
-btnLogout.addEventListener('click', () => signOut(auth));
+if (btnLogout) btnLogout.addEventListener('click', () => signOut(auth));
 
 // ================= TOGGLE PASSWORD =================
 const btnTogglePassword = document.getElementById('btn-toggle-password');
 const passwordInput = document.getElementById('password');
 
-btnTogglePassword.addEventListener('click', () => {
-    const isPassword = passwordInput.type === 'password';
-    passwordInput.type = isPassword ? 'text' : 'password';
-    // Troca o ícone do olho
-    btnTogglePassword.innerHTML = isPassword 
-        ? '<i data-lucide="eye-off"></i>' 
-        : '<i data-lucide="eye"></i>';
-    lucide.createIcons();
-});
+if (btnTogglePassword && passwordInput) {
+    btnTogglePassword.addEventListener('click', () => {
+        const isPassword = passwordInput.type === 'password';
+        passwordInput.type = isPassword ? 'text' : 'password';
+        // Troca o ícone do olho
+        btnTogglePassword.innerHTML = isPassword 
+            ? '<i data-lucide="eye-off"></i>' 
+            : '<i data-lucide="eye"></i>';
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    });
+}
 
 // ================= RECUPERAÇÃO DE SENHA =================
 
