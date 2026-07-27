@@ -91,7 +91,7 @@ self.addEventListener('notificationclick', function(event) {
 // ==========================================
 // CONFIGURAÇÃO DO PWA & CACHE OFFLINE
 // ==========================================
-const CACHE_NAME = 'oer-agenda-v14';
+const CACHE_NAME = 'oer-agenda-v16';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
