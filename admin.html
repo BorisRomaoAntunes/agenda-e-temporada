@@ -1442,14 +1442,48 @@ Intervalo
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Biblioteca SheetJS (XLSX) CDN para ler planilhas Excel no navegador -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script type="module" src="assets/js/admin/admin.js?v=16"></script>
+    <script type="module" src="assets/js/admin/admin.js?v=17"></script>
     <script>
-        // Registro do Service Worker
+        // Registro e gestão do Service Worker
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .then(reg => console.log('SW Admin registrado!', reg))
-                    .catch(err => console.log('Erro SW Admin:', err));
+            window.addEventListener('load', async () => {
+                try {
+                    // 1. Desregistrar SWs antigos que possam estar cacheando admin.js/admin.html
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    for (const reg of registrations) {
+                        // Se o SW atual não for o /sw.js ou for de uma versão antiga, desregistra
+                        if (reg.active && reg.active.scriptURL && !reg.active.scriptURL.includes('/sw.js')) {
+                            await reg.unregister();
+                            console.log('[Admin] SW antigo desregistrado:', reg.active.scriptURL);
+                        }
+                    }
+
+                    // 2. Limpar caches antigos que possam conter admin.html ou admin.js
+                    if ('caches' in window) {
+                        const cacheNames = await caches.keys();
+                        for (const cacheName of cacheNames) {
+                            // Remover entradas de admin do cache (independente da versão)
+                            const cache = await caches.open(cacheName);
+                            await cache.delete(new Request('/admin.html'));
+                            await cache.delete(new Request('/assets/js/admin/admin.js'));
+                            // Remover entradas com query params de versão anteriores
+                            const keys = await cache.keys();
+                            for (const key of keys) {
+                                if (key.url.includes('admin.js?v=') || key.url.includes('admin.html')) {
+                                    await cache.delete(key);
+                                }
+                            }
+                        }
+                        console.log('[Admin] Cache de admin limpo com sucesso.');
+                    }
+
+                    // 3. Registrar o SW atual
+                    const reg = await navigator.serviceWorker.register('/sw.js');
+                    console.log('[Admin] SW registrado:', reg);
+
+                } catch (err) {
+                    console.warn('[Admin] Erro na gestão do SW:', err);
+                }
             });
         }
 
