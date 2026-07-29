@@ -1199,6 +1199,26 @@ iframe {
     flex: 1;
 }
 
+.btn-dynamic-link-text-group {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    text-align: left;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
+.btn-dynamic-link-text-group .btn-form-label {
+    margin: 0;
+}
+
+.btn-dynamic-link-subtitle {
+    font-size: 0.78rem;
+    color: var(--text-secondary, #666);
+    font-weight: 600;
+    opacity: 0.85;
+}
+
 @media (max-width: 768px) {
     #dynamic-links-container {
         display: flex;
