@@ -107,7 +107,6 @@ let unsubscribeSubscribers = null; // Guarda o listener de assinantes
 let unsubscribeLinks = null; // Guarda o listener de links temporários
 let unsubscribeEngagement = null; // Guarda o listener do gráfico de engajamento
 let unsubscribeMusicians = null; // Guarda o listener da coleção de músicos
-let unsubscribeIntervalTimer = null; // Guarda o listener do cronômetro de intervalo
 let currentEngagementDays = 7; // Quantidade de dias padrão para exibir no gráfico
 let isNotificationsEnabled = true; // Estado global das notificações push
 
@@ -136,7 +135,6 @@ onAuthStateChanged(auth, (user) => {
         syncTickerWithLatest(); // Força sincronização do letreiro na inicialização
         initAtestadosManagement(); // Inicia a gestão de atestados médicos (Fase 3)
         initCalendarManagement(); // Inicia o módulo de calendário interativo
-        initIntervalTimerControls(); // Inicia o controle do cronômetro de intervalo
         initMusiciansManagement(); // Inicia o gerenciamento de músicos (importação e busca reativa)
         initSecuritySection(); // Inicia a seção de segurança da conta
         initBiometrics(user); // Inicializa biometria (logado)
@@ -150,8 +148,6 @@ onAuthStateChanged(auth, (user) => {
         if (unsubscribeLinks) { unsubscribeLinks(); unsubscribeLinks = null; }
         if (unsubscribeEngagement) { unsubscribeEngagement(); unsubscribeEngagement = null; }
         if (unsubscribeMusicians) { unsubscribeMusicians(); unsubscribeMusicians = null; }
-        if (unsubscribeIntervalTimer) { unsubscribeIntervalTimer(); unsubscribeIntervalTimer = null; }
-
         if (window.engagementChartInstance) {
             window.engagementChartInstance.destroy();
             window.engagementChartInstance = null;
@@ -688,25 +684,6 @@ const setupUploader = (type) => {
 
 // ================= FIRESTORE UPDATE =================
 
-async function createPdfUpdateNotice(type, displayVersion) {
-    try {
-        const label = type === 'temporada' ? 'Temporada' : (type === 'agenda' ? 'Agenda' : 'Temporada e Agenda');
-        const notifData = {
-            title: `Atualização de ${label}`,
-            message: `Foi realizada uma atualização na ${label.toLowerCase()} (Versão ${displayVersion}).`,
-            isSystemNotice: true,
-            showInTicker: false,
-            pdfType: type,
-            version: displayVersion,
-            createdAt: new Date()
-        };
-        await addDoc(collection(db, 'adminNotifications'), notifData);
-        console.log(`[Histórico] Aviso de atualização de ${type} v${displayVersion} registrado.`);
-    } catch (err) {
-        console.error("Erro ao criar aviso de histórico para PDF:", err);
-    }
-}
-
 async function updateFirestoreData(type, url, filename, timestamp, displayVersion) {
     const configRef = doc(db, 'config', 'pdfs');
     
@@ -715,14 +692,12 @@ async function updateFirestoreData(type, url, filename, timestamp, displayVersio
     let currentData = docSnap.exists() ? docSnap.data() : { pdfs: {} };
     if (!currentData.pdfs) currentData.pdfs = {};
 
-    const finalVersion = displayVersion || String(timestamp);
-
     // Atualiza a chave específica (agenda ou temporada)
     currentData.pdfs[type] = {
         arquivo: filename,
         url: url,
         version: timestamp,
-        displayVersion: finalVersion,
+        displayVersion: displayVersion || String(timestamp),
         updatedAt: new Date().toISOString()
     };
 
@@ -731,9 +706,6 @@ async function updateFirestoreData(type, url, filename, timestamp, displayVersio
     
     // Grava no Log Histórico
     await saveLog('pdf', `Novo PDF enviado para ${type.toUpperCase()}: v${currentData.pdfs[type].displayVersion}`, url);
-
-    // Registra notificação no histórico dos músicos
-    await createPdfUpdateNotice(type, finalVersion);
 
     // Robô OER: Removido gatilho automático para evitar interrupções
     console.log(`🤖 [Robô OER] Upload de ${type} concluído. O Robô aguarda acionamento manual.`);
@@ -756,9 +728,6 @@ async function updateFirestoreVersionOnly(type, displayVersion) {
     
     // Grava no Log Histórico
     await saveLog('pdf', `Versão de ${type.toUpperCase()} atualizada manualmente para v${displayVersion}`);
-
-    // Registra notificação no histórico dos músicos
-    await createPdfUpdateNotice(type, displayVersion);
 
     // Robô OER: Removido gatilho automático para evitar interrupções
     console.log(`🤖 [Robô OER] Atualização de versão de ${type} concluída. O Robô aguarda acionamento manual.`);
@@ -2441,21 +2410,14 @@ async function deleteNotification(docId, title, collectionName = 'adminNotificat
  */
 async function syncTickerWithLatest() {
     try {
-        const qLatest = query(collection(db, 'adminNotifications'), orderBy('createdAt', 'desc'), limit(10));
+        const qLatest = query(collection(db, 'adminNotifications'), orderBy('createdAt', 'desc'), limit(1));
         const latestSnap = await getDocs(qLatest);
         const latestNoticeRef = doc(db, 'config', 'latestNotice');
 
         if (!latestSnap.empty) {
-            const validDoc = latestSnap.docs.find(d => {
-                const data = d.data();
-                return !data.isSystemNotice && data.showInTicker !== false;
-            });
-
-            if (validDoc) {
-                await setDoc(latestNoticeRef, validDoc.data());
-            } else {
-                await deleteDoc(latestNoticeRef);
-            }
+            const newLatest = latestSnap.docs[0].data();
+            // Só atualiza se for realmente diferente para evitar loops (embora improvável aqui)
+            await setDoc(latestNoticeRef, newLatest);
         } else {
             // Se não houver avisos, remove o documento do letreiro
             await deleteDoc(latestNoticeRef);
@@ -3851,109 +3813,7 @@ function initAtestadosManagement() {
                 if (window.lucide) lucide.createIcons();
             }
         });
-}
-
-// ================= CRONÔMETRO DO INTERVALO =================
-
-function initIntervalTimerControls() {
-    const btnStart = document.getElementById('btn-interval-start');
-    const btnStop = document.getElementById('btn-interval-stop');
-    const durationInput = document.getElementById('interval-duration-input');
-    const statusBadge = document.getElementById('interval-status-badge');
-    const infoBanner = document.getElementById('interval-admin-info');
-    const startTimeElem = document.getElementById('interval-start-time');
-    const endTimeElem = document.getElementById('interval-end-time');
-
-    if (!btnStart || !btnStop) return;
-
-    const intervalRef = doc(db, 'config', 'intervalo');
-    if (unsubscribeIntervalTimer) unsubscribeIntervalTimer();
-
-    unsubscribeIntervalTimer = onSnapshot(intervalRef, (docSnap) => {
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            const now = new Date();
-            const end = data.endTime ? (data.endTime.toDate ? data.endTime.toDate() : new Date(data.endTime)) : null;
-
-            if (data.active === true && end && end > now) {
-                if (statusBadge) {
-                    statusBadge.className = 'admin-interval-badge active';
-                    statusBadge.innerHTML = '<i data-lucide="check-circle" style="width: 8px; height: 8px; fill: currentColor;"></i> Ativo';
-                }
-                btnStart.style.display = 'none';
-                btnStop.style.display = 'inline-flex';
-
-                const start = data.startedAt ? (data.startedAt.toDate ? data.startedAt.toDate() : new Date(data.startedAt)) : null;
-                if (startTimeElem && start) {
-                    startTimeElem.textContent = start.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                }
-                if (endTimeElem && end) {
-                    endTimeElem.textContent = end.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                }
-                if (infoBanner) infoBanner.style.display = 'block';
-            } else {
-                if (statusBadge) {
-                    statusBadge.className = 'admin-interval-badge';
-                    statusBadge.innerHTML = '<i data-lucide="circle" style="width: 8px; height: 8px; fill: currentColor;"></i> Inativo';
-                }
-                btnStart.style.display = 'inline-flex';
-                btnStop.style.display = 'none';
-                if (infoBanner) infoBanner.style.display = 'none';
-            }
-        } else {
-            if (statusBadge) {
-                statusBadge.className = 'admin-interval-badge';
-                statusBadge.innerHTML = '<i data-lucide="circle" style="width: 8px; height: 8px; fill: currentColor;"></i> Inativo';
-            }
-            btnStart.style.display = 'inline-flex';
-            btnStop.style.display = 'none';
-            if (infoBanner) infoBanner.style.display = 'none';
-        }
-        if (window.lucide) lucide.createIcons();
-    }, (error) => {
-        console.error("Erro ao escutar estado do intervalo:", error);
-    });
-
-    btnStart.onclick = async () => {
-        try {
-            const minutes = parseInt(durationInput ? durationInput.value : 25) || 25;
-            const now = new Date();
-            const endTime = new Date(now.getTime() + minutes * 60 * 1000);
-
-            btnStart.disabled = true;
-            await setDoc(doc(db, 'config', 'intervalo'), {
-                active: true,
-                durationMinutes: minutes,
-                startedAt: Timestamp.fromDate(now),
-                endTime: Timestamp.fromDate(endTime),
-                updatedAt: serverTimestamp()
-            }, { merge: true });
-
-            showNotification(`Cronômetro de ${minutes} minutos iniciado com sucesso!`, 'success');
-        } catch (error) {
-            console.error("Erro ao iniciar intervalo:", error);
-            showNotification("Erro ao iniciar cronômetro do intervalo.", "error");
-        } finally {
-            btnStart.disabled = false;
-        }
-    };
-
-    btnStop.onclick = async () => {
-        try {
-            btnStop.disabled = true;
-            await setDoc(doc(db, 'config', 'intervalo'), {
-                active: false,
-                updatedAt: serverTimestamp()
-            }, { merge: true });
-
-            showNotification("Cronômetro do intervalo parado.", "info");
-        } catch (error) {
-            console.error("Erro ao parar intervalo:", error);
-            showNotification("Erro ao parar cronômetro do intervalo.", "error");
-        } finally {
-            btnStop.disabled = false;
-        }
-    };
+    }
 }
 
 // ================= MÓDULO DE CALENDÁRIO INTERATIVO =================

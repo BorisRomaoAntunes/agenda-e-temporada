@@ -2,11 +2,9 @@
   {
     "origin": [
       "https://oer-agenda.web.app",
-      "https://oer-agenda.firebaseapp.com",
-      "*"
+      "https://oer-agenda.firebaseapp.com"
     ],
-    "method": ["GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS"],
-    "responseHeader": ["Content-Type", "x-goog-resumable"],
+    "method": ["GET"],
     "maxAgeSeconds": 3600
   }
 ]

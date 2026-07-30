@@ -109,29 +109,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * Inferir tipo MIME do arquivo (especial para iOS Safari onde file.type vem vazio)
-     */
-    function getMimeType(file) {
-        if (file && file.type && file.type !== 'application/octet-stream' && file.type !== '') {
-            return file.type;
-        }
-        const ext = file.name ? file.name.split('.').pop().toLowerCase() : '';
-        switch (ext) {
-            case 'jpg':
-            case 'jpeg':
-                return 'image/jpeg';
-            case 'png':
-                return 'image/png';
-            case 'webp':
-                return 'image/webp';
-            case 'pdf':
-                return 'application/pdf';
-            default:
-                return file.type || 'application/octet-stream';
-        }
-    }
-
-    /**
      * Lógica de Upload
      */
     if (uploadForm) {
@@ -141,13 +118,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const file = fileInput.files[0];
             if (!file) return;
 
-            const mimeType = getMimeType(file);
-
             // Validação de Tipo e Tamanho (Máx 10MB)
             const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
             const maxSize = 10 * 1024 * 1024; // 10MB
 
-            if (!validTypes.includes(mimeType)) {
+            if (!validTypes.includes(file.type)) {
                 alert("Por favor, envie apenas arquivos PDF ou Imagens (JPG/PNG/WebP).");
                 return;
             }
@@ -170,9 +145,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (btnSpan) btnSpan.innerText = 'Enviando...';
             progressContainer.style.display = 'block';
 
-            // Metadados explícitos são cruciais para que as regras de segurança do Firebase aceitem o upload (especialmente no iOS)
-            const metadata = { contentType: mimeType };
-            const uploadTask = uploadBytesResumable(storageRef, file, metadata);
+            const uploadTask = uploadBytesResumable(storageRef, file);
 
             uploadTask.on('state_changed', 
                 (snapshot) => {
@@ -181,7 +154,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (progressPercent) progressPercent.innerText = progress + '%';
                 }, 
                 (error) => {
-                    console.error("Erro no upload:", error.code, error.message, error);
+                    console.error("Erro no upload:", error);
                     alert("Erro ao enviar arquivo. Verifique sua conexão e tente novamente.");
                     btnSubmit.disabled = false;
                     if (btnSpan) btnSpan.innerText = 'Tentar Novamente';

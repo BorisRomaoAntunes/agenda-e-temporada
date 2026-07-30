@@ -23,11 +23,6 @@ exports.sendPushNotification = onDocumentCreated({
     const data = event.data.data();
     if (!data) return;
 
-    if (data.isSystemNotice || data.skipPush) {
-        console.log(`[sendPushNotification] Notificação de sistema/histórico (${data.title}). Ignorando envio de push.`);
-        return;
-    }
-
     const { title, message } = data;
 
     console.log(`Disparando notificação: ${title}`);

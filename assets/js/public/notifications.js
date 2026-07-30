@@ -139,6 +139,7 @@ function normalizeStr(str) {
 
 function buildHistoryCardElement(notif) {
     const card = document.createElement('div');
+    card.className = 'history-card animate-fade-in';
     
     let dateStr = "Data não informada";
     if (notif.createdAt) {
@@ -146,37 +147,6 @@ function buildHistoryCardElement(notif) {
         dateStr = dateObj.toLocaleDateString('pt-BR') + ' às ' + dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
     }
 
-    if (notif.isSystemNotice) {
-        card.className = 'history-card system-update-card animate-fade-in';
-        const versionBadge = notif.version ? `<span class="system-card-version">v${notif.version}</span>` : '';
-        
-        card.innerHTML = `
-            <div class="system-card-header">
-                <div class="system-card-title-group">
-                    <svg class="system-card-icon" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                        <polyline points="14 2 14 8 20 8"></polyline>
-                        <line x1="12" y1="18" x2="12" y2="12"></line>
-                        <line x1="9" y1="15" x2="15" y2="15"></line>
-                    </svg>
-                    <span class="system-card-title">${notif.title || 'Atualização de Sistema'}</span>
-                    ${versionBadge}
-                </div>
-                <div class="system-card-meta">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <polyline points="12 6 12 12 16 14"></polyline>
-                    </svg>
-                    ${dateStr}
-                </div>
-            </div>
-            <div class="system-card-body">${notif.message || ''}</div>
-        `;
-        return card;
-    }
-
-    card.className = 'history-card animate-fade-in';
-    
     const imageHtml = notif.imageUrl ? `
         <div class="history-card-image-container" onclick="openImageModal('${notif.imageUrl}')">
             <img src="${notif.imageUrl}${notif.imageUrl.includes('?') ? '&' : '?'}v=${Date.now()}" alt="Imagem do aviso">
