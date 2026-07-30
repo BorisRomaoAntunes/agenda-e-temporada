@@ -107,6 +107,7 @@ let unsubscribeSubscribers = null; // Guarda o listener de assinantes
 let unsubscribeLinks = null; // Guarda o listener de links temporários
 let unsubscribeEngagement = null; // Guarda o listener do gráfico de engajamento
 let unsubscribeMusicians = null; // Guarda o listener da coleção de músicos
+let unsubscribeIntervalTimer = null; // Guarda o listener do cronômetro de intervalo
 let currentEngagementDays = 7; // Quantidade de dias padrão para exibir no gráfico
 let isNotificationsEnabled = true; // Estado global das notificações push
 
@@ -3853,7 +3854,6 @@ function initAtestadosManagement() {
 }
 
 // ================= CRONÔMETRO DO INTERVALO =================
-let unsubscribeIntervalTimer = null;
 
 function initIntervalTimerControls() {
     const btnStart = document.getElementById('btn-interval-start');
