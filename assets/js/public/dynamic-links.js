@@ -3,7 +3,7 @@ import { getFirestore, collection, query, orderBy, onSnapshot } from "https://ww
 
 const db = getFirestore(app);
 
-function formatAvailabilityText(availableFrom, availableUntil) {
+function formatAvailabilityText(availableFrom, availableUntil, isFuture = false) {
     if (!availableFrom && !availableUntil) return '';
 
     const formatTime = (ts) => {
@@ -21,6 +21,10 @@ function formatAvailabilityText(availableFrom, availableUntil) {
 
     const fromFormatted = formatTime(availableFrom);
     const untilFormatted = formatTime(availableUntil);
+
+    if (isFuture && fromFormatted) {
+        return `Disponível a partir de ${fromFormatted}`;
+    }
 
     if (fromFormatted && untilFormatted) {
         return `Disponível de ${fromFormatted} até ${untilFormatted}`;
@@ -51,49 +55,71 @@ document.addEventListener('DOMContentLoaded', () => {
         snapshot.forEach((docSnap) => {
             const data = docSnap.data();
             
-            // Renderizar apenas se estiver ativo
+            // Renderizar apenas se estiver ativo no Admin
             if (data.active !== true) return;
             
+            let isFuture = false;
+
             // Validar janela de tempo se definida
             if (data.availableFrom) {
                 const fromDate = data.availableFrom.toDate ? data.availableFrom.toDate() : new Date(data.availableFrom);
                 if (!isNaN(fromDate.getTime()) && now < fromDate) {
-                    return; // Ainda não disponível
+                    isFuture = true; // Ainda não liberado -> Exibir esmaecido/desabilitado
                 }
             }
             if (data.availableUntil) {
                 const untilDate = data.availableUntil.toDate ? data.availableUntil.toDate() : new Date(data.availableUntil);
                 if (!isNaN(untilDate.getTime()) && now > untilDate) {
-                    return; // Já expirado
+                    return; // Já expirado -> Ocultar
                 }
             }
             
             const linkElement = document.createElement('a');
-            linkElement.href = data.url;
-            linkElement.className = 'btn-form btn-dynamic-link'; 
-            linkElement.target = '_blank';
-            linkElement.title = data.name;
-
             const iconName = data.icon || 'link';
-            const availabilityText = formatAvailabilityText(data.availableFrom, data.availableUntil);
 
-            if (availabilityText) {
+            if (isFuture) {
+                linkElement.className = 'btn-form btn-dynamic-link btn-dynamic-link-disabled'; 
+                linkElement.href = 'javascript:void(0)';
+                linkElement.setAttribute('aria-disabled', 'true');
+                linkElement.title = `Disponível a partir de ${formatAvailabilityText(data.availableFrom, null, true)}`;
+
+                const availabilityText = formatAvailabilityText(data.availableFrom, null, true);
+
                 linkElement.innerHTML = `
                     <span class="btn-form-icon">
                         <i data-lucide="${iconName}"></i>
                     </span>
                     <div class="btn-dynamic-link-text-group">
                         <span class="btn-form-label">${data.name}</span>
-                        <span class="btn-dynamic-link-subtitle">${availabilityText}</span>
+                        <span class="btn-dynamic-link-subtitle">${availabilityText || 'Disponível em breve'}</span>
                     </div>
                 `;
             } else {
-                linkElement.innerHTML = `
-                    <span class="btn-form-icon">
-                        <i data-lucide="${iconName}"></i>
-                    </span>
-                    <span class="btn-form-label">${data.name}</span>
-                `;
+                linkElement.href = data.url;
+                linkElement.className = 'btn-form btn-dynamic-link'; 
+                linkElement.target = '_blank';
+                linkElement.title = data.name;
+
+                const availabilityText = formatAvailabilityText(data.availableFrom, data.availableUntil);
+
+                if (availabilityText) {
+                    linkElement.innerHTML = `
+                        <span class="btn-form-icon">
+                            <i data-lucide="${iconName}"></i>
+                        </span>
+                        <div class="btn-dynamic-link-text-group">
+                            <span class="btn-form-label">${data.name}</span>
+                            <span class="btn-dynamic-link-subtitle">${availabilityText}</span>
+                        </div>
+                    `;
+                } else {
+                    linkElement.innerHTML = `
+                        <span class="btn-form-icon">
+                            <i data-lucide="${iconName}"></i>
+                        </span>
+                        <span class="btn-form-label">${data.name}</span>
+                    `;
+                }
             }
 
             container.appendChild(linkElement);

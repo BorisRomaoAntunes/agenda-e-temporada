@@ -1219,6 +1219,39 @@ iframe {
     opacity: 0.85;
 }
 
+/* Botão Temporário Futuro (Desabilitado / Esmaecido) */
+.btn-form.btn-dynamic-link.btn-dynamic-link-disabled {
+    background-color: rgba(229, 231, 235, 0.6);
+    border-color: #d1d5db;
+    cursor: not-allowed;
+    pointer-events: none;
+    box-shadow: none;
+    opacity: 0.85;
+}
+
+.btn-form.btn-dynamic-link.btn-dynamic-link-disabled:hover {
+    background-color: rgba(229, 231, 235, 0.6);
+    transform: none;
+    box-shadow: none;
+}
+
+.btn-form.btn-dynamic-link.btn-dynamic-link-disabled .btn-form-icon {
+    animation: none;
+    background-color: #9ca3af;
+    border-color: #d1d5db;
+    color: #ffffff;
+}
+
+.btn-form.btn-dynamic-link.btn-dynamic-link-disabled .btn-form-label {
+    color: #4b5563;
+    font-weight: 700;
+}
+
+.btn-form.btn-dynamic-link.btn-dynamic-link-disabled .btn-dynamic-link-subtitle {
+    color: #6b7280;
+    font-weight: 600;
+}
+
 @media (max-width: 768px) {
     #dynamic-links-container {
         display: flex;
