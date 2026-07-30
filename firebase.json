@@ -1,5 +1,6 @@
 {
   "hosting": {
+    "site": "oer-agenda",
     "public": ".",
     "ignore": [
       "firebase.json",

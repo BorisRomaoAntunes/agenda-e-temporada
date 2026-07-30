@@ -1,0 +1,764 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Protótipo Offline: Cronômetro do Intervalo</title>
+    
+    <!-- CSS OER original e fontes -->
+    <link rel="stylesheet" href="assets/css/common.css">
+    <link rel="stylesheet" href="assets/css/public.css">
+    <link rel="stylesheet" href="assets/css/admin.css">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body {
+            background-color: #f3f4f6;
+            color: #1f2937;
+            padding: 2rem;
+            min-height: 100vh;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .preview-header {
+            max-width: 1200px;
+            margin: 0 auto 2rem auto;
+            background: linear-gradient(135deg, #8B0000 0%, #4a0000 100%);
+            color: white;
+            padding: 1.5rem 2rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(139, 0, 0, 0.25);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .preview-header h1 {
+            font-size: 1.6rem;
+            font-weight: 800;
+            margin: 0;
+        }
+
+        .preview-header p {
+            margin: 0.3rem 0 0 0;
+            opacity: 0.85;
+            font-size: 0.95rem;
+        }
+
+        .badge-offline {
+            background-color: #FFD700;
+            color: #000;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-weight: 700;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .preview-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        @media (max-width: 900px) {
+            .preview-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .panel-column {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+            border: 1px solid #e5e7eb;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .column-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            border-bottom: 2px solid #f3f4f6;
+            padding-bottom: 0.75rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Mockup de Celular/Site Músicos */
+        .phone-mockup {
+            border: 12px solid #111827;
+            border-radius: 36px;
+            background-color: var(--bg-color); /* Fundo branco do site público */
+            height: 600px;
+            overflow-y: auto;
+            position: relative;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Card customizado para o Cronômetro */
+        .btn-interval-countdown {
+            animation: dynamic-link-entrance 0.5s ease-out;
+            background-color: rgba(255, 215, 0, 0.12); /* Fundo Dourado Suave */
+            border: 2px solid #FFD700; /* Borda Dourada Vibrante */
+            padding: 1rem 1.25rem;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            width: calc(100% - 2rem);
+            margin: 1rem auto;
+            box-shadow: 0 6px 18px rgba(255, 215, 0, 0.2);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .btn-interval-countdown .btn-form-icon {
+            background-color: var(--primary-color);
+            width: 54px;
+            height: 54px;
+            border: 2px solid #FFD700;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #FFD700;
+            flex-shrink: 0;
+            animation: dynamic-link-pulse 2.2s ease-in-out infinite;
+        }
+
+        .btn-interval-countdown .btn-form-icon i {
+            width: 24px;
+            height: 24px;
+        }
+
+        .btn-interval-countdown .countdown-time {
+            font-size: 2.3rem;
+            font-weight: 800;
+            color: var(--primary-color);
+            font-variant-numeric: tabular-nums;
+            line-height: 1;
+            letter-spacing: -1px;
+            margin: 0.1rem 0;
+        }
+
+        .btn-interval-countdown .countdown-label {
+            margin: 0;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #8b6508;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-interval-countdown .countdown-subtitle {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            margin: 0;
+            font-weight: 500;
+        }
+
+        /* Animação do ícone */
+        @keyframes dynamic-link-pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(255, 217, 0, 0.6);
+            }
+            70% {
+                box-shadow: 0 0 0 10px rgba(255, 217, 0, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(255, 217, 0, 0);
+            }
+        }
+
+        @keyframes dynamic-link-entrance {
+            0% {
+                opacity: 0;
+                transform: scale(0.95) translateY(-10px);
+            }
+            100% {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        /* Card de controle do Admin (Estilo OER upload-card) */
+        .admin-control-card {
+            background-color: #fafafa;
+            border: 2px dashed #d1d5db;
+            border-radius: 16px;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .admin-control-card .card-icon {
+            background: rgba(255, 215, 0, 0.15);
+            color: #b8860b;
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .btn-start-timer {
+            background-color: #10B981;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .btn-start-timer:hover {
+            background-color: #059669;
+            transform: translateY(-1px);
+        }
+
+        .btn-stop-timer {
+            background-color: #EF4444;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.2s ease;
+        }
+
+        .btn-stop-timer:hover {
+            background-color: #DC2626;
+            transform: translateY(-1px);
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.85rem;
+            font-weight: 600;
+            padding: 0.25rem 0.6rem;
+            border-radius: 6px;
+            width: fit-content;
+        }
+
+        .status-badge.inactive {
+            background-color: #E5E7EB;
+            color: #4B5563;
+        }
+
+        .status-badge.active {
+            background-color: #D1FAE5;
+            color: #065F46;
+            animation: pulse-light 2s infinite;
+        }
+
+        @keyframes pulse-light {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .input-minutes {
+            width: 80px;
+            padding: 0.5rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        .time-adjuster {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Mockup do Topo da Página dos Músicos */
+        .musicians-header-mock {
+            padding: 1rem;
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .musicians-header-mock img {
+            height: 35px;
+        }
+
+        .musicians-header-mock h2 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin: 0;
+            color: var(--primary-color);
+        }
+
+        .musicians-content-mock {
+            padding: 1rem;
+        }
+
+        .mock-buttons-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+
+        .mock-button-static {
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: #4b5563;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .mock-button-static i {
+            color: var(--primary-color);
+            background: #f3f4f6;
+            padding: 8px;
+            border-radius: 50%;
+        }
+
+        /* Modo Concerto no celular */
+        .phone-mockup.concert-mode {
+            background-color: #0b0b0b;
+            color: #dddddd;
+            border-color: #1a1a1a;
+        }
+        
+        .phone-mockup.concert-mode .musicians-header-mock {
+            background: #111111;
+            border-color: #222222;
+        }
+        
+        .phone-mockup.concert-mode .musicians-header-mock h2 {
+            color: #ff3333;
+        }
+
+        .phone-mockup.concert-mode .mock-button-static {
+            background-color: #151515;
+            border-color: #2a2a2a;
+            color: #cccccc;
+        }
+
+        .phone-mockup.concert-mode .mock-button-static i {
+            background-color: #222222;
+            color: #ff3333;
+        }
+
+        .phone-mockup.concert-mode .btn-interval-countdown {
+            background-color: rgba(255, 215, 0, 0.07);
+            border-color: #ccaa00;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .phone-mockup.concert-mode .btn-interval-countdown .countdown-time {
+            color: #ffcc00;
+        }
+
+        .phone-mockup.concert-mode .btn-interval-countdown .btn-form-icon {
+            background-color: #222222;
+            color: #ffcc00;
+            border-color: #ffcc00;
+        }
+
+        .phone-mockup.concert-mode .btn-interval-countdown .countdown-subtitle {
+            color: #999999;
+        }
+
+        .toggle-concert-mode {
+            background-color: #374151;
+            color: white;
+            border: none;
+            padding: 0.4rem 0.8rem;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 0.5rem;
+            width: fit-content;
+        }
+
+        .toggle-concert-mode:hover {
+            background-color: #4b5563;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="preview-header">
+        <div>
+            <h1>Protótipo Offline: Cronômetro do Intervalo</h1>
+            <p>Demonstração interativa da integração em tempo real entre o Painel Admin e o Site dos Músicos.</p>
+        </div>
+        <div class="badge-offline">
+            <i data-lucide="shield-check" style="width: 14px; height: 14px; vertical-align: middle; margin-right: 4px;"></i>
+            Ambiente de Teste Offline
+        </div>
+    </div>
+
+    <div class="preview-grid">
+        
+        <!-- COLUNA 1: SIMULAÇÃO DO PAINEL ADMIN -->
+        <div class="panel-column">
+            <div class="column-title">
+                <i data-lucide="layout-dashboard" style="color: var(--primary-color);"></i>
+                Interface Admin (Configuração)
+            </div>
+            
+            <p style="font-size: 0.95rem; color: #4b5563; line-height: 1.5; margin: 0;">
+                Este card ficará localizado na aba <strong>Links Temporários</strong> no painel administrativo real.
+            </p>
+
+            <div class="admin-control-card">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <div class="card-icon">
+                            <i data-lucide="timer"></i>
+                        </div>
+                        <div>
+                            <h4 style="font-weight: 700; margin: 0; font-size: 1rem; color: #111827;">Cronômetro do Intervalo</h4>
+                            <p style="margin: 0.1rem 0 0 0; font-size: 0.8rem; color: #6b7280;">Controla a contagem de 25 min no site</p>
+                        </div>
+                    </div>
+                    <span id="admin-status-badge" class="status-badge inactive">
+                        <i data-lucide="circle" style="width: 8px; height: 8px; fill: currentColor;"></i> Inativo
+                    </span>
+                </div>
+
+                <div style="border-top: 1px solid #e5e7eb; padding-top: 1rem; margin-top: 0.5rem;">
+                    <label style="font-size: 0.85rem; font-weight: 600; color: #374151; display: block; margin-bottom: 0.5rem;">
+                        Duração do Intervalo (minutos)
+                    </label>
+                    <div class="time-adjuster">
+                        <input type="number" id="timer-duration" class="input-minutes" value="25" min="1" max="180">
+                        <span style="font-size: 0.9rem; color: #6b7280;">minutos</span>
+                    </div>
+                </div>
+
+                <div id="active-info-panel" style="display: none; background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 0.75rem; font-size: 0.85rem; color: #1e40af;">
+                    <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                        <span><strong>Início:</strong> <span id="start-time-text">-</span></span>
+                        <span><strong>Retorno Estimado:</strong> <span id="end-time-text" style="font-weight: bold;">-</span></span>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 0.75rem; margin-top: 0.5rem;">
+                    <button id="btn-admin-start" class="btn-start-timer" style="flex: 1;">
+                        <i data-lucide="play" style="width: 16px; height: 16px;"></i> Iniciar Intervalo
+                    </button>
+                    <button id="btn-admin-stop" class="btn-stop-timer" style="flex: 1; display: none;">
+                        <i data-lucide="square" style="width: 16px; height: 16px;"></i> Parar Cronômetro
+                    </button>
+                </div>
+            </div>
+
+            <div style="background-color: #f9fafb; border-radius: 12px; padding: 1.25rem; border: 1px solid #e5e7eb; font-size: 0.85rem; line-height: 1.5; color: #4b5563;">
+                <h5 style="font-weight: 700; margin: 0 0 0.5rem 0; color: #374151; display: flex; align-items: center; gap: 0.25rem;">
+                    <i data-lucide="info" style="width: 14px; height: 14px; color: var(--primary-color);"></i>
+                    Como funciona a sincronização?
+                </h5>
+                <ol style="margin: 0; padding-left: 1.2rem; display: flex; flex-direction: column; gap: 0.4rem;">
+                    <li>O administrador clica em <strong>Iniciar Intervalo</strong>.</li>
+                    <li>O sistema calcula o tempo de término (ex: hora atual + 25 min) e salva o estado no Firestore.</li>
+                    <li>O site dos músicos detecta a alteração em tempo real via <code>onSnapshot</code>.</li>
+                    <li>O card surge com animação suave e executa o contador localmente comparando com o horário final sincronizado, garantindo precisão mesmo que o músico recarregue a página.</li>
+                </ol>
+            </div>
+        </div>
+
+        <!-- COLUNA 2: SIMULAÇÃO DO SITE DOS MÚSICOS (MOBILE) -->
+        <div class="panel-column">
+            <div class="column-title" style="justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <i data-lucide="smartphone" style="color: var(--primary-color);"></i>
+                    Site dos Músicos (Celular)
+                </div>
+                <button id="btn-toggle-theme" class="toggle-concert-mode">
+                    Modo Concerto (Escuro)
+                </button>
+            </div>
+
+            <!-- Celular Virtual -->
+            <div id="phone" class="phone-mockup">
+                
+                <!-- Topo da página dos músicos -->
+                <div class="musicians-header-mock">
+                    <img src="assets/img/logo_oer.png" alt="OER Logo" onerror="this.src='https://via.placeholder.com/100x35?text=OER'">
+                    <div style="width: 1px; height: 20px; background-color: #e5e7eb; margin: 0 0.25rem;"></div>
+                    <h2>Agenda Digital</h2>
+                </div>
+
+                <!-- Conteúdo -->
+                <div class="musicians-content-mock">
+                    
+                    <!-- Container de Links Dinâmicos onde o cronômetro aparecerá -->
+                    <div id="musician-dynamic-container">
+                        <!-- Botão temporário de mock -->
+                        <div id="mock-temp-link" class="btn-form btn-dynamic-link" style="width: 100%; max-width: unset; margin: 1rem 0 0.5rem 0; text-decoration: none; cursor: default; display: flex; align-items: center; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);">
+                            <span class="btn-form-icon">
+                                <i data-lucide="ticket"></i>
+                            </span>
+                            <div class="btn-dynamic-link-text-group" style="display: flex; flex-direction: column; flex: 1; text-align: left; gap: 0.15rem; min-width: 0; padding-left: 0.75rem;">
+                                <span class="btn-form-label" style="margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; width: 100%; font-weight: 800; color: var(--primary-color);">Retirada de Ingressos - Concerto Domingo</span>
+                                <span class="btn-dynamic-link-subtitle" style="font-size: 0.75rem; color: var(--text-secondary);">Disponível até 11/07 (Sáb) às 12:00</span>
+                            </div>
+                        </div>
+
+                        <!-- O cronômetro entrará aqui -->
+                        <div id="no-timer-msg" style="text-align: center; color: var(--text-secondary); padding: 2rem 1rem; font-size: 0.9rem; border: 2px dashed #e5e7eb; border-radius: 12px; margin-top: 1rem; display: none;">
+                            <i data-lucide="bell-off" style="width: 32px; height: 32px; margin-bottom: 0.5rem; opacity: 0.5; display: block; margin-left: auto; margin-right: auto;"></i>
+                            Nenhum aviso temporário ou intervalo ativo no momento.
+                        </div>
+                    </div>
+
+                    <!-- Outros botões estáticos da página para mostrar o layout -->
+                    <div class="mock-buttons-list">
+                        <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: var(--text-secondary); letter-spacing: 0.5px; margin-bottom: -0.25rem;">
+                            Documentos e Formulários Fixos
+                        </div>
+                        <div class="mock-button-static">
+                            <i data-lucide="file-text"></i>
+                            <span style="flex: 1;">Formulário pedido de Dispensa Bolsistas OER</span>
+                            <i data-lucide="external-link" style="width: 16px; height: 16px; border: none; background: none; color: #9ca3af; padding: 0;"></i>
+                        </div>
+                        <div class="mock-button-static">
+                            <i data-lucide="file-digit"></i>
+                            <span style="flex: 1;">Regulamento Interno OER</span>
+                            <i data-lucide="chevron-right" style="width: 16px; height: 16px; border: none; background: none; color: #9ca3af; padding: 0;"></i>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Script de Simulação -->
+    <script>
+        let intervalTimer = null;
+        let countdownDurationSeconds = 25 * 60; // 25 min default
+        let timerState = {
+            active: false,
+            endTime: null,
+            startedAt: null
+        };
+
+        // UI Admin Elements
+        const timerDurationInput = document.getElementById('timer-duration');
+        const btnAdminStart = document.getElementById('btn-admin-start');
+        const btnAdminStop = document.getElementById('btn-admin-stop');
+        const adminStatusBadge = document.getElementById('admin-status-badge');
+        const activeInfoPanel = document.getElementById('active-info-panel');
+        const startTimeText = document.getElementById('start-time-text');
+        const endTimeText = document.getElementById('end-time-text');
+
+        // UI Musician Elements
+        const musicianDynamicContainer = document.getElementById('musician-dynamic-container');
+        const noTimerMsg = document.getElementById('no-timer-msg');
+        const btnToggleTheme = document.getElementById('btn-toggle-theme');
+        const phoneMockup = document.getElementById('phone');
+
+        // Formata horário para HH:MM:SS ou HH:MM no fuso de Brasília (local do browser)
+        function formatTimeHM(date) {
+            return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // Função que atualiza o relógio na tela do músico a cada segundo
+        function updateMusicianCountdown() {
+            if (!timerState.active || !timerState.endTime) return;
+
+            const now = new Date();
+            const timeDiffMs = timerState.endTime - now;
+
+            const countdownElement = document.getElementById('musician-countdown-numbers');
+            
+            if (timeDiffMs <= 0) {
+                // Intervalo encerrou
+                if (countdownElement) countdownElement.textContent = '00:00';
+                stopTimerLocally();
+                return;
+            }
+
+            // Converter ms para MM:SS
+            const totalSeconds = Math.floor(timeDiffMs / 1000);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+
+            const minutesStr = String(minutes).padStart(2, '0');
+            const secondsStr = String(seconds).padStart(2, '0');
+
+            if (countdownElement) {
+                countdownElement.textContent = `${minutesStr}:${secondsStr}`;
+            }
+        }
+
+        // Inicia o timer na simulação
+        function startTimerLocally() {
+            const minutes = parseInt(timerDurationInput.value) || 25;
+            const now = new Date();
+            const end = new Date(now.getTime() + minutes * 60 * 1000);
+
+            timerState = {
+                active: true,
+                startedAt: now,
+                endTime: end
+            };
+
+            // Atualiza Admin UI
+            adminStatusBadge.className = 'status-badge active';
+            adminStatusBadge.innerHTML = '<i data-lucide="check-circle" style="width: 8px; height: 8px; fill: currentColor;"></i> Ativo';
+            btnAdminStart.style.display = 'none';
+            btnAdminStop.style.display = 'flex';
+            
+            startTimeText.textContent = formatTimeHM(now);
+            endTimeText.textContent = formatTimeHM(end);
+            activeInfoPanel.style.display = 'block';
+
+            // Atualiza Musician UI
+            document.getElementById('mock-temp-link').style.display = 'none';
+            noTimerMsg.style.display = 'none';
+            renderCountdownCard(end);
+
+            // Inicia interval
+            clearInterval(intervalTimer);
+            updateMusicianCountdown();
+            intervalTimer = setInterval(() => {
+                updateMusicianCountdown();
+            }, 1000);
+
+            // Recria ícones Lucide
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
+        }
+
+        // Para o timer na simulação
+        function stopTimerLocally() {
+            timerState = {
+                active: false,
+                endTime: null,
+                startedAt: null
+            };
+
+            // Para loop
+            clearInterval(intervalTimer);
+
+            // Atualiza Admin UI
+            adminStatusBadge.className = 'status-badge inactive';
+            adminStatusBadge.innerHTML = '<i data-lucide="circle" style="width: 8px; height: 8px; fill: currentColor;"></i> Inativo';
+            btnAdminStart.style.display = 'flex';
+            btnAdminStop.style.display = 'none';
+            activeInfoPanel.style.display = 'none';
+
+            // Atualiza Musician UI (remove card)
+            const existingCard = document.getElementById('musician-countdown-card');
+            if (existingCard) {
+                existingCard.style.opacity = '0';
+                existingCard.style.transform = 'scale(0.95) translateY(-10px)';
+                setTimeout(() => {
+                    existingCard.remove();
+                    document.getElementById('mock-temp-link').style.display = 'flex';
+                    noTimerMsg.style.display = 'none';
+                }, 300);
+            } else {
+                document.getElementById('mock-temp-link').style.display = 'flex';
+                noTimerMsg.style.display = 'none';
+            }
+
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
+        }
+
+        // Renderiza o card dourado na simulação do site do músico
+        function renderCountdownCard(endTime) {
+            noTimerMsg.style.display = 'none';
+
+            // Remove card antigo se houver
+            const oldCard = document.getElementById('musician-countdown-card');
+            if (oldCard) oldCard.remove();
+
+            const card = document.createElement('div');
+            card.id = 'musician-countdown-card';
+            card.className = 'btn-interval-countdown';
+            
+            const returnTimeFormatted = formatTimeHM(endTime);
+
+            card.innerHTML = `
+                <span class="btn-form-icon">
+                    <i data-lucide="timer"></i>
+                </span>
+                <div style="display: flex; flex-direction: column; flex: 1; text-align: left; min-width: 0;">
+                    <span class="countdown-label">Volta do Intervalo</span>
+                    <span class="countdown-time" id="musician-countdown-numbers">--:--</span>
+                    <span class="countdown-subtitle">ensaio retorna às <strong>${returnTimeFormatted}</strong></span>
+                </div>
+            `;
+
+            // Insere no topo do container
+            musicianDynamicContainer.insertBefore(card, musicianDynamicContainer.firstChild);
+        }
+
+        // Listeners
+        btnAdminStart.addEventListener('click', startTimerLocally);
+        btnAdminStop.addEventListener('click', stopTimerLocally);
+
+        // Alternar modo escuro no celular virtual para testar legibilidade
+        btnToggleTheme.addEventListener('click', () => {
+            phoneMockup.classList.toggle('concert-mode');
+            if (phoneMockup.classList.contains('concert-mode')) {
+                btnToggleTheme.textContent = 'Modo Normal (Claro)';
+            } else {
+                btnToggleTheme.textContent = 'Modo Concerto (Escuro)';
+            }
+        });
+
+        // Inicializa ícones
+        window.addEventListener('DOMContentLoaded', () => {
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
+        });
+    </script>
+</body>
+</html>

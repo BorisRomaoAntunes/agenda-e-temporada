@@ -1,0 +1,1282 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Novo Painel Admin — OER</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="assets/css/admin_preview.css">
+</head>
+<body>
+<div class="app-container">
+
+    <!-- ==========================================
+         SIDEBAR (Desktop)
+         ========================================== -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <img src="assets/img/logo_oer.png" alt="OER Logo" class="sidebar-logo" onerror="this.style.display='none'">
+            <span class="sidebar-title">OER Admin</span>
+        </div>
+        <nav class="sidebar-nav">
+            <button class="nav-item active" data-target="section-dashboard">
+                <i data-lucide="layout-dashboard"></i><span>Painel Principal</span>
+            </button>
+            <button class="nav-item" data-target="section-musicos">
+                <i data-lucide="users"></i><span>Banco de Músicos</span>
+            </button>
+            <button class="nav-item" data-target="section-avisos">
+                <i data-lucide="megaphone"></i><span>Avisar Orquestra</span>
+            </button>
+            <button class="nav-item" data-target="section-calendario">
+                <i data-lucide="calendar"></i><span>Calendário</span>
+            </button>
+            <button class="nav-item" data-target="section-arquivos">
+                <i data-lucide="folder-open"></i><span>Temporada &amp; Agenda</span>
+            </button>
+            <button class="nav-item" data-target="section-links">
+                <i data-lucide="link"></i><span>Links Extras</span>
+            </button>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="user-profile">
+                <div class="user-avatar">IN</div>
+                <div class="user-info">
+                    <span class="user-name">Inspetor OER</span>
+                    <span class="user-role">Administrador</span>
+                </div>
+            </div>
+            <button class="btn-sidebar-action" id="btn-open-settings">
+                <i data-lucide="settings"></i><span>Ajustes do Sistema</span>
+            </button>
+            <button class="btn-sidebar-action" id="btn-sair-sidebar" style="color:var(--danger);border-color:var(--danger-light);">
+                <i data-lucide="log-out"></i><span>Sair</span>
+            </button>
+        </div>
+    </aside>
+
+    <!-- ==========================================
+         BOTTOM NAV (Mobile)
+         ========================================== -->
+    <nav class="bottom-nav">
+        <button class="bottom-nav-item active" data-target="section-dashboard">
+            <i data-lucide="layout-dashboard"></i><span>Painel</span>
+        </button>
+        <button class="bottom-nav-item" data-target="section-musicos">
+            <i data-lucide="users"></i><span>Músicos</span>
+        </button>
+        <button class="bottom-nav-item" data-target="section-avisos">
+            <i data-lucide="megaphone"></i><span>Avisar</span>
+        </button>
+        <button class="bottom-nav-item" data-target="section-calendario">
+            <i data-lucide="calendar"></i><span>Agenda</span>
+        </button>
+        <button class="bottom-nav-item" id="btn-open-bottom-sheet">
+            <i data-lucide="more-horizontal"></i><span>Mais</span>
+        </button>
+    </nav>
+
+    <!-- ==========================================
+         MAIN WRAPPER
+         ========================================== -->
+    <div class="main-wrapper">
+
+        <!-- HEADER -->
+        <header class="main-header">
+            <div class="header-left">
+                <div class="super-search-wrapper">
+                    <div class="super-search-bar">
+                        <i data-lucide="search"></i>
+                        <input type="text" id="super-search" class="super-search-input"
+                               placeholder="Pesquise músico, instrumento, CPF..." autocomplete="off">
+                        <span class="search-shortcut">/</span>
+                    </div>
+                    <div class="search-results-dropdown" id="search-results-dropdown">
+                        <div id="search-results-container"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="header-right">
+                <button class="header-btn" id="theme-toggle" title="Alternar tema">
+                    <i data-lucide="moon"></i>
+                </button>
+                <button class="header-btn" id="btn-open-settings-header" title="Ajustes">
+                    <i data-lucide="settings"></i>
+                </button>
+                <button class="header-btn" title="Notificações">
+                    <i data-lucide="bell"></i>
+                    <span class="header-badge" id="badge-pendentes">2</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- CONTEÚDO PRINCIPAL -->
+        <main class="main-content">
+
+            <!-- ====================================
+                 SEÇÃO: DASHBOARD
+                 ==================================== -->
+            <section id="section-dashboard" class="section-content active">
+                <div class="section-header">
+                    <div class="section-header-info">
+                        <h2>Resumo do Dia</h2>
+                        <p id="dash-date-label">Carregando data...</p>
+                    </div>
+                    <a href="presenca.html" target="_blank"
+                       class="inspector-action-card"
+                       style="flex-direction:row;padding:.55rem 1rem;gap:.4rem;font-size:.8rem;max-width:180px;">
+                        <i data-lucide="user-check" style="width:16px;height:16px;"></i>
+                        Fazer Presença
+                    </a>
+                </div>
+
+                <!-- Cards de Stat -->
+                <div class="dashboard-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon primary"><i data-lucide="users"></i></div>
+                        <div class="stat-data">
+                            <span class="stat-title">Membros OER</span>
+                            <span class="stat-num" id="stat-membros">–</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon success"><i data-lucide="graduation-cap"></i></div>
+                        <div class="stat-data">
+                            <span class="stat-title">Bolsistas</span>
+                            <span class="stat-num" id="stat-bolsistas-val">–</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon info"><i data-lucide="award"></i></div>
+                        <div class="stat-data">
+                            <span class="stat-title">Monitores</span>
+                            <span class="stat-num" id="stat-monitores-val">–</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon warning"><i data-lucide="file-badge"></i></div>
+                        <div class="stat-data">
+                            <span class="stat-title">Atestados Pendentes</span>
+                            <span class="stat-num" id="stat-pendentes-val">–</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Widgets: Agenda + Quick Actions -->
+                <div class="dashboard-grid">
+                    <div class="widget-card span-8">
+                        <div class="widget-title">
+                            <div class="widget-title-info">
+                                <i data-lucide="calendar-check"></i>
+                                <span>Ensaios e Atividades de Hoje</span>
+                            </div>
+                        </div>
+                        <div class="agenda-list" id="dash-agenda-list"></div>
+                    </div>
+                    <div class="widget-card span-4">
+                        <div class="widget-title">
+                            <div class="widget-title-info">
+                                <i data-lucide="zap"></i>
+                                <span>Acesso Rápido</span>
+                            </div>
+                        </div>
+                        <div class="inspector-quick-actions">
+                            <a href="presenca.html" target="_blank" class="inspector-action-card">
+                                <i data-lucide="user-check"></i><span>Fazer Presença</span>
+                            </a>
+                            <div class="inspector-action-card" onclick="goToSection('section-avisos')">
+                                <i data-lucide="megaphone"></i><span>Avisar Músicos</span>
+                            </div>
+                            <div class="inspector-action-card" onclick="goToSection('section-musicos')">
+                                <i data-lucide="search"></i><span>Buscar Músico</span>
+                            </div>
+                            <div class="inspector-action-card" onclick="openModal('settings-modal')">
+                                <i data-lucide="settings"></i><span>Ajustes</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Widgets: Atestados + Logs -->
+                <div class="dashboard-grid">
+                    <div class="widget-card span-6">
+                        <div class="widget-title">
+                            <div class="widget-title-info">
+                                <i data-lucide="shield-alert"></i>
+                                <span>Atestados Pendentes (IA)</span>
+                            </div>
+                            <span class="live-badge"><span class="live-dot"></span>IA ATIVA</span>
+                        </div>
+                        <div class="atestados-dashboard-list" id="dash-atestados-list"></div>
+                    </div>
+                    <div class="widget-card span-6">
+                        <div class="widget-title">
+                            <div class="widget-title-info">
+                                <i data-lucide="history"></i>
+                                <span>Últimas Atividades</span>
+                            </div>
+                        </div>
+                        <div class="logs-dash-list" id="dash-logs-list"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ====================================
+                 SEÇÃO: BANCO DE MÚSICOS
+                 ==================================== -->
+            <section id="section-musicos" class="section-content">
+                <div class="section-header">
+                    <div class="section-header-info">
+                        <h2>Banco de Músicos</h2>
+                        <p>Gerencie os integrantes da OER. Clique em qualquer músico para abrir a Ficha 360°.</p>
+                    </div>
+                    <div style="display:flex;gap:.6rem;flex-wrap:wrap;">
+                        <label for="import-xlsx-input"
+                               class="btn-drawer-action copy"
+                               style="cursor:pointer;padding:.55rem 1rem;font-size:.8rem;border-radius:var(--radius-md);">
+                            <i data-lucide="upload" style="width:14px;height:14px;"></i> Importar .xlsx
+                        </label>
+                        <input type="file" id="import-xlsx-input" accept=".xlsx" style="display:none;"
+                               onchange="showToast('Importação simulada. Em produção conectará ao Firebase.', 'info')">
+                        <button class="btn-drawer-action copy"
+                                style="padding:.55rem 1rem;font-size:.8rem;border-radius:var(--radius-md);"
+                                onclick="showToast('Exportação iniciada! Arquivo .xlsx sendo gerado...', 'success')">
+                            <i data-lucide="download" style="width:14px;height:14px;"></i> Exportar .xlsx
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Stat Cards Clicáveis -->
+                <div class="dashboard-grid" style="margin-bottom:1.5rem;">
+                    <div class="stat-card clickable-stat" id="stat-card-total" data-filter="all">
+                        <div class="stat-icon primary"><i data-lucide="users"></i></div>
+                        <div class="stat-data">
+                            <span class="stat-title">Total OER</span>
+                            <span class="stat-num" id="stat-total-musicos">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-card clickable-stat" id="stat-card-bolsistas" data-filter="bolsista">
+                        <div class="stat-icon success"><i data-lucide="graduation-cap"></i></div>
+                        <div class="stat-data">
+                            <span class="stat-title">Bolsistas</span>
+                            <span class="stat-num" id="stat-bolsistas-musicos">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-card clickable-stat" id="stat-card-monitores" data-filter="monitor">
+                        <div class="stat-icon info"><i data-lucide="award"></i></div>
+                        <div class="stat-data">
+                            <span class="stat-title">Monitores</span>
+                            <span class="stat-num" id="stat-monitores-musicos">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon warning"><i data-lucide="shield-alert"></i></div>
+                        <div class="stat-data">
+                            <span class="stat-title">Restrições Aliment.</span>
+                            <span class="stat-num" id="stat-restricoes-musicos">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Relatórios -->
+                <div class="widget-card" style="margin-bottom:1.35rem;">
+                    <div class="widget-title">
+                        <div class="widget-title-info">
+                            <i data-lucide="file-text"></i>
+                            <span>Relatórios Específicos</span>
+                        </div>
+                    </div>
+                    <div class="reports-grid">
+                        <button class="btn-report" style="background:hsl(142,70%,35%);" id="btn-report-ficha">
+                            <i data-lucide="sparkles"></i> Ficha Técnica
+                        </button>
+                        <button class="btn-report" style="background:hsl(220,14%,38%);" id="btn-report-metas">
+                            <i data-lucide="bar-chart-2"></i> Metas e Perfil
+                        </button>
+                        <button class="btn-report" style="background:var(--primary);" id="btn-report-presenca">
+                            <i data-lucide="calendar-check"></i> Presença Mensal
+                        </button>
+                        <button class="btn-report" style="background:hsl(30,80%,42%);" id="btn-report-faltas">
+                            <i data-lucide="file-x"></i> Faltas e Atrasos
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Filtros e Busca -->
+                <div class="filter-bar">
+                    <div class="search-box-container">
+                        <i data-lucide="search"></i>
+                        <input type="text" id="musicos-search"
+                               placeholder="Busca reativa: nome, instrumento, CPF, e-mail...">
+                    </div>
+                    <div class="filter-pills" id="musicos-filter-pills">
+                        <button class="filter-pill active" data-filter="all">Todos</button>
+                        <button class="filter-pill" data-filter="bolsista">Bolsistas</button>
+                        <button class="filter-pill" data-filter="monitor">Monitores</button>
+                        <button class="filter-pill" data-filter="convidado">Convidados</button>
+                    </div>
+                </div>
+
+                <!-- Tabela -->
+                <div class="table-card">
+                    <div class="table-responsive">
+                        <table class="custom-table">
+                            <thead>
+                                <tr>
+                                    <th>Nome Artístico</th>
+                                    <th>Instrumento</th>
+                                    <th>Status</th>
+                                    <th>Telefone</th>
+                                    <th>E-mail</th>
+                                </tr>
+                            </thead>
+                            <tbody id="musicos-table-body"></tbody>
+                        </table>
+                    </div>
+                    <div class="table-footer">
+                        <span class="table-showing" id="table-showing-label">Nenhum resultado</span>
+                        <div class="pagination-controls">
+                            <button class="btn-page"><i data-lucide="chevron-left" style="width:13px;height:13px;"></i></button>
+                            <button class="btn-page active">1</button>
+                            <button class="btn-page"><i data-lucide="chevron-right" style="width:13px;height:13px;"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ====================================
+                 SEÇÃO: AVISAR ORQUESTRA
+                 ==================================== -->
+            <section id="section-avisos" class="section-content">
+                <div class="section-header">
+                    <div class="section-header-info">
+                        <h2>Avisar Orquestra</h2>
+                        <p>Compose notificações push ou agende avisos futuros para todos os músicos.</p>
+                    </div>
+                </div>
+
+                <!-- Formulário de Composição -->
+                <div class="widget-card" style="max-width:780px;margin:0 auto;">
+                    <div class="widget-title">
+                        <div class="widget-title-info">
+                            <i data-lucide="bell-ring"></i>
+                            <span>Compor Aviso</span>
+                        </div>
+                    </div>
+
+                    <!-- Título + Robô OER -->
+                    <div class="form-group">
+                        <label class="form-label">Título do Aviso</label>
+                        <div style="display:flex;gap:.5rem;">
+                            <input type="text" id="notif-title-input" class="form-control"
+                                   placeholder="Ex: Novo Cronograma de Ensaios" style="flex:1;">
+                            <button class="btn-robo-oer" id="btn-robot-ai"
+                                    title="Gerar sugestão com IA"
+                                    onclick="roboOER()">
+                                <i data-lucide="sparkles"></i>
+                                <span>Robô OER</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Mensagem -->
+                    <div class="form-group">
+                        <label class="form-label">Mensagem Adicional</label>
+                        <textarea id="notif-message-input" class="form-control textarea"
+                                  placeholder="Detalhes do comunicado..."></textarea>
+                    </div>
+
+                    <!-- Link Opcional e Texto do Link -->
+                    <div style="display: flex; gap: 1rem;">
+                        <div class="form-group" style="flex: 1;">
+                            <label class="form-label">Link Relacionado
+                                <span style="font-weight:400;color:var(--text-muted);">(opcional)</span>
+                            </label>
+                            <input type="url" id="notif-link-input" class="form-control"
+                                   placeholder="https://...">
+                        </div>
+                        <div class="form-group" style="flex: 1;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <label class="form-label" style="margin-bottom: 0;">Texto do Link
+                                    <span style="font-weight:400;color:var(--text-muted);">(opcional)</span>
+                                </label>
+                                <span id="notif-link-text-char-count" style="font-size: 0.75rem; color: var(--text-muted);">0/30</span>
+                            </div>
+                            <input type="text" id="notif-link-text-input" class="form-control"
+                                   placeholder="Acessar Link" maxlength="30" style="margin-top: 0.35rem;">
+                        </div>
+                    </div>
+
+                    <!-- Agendamento Toggle -->
+                    <div class="scheduling-row">
+                        <div class="scheduling-row-label">
+                            <i data-lucide="calendar-clock"></i>
+                            Agendar envio futuro
+                        </div>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggle-schedule-checkbox"
+                                   onchange="toggleScheduling(this)">
+                            <span class="toggle-slider"></span>
+                        </label>
+                    </div>
+                    <div class="scheduling-inputs hidden" id="schedule-inputs-row">
+                        <div class="form-group" style="flex:1;">
+                            <label class="form-label"><i data-lucide="calendar" style="width:11px;height:11px;vertical-align:middle;"></i> Data</label>
+                            <input type="date" id="schedule-date" class="form-control">
+                        </div>
+                        <div class="form-group" style="flex:1;">
+                            <label class="form-label"><i data-lucide="clock" style="width:11px;height:11px;vertical-align:middle;"></i> Hora</label>
+                            <input type="time" id="schedule-time" class="form-control">
+                        </div>
+                    </div>
+
+                    <button class="btn-primary-full" id="btn-send-notif" onclick="sendNotification()">
+                        <i data-lucide="megaphone"></i> Disparar Aviso para Todos
+                    </button>
+                </div>
+
+                <!-- Histórico de Avisos -->
+                <div class="section-header" style="margin-top:2.5rem;margin-bottom:1rem;">
+                    <div class="section-header-info">
+                        <h2 style="font-size:1.1rem;">Avisos Ativos e Histórico</h2>
+                        <p>Visualize, edite ou apague comunicados enviados, agendados e ativos.</p>
+                    </div>
+                    <div class="filter-pills" id="notif-filter-pills">
+                        <button class="filter-pill active" data-notif-filter="all">Todos</button>
+                        <button class="filter-pill" data-notif-filter="active">Ativos</button>
+                        <button class="filter-pill" data-notif-filter="scheduled">Agendados</button>
+                        <button class="filter-pill" data-notif-filter="sent">Enviados</button>
+                    </div>
+                </div>
+                <div id="notif-history-list" class="notif-history-list"></div>
+            </section>
+
+            <!-- ====================================
+                 SEÇÃO: CALENDÁRIO
+                 ==================================== -->
+            <section id="section-calendario" class="section-content">
+                <div class="section-header">
+                    <div class="section-header-info">
+                        <h2>Calendário</h2>
+                        <p>Cadastre eventos ou importe cronogramas por e-mail e PDF usando IA.</p>
+                    </div>
+                </div>
+
+                <div class="calendario-layout">
+                    <!-- Coluna: Formulário -->
+                    <div>
+                        <div class="widget-card">
+                            <div class="widget-title">
+                                <div class="widget-title-info">
+                                    <i data-lucide="calendar-plus"></i>
+                                    <span id="evento-form-title">Adicionar Evento</span>
+                                </div>
+                            </div>
+
+                            <!-- Fonte IA -->
+                            <div class="cal-source-buttons">
+                                <button class="btn-cal-source" id="btn-ia-texto" onclick="iaTexto()">
+                                    <i data-lucide="mail"></i>
+                                    <span>Colar E-mail</span>
+                                    <small>Texto do cronograma</small>
+                                </button>
+                                <button class="btn-cal-source" id="btn-ia-pdf" onclick="iaPDF()">
+                                    <i data-lucide="file-digit"></i>
+                                    <span>Enviar PDF</span>
+                                    <small>Upload com IA</small>
+                                </button>
+                            </div>
+
+                            <!-- Formulário -->
+                            <form id="evento-form" class="cal-form-section" onsubmit="saveEvent(event)">
+                                <input type="hidden" id="evento-id">
+
+                                <!-- Informações Gerais -->
+                                <div class="form-group-card">
+                                    <div class="form-group-card-title">
+                                        <i data-lucide="info"></i> Informações Gerais
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-field">
+                                            <label><i data-lucide="tag"></i> Tipo</label>
+                                            <select id="evento-tipo" class="form-input"
+                                                    onchange="toggleNaipeField(this.value)">
+                                                <option value="ensaio_tutti">Ensaio Tutti</option>
+                                                <option value="ensaio_naipe">Ensaio de Naipe</option>
+                                                <option value="concerto">Concerto</option>
+                                            </select>
+                                        </div>
+                                        <div class="form-field">
+                                            <label><i data-lucide="check-circle-2"></i> Status</label>
+                                            <select id="evento-status" class="form-input">
+                                                <option value="Confirmado">Confirmado</option>
+                                                <option value="Cancelado">Cancelado</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-field">
+                                            <label><i data-lucide="align-left"></i> Descrição / Título</label>
+                                            <input type="text" id="evento-descricao" class="form-input"
+                                                   placeholder="Ex: Tutti, Geral, OER" required>
+                                        </div>
+                                        <div class="form-field">
+                                            <label><i data-lucide="music"></i> Concerto (opcional)</label>
+                                            <input type="text" id="evento-concerto" class="form-input"
+                                                   placeholder="Ex: Metacosmos">
+                                        </div>
+                                    </div>
+                                    <div class="form-field" id="naipe-field-wrapper" style="display:none;">
+                                        <label><i data-lucide="users"></i> Nome do Naipe</label>
+                                        <input type="text" id="evento-naipe" class="form-input"
+                                               placeholder="Ex: Violoncelos">
+                                    </div>
+                                </div>
+
+                                <!-- Data e Horários -->
+                                <div class="form-group-card">
+                                    <div class="form-group-card-title">
+                                        <i data-lucide="calendar"></i> Data e Horários
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-field" style="flex:1.5;">
+                                            <label><i data-lucide="calendar-days"></i> Data</label>
+                                            <input type="date" id="evento-date" class="form-input" required>
+                                        </div>
+                                        <div class="form-field">
+                                            <label><i data-lucide="clock"></i> Início</label>
+                                            <input type="time" id="evento-inicio" class="form-input" required>
+                                        </div>
+                                        <div class="form-field">
+                                            <label><i data-lucide="clock-9"></i> Fim</label>
+                                            <input type="time" id="evento-fim" class="form-input" required>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Localização -->
+                                <div class="form-group-card">
+                                    <div class="form-group-card-title">
+                                        <i data-lucide="map-pin"></i> Localização
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-field">
+                                            <label>Local Principal</label>
+                                            <input type="text" id="evento-local" class="form-input"
+                                                   placeholder="Ex: Sala de Ensaio OSM/OER" required>
+                                        </div>
+                                        <div class="form-field">
+                                            <label>Complemento</label>
+                                            <input type="text" id="evento-complemento" class="form-input"
+                                                   placeholder="Ex: Prédio Corpos (opcional)">
+                                        </div>
+                                    </div>
+                                    <div class="form-field">
+                                        <label><i data-lucide="map"></i> Link Google Maps (opcional)</label>
+                                        <input type="url" id="evento-maps" class="form-input"
+                                               placeholder="https://maps.app.goo.gl/...">
+                                    </div>
+                                </div>
+
+                                <!-- Detalhamento -->
+                                <div class="form-group-card">
+                                    <div class="form-group-card-title">
+                                        <i data-lucide="library"></i> Detalhamento
+                                    </div>
+                                    <div class="form-field">
+                                        <label><i data-lucide="megaphone"></i> Avisos do Dia (um por linha)</label>
+                                        <textarea id="evento-avisos" class="form-input textarea"
+                                                  placeholder="Ex: Trazer partituras novas"></textarea>
+                                    </div>
+                                    <div class="form-field">
+                                        <label><i data-lucide="music-4"></i> Repertório (um por linha)</label>
+                                        <textarea id="evento-repertorio" class="form-input textarea"
+                                                  placeholder="Ex: DVOŘÁK Sinfonia nº 8"></textarea>
+                                    </div>
+                                </div>
+
+                                <div style="display:flex;gap:.7rem;">
+                                    <button type="submit" class="btn-primary-full" style="flex:2;">
+                                        <i data-lucide="save"></i>
+                                        <span id="btn-evento-label">Salvar Evento</span>
+                                    </button>
+                                    <button type="button" class="btn-outline-full" style="flex:1;"
+                                            onclick="clearEventForm()">
+                                        <i data-lucide="x"></i> Limpar
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Coluna: Lista de Eventos -->
+                    <div>
+                        <div class="widget-card">
+                            <div class="widget-title">
+                                <div class="widget-title-info">
+                                    <i data-lucide="list"></i>
+                                    <span>Eventos do Mês</span>
+                                </div>
+                                <div style="display:flex;align-items:center;gap:.6rem;">
+                                    <button class="btn-page" onclick="changeCalMonth(-1)">
+                                        <i data-lucide="chevron-left" style="width:13px;height:13px;"></i>
+                                    </button>
+                                    <span id="cal-month-label"
+                                          style="font-weight:700;font-size:.875rem;white-space:nowrap;min-width:90px;text-align:center;">
+                                        Julho 2026
+                                    </span>
+                                    <button class="btn-page" onclick="changeCalMonth(1)">
+                                        <i data-lucide="chevron-right" style="width:13px;height:13px;"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="cal-events-list" id="cal-events-list"></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ====================================
+                 SEÇÃO: TEMPORADA & AGENDA
+                 ==================================== -->
+            <section id="section-arquivos" class="section-content">
+                <div class="section-header">
+                    <div class="section-header-info">
+                        <h2>Temporada &amp; Agenda</h2>
+                        <p>Envie novos PDFs ou atualize a versão exibida no site dos músicos.</p>
+                    </div>
+                </div>
+
+                <div class="upload-section-grid">
+                    <!-- Card: Temporada -->
+                    <div class="upload-widget-card">
+                        <div class="upload-card-header">
+                            <div class="upload-card-icon temporada">
+                                <i data-lucide="book-open"></i>
+                            </div>
+                            <div>
+                                <div class="upload-card-title">Temporada</div>
+                                <div class="upload-card-desc">Versão atual: <strong id="version-label-temporada">–</strong></div>
+                            </div>
+                        </div>
+
+                        <div class="drag-drop-area" id="drag-temporada"
+                             onclick="document.getElementById('file-temporada').click()"
+                             ondragover="event.preventDefault()"
+                             ondrop="onFileDrop(event,'temporada')">
+                            <i data-lucide="upload-cloud"></i>
+                            <span>Clique ou arraste o PDF aqui</span>
+                            <small>Somente arquivos .PDF</small>
+                        </div>
+                        <input type="file" id="file-temporada" accept="application/pdf" style="display:none;"
+                               onchange="onFileSelected('temporada', this)">
+
+                        <div class="file-selected-info" id="file-selected-temporada" style="display:none;">
+                            <i data-lucide="check-circle"></i>
+                            <span id="filename-temporada">–</span>
+                        </div>
+
+                        <button class="btn-primary-full" id="btn-upload-temporada"
+                                disabled onclick="simulateUpload('temporada')">
+                            <i data-lucide="send"></i> Enviar novo PDF
+                        </button>
+
+                        <div class="progress-bar-track" id="progress-temporada-track" style="display:none;">
+                            <div class="progress-bar-fill" id="progress-temporada-fill"></div>
+                        </div>
+
+                        <div class="version-section">
+                            <label class="form-label">Atualizar versão da estrela (Ex: 2.5)</label>
+                            <div class="version-input-row">
+                                <input type="text" id="version-temporada" class="form-control"
+                                       placeholder="Ex: 2.5" inputmode="decimal">
+                                <button class="btn-drawer-action copy"
+                                        onclick="updateVersion('temporada')"
+                                        style="white-space:nowrap;padding:.55rem .85rem;border-radius:var(--radius-xs);font-size:.8rem;">
+                                    <i data-lucide="refresh-cw" style="width:13px;height:13px;"></i> Atualizar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card: Agenda -->
+                    <div class="upload-widget-card">
+                        <div class="upload-card-header">
+                            <div class="upload-card-icon agenda">
+                                <i data-lucide="calendar"></i>
+                            </div>
+                            <div>
+                                <div class="upload-card-title">Agenda</div>
+                                <div class="upload-card-desc">Versão atual: <strong id="version-label-agenda">–</strong></div>
+                            </div>
+                        </div>
+
+                        <div class="drag-drop-area" id="drag-agenda"
+                             onclick="document.getElementById('file-agenda').click()"
+                             ondragover="event.preventDefault()"
+                             ondrop="onFileDrop(event,'agenda')">
+                            <i data-lucide="upload-cloud"></i>
+                            <span>Clique ou arraste o PDF aqui</span>
+                            <small>Somente arquivos .PDF</small>
+                        </div>
+                        <input type="file" id="file-agenda" accept="application/pdf" style="display:none;"
+                               onchange="onFileSelected('agenda', this)">
+
+                        <div class="file-selected-info" id="file-selected-agenda" style="display:none;">
+                            <i data-lucide="check-circle"></i>
+                            <span id="filename-agenda">–</span>
+                        </div>
+
+                        <button class="btn-primary-full" id="btn-upload-agenda"
+                                disabled onclick="simulateUpload('agenda')">
+                            <i data-lucide="send"></i> Enviar novo PDF
+                        </button>
+
+                        <div class="progress-bar-track" id="progress-agenda-track" style="display:none;">
+                            <div class="progress-bar-fill" id="progress-agenda-fill"></div>
+                        </div>
+
+                        <div class="version-section">
+                            <label class="form-label">Atualizar versão da estrela (Ex: 3.2)</label>
+                            <div class="version-input-row">
+                                <input type="text" id="version-agenda" class="form-control"
+                                       placeholder="Ex: 3.2" inputmode="decimal">
+                                <button class="btn-drawer-action copy"
+                                        onclick="updateVersion('agenda')"
+                                        style="white-space:nowrap;padding:.55rem .85rem;border-radius:var(--radius-xs);font-size:.8rem;">
+                                    <i data-lucide="refresh-cw" style="width:13px;height:13px;"></i> Atualizar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ====================================
+                 SEÇÃO: LINKS EXTRAS
+                 ==================================== -->
+            <section id="section-links" class="section-content">
+                <div class="section-header">
+                    <div class="section-header-info">
+                        <h2>Links Extras (Botões Temporários)</h2>
+                        <p>Adicione botões com data de validade no site dos músicos.</p>
+                    </div>
+                </div>
+
+                <!-- Formulário -->
+                <div class="widget-card" style="max-width:780px;margin:0 auto;">
+                    <div class="widget-title">
+                        <div class="widget-title-info">
+                            <i data-lucide="link-2"></i>
+                            <span id="link-form-title">Criar Novo Botão</span>
+                        </div>
+                    </div>
+
+                    <input type="hidden" id="link-id">
+
+                    <!-- Ícone + Nome -->
+                    <div class="form-group">
+                        <label class="form-label">Ícone e Nome do Botão
+                            <span style="font-weight:400;color:var(--text-muted);">(máx. 30 caracteres)</span>
+                        </label>
+                        <div style="display:flex;gap:.55rem;align-items:flex-start;">
+                            <div class="icon-picker-wrapper">
+                                <button type="button" class="btn-icon-picker" id="btn-icon-picker"
+                                        onclick="toggleIconPicker()">
+                                    <i data-lucide="link" id="icon-picker-preview"></i>
+                                    <i data-lucide="chevron-down" style="width:10px;height:10px;color:var(--text-muted);"></i>
+                                </button>
+                                <div class="icon-picker-dropdown" id="icon-picker-dropdown-links">
+                                    <div class="icon-opt selected" data-icon="link" title="Link">
+                                        <i data-lucide="link"></i>
+                                    </div>
+                                    <div class="icon-opt" data-icon="file-text" title="Formulário">
+                                        <i data-lucide="file-text"></i>
+                                    </div>
+                                    <div class="icon-opt" data-icon="ticket" title="Ingresso">
+                                        <i data-lucide="ticket"></i>
+                                    </div>
+                                    <div class="icon-opt" data-icon="bell" title="Aviso">
+                                        <i data-lucide="bell"></i>
+                                    </div>
+                                    <div class="icon-opt" data-icon="file-digit" title="PDF">
+                                        <i data-lucide="file-digit"></i>
+                                    </div>
+                                    <div class="icon-opt" data-icon="external-link" title="Externo">
+                                        <i data-lucide="external-link"></i>
+                                    </div>
+                                    <div class="icon-opt" data-icon="music" title="Música">
+                                        <i data-lucide="music"></i>
+                                    </div>
+                                    <div class="icon-opt" data-icon="star" title="Estrela">
+                                        <i data-lucide="star"></i>
+                                    </div>
+                                    <div class="icon-opt" data-icon="info" title="Info">
+                                        <i data-lucide="info"></i>
+                                    </div>
+                                    <div class="icon-opt" data-icon="mail" title="E-mail">
+                                        <i data-lucide="mail"></i>
+                                    </div>
+                                </div>
+                                <input type="hidden" id="selected-icon-name" value="link">
+                            </div>
+                            <div style="flex:1;position:relative;">
+                                <input type="text" id="link-name" class="form-control" maxlength="30"
+                                       placeholder="Ex: Pesquisa de Satisfação"
+                                       style="padding-right:46px;"
+                                       oninput="updateNameCounter(this)">
+                                <span id="link-name-counter"
+                                      style="position:absolute;right:10px;top:50%;transform:translateY(-50%);
+                                             font-size:.68rem;color:var(--text-muted);">0/30</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- URL -->
+                    <div class="form-group">
+                        <label class="form-label">URL de Destino</label>
+                        <input type="url" id="link-url" class="form-control" placeholder="https://...">
+                    </div>
+
+                    <!-- Validade -->
+                    <div class="form-row">
+                        <div class="form-group" style="flex:1;">
+                            <label class="form-label">Disponível a partir de
+                                <span style="font-weight:400;color:var(--text-muted);">(opcional)</span>
+                            </label>
+                            <input type="datetime-local" id="link-available-from" class="form-control">
+                        </div>
+                        <div class="form-group" style="flex:1;">
+                            <label class="form-label">Disponível até
+                                <span style="font-weight:400;color:var(--text-muted);">(opcional)</span>
+                            </label>
+                            <input type="datetime-local" id="link-available-until" class="form-control">
+                        </div>
+                    </div>
+
+                    <div style="display:flex;gap:.7rem;margin-top:.35rem;">
+                        <button class="btn-primary-full" onclick="saveLink()" style="flex:2;">
+                            <i data-lucide="plus" id="link-btn-icon"></i>
+                            <span id="link-btn-text">Criar Botão</span>
+                        </button>
+                        <button class="btn-outline-full" id="btn-cancel-link" style="flex:1;display:none;"
+                                onclick="cancelLinkEdit()">
+                            <i data-lucide="x"></i> Cancelar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Lista de Links Criados -->
+                <div class="section-header" style="margin-top:2.5rem;margin-bottom:1rem;">
+                    <div class="section-header-info">
+                        <h2 style="font-size:1.1rem;">Links Criados</h2>
+                        <p>Ative, edite ou apague os botões extras exibidos no site.</p>
+                    </div>
+                </div>
+                <div id="links-created-list" class="links-created-list"></div>
+            </section>
+
+        </main>
+    </div><!-- /main-wrapper -->
+</div><!-- /app-container -->
+
+<!-- ==========================================
+     DRAWER 360° — FICHA DO MÚSICO
+     ========================================== -->
+<div class="drawer-backdrop" id="drawer-backdrop"></div>
+<div class="musico-drawer-360" id="musico-drawer-360">
+    <div class="drawer-360-header">
+        <div class="drawer-360-user-profile">
+            <div class="drawer-360-avatar" id="drawer-avatar">--</div>
+            <div class="drawer-360-names">
+                <h3 id="drawer-nome-artistico">–</h3>
+                <p id="drawer-instrumento-header">–</p>
+            </div>
+        </div>
+        <button class="drawer-360-close" id="drawer-close">
+            <i data-lucide="x"></i>
+        </button>
+    </div>
+
+    <div class="drawer-tabs">
+        <button class="drawer-tab-btn active" data-target="dw-tab-geral">Dados</button>
+        <button class="drawer-tab-btn" data-target="dw-tab-contato">Contato</button>
+        <button class="drawer-tab-btn" data-target="dw-tab-frequencia">Frequência</button>
+        <button class="drawer-tab-btn" data-target="dw-tab-logistica">Logística</button>
+    </div>
+
+    <div class="drawer-360-body">
+        <div class="drawer-quick-actions">
+            <button class="btn-drawer-action whatsapp" id="dw-btn-whatsapp">
+                <i data-lucide="message-circle"></i> WhatsApp
+            </button>
+            <button class="btn-drawer-action copy" id="dw-btn-copy">
+                <i data-lucide="copy"></i> Copiar Ficha
+            </button>
+        </div>
+
+        <!-- Tab: Dados Gerais -->
+        <div class="drawer-tab-content active" id="dw-tab-geral">
+            <div class="drawer-section-title"><i data-lucide="user"></i> Dados Pessoais</div>
+            <div class="drawer-grid-fields">
+                <div class="drawer-field-block span-2">
+                    <span class="drawer-field-label">Nome Completo (Registro)</span>
+                    <span class="drawer-field-value" id="dw-nome-registro">–</span>
+                </div>
+                <div class="drawer-field-block">
+                    <span class="drawer-field-label">Gênero</span>
+                    <span class="drawer-field-value" id="dw-genero">–</span>
+                </div>
+                <div class="drawer-field-block">
+                    <span class="drawer-field-label">Nascimento / Idade</span>
+                    <span class="drawer-field-value" id="dw-idade">–</span>
+                </div>
+            </div>
+            <div class="drawer-section-title"><i data-lucide="file-text"></i> Vínculo OER</div>
+            <div class="drawer-grid-fields">
+                <div class="drawer-field-block">
+                    <span class="drawer-field-label">Status</span>
+                    <span class="drawer-field-value" id="dw-status">–</span>
+                </div>
+                <div class="drawer-field-block">
+                    <span class="drawer-field-label">Escalado Ativo</span>
+                    <span class="drawer-field-value" id="dw-escalado">–</span>
+                </div>
+                <div class="drawer-field-block">
+                    <span class="drawer-field-label">Anos na OER</span>
+                    <span class="drawer-field-value" id="dw-anos-oer">–</span>
+                </div>
+                <div class="drawer-field-block">
+                    <span class="drawer-field-label">Tempo Total</span>
+                    <span class="drawer-field-value" id="dw-tempo-oer">–</span>
+                </div>
+                <div class="drawer-field-block">
+                    <span class="drawer-field-label">Início Contrato</span>
+                    <span class="drawer-field-value" id="dw-inicio-contrato">–</span>
+                </div>
+                <div class="drawer-field-block">
+                    <span class="drawer-field-label">Término Contrato</span>
+                    <span class="drawer-field-value" id="dw-termino-contrato">–</span>
+                </div>
+                <div class="drawer-field-block span-2">
+                    <span class="drawer-field-label">Tipo de Contrato</span>
+                    <span class="drawer-field-value" id="dw-tipo-contrato">–</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Contato e Banco -->
+        <div class="drawer-tab-content" id="dw-tab-contato">
+            <div class="drawer-section-title"><i data-lucide="mail"></i> Contatos</div>
+            <div class="drawer-grid-fields">
+                <div class="drawer-field-block span-2">
+                    <span class="drawer-field-label">E-mail</span>
+                    <span class="drawer-field-value" id="dw-email">–</span>
+                </div>
+                <div class="drawer-field-block">
+                    <span class="drawer-field-label">Telefone Celular</span>
+                    <span class="drawer-field-value" id="dw-telefone">–</span>
+                </div>
+            </div>
+            <div class="drawer-section-title"><i data-lucide="credit-card"></i> Documentos</div>
+            <div class="drawer-grid-fields">
+                <div class="drawer-field-block">
+                    <span class="drawer-field-label">CPF</span>
+                    <span class="drawer-field-value" id="dw-cpf">–</span>
+                </div>
+                <div class="drawer-field-block">
+                    <span class="drawer-field-label">RG</span>
+                    <span class="drawer-field-value" id="dw-rg">–</span>
+                </div>
+                <div class="drawer-field-block span-2">
+                    <span class="drawer-field-label">PIS / PASEP</span>
+                    <span class="drawer-field-value" id="dw-pis">–</span>
+                </div>
+            </div>
+            <div class="drawer-section-title"><i data-lucide="dollar-sign"></i> Dados Bancários</div>
+            <div class="drawer-grid-fields">
+                <div class="drawer-field-block">
+                    <span class="drawer-field-label">Banco</span>
+                    <span class="drawer-field-value" id="dw-banco">–</span>
+                </div>
+                <div class="drawer-field-block">
+                    <span class="drawer-field-label">Agência</span>
+                    <span class="drawer-field-value" id="dw-agencia">–</span>
+                </div>
+                <div class="drawer-field-block span-2">
+                    <span class="drawer-field-label">Conta Corrente</span>
+                    <span class="drawer-field-value" id="dw-conta">–</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Frequência -->
+        <div class="drawer-tab-content" id="dw-tab-frequencia">
+            <div class="drawer-section-title"><i data-lucide="user-check"></i> Resumo de Frequência</div>
+            <div class="drawer-attendance-summary">
+                <div class="attendance-mini-card">
+                    <div class="attendance-mini-num presencas" id="dw-mini-presencas">–</div>
+                    <div class="attendance-mini-label">Presenças</div>
+                </div>
+                <div class="attendance-mini-card">
+                    <div class="attendance-mini-num faltas" id="dw-mini-faltas">–</div>
+                    <div class="attendance-mini-label">Faltas</div>
+                </div>
+                <div class="attendance-mini-card">
+                    <div class="attendance-mini-num atrasos" id="dw-mini-atrasos">–</div>
+                    <div class="attendance-mini-label">Atrasos</div>
+                </div>
+            </div>
+            <div class="drawer-section-title"><i data-lucide="file-badge"></i> Atestados Médicos</div>
+            <div class="drawer-list" id="dw-atestados-list"></div>
+        </div>
+
+        <!-- Tab: Logística -->
+        <div class="drawer-tab-content" id="dw-tab-logistica">
+            <div class="drawer-section-title"><i data-lucide="map-pin"></i> Endereço</div>
+            <div class="drawer-grid-fields">
+                <div class="drawer-field-block span-2">
+                    <span class="drawer-field-label">Endereço Residencial</span>
+                    <span class="drawer-field-value" id="dw-endereco">–</span>
+                </div>
+                <div class="drawer-field-block">
+                    <span class="drawer-field-label">CEP</span>
+                    <span class="drawer-field-value" id="dw-cep">–</span>
+                </div>
+            </div>
+            <div class="drawer-section-title"><i data-lucide="shield-alert"></i> Alimentação &amp; Saúde</div>
+            <div class="drawer-grid-fields">
+                <div class="drawer-field-block span-2">
+                    <span class="drawer-field-label">Restrições Alimentares / Alergias</span>
+                    <span class="drawer-field-value" id="dw-restricao">–</span>
+                </div>
+            </div>
+            <div class="drawer-section-title"><i data-lucide="car"></i> Transporte</div>
+            <div class="drawer-grid-fields">
+                <div class="drawer-field-block span-2">
+                    <span class="drawer-field-label">Veículo Cadastrado</span>
+                    <span class="drawer-field-value" id="dw-carro">–</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================
+     MODAL: AJUSTES DO SISTEMA
+     ========================================== -->
+<div class="modal-overlay" id="settings-modal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <div class="modal-header-info">
+                <h3><i data-lucide="settings"></i> Ajustes do Sistema</h3>
+                <p>Controle os recursos visíveis no site dos músicos.</p>
+            </div>
+            <button class="modal-close-btn" onclick="closeModal('settings-modal')">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="settings-toggle-item">
+                <div class="settings-toggle-info">
+                    <div class="settings-toggle-icon" style="background:var(--primary-light);color:var(--primary);">
+                        <i data-lucide="newspaper"></i>
+                    </div>
+                    <div class="settings-toggle-texts">
+                        <h4>Letreiro de Comunicados</h4>
+                        <p>Faixa de avisos no topo do site dos músicos.</p>
+                    </div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="toggle-letreiro" checked onchange="onSettingChange('letreiro',this)">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="settings-toggle-item">
+                <div class="settings-toggle-info">
+                    <div class="settings-toggle-icon" style="background:var(--success-light);color:var(--success);">
+                        <i data-lucide="file-badge"></i>
+                    </div>
+                    <div class="settings-toggle-texts">
+                        <h4>Módulo de Atestados</h4>
+                        <p>Permite envio de atestados pelos músicos.</p>
+                    </div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="toggle-atestados" checked onchange="onSettingChange('atestados',this)">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="settings-toggle-item">
+                <div class="settings-toggle-info">
+                    <div class="settings-toggle-icon" style="background:var(--bg-active);color:var(--text-secondary);">
+                        <i data-lucide="bell"></i>
+                    </div>
+                    <div class="settings-toggle-texts">
+                        <h4>Botão de Notificação</h4>
+                        <p>Sininho de inscrição no site dos músicos.</p>
+                    </div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="toggle-sininho" checked onchange="onSettingChange('sininho',this)">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="settings-toggle-item">
+                <div class="settings-toggle-info">
+                    <div class="settings-toggle-icon" style="background:var(--primary-light);color:var(--primary);">
+                        <i data-lucide="calendar-days"></i>
+                    </div>
+                    <div class="settings-toggle-texts">
+                        <h4>Calendário Interativo</h4>
+                        <p>Substitui PDFs pela nova agenda digital.</p>
+                    </div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="toggle-calendario-on" onchange="onSettingChange('calendario',this)">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            <div class="settings-toggle-item">
+                <div class="settings-toggle-info">
+                    <div class="settings-toggle-icon" style="background:var(--warning-light);color:var(--warning);">
+                        <i data-lucide="terminal"></i>
+                    </div>
+                    <div class="settings-toggle-texts">
+                        <h4>Ambiente de Emulação</h4>
+                        <p>Usa emuladores locais (Desenvolvimento).</p>
+                    </div>
+                </div>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="toggle-emulacao" onchange="onSettingChange('emulacao',this)">
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+
+            <!-- Segurança (expansível) -->
+            <div style="border-top:1px solid var(--border-color);padding-top:1.1rem;margin-top:.3rem;">
+                <div style="display:flex;align-items:center;gap:.75rem;cursor:pointer;padding-bottom:.2rem;"
+                     onclick="toggleSecuritySection()">
+                    <div class="settings-toggle-icon" style="background:var(--bg-active);color:var(--text-secondary);">
+                        <i data-lucide="lock"></i>
+                    </div>
+                    <div class="settings-toggle-texts" style="flex:1;">
+                        <h4>Segurança da Conta</h4>
+                        <p>Altere sua senha de acesso</p>
+                    </div>
+                    <i data-lucide="chevron-down" id="security-chevron"
+                       style="color:var(--text-muted);transition:transform .3s;width:16px;height:16px;"></i>
+                </div>
+                <div id="security-content" style="display:none;flex-direction:column;gap:.6rem;margin-top:.75rem;">
+                    <div class="form-group">
+                        <label class="form-label">Senha Atual</label>
+                        <input type="password" class="form-control" placeholder="••••••••">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Nova Senha</label>
+                        <input type="password" class="form-control" placeholder="••••••••">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Confirmar Nova Senha</label>
+                        <input type="password" class="form-control" placeholder="••••••••">
+                    </div>
+                    <button class="btn-primary-full"
+                            onclick="showToast('Senha alterada com sucesso!', 'success')">
+                        <i data-lucide="shield-check"></i> Alterar Senha
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <i data-lucide="info"></i>
+            As alterações são aplicadas instantaneamente para todos os músicos.
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================
+     MODAL: EDITAR AVISO
+     ========================================== -->
+<div class="modal-overlay" id="edit-notif-modal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <div class="modal-header-info">
+                <h3><i data-lucide="edit-3"></i> Editar Aviso</h3>
+                <p>Modifique os dados do comunicado e salve.</p>
+            </div>
+            <button class="modal-close-btn" onclick="closeModal('edit-notif-modal')">
+                <i data-lucide="x"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="edit-notif-id">
+            <div class="form-group">
+                <label class="form-label">Título do Aviso</label>
+                <input type="text" id="edit-notif-title" class="form-control" placeholder="Título">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Mensagem</label>
+                <textarea id="edit-notif-message" class="form-control textarea"
+                          placeholder="Mensagem"></textarea>
+            </div>
+            <div style="display: flex; gap: 1rem;">
+                <div class="form-group" style="flex: 1;">
+                    <label class="form-label">Link (opcional)</label>
+                    <input type="url" id="edit-notif-link" class="form-control" placeholder="https://...">
+                </div>
+                <div class="form-group" style="flex: 1;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <label class="form-label" style="margin-bottom: 0;">Texto do Link</label>
+                        <span id="edit-notif-link-text-char-count" style="font-size: 0.75rem; color: var(--text-muted);">0/30</span>
+                    </div>
+                    <input type="text" id="edit-notif-link-text" class="form-control" placeholder="Acessar Link" maxlength="30" style="margin-top: 0.35rem;">
+                </div>
+            </div>
+            <div style="display:flex;gap:.7rem;margin-top:.35rem;">
+                <button class="btn-primary-full" onclick="saveEditedNotif()" style="flex:2;">
+                    <i data-lucide="save"></i> Salvar Alterações
+                </button>
+                <button class="btn-outline-full" onclick="closeModal('edit-notif-modal')" style="flex:1;">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==========================================
+     BOTTOM SHEET "MAIS" (Mobile)
+     ========================================== -->
+<div class="bottom-sheet-overlay" id="bottom-sheet-overlay"></div>
+<div class="bottom-sheet" id="bottom-sheet">
+    <div class="bottom-sheet-handle"></div>
+    <div class="bottom-sheet-title">Mais opções</div>
+    <div class="bottom-sheet-item"
+         onclick="goToSection('section-arquivos');closeBottomSheet();">
+        <i data-lucide="folder-open"></i><span>Temporada &amp; Agenda</span>
+    </div>
+    <div class="bottom-sheet-item"
+         onclick="goToSection('section-links');closeBottomSheet();">
+        <i data-lucide="link"></i><span>Links Extras</span>
+    </div>
+    <div class="bottom-sheet-item"
+         onclick="openModal('settings-modal');closeBottomSheet();">
+        <i data-lucide="settings"></i><span>Ajustes do Sistema</span>
+    </div>
+    <div class="bottom-sheet-item" style="color:var(--danger);"
+         onclick="showToast('Sessão encerrada!','info');closeBottomSheet();">
+        <i data-lucide="log-out" style="color:var(--danger);"></i>
+        <span style="color:var(--danger);">Sair</span>
+    </div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toast-container"></div>
+
+<!-- ==========================================
+     SCRIPTS
+     ========================================== -->
+<script src="assets/js/admin/admin_preview.js"></script>
+<script>lucide.createIcons();</script>
+</body>
+</html>
