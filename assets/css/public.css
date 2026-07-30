@@ -1181,6 +1181,7 @@ iframe {
     width: 55px;
     height: 55px;
     border: 2px solid #FFD700;
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.4);
 }
 
 .btn-form.btn-dynamic-link:hover .btn-form-icon {
@@ -1189,6 +1190,7 @@ iframe {
     background-color: #FFD700;
     color: var(--primary-color);
     border-color: var(--primary-color);
+    box-shadow: 0 6px 20px rgba(255, 215, 0, 0.6);
 }
 
 .btn-form.btn-dynamic-link .btn-form-label {
@@ -1240,6 +1242,7 @@ iframe {
     background-color: #9ca3af;
     border-color: #d1d5db;
     color: #ffffff;
+    box-shadow: none;
 }
 
 .btn-form.btn-dynamic-link.btn-dynamic-link-disabled .btn-form-label {
