@@ -3532,3 +3532,91 @@ body.modo-concerto .btn-form.btn-atestado .btn-form-label {
 body.modo-concerto .cronograma-aviso-permanente {
     color: #9ca3af;
 }
+
+/* Card do Cronômetro do Intervalo (Músicos) */
+.btn-interval-countdown {
+    animation: dynamic-link-entrance 0.5s ease-out;
+    background-color: rgba(255, 215, 0, 0.12);
+    border: 2px solid #FFD700;
+    padding: 1rem 1.25rem;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    margin: 1rem 0;
+    box-shadow: 0 6px 18px rgba(255, 215, 0, 0.2);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-sizing: border-box;
+}
+
+.btn-interval-countdown .btn-form-icon {
+    background-color: var(--primary-color, #8B0000);
+    width: 54px;
+    height: 54px;
+    border: 2px solid #FFD700;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #FFD700;
+    flex-shrink: 0;
+    animation: dynamic-link-pulse 2.2s ease-in-out infinite;
+}
+
+.btn-interval-countdown .btn-form-icon i,
+.btn-interval-countdown .btn-form-icon svg {
+    width: 24px;
+    height: 24px;
+}
+
+.btn-interval-countdown .countdown-time {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: var(--primary-color, #8B0000);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    letter-spacing: -1px;
+    margin: 0.1rem 0;
+}
+
+.btn-interval-countdown .countdown-label {
+    margin: 0;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #8b6508;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn-interval-countdown .countdown-subtitle {
+    font-size: 0.82rem;
+    color: var(--text-secondary, #4b5563);
+    margin: 0;
+    font-weight: 500;
+}
+
+/* Modo Concerto (Escuro) para o Cronômetro */
+body.modo-concerto .btn-interval-countdown {
+    background-color: rgba(255, 215, 0, 0.07);
+    border-color: #ccaa00;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+
+body.modo-concerto .btn-interval-countdown .countdown-time {
+    color: #ffcc00;
+}
+
+body.modo-concerto .btn-interval-countdown .countdown-label {
+    color: #e6c200;
+}
+
+body.modo-concerto .btn-interval-countdown .btn-form-icon {
+    background-color: #222222;
+    color: #ffcc00;
+    border-color: #ffcc00;
+}
+
+body.modo-concerto .btn-interval-countdown .countdown-subtitle {
+    color: #999999;
+}

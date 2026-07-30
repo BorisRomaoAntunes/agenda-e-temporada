@@ -4934,6 +4934,12 @@ input:checked + .slider:before {
     box-shadow: 0 1px 2px rgba(0,0,0,0.02);
 }
 
+.admin-interval-badge.active {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+
 .admin-interval-input-wrapper {
     position: relative;
     display: flex;
