@@ -684,6 +684,25 @@ const setupUploader = (type) => {
 
 // ================= FIRESTORE UPDATE =================
 
+async function createPdfUpdateNotice(type, displayVersion) {
+    try {
+        const label = type === 'temporada' ? 'Temporada' : (type === 'agenda' ? 'Agenda' : 'Temporada e Agenda');
+        const notifData = {
+            title: `Atualização de ${label}`,
+            message: `Foi realizada uma atualização na ${label.toLowerCase()} (Versão ${displayVersion}).`,
+            isSystemNotice: true,
+            showInTicker: false,
+            pdfType: type,
+            version: displayVersion,
+            createdAt: new Date()
+        };
+        await addDoc(collection(db, 'adminNotifications'), notifData);
+        console.log(`[Histórico] Aviso de atualização de ${type} v${displayVersion} registrado.`);
+    } catch (err) {
+        console.error("Erro ao criar aviso de histórico para PDF:", err);
+    }
+}
+
 async function updateFirestoreData(type, url, filename, timestamp, displayVersion) {
     const configRef = doc(db, 'config', 'pdfs');
     
@@ -692,12 +711,14 @@ async function updateFirestoreData(type, url, filename, timestamp, displayVersio
     let currentData = docSnap.exists() ? docSnap.data() : { pdfs: {} };
     if (!currentData.pdfs) currentData.pdfs = {};
 
+    const finalVersion = displayVersion || String(timestamp);
+
     // Atualiza a chave específica (agenda ou temporada)
     currentData.pdfs[type] = {
         arquivo: filename,
         url: url,
         version: timestamp,
-        displayVersion: displayVersion || String(timestamp),
+        displayVersion: finalVersion,
         updatedAt: new Date().toISOString()
     };
 
@@ -706,6 +727,9 @@ async function updateFirestoreData(type, url, filename, timestamp, displayVersio
     
     // Grava no Log Histórico
     await saveLog('pdf', `Novo PDF enviado para ${type.toUpperCase()}: v${currentData.pdfs[type].displayVersion}`, url);
+
+    // Registra notificação no histórico dos músicos
+    await createPdfUpdateNotice(type, finalVersion);
 
     // Robô OER: Removido gatilho automático para evitar interrupções
     console.log(`🤖 [Robô OER] Upload de ${type} concluído. O Robô aguarda acionamento manual.`);
@@ -728,6 +752,9 @@ async function updateFirestoreVersionOnly(type, displayVersion) {
     
     // Grava no Log Histórico
     await saveLog('pdf', `Versão de ${type.toUpperCase()} atualizada manualmente para v${displayVersion}`);
+
+    // Registra notificação no histórico dos músicos
+    await createPdfUpdateNotice(type, displayVersion);
 
     // Robô OER: Removido gatilho automático para evitar interrupções
     console.log(`🤖 [Robô OER] Atualização de versão de ${type} concluída. O Robô aguarda acionamento manual.`);
@@ -2410,14 +2437,21 @@ async function deleteNotification(docId, title, collectionName = 'adminNotificat
  */
 async function syncTickerWithLatest() {
     try {
-        const qLatest = query(collection(db, 'adminNotifications'), orderBy('createdAt', 'desc'), limit(1));
+        const qLatest = query(collection(db, 'adminNotifications'), orderBy('createdAt', 'desc'), limit(10));
         const latestSnap = await getDocs(qLatest);
         const latestNoticeRef = doc(db, 'config', 'latestNotice');
 
         if (!latestSnap.empty) {
-            const newLatest = latestSnap.docs[0].data();
-            // Só atualiza se for realmente diferente para evitar loops (embora improvável aqui)
-            await setDoc(latestNoticeRef, newLatest);
+            const validDoc = latestSnap.docs.find(d => {
+                const data = d.data();
+                return !data.isSystemNotice && data.showInTicker !== false;
+            });
+
+            if (validDoc) {
+                await setDoc(latestNoticeRef, validDoc.data());
+            } else {
+                await deleteDoc(latestNoticeRef);
+            }
         } else {
             // Se não houver avisos, remove o documento do letreiro
             await deleteDoc(latestNoticeRef);
@@ -3450,6 +3484,7 @@ function initAtestadosManagement() {
     const selectMusico = document.getElementById('atestado-select-musico');
     
     const btnDownloadDelete = document.getElementById('btn-download-delete-atestado');
+    const btnDeleteOnly = document.getElementById('btn-delete-only-atestado');
     let currentAtestadoPath = ''; // Armazena o caminho do arquivo para deleção segura
     let musiciansList = [];
 
@@ -3810,6 +3845,68 @@ function initAtestadosManagement() {
             } finally {
                 btnDownloadDelete.disabled = false;
                 btnDownloadDelete.innerHTML = '<i data-lucide="download-cloud"></i> Baixar e Adicionar na Lista de Presença OER';
+                if (window.lucide) lucide.createIcons();
+            }
+        });
+    }
+
+    // 6. Apagar Atestado Sem Adicionar na Lista
+    if (btnDeleteOnly) {
+        btnDeleteOnly.addEventListener('click', async () => {
+            if (!auth.currentUser) {
+                showNotification('Sessão expirada ou não autorizada. Faça login novamente.', 'error');
+                return;
+            }
+
+            const id = inputEditId.value;
+            const nomeMusico = inputEditNome.value || 'Desconhecido';
+
+            if (!id) {
+                showNotification('Nenhum atestado selecionado.', 'error');
+                return;
+            }
+
+            if (!confirm(`Tem certeza que deseja apagar o atestado do músico "${nomeMusico}" sem adicionar à lista de presença?\n\nEsta ação removerá o atestado permanentemente e não poderá ser desfeita.`)) {
+                return;
+            }
+
+            try {
+                btnDeleteOnly.disabled = true;
+                btnDeleteOnly.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Apagando...';
+                if (window.lucide) lucide.createIcons();
+
+                // 1. Apagar do Firebase Storage (se houver caminho registrado)
+                if (currentAtestadoPath) {
+                    try {
+                        console.log("🔥 [Atestados] Removendo arquivo do Storage:", currentAtestadoPath);
+                        const fileRef = ref(storage, currentAtestadoPath);
+                        await deleteObject(fileRef);
+                    } catch (storageErr) {
+                        console.error("⚠️ [Atestados] Erro ao remover arquivo do Storage:", storageErr);
+                    }
+                }
+
+                // 2. Apagar do Firestore
+                console.log("🔥 [Atestados] Removendo documento do Firestore ID:", id);
+                const docRef = doc(db, "medicalCertificates", id);
+                await deleteDoc(docRef);
+
+                // 3. Registrar log de auditoria
+                try {
+                    await saveLog("atestado", `Atestado descartado/apagado sem homologar: ${nomeMusico}`, null, `ID Atestado: ${id}`);
+                } catch (logErr) {
+                    console.error("⚠️ [Atestados] Erro no log de auditoria:", logErr);
+                }
+
+                closeAtestadoModal();
+                showNotification('Atestado removido com sucesso.', 'info');
+
+            } catch (err) {
+                console.error("Erro ao apagar atestado:", err);
+                showNotification('Erro ao apagar o atestado: ' + err.message, 'error');
+            } finally {
+                btnDeleteOnly.disabled = false;
+                btnDeleteOnly.innerHTML = '<i data-lucide="trash-2"></i> Apagar Atestado Sem Adicionar na Lista';
                 if (window.lucide) lucide.createIcons();
             }
         });
