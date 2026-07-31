@@ -1256,58 +1256,102 @@ iframe {
 }
 
 /* ===== CARD DO CRONÔMETRO DE INTERVALO ===== */
+@keyframes countdown-pulse {
+    0%, 100% { box-shadow: 0 4px 18px rgba(220, 38, 38, 0.25), 0 0 0 0 rgba(220, 38, 38, 0.4); }
+    50%       { box-shadow: 0 4px 32px rgba(220, 38, 38, 0.5),  0 0 0 10px rgba(220, 38, 38, 0); }
+}
+
+@keyframes countdown-fade-in {
+    from { opacity: 0; transform: translateY(-12px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 .btn-interval-countdown {
     display: flex;
     align-items: center;
     gap: 1rem;
     width: 100%;
-    padding: 1rem 1.25rem;
-    border-radius: 14px;
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 1.1rem 1.5rem;
+    border-radius: 16px;
     background: linear-gradient(135deg, #1a1200 0%, #3d2c00 100%);
     border: 1.5px solid #f5c842;
     color: #f5c842;
     box-shadow: 0 4px 18px rgba(245, 200, 66, 0.18);
     cursor: default;
     box-sizing: border-box;
+    animation: countdown-fade-in 0.4s ease both;
+    transition: background 0.6s ease, border-color 0.6s ease, box-shadow 0.6s ease;
+}
+
+/* Estado urgente: vermelho pulsante quando falta ≤ 1 minuto */
+.btn-interval-countdown.urgent {
+    background: linear-gradient(135deg, #1a0000 0%, #3d0000 100%);
+    border-color: #ef4444;
+    color: #ef4444;
+    animation: countdown-pulse 1s ease-in-out infinite;
 }
 
 .btn-interval-countdown .btn-form-icon {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     background: rgba(245, 200, 66, 0.15);
     color: #f5c842;
     flex-shrink: 0;
+    transition: background 0.6s ease, color 0.6s ease;
+}
+
+.btn-interval-countdown.urgent .btn-form-icon {
+    background: rgba(239, 68, 68, 0.15);
+    color: #ef4444;
 }
 
 .countdown-label {
-    font-size: 0.72rem;
-    font-weight: 600;
+    font-size: 0.7rem;
+    font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.1em;
     color: #f5c842;
     opacity: 0.75;
+    transition: color 0.6s ease;
+}
+
+.btn-interval-countdown.urgent .countdown-label {
+    color: #ef4444;
 }
 
 .countdown-time {
-    font-size: 2rem;
-    font-weight: 800;
-    letter-spacing: 0.04em;
+    font-size: 2.2rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
     color: #f5c842;
-    line-height: 1.1;
+    line-height: 1.05;
     font-variant-numeric: tabular-nums;
+    transition: color 0.6s ease;
+}
+
+.btn-interval-countdown.urgent .countdown-time {
+    color: #ef4444;
 }
 
 .countdown-subtitle {
     font-size: 0.78rem;
     color: rgba(245, 200, 66, 0.7);
-    margin-top: 2px;
+    margin-top: 3px;
+    transition: color 0.6s ease;
+}
+
+.btn-interval-countdown.urgent .countdown-subtitle {
+    color: rgba(239, 68, 68, 0.8);
 }
 
 @media (max-width: 768px) {
+
 
     #dynamic-links-container {
         display: flex;

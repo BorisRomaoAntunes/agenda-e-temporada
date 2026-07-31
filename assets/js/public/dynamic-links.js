@@ -92,6 +92,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (numbersElem) {
                         numbersElem.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
                     }
+
+                    // Estado urgente: vermelho pulsante quando falta ≤ 1 minuto
+                    if (totalSec <= 60) {
+                        card.classList.add('urgent');
+                    } else {
+                        card.classList.remove('urgent');
+                    }
                 };
 
                 updateCountdown();
