@@ -3983,6 +3983,18 @@ function initIntervalTimerControls() {
             const endTime = new Date(now.getTime() + minutes * 60 * 1000);
 
             btnStart.disabled = true;
+
+            // Debug: verificar usuário e claims antes de escrever
+            const currentUser = auth.currentUser;
+            if (!currentUser) {
+                showNotification('Sessão expirada. Faça login novamente.', 'error');
+                return;
+            }
+            const idTokenResult = await currentUser.getIdTokenResult(true);
+            console.log('[Intervalo] Email:', currentUser.email);
+            console.log('[Intervalo] Claims:', JSON.stringify(idTokenResult.claims));
+            console.log('[Intervalo] Admin claim:', idTokenResult.claims.admin);
+
             await setDoc(doc(db, 'config', 'intervalo'), {
                 active: true,
                 durationMinutes: minutes,
@@ -3993,8 +4005,8 @@ function initIntervalTimerControls() {
 
             showNotification(`Cronômetro de ${minutes} minutos iniciado com sucesso!`, 'success');
         } catch (error) {
-            console.error("Erro ao iniciar intervalo:", error);
-            showNotification("Erro ao iniciar cronômetro do intervalo.", "error");
+            console.error('[Intervalo] Erro ao iniciar:', error);
+            showNotification(`Erro ao iniciar cronômetro: ${error.code || error.message}`, 'error');
         } finally {
             btnStart.disabled = false;
         }
