@@ -42,6 +42,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // ----- CRÔNOMETRO DE INTERVALO EM TEMPO REAL -----
     let intervalTicker = null;
+    let isIntervalActive = false; // Estado compartilhado com o listener de links
     const intervalRef = doc(db, 'config', 'intervalo');
 
     onSnapshot(intervalRef, (docSnap) => {
@@ -104,14 +105,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateCountdown();
                 intervalTicker = setInterval(updateCountdown, 1000);
 
+                // Ocultar botões temporários durante o intervalo
+                isIntervalActive = true;
+                container.querySelectorAll('.btn-dynamic-link').forEach(el => {
+                    el.style.display = 'none';
+                });
+
                 if (window.lucide) window.lucide.createIcons();
                 return;
             }
         }
 
-        // Inativo ou encerrado: limpa o ticker e remove o card
+        // Inativo ou encerrado: limpa o ticker, remove o card e reexibe os links
+        isIntervalActive = false;
         if (intervalTicker) { clearInterval(intervalTicker); intervalTicker = null; }
         if (existingCard) existingCard.remove();
+        container.querySelectorAll('.btn-dynamic-link').forEach(el => {
+            el.style.display = '';
+        });
     });
 
     // ----- LINKS DINÂMICOS -----
@@ -206,6 +217,13 @@ document.addEventListener('DOMContentLoaded', () => {
         // Inicializa ícones Lucide nos novos elementos
         if (window.lucide) {
             window.lucide.createIcons();
+        }
+
+        // Se o intervalo estiver ativo, oculta os botões recém-renderizados
+        if (isIntervalActive) {
+            container.querySelectorAll('.btn-dynamic-link').forEach(el => {
+                el.style.display = 'none';
+            });
         }
     });
 });
