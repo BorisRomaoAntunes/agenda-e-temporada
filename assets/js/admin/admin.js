@@ -5019,12 +5019,15 @@ function initMusiciansManagement() {
     // Função utilitária para tratar e segmentar múltiplos telefones de forma inteligente
     const parseTelefones = (telefoneStr) => {
         if (!telefoneStr || telefoneStr === '-') return [];
+        // Garantir que o valor é tratado como string (pode vir como número do Firestore)
+        const str = String(telefoneStr).trim();
+        if (!str) return [];
         
         let lines = [];
-        if (telefoneStr.includes('\n')) {
-            lines = telefoneStr.split('\n');
+        if (str.includes('\n')) {
+            lines = str.split('\n');
         } else {
-            lines = [telefoneStr];
+            lines = [str];
         }
         
         let parts = [];
