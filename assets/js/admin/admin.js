@@ -108,6 +108,7 @@ let unsubscribeLinks = null; // Guarda o listener de links temporários
 let unsubscribeEngagement = null; // Guarda o listener do gráfico de engajamento
 let unsubscribeMusicians = null; // Guarda o listener da coleção de músicos
 let unsubscribeIntervalTimer = null; // Guarda o listener do cronômetro de intervalo
+let adminIntervalTicker = null; // Guarda o ticker em tempo real do admin
 let currentEngagementDays = 7; // Quantidade de dias padrão para exibir no gráfico
 let isNotificationsEnabled = true; // Estado global das notificações push
 
@@ -151,6 +152,7 @@ onAuthStateChanged(auth, (user) => {
         if (unsubscribeEngagement) { unsubscribeEngagement(); unsubscribeEngagement = null; }
         if (unsubscribeMusicians) { unsubscribeMusicians(); unsubscribeMusicians = null; }
         if (unsubscribeIntervalTimer) { unsubscribeIntervalTimer(); unsubscribeIntervalTimer = null; }
+        if (adminIntervalTicker) { clearInterval(adminIntervalTicker); adminIntervalTicker = null; }
         if (window.engagementChartInstance) {
             window.engagementChartInstance.destroy();
             window.engagementChartInstance = null;
@@ -3946,7 +3948,23 @@ function initIntervalTimerControls() {
     const intervalRef = doc(db, 'config', 'intervalo');
     if (unsubscribeIntervalTimer) unsubscribeIntervalTimer();
 
+    const resetUIInactive = () => {
+        if (statusBadge) {
+            statusBadge.className = 'admin-interval-badge';
+            statusBadge.innerHTML = '<i data-lucide="circle" style="width: 8px; height: 8px; fill: currentColor;"></i> Inativo';
+        }
+        btnStart.style.display = 'inline-flex';
+        btnStop.style.display = 'none';
+        if (infoBanner) infoBanner.style.display = 'none';
+        if (window.lucide) lucide.createIcons();
+    };
+
     unsubscribeIntervalTimer = onSnapshot(intervalRef, (docSnap) => {
+        if (adminIntervalTicker) {
+            clearInterval(adminIntervalTicker);
+            adminIntervalTicker = null;
+        }
+
         if (docSnap.exists()) {
             const data = docSnap.data();
             const now = new Date();
@@ -3968,23 +3986,29 @@ function initIntervalTimerControls() {
                     endTimeElem.textContent = end.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
                 }
                 if (infoBanner) infoBanner.style.display = 'block';
+
+                // Ticker em tempo real no Admin para expirar imediatamente ao zerar
+                adminIntervalTicker = setInterval(() => {
+                    const currentNow = new Date();
+                    if (currentNow >= end) {
+                        if (adminIntervalTicker) {
+                            clearInterval(adminIntervalTicker);
+                            adminIntervalTicker = null;
+                        }
+                        resetUIInactive();
+                        // Desativa no Firestore para sincronizar com todos os clientes
+                        setDoc(intervalRef, {
+                            active: false,
+                            updatedAt: serverTimestamp()
+                        }, { merge: true }).catch(err => console.error("Erro ao auto-desativar intervalo expirado:", err));
+                    }
+                }, 1000);
+
             } else {
-                if (statusBadge) {
-                    statusBadge.className = 'admin-interval-badge';
-                    statusBadge.innerHTML = '<i data-lucide="circle" style="width: 8px; height: 8px; fill: currentColor;"></i> Inativo';
-                }
-                btnStart.style.display = 'inline-flex';
-                btnStop.style.display = 'none';
-                if (infoBanner) infoBanner.style.display = 'none';
+                resetUIInactive();
             }
         } else {
-            if (statusBadge) {
-                statusBadge.className = 'admin-interval-badge';
-                statusBadge.innerHTML = '<i data-lucide="circle" style="width: 8px; height: 8px; fill: currentColor;"></i> Inativo';
-            }
-            btnStart.style.display = 'inline-flex';
-            btnStop.style.display = 'none';
-            if (infoBanner) infoBanner.style.display = 'none';
+            resetUIInactive();
         }
         if (window.lucide) lucide.createIcons();
     }, (error) => {
@@ -4029,6 +4053,10 @@ function initIntervalTimerControls() {
 
     btnStop.onclick = async () => {
         try {
+            if (adminIntervalTicker) {
+                clearInterval(adminIntervalTicker);
+                adminIntervalTicker = null;
+            }
             btnStop.disabled = true;
             await setDoc(doc(db, 'config', 'intervalo'), {
                 active: false,
