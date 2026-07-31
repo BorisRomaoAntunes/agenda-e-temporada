@@ -697,7 +697,7 @@ async function createPdfUpdateNotice(type, displayVersion) {
             showInTicker: false,
             pdfType: type,
             version: displayVersion,
-            createdAt: new Date()
+            createdAt: new Date().toISOString()
         };
         await addDoc(collection(db, 'adminNotifications'), notifData);
         console.log(`[Histórico] Aviso de atualização de ${type} v${displayVersion} registrado.`);
