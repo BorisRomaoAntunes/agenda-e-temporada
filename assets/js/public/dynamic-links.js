@@ -94,11 +94,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         numbersElem.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
                     }
 
-                    // Estado urgente: vermelho pulsante quando falta ≤ 1 minuto
+                    // Estados de alerta no cronômetro:
+                    // ≤ 1 min (60s): Vermelho pulsante (.urgent)
+                    // ≤ 5 min (300s): Amarelo pulsante (.warning)
                     if (totalSec <= 60) {
                         card.classList.add('urgent');
+                        card.classList.remove('warning');
+                    } else if (totalSec <= 300) {
+                        card.classList.add('warning');
+                        card.classList.remove('urgent');
                     } else {
                         card.classList.remove('urgent');
+                        card.classList.remove('warning');
                     }
                 };
 

@@ -668,6 +668,155 @@ body.modo-concerto .history-search-empty svg {
     box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
 }
 
+/* Card Compacto de Atualização de Sistema (Temporada / Agenda) */
+.history-card.system-update-card {
+    background-color: #f8fafc;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    border-left: 4px solid #3b82f6;
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+    transition: all 0.2s ease;
+}
+
+.history-card.system-update-card:hover {
+    background-color: #f1f5f9;
+    border-color: rgba(59, 130, 246, 0.35);
+    box-shadow: 0 2px 6px rgba(59, 130, 246, 0.08);
+}
+
+.system-card-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+    width: 100%;
+}
+
+.system-card-main {
+    flex: 1;
+}
+
+.system-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.35rem;
+    flex-wrap: wrap;
+}
+
+.system-card-title-group {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.system-card-icon {
+    color: #2563eb;
+    flex-shrink: 0;
+}
+
+.system-card-title {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--text-primary, #1e293b);
+}
+
+.system-card-version {
+    display: inline-block;
+    background-color: rgba(37, 99, 235, 0.1);
+    color: #2563eb;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.02em;
+}
+
+.system-card-meta {
+    font-size: 0.72rem;
+    color: var(--text-secondary, #64748b);
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.system-card-body {
+    font-size: 0.85rem;
+    color: var(--text-secondary, #475569);
+    line-height: 1.4;
+}
+
+/* Miniatura / Botão do PDF no Card Compacto */
+.system-card-pdf-thumb {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    padding: 0.45rem 0.7rem;
+    background-color: #ffffff;
+    border: 1px solid rgba(37, 99, 235, 0.25);
+    border-radius: 6px;
+    color: #2563eb;
+    text-decoration: none;
+    font-size: 0.72rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(37, 99, 235, 0.08);
+}
+
+.system-card-pdf-thumb:hover {
+    background-color: #2563eb;
+    color: #ffffff;
+    border-color: #2563eb;
+    box-shadow: 0 3px 8px rgba(37, 99, 235, 0.25);
+    transform: translateY(-1px);
+}
+
+.system-card-pdf-thumb svg {
+    stroke-width: 2.2;
+}
+
+/* Modo Concerto */
+body.modo-concerto .history-card.system-update-card {
+    background-color: #1e293b;
+    border-color: rgba(96, 165, 250, 0.3);
+    border-left-color: #60a5fa;
+}
+
+body.modo-concerto .system-card-title {
+    color: #f8fafc;
+}
+
+body.modo-concerto .system-card-version {
+    background-color: rgba(96, 165, 250, 0.2);
+    color: #93c5fd;
+}
+
+body.modo-concerto .system-card-icon {
+    color: #60a5fa;
+}
+
+body.modo-concerto .system-card-meta,
+body.modo-concerto .system-card-body {
+    color: #cbd5e1;
+}
+
+body.modo-concerto .system-card-pdf-thumb {
+    background-color: #0f172a;
+    border-color: rgba(96, 165, 250, 0.4);
+    color: #93c5fd;
+}
+
+body.modo-concerto .system-card-pdf-thumb:hover {
+    background-color: #3b82f6;
+    color: #ffffff;
+    border-color: #3b82f6;
+}
+
 .history-card-meta {
     font-size: 0.75rem;
     color: var(--text-secondary);
@@ -1261,6 +1410,11 @@ iframe {
     50%       { box-shadow: 0 4px 32px rgba(220, 38, 38, 0.5),  0 0 0 10px rgba(220, 38, 38, 0); }
 }
 
+@keyframes countdown-pulse-warning {
+    0%, 100% { box-shadow: 0 4px 18px rgba(234, 179, 8, 0.25), 0 0 0 0 rgba(234, 179, 8, 0.4); }
+    50%       { box-shadow: 0 4px 32px rgba(234, 179, 8, 0.5),  0 0 0 10px rgba(234, 179, 8, 0); }
+}
+
 @keyframes countdown-fade-in {
     from { opacity: 0; transform: translateY(-12px) scale(0.97); }
     to   { opacity: 1; transform: translateY(0) scale(1); }
@@ -1283,6 +1437,31 @@ iframe {
     box-sizing: border-box;
     animation: countdown-fade-in 0.4s ease both;
     transition: background 0.6s ease, border-color 0.6s ease, box-shadow 0.6s ease;
+}
+
+/* Estado de aviso: amarelo pulsante quando falta ≤ 5 minutos */
+.btn-interval-countdown.warning {
+    background: linear-gradient(135deg, #1a1400 0%, #3d3000 100%);
+    border-color: #eab308;
+    color: #eab308;
+    animation: countdown-pulse-warning 1.2s ease-in-out infinite;
+}
+
+.btn-interval-countdown.warning .btn-form-icon {
+    background: rgba(234, 179, 8, 0.15);
+    color: #eab308;
+}
+
+.btn-interval-countdown.warning .countdown-label {
+    color: #eab308;
+}
+
+.btn-interval-countdown.warning .countdown-time {
+    color: #eab308;
+}
+
+.btn-interval-countdown.warning .countdown-subtitle {
+    color: rgba(234, 179, 8, 0.8);
 }
 
 /* Estado urgente: vermelho pulsante quando falta ≤ 1 minuto */

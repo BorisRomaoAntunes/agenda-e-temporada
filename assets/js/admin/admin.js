@@ -687,9 +687,23 @@ const setupUploader = (type) => {
 
 // ================= FIRESTORE UPDATE =================
 
-async function createPdfUpdateNotice(type, displayVersion) {
+async function createPdfUpdateNotice(type, displayVersion, pdfUrl = null) {
     try {
         const label = type === 'temporada' ? 'Temporada' : (type === 'agenda' ? 'Agenda' : 'Temporada e Agenda');
+        let finalPdfUrl = pdfUrl;
+        
+        if (!finalPdfUrl) {
+            try {
+                const configRef = doc(db, 'config', 'pdfs');
+                const docSnap = await getDoc(configRef);
+                if (docSnap.exists() && docSnap.data().pdfs && docSnap.data().pdfs[type]) {
+                    finalPdfUrl = docSnap.data().pdfs[type].url || null;
+                }
+            } catch (e) {
+                console.warn("Não foi possível obter URL do PDF para o aviso:", e);
+            }
+        }
+
         const notifData = {
             title: `Atualização de ${label}`,
             message: `Foi realizada uma atualização na ${label.toLowerCase()} (Versão ${displayVersion}).`,
@@ -697,10 +711,11 @@ async function createPdfUpdateNotice(type, displayVersion) {
             showInTicker: false,
             pdfType: type,
             version: displayVersion,
+            ...(finalPdfUrl ? { pdfUrl: finalPdfUrl, linkUrl: finalPdfUrl } : {}),
             createdAt: new Date().toISOString()
         };
         await addDoc(collection(db, 'adminNotifications'), notifData);
-        console.log(`[Histórico] Aviso de atualização de ${type} v${displayVersion} registrado.`);
+        console.log(`[Histórico] Aviso de atualização de ${type} v${displayVersion} registrado com PDF.`);
     } catch (err) {
         console.error("Erro ao criar aviso de histórico para PDF:", err);
     }
@@ -732,7 +747,7 @@ async function updateFirestoreData(type, url, filename, timestamp, displayVersio
     await saveLog('pdf', `Novo PDF enviado para ${type.toUpperCase()}: v${currentData.pdfs[type].displayVersion}`, url);
 
     // Registra notificação no histórico dos músicos
-    await createPdfUpdateNotice(type, finalVersion);
+    await createPdfUpdateNotice(type, finalVersion, url);
 
     // Robô OER: Removido gatilho automático para evitar interrupções
     console.log(`🤖 [Robô OER] Upload de ${type} concluído. O Robô aguarda acionamento manual.`);
