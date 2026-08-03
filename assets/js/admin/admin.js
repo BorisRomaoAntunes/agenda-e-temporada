@@ -6654,6 +6654,7 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
     const textareaConcertos = document.getElementById('presenca-mensal-concertos');
     const textareaAnotacoes = document.getElementById('presenca-mensal-anotacoes');
     const btnGeneratePresencaPdf = document.getElementById('btn-generate-presenca-pdf');
+    const btnGeneratePresencaExcel = document.getElementById('btn-generate-presenca-excel');
 
     if (btnGeneratePresencaMensal) {
         btnGeneratePresencaMensal.addEventListener('click', () => {
@@ -7438,7 +7439,226 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
         });
     }
 
-    // ===== 11. Relatório de Faltas e Atrasos (Texto) =====
+    if (btnGeneratePresencaExcel) {
+        btnGeneratePresencaExcel.addEventListener('click', async () => {
+            const valorMes = selectPresencaMes.value;
+            const [ano, mesStr] = valorMes.split('-');
+            const anoInt = parseInt(ano);
+            const mesInt = parseInt(mesStr);
+            const totalDias = new Date(anoInt, mesInt, 0).getDate();
+            
+            const concertosTexto = textareaConcertos.value.trim();
+            const anotacoesTexto = textareaAnotacoes ? textareaAnotacoes.value.trim() : "";
+            
+            const originalBtnHTML = btnGeneratePresencaExcel.innerHTML;
+            btnGeneratePresencaExcel.disabled = true;
+            btnGeneratePresencaExcel.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Gerando Excel...';
+            if (window.lucide) lucide.createIcons();
+            
+            try {
+                const startOfMonth = `${ano}-${mesStr}-01`;
+                const endOfMonth = `${ano}-${mesStr}-${totalDias}`;
+                
+                const presencasQuery = query(
+                    collection(db, "presencas"),
+                    where("__name__", ">=", startOfMonth),
+                    where("__name__", "<=", endOfMonth)
+                );
+                
+                const presencasSnapshot = await getDocs(presencasQuery);
+                const presencasPorData = {};
+                
+                presencasSnapshot.forEach(docSnap => {
+                    presencasPorData[docSnap.id] = docSnap.data();
+                });
+                
+                const ativos = allMusicians.filter(m => {
+                    if (m.statusFirebase === 'desligado' || m.statusFirebase === 'inativo') return false;
+                    const status = (m.Status || '').toLowerCase();
+                    return status.includes('bolsista') || status.includes('monitor');
+                });
+                
+                const ordemNaipesExibicao = [
+                    "Primeiros Violinos",
+                    "Segundos Violinos",
+                    "Violas",
+                    "Violoncelos",
+                    "Contrabaixos",
+                    "Flautas",
+                    "Oboés",
+                    "Clarinetes",
+                    "Fagotes",
+                    "Trompa",
+                    "Trompete",
+                    "Trombones",
+                    "Tuba",
+                    "Harpa",
+                    "Piano",
+                    "Percussão"
+                ];
+                
+                const musicosPorNaipe = {};
+                ordemNaipesExibicao.forEach(n => {
+                    musicosPorNaipe[n] = [];
+                });
+                musicosPorNaipe["Outros"] = [];
+                
+                ativos.forEach(m => {
+                    const instNormalizado = normalizarNaipe(m.INSTRUMENTOS);
+                    let naipeGrupo = "Outros";
+                    
+                    const encontrado = ordemNaipesExibicao.find(n => {
+                        const nNorm = normalizarNaipe(n);
+                        return nNorm === instNormalizado || nNorm.includes(instNormalizado) || instNormalizado.includes(nNorm);
+                    });
+                    
+                    if (encontrado) {
+                        naipeGrupo = encontrado;
+                    }
+                    
+                    musicosPorNaipe[naipeGrupo].push(m);
+                });
+                
+                Object.keys(musicosPorNaipe).forEach(n => {
+                    musicosPorNaipe[n].sort((a, b) => {
+                        const nomeA = (a.NOMEARTISTICO || a['NOME REGISTRO'] || '').trim().toLowerCase();
+                        const nomeB = (b.NOMEARTISTICO || b['NOME REGISTRO'] || '').trim().toLowerCase();
+                        return nomeA.localeCompare(nomeB);
+                    });
+                });
+                
+                const justificativas = [];
+                for (let dia = 1; dia <= totalDias; dia++) {
+                    const dataStr = `${ano}-${mesStr}-${String(dia).padStart(2, '0')}`;
+                    const pres = presencasPorData[dataStr];
+                    if (pres && pres.registros) {
+                        Object.entries(pres.registros).forEach(([musicoId, registro]) => {
+                            if (registro.status === 'justificado' && registro.justificativa) {
+                                const musico = allMusicians.find(m => m.id === musicoId);
+                                const nomeMusico = musico ? (musico.NOMEARTISTICO || musico['NOME REGISTRO']) : 'Músico Desconhecido';
+                                const dataFormatada = `${String(dia).padStart(2, '0')}/${mesStr}`;
+                                justificativas.push({
+                                    texto: `${dataFormatada} - ${nomeMusico}: ${registro.justificativa.trim()}`
+                                });
+                            }
+                        });
+                    }
+                }
+                
+                const mesesNomes = [
+                    "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+                    "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+                ];
+                const mesNomeExtenso = mesesNomes[mesInt - 1];
+                const tituloRelatorio = `${mesNomeExtenso.toUpperCase()} / ${ano}`;
+                
+                const excelRows = [];
+                excelRows.push(["LISTA DE PRESENÇA - ORQUESTRA EXPERIMENTAL DE REPERTÓRIO"]);
+                excelRows.push([`Mês / Ano: ${tituloRelatorio}`]);
+                if (concertosTexto) {
+                    excelRows.push([`Concertos / Apresentações: ${concertosTexto.replace(/\n/g, ' | ')}`]);
+                }
+                if (anotacoesTexto) {
+                    excelRows.push([`Anotações / Folgas: ${anotacoesTexto.replace(/\n/g, ' | ')}`]);
+                }
+                excelRows.push([]); // linha em branco
+
+                // Cabeçalho da Tabela
+                const headerRow = ["Nome / Instrumento"];
+                for (let dia = 1; dia <= totalDias; dia++) {
+                    headerRow.push(`${String(dia).padStart(2, '0')}/${mesStr}`);
+                }
+                headerRow.push("P", "F");
+                excelRows.push(headerRow);
+
+                const naipesComMusicos = [...ordemNaipesExibicao, "Outros"].filter(n => musicosPorNaipe[n].length > 0);
+
+                naipesComMusicos.forEach(naipe => {
+                    // Linha do Naipe
+                    const naipeRow = [naipe.toUpperCase()];
+                    excelRows.push(naipeRow);
+
+                    musicosPorNaipe[naipe].forEach(musico => {
+                        const nomeExibido = musico.NOMEARTISTICO || musico['NOME REGISTRO'] || 'Músico';
+                        const rowMusico = [nomeExibido];
+                        let totalP = 0;
+                        let totalF = 0;
+
+                        for (let dia = 1; dia <= totalDias; dia++) {
+                            const dataStr = `${ano}-${mesStr}-${String(dia).padStart(2, '0')}`;
+                            const presData = presencasPorData[dataStr];
+                            let cellText = '';
+
+                            if (presData && presData.registros && presData.registros[musico.id]) {
+                                const reg = presData.registros[musico.id];
+                                const status = reg.status;
+
+                                if (status === 'presenca') {
+                                    cellText = '✓';
+                                    totalP++;
+                                } else if (status === 'falta') {
+                                    cellText = 'F';
+                                    totalF++;
+                                } else if (status === 'atestado') {
+                                    cellText = 'A';
+                                } else if (status === 'justificado') {
+                                    cellText = 'J';
+                                } else if (status === 'atraso') {
+                                    cellText = reg.minutes ? `${reg.minutes} min` : 'At';
+                                    totalP++;
+                                } else if (status === 'nao_escalado') {
+                                    cellText = '-';
+                                }
+                            }
+                            rowMusico.push(cellText);
+                        }
+
+                        rowMusico.push(totalP, totalF);
+                        excelRows.push(rowMusico);
+                    });
+                });
+
+                excelRows.push([]); // linha em branco
+                excelRows.push(["LEGENDA / JUSTIFICATIVAS DE AUSÊNCIA"]);
+                if (justificativas.length > 0) {
+                    justificativas.forEach(j => excelRows.push([j.texto]));
+                } else {
+                    excelRows.push(["Nenhuma justificativa de ausência registrada para este período."]);
+                }
+
+                if (typeof XLSX === 'undefined') {
+                    showNotification("Erro: Biblioteca de exportação Excel (SheetJS) não encontrada.", "error");
+                    return;
+                }
+
+                const worksheet = XLSX.utils.aoa_to_sheet(excelRows);
+                
+                // Ajustar largura das colunas
+                const colWidths = [{ wch: 30 }]; // Nome
+                for (let i = 1; i <= totalDias; i++) {
+                    colWidths.push({ wch: 8 });
+                }
+                colWidths.push({ wch: 6 }, { wch: 6 }); // Totais P e F
+                worksheet['!cols'] = colWidths;
+
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, `Presenca_${mesStr}_${ano}`);
+
+                XLSX.writeFile(workbook, `Lista_de_Presenca_Mensal_${mesStr}_${ano}.xlsx`);
+
+                showNotification("Relatório Excel gerado com sucesso!", "success");
+                fecharPresencaModal();
+
+            } catch (err) {
+                console.error("Erro ao gerar relatório de presença Excel:", err);
+                showNotification("Erro ao gerar relatório Excel.", "error");
+            } finally {
+                btnGeneratePresencaExcel.disabled = false;
+                btnGeneratePresencaExcel.innerHTML = originalBtnHTML;
+                if (window.lucide) lucide.createIcons();
+            }
+        });
+    }
     const btnGenerateFaltasAtrasos = document.getElementById('btn-generate-faltas-atrasos');
     const modalFaltasAtrasos = document.getElementById('faltas-atrasos-modal-overlay');
     const btnCloseFaltasAtrasos = document.getElementById('btn-faltas-atrasos-modal-close');

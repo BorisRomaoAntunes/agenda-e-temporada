@@ -306,6 +306,7 @@
                         <button class="filter-btn" data-filter="pdf">Arquivos</button>
                         <button class="filter-btn" data-filter="aviso">Avisos</button>
                         <button class="filter-btn" data-filter="links">Links</button>
+                        <button class="filter-btn" data-filter="atestado">Atestados</button>
                         <button class="filter-btn" data-filter="bot">Robo OER</button>
                         <button class="filter-btn" data-filter="sistema">Sistema</button>
                     </div>
@@ -1797,11 +1798,14 @@ Intervalo
                 </div>
 
                 <!-- Ações -->
-                <div style="display: flex; gap: 0.8rem; margin-top: 0.5rem;">
-                    <button class="btn-primary" id="btn-generate-presenca-pdf" style="flex: 2; background: #8b0000; border: none; color: white; padding: 0.75rem; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                        <i data-lucide="file-text"></i> Gerar Relatório
+                <div style="display: flex; gap: 0.8rem; margin-top: 0.5rem; flex-wrap: wrap;">
+                    <button class="btn-primary" id="btn-generate-presenca-pdf" style="flex: 1; min-width: 140px; background: #8b0000; border: none; color: white; padding: 0.75rem; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                        <i data-lucide="file-text"></i> Gerar PDF
                     </button>
-                    <button class="btn-outline" id="btn-close-presenca-modal-footer" style="flex: 1; border-radius: 8px; font-weight: 600; cursor: pointer; border: 1px solid #ccc; background: white; padding: 0.75rem;">
+                    <button class="btn-primary" id="btn-generate-presenca-excel" style="flex: 1; min-width: 140px; background: #276749; border: none; color: white; padding: 0.75rem; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                        <i data-lucide="file-spreadsheet"></i> Gerar Excel (.xlsx)
+                    </button>
+                    <button class="btn-outline" id="btn-close-presenca-modal-footer" style="flex: 1; min-width: 100px; border-radius: 8px; font-weight: 600; cursor: pointer; border: 1px solid #ccc; background: white; padding: 0.75rem;">
                         Fechar
                     </button>
                 </div>
