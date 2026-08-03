@@ -7428,14 +7428,21 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                 const cellCommentsMap = {};
                 
                 const ativos = allMusicians.filter(m => {
-                    const status = (m.Status || '').toLowerCase();
-                    if (!status.includes('bolsista') && !status.includes('monitor')) return false;
-
                     const statusFirebase = (m.statusFirebase || 'ativo').toLowerCase();
                     if (statusFirebase === 'ativo') return true;
 
-                    if (m.dataSaida) {
-                        return m.dataSaida >= startOfMonth;
+                    // Se estiver inativo/desligado:
+                    // 1. Incluir se possui dataSaida cadastrada no mês do relatório ou posterior
+                    if (m.dataSaida && m.dataSaida >= startOfMonth) {
+                        return true;
+                    }
+
+                    // 2. Fallback: Incluir se possui algum registro salvo de presença/falta no mês do relatório
+                    const temRegistroNoMes = Object.values(presencasPorData).some(presDoc => 
+                        presDoc && presDoc.registros && presDoc.registros[m.id]
+                    );
+                    if (temRegistroNoMes) {
+                        return true;
                     }
 
                     return false;
