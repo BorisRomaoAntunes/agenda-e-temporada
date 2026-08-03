@@ -5203,16 +5203,15 @@ function initMusiciansManagement() {
             allMusicians = [];
             snapshot.forEach(docSnap => {
                 const data = docSnap.data();
-                if (data.statusFirebase !== "inativo") {
-                    allMusicians.push({ id: docSnap.id, ...data });
-                }
+                allMusicians.push({ id: docSnap.id, ...data });
             });
 
             // Atualizar Estatísticas
             updateStats(allMusicians);
             
-            // Renderizar a tabela (inicialmente com a lista inteira)
-            renderMusiciansTable(allMusicians);
+            // Renderizar a tabela (apenas os músicos ativos na visualização do painel)
+            const ativosParaTabela = allMusicians.filter(m => m.statusFirebase !== "inativo" && m.statusFirebase !== "desligado");
+            renderMusiciansTable(ativosParaTabela);
         }, (error) => {
             console.error("Erro ao escutar coleção de músicos:", error);
             tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: #dc3545; padding: 2rem;">Erro ao carregar músicos: ${error.message}</td></tr>`;
@@ -5233,7 +5232,8 @@ function initMusiciansManagement() {
         
         const bolsistas = musicians.filter(m => {
             if (m.statusFirebase === 'desligado' || m.statusFirebase === 'inativo') return false;
-            return (m.Status || '').toString().toLowerCase().includes('bolsista');
+            const status = (m.Status || '').toString().toLowerCase();
+            return status.includes('bolsista');
         }).length;
         statBolsistas.textContent = bolsistas;
         
@@ -5349,8 +5349,10 @@ function initMusiciansManagement() {
             const queryText = e.target.value.toLowerCase().trim()
                 .normalize("NFD").replace(/[\u0300-\u036f]/g, ""); // Normaliza tirando acentos
             
+            const ativosParaTabela = allMusicians.filter(m => m.statusFirebase !== "inativo" && m.statusFirebase !== "desligado");
+
             if (queryText === "") {
-                renderMusiciansTable(allMusicians);
+                renderMusiciansTable(ativosParaTabela);
                 return;
             }
 
@@ -7034,15 +7036,21 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                 });
                 
                 const ativos = allMusicians.filter(m => {
-                    const status = (m.Status || '').toLowerCase();
-                    if (!status.includes('bolsista') && !status.includes('monitor')) return false;
-
                     const statusFirebase = (m.statusFirebase || 'ativo').toLowerCase();
                     if (statusFirebase === 'ativo') return true;
 
-                    // Se estiver inativo/desligado, inclui no relatório se a dataSaida for no mês do relatório ou posterior
-                    if (m.dataSaida) {
-                        return m.dataSaida >= startOfMonth;
+                    // Se estiver inativo/desligado:
+                    // 1. Incluir se possui dataSaida cadastrada no mês do relatório ou posterior
+                    if (m.dataSaida && m.dataSaida >= startOfMonth) {
+                        return true;
+                    }
+
+                    // 2. Fallback: Incluir se possui algum registro salvo de presença/falta no mês do relatório
+                    const temRegistroNoMes = Object.values(presencasPorData).some(presDoc => 
+                        presDoc && presDoc.registros && presDoc.registros[m.id]
+                    );
+                    if (temRegistroNoMes) {
+                        return true;
                     }
 
                     return false;
@@ -7593,12 +7601,14 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
 
                 const worksheet = XLSX.utils.aoa_to_sheet(excelRows);
 
-                // Aplicar anotações/comentários (.c) nas células correspondentes no SheetJS
+                // Aplicar anotações/comentários (.c) nas células correspondentes no SheetJS (ocultos por padrão, visíveis apenas no hover)
                 Object.entries(cellCommentsMap).forEach(([cellRef, text]) => {
                     if (!worksheet[cellRef]) {
                         worksheet[cellRef] = { t: 's', v: '' };
                     }
-                    worksheet[cellRef].c = [{ t: text, a: 'OER' }];
+                    const commentObj = [{ t: text, a: 'OER', hidden: true }];
+                    commentObj.hidden = true;
+                    worksheet[cellRef].c = commentObj;
                 });
                 
                 // Ajustar largura das colunas
