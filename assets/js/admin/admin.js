@@ -7006,6 +7006,7 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
             const anoInt = parseInt(ano);
             const mesInt = parseInt(mesStr);
             const totalDias = new Date(anoInt, mesInt, 0).getDate();
+            const startOfMonth = `${ano}-${mesStr}-01`;
             
             const concertosTexto = textareaConcertos.value.trim();
             const anotacoesTexto = textareaAnotacoes ? textareaAnotacoes.value.trim() : "";
@@ -7016,13 +7017,13 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
             if (window.lucide) lucide.createIcons();
             
             try {
-                const startOfMonth = `${ano}-${mesStr}-01`;
-                const endOfMonth = `${ano}-${mesStr}-${totalDias}`;
+                const startOfMonthQuery = `${ano}-${mesStr}-01`;
+                const endOfMonthQuery = `${ano}-${mesStr}-${totalDias}`;
                 
                 const presencasQuery = query(
                     collection(db, "presencas"),
-                    where("__name__", ">=", startOfMonth),
-                    where("__name__", "<=", endOfMonth)
+                    where("__name__", ">=", startOfMonthQuery),
+                    where("__name__", "<=", endOfMonthQuery)
                 );
                 
                 const presencasSnapshot = await getDocs(presencasQuery);
@@ -7033,9 +7034,18 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                 });
                 
                 const ativos = allMusicians.filter(m => {
-                    if (m.statusFirebase === 'desligado' || m.statusFirebase === 'inativo') return false;
                     const status = (m.Status || '').toLowerCase();
-                    return status.includes('bolsista') || status.includes('monitor');
+                    if (!status.includes('bolsista') && !status.includes('monitor')) return false;
+
+                    const statusFirebase = (m.statusFirebase || 'ativo').toLowerCase();
+                    if (statusFirebase === 'ativo') return true;
+
+                    // Se estiver inativo/desligado, inclui no relatório se a dataSaida for no mês do relatório ou posterior
+                    if (m.dataSaida) {
+                        return m.dataSaida >= startOfMonth;
+                    }
+
+                    return false;
                 });
                 
                 const ordemNaipesExibicao = [
@@ -7121,8 +7131,8 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                 // Buscar eventos do mês para identificar os dias de concerto
                 const eventosQuery = query(
                     collection(db, "eventos"),
-                    where("date", ">=", startOfMonth),
-                    where("date", "<=", endOfMonth)
+                    where("date", ">=", startOfMonthQuery),
+                    where("date", "<=", endOfMonthQuery)
                 );
                 const eventosSnapshot = await getDocs(eventosQuery);
                 const diasDeConcerto = new Set();
@@ -7173,7 +7183,12 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                             let cellText = '';
                             let cellClass = 'status-sem-registro';
                             
-                            if (presData && presData.registros && presData.registros[musico.id]) {
+                            const isCanceladoNoDia = musico.dataSaida && dataStr >= musico.dataSaida;
+
+                            if (isCanceladoNoDia) {
+                                cellText = 'CL';
+                                cellClass = 'status-cancelado';
+                            } else if (presData && presData.registros && presData.registros[musico.id]) {
                                 const reg = presData.registros[musico.id];
                                 const status = reg.status;
                                 
@@ -7228,28 +7243,26 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Lista de Presença OER - ${tituloRelatorio}</title>
+    <title>Lista de Presença Mensal - OER</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-        
         @page {
             size: A4 landscape;
-            margin: 8mm 6mm 8mm 6mm;
+            margin: 8mm;
         }
         
         * {
             box-sizing: border-box;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
         }
         
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: Arial, Helvetica, sans-serif;
             margin: 0;
             padding: 0;
-            font-size: 7.5pt;
-            color: #1a1a1a;
             background: #fff;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
+            color: #000;
+            font-size: 7pt;
         }
         
         .report-wrapper {
@@ -7259,391 +7272,76 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-bottom: 12px;
-            page-break-inside: auto;
-        }
-        
-        thead {
-            display: table-header-group;
-        }
-        
-        tbody {
-            page-break-inside: auto;
-        }
-        
-        tr {
-            page-break-inside: avoid;
-            page-break-after: auto;
-        }
-        
-        .header-main-row td {
-            border: none !important;
-            padding: 0 0 10px 0 !important;
+            table-layout: fixed;
         }
         
         .header-container {
             display: grid;
-            grid-template-columns: 280px 1fr 280px;
-            align-items: stretch;
+            grid-template-columns: 200px 1fr 240px;
             border: 1px solid #000;
-            background: #fff;
-            min-height: 80px;
+            margin-bottom: 6px;
         }
         
         .header-left {
+            padding: 6px;
+            border-right: 1px solid #000;
             display: flex;
             align-items: center;
-            gap: 8px;
-            padding: 6px 10px;
-            border-right: 1px solid #000;
+            gap: 10px;
         }
         
         .logo-oer {
             height: 48px;
             width: auto;
-            object-fit: contain;
         }
         
-        .title-sub h1 {
-            font-size: 11pt;
-            font-weight: 700;
-            margin: 0;
-            color: #000;
-            letter-spacing: 0.5px;
-        }
+        .title-sub h1 { font-size: 11pt; margin: 0; }
+        .title-sub p { font-size: 6pt; margin: 0; }
+        .header-center { padding: 6px; border-right: 1px solid #000; }
+        .header-right { padding: 6px; }
+        .month-box { font-weight: bold; text-align: center; font-size: 10pt; }
         
-        .title-sub p {
-            font-size: 6.5pt;
-            font-weight: 600;
-            margin: 2px 0 0 0;
-            color: #444;
-        }
+        th, td { border: 1px solid #000; text-align: center; padding: 2px; }
+        .col-musico-name { text-align: left; padding-left: 5px; font-weight: bold; }
+        .row-naipe-header td { background: #eee; text-align: left; font-weight: bold; }
         
-        .header-center {
-            padding: 6px 10px;
-            border-right: 1px solid #000;
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-        }
+        .status-presenca { background-color: #dcfce7 !important; color: #166534 !important; }
+        .status-falta { background-color: #fee2e2 !important; color: #991b1b !important; }
+        .status-atestado { background-color: #dbeafe !important; color: #1e40af !important; }
+        .status-justificado { background-color: #f3e8ff !important; color: #6b21a8 !important; }
+        .status-atraso { background-color: #fef3c7 !important; color: #92400e !important; }
+        .status-nao-escalado { background-color: #fafafa !important; color: #757575 !important; }
+        .status-cancelado { background-color: #fef2f2 !important; color: #dc2626 !important; font-weight: bold; }
+        .status-sem-registro { background-color: #fffde7 !important; }
         
-        .header-center h3 {
-            font-size: 7.5pt;
-            font-weight: 700;
-            margin: 0 0 4px 0;
-            color: #000;
-            text-transform: uppercase;
-        }
-        
-        .concert-text {
-            font-size: 7pt;
-            margin: 0;
-            line-height: 1.25;
-            color: #222;
-            white-space: pre-wrap;
-        }
-        
-        .header-right {
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-        
-        .month-box {
-            background: #000;
-            color: #fff;
-            font-weight: 700;
-            font-size: 10pt;
-            text-align: center;
-            padding: 5px 0;
-            text-transform: uppercase;
-        }
-        
-        .notes-box {
-            padding: 4px 8px;
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .notes-box strong {
-            font-size: 6.5pt;
-            text-transform: uppercase;
-            margin-bottom: 2px;
-        }
-        
-        .notes-text {
-            font-size: 6.5pt;
-            margin: 0;
-            line-height: 1.2;
-            color: #333;
-            white-space: pre-wrap;
-        }
-        
-        th, td {
-            border: 1px solid #000;
-            padding: 3px 2px;
-            text-align: center;
-            vertical-align: middle;
-        }
-        
-        .column-title-row th {
-            background: #f5f5f5;
-            font-weight: 600;
-            font-size: 7pt;
-            padding: 4px 2px;
-        }
-        
-        .column-title-row th.day-concerto {
-            background-color: #64748b !important;
-            color: #ffffff !important;
-            font-weight: 700;
-        }
-        
-        .col-musico {
-            width: 140px;
-            text-align: left;
-            padding-left: 6px;
-        }
-        
-        .col-musico-name {
-            width: 140px;
-            text-align: left;
-            padding-left: 6px;
-            font-weight: 500;
-        }
-        
-        .col-day {
-            width: 26px;
-            max-width: 26px;
-            font-size: 6pt;
-        }
-        
-        .cell-status {
-            width: 26px;
-            max-width: 26px;
-            font-size: 7.5pt;
-            height: 18px;
-        }
-        
-        .cell-total-p, .cell-total-f, .col-total-header {
-            width: 28px !important;
-            max-width: 28px !important;
-            font-weight: 700 !important;
-            background-color: #f1f5f9 !important;
-            color: #0f172a !important;
-        }
-        
-        .row-naipe-header td {
-            background: #e0e0e0;
-            font-weight: 700;
-            text-align: left;
-            padding-left: 6px;
-            font-size: 7.5pt;
-            letter-spacing: 0.5px;
-            border-top: 1px solid #000;
-            border-bottom: 1px solid #000;
-        }
-        
-        .status-presenca {
-            background-color: #e8f5e9 !important;
-            color: #1b5e20 !important;
-            font-weight: 600;
-        }
-        
-        .status-falta {
-            background-color: #ffebee !important;
-            color: #b71c1c !important;
-            font-weight: 600;
-        }
-        
-        .status-atestado {
-            background-color: #e3f2fd !important;
-            color: #0d47a1 !important;
-            font-weight: 600;
-        }
-        
-        .status-justificado {
-            background-color: #f3e5f5 !important;
-            color: #4a148c !important;
-            font-weight: 600;
-        }
-        
-        .status-atraso {
-            background-color: #fff3e0 !important;
-            color: #e65100 !important;
-            font-weight: 600;
-        }
-        
-        .status-nao-escalado {
-            background-color: #fafafa !important;
-            color: #757575 !important;
-        }
-        
-        .status-sem-registro {
-            background-color: #fffde7 !important;
-        }
-        
-        .footer-wrapper {
-            margin-top: 15px;
-            border: 1px solid #000;
-            padding: 8px 10px;
-            background: #fff;
-            page-break-inside: avoid;
-        }
-        
-        .footer-grid {
-            display: grid;
-            grid-template-columns: 280px 1fr;
-            gap: 15px;
-        }
-        
-        .footer-legend {
-            border-right: 1px solid #ccc;
-            padding-right: 15px;
-        }
-        
-        .footer-legend h4, .footer-justificativas h4 {
-            margin: 0 0 5px 0;
-            font-size: 7.5pt;
-            font-weight: 700;
-            text-transform: uppercase;
-        }
-        
-        .legend-items {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 4px;
-            font-size: 6.5pt;
-        }
-        
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
-        
-        .legend-badge {
-            width: 14px;
-            height: 14px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid #000;
-            font-weight: 600;
-            font-size: 6pt;
-        }
-        
-        .footer-justificativas ul {
-            margin: 0;
-            padding-left: 12px;
-            font-size: 6.5pt;
-            line-height: 1.3;
-            color: #333;
-            max-height: 120px;
-            overflow-y: auto;
-        }
-        
-        @media print {
-            .no-print {
-                display: none;
-            }
-            body {
-                background: #fff;
-            }
-        }
+        .footer-wrapper { margin-top: 10px; border: 1px solid #000; padding: 10px; }
+        .legend-items { display: flex; gap: 10px; flex-wrap: wrap; font-size: 7pt; }
+        .legend-badge { width: 14px; height: 14px; display: inline-block; border: 1px solid #000; text-align: center; margin-right: 5px; }
     </style>
 </head>
 <body>
     <div class="report-wrapper">
-        <table>
-            <thead>
-                <tr class="header-main-row">
-                    <td colspan="${totalDias + 3}">
-                        <div class="header-container">
-                            <div class="header-left">
-                                <img src="assets/img/logo_oer.png" class="logo-oer" alt="Logo OER" />
-                                <div class="title-sub">
-                                    <h1>LISTA DE PRESENÇA</h1>
-                                    <p>ORQUESTRA EXPERIMENTAL DE REPERTÓRIO</p>
-                                </div>
-                            </div>
-                            <div class="header-center">
-                                <h3>CONCERTOS / APRESENTAÇÕES DO MÊS</h3>
-                                <p class="concert-text">${concertosTexto.replace(/\n/g, '<br>')}</p>
-                            </div>
-                            <div class="header-right">
-                                <div class="month-box">${tituloRelatorio}</div>
-                                <div class="notes-box">
-                                    <strong>Anotações / Folgas:</strong>
-                                    <p class="notes-text">${anotacoesTexto.replace(/\n/g, '<br>')}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </td>
-                </tr>
-                <tr class="column-title-row">
-                    <th class="col-musico">NOME / INSTRUMENTO</th>
-                    ${diasHeadersHtml}
-                </tr>
-            </thead>
-            <tbody>
-                ${tbodyHtml}
-            </tbody>
-        </table>
-        
-        <div class="footer-wrapper">
-            <div class="footer-grid">
-                <div class="footer-legend">
-                    <h4>Legenda de Frequência</h4>
-                    <div class="legend-items">
-                        <div class="legend-item">
-                            <span class="legend-badge status-presenca">✓</span>
-                            <span>Presença</span>
-                        </div>
-                        <div class="legend-item">
-                            <span class="legend-badge status-falta">F</span>
-                            <span>Falta</span>
-                        </div>
-                        <div class="legend-item">
-                            <span class="legend-badge status-atestado">A</span>
-                            <span>Atestado</span>
-                        </div>
-                        <div class="legend-item">
-                            <span class="legend-badge status-justificado">J</span>
-                            <span>Justificado</span>
-                        </div>
-                        <div class="legend-item">
-                            <span class="legend-badge status-atraso">Min</span>
-                            <span>Atraso (minutos)</span>
-                        </div>
-                        <div class="legend-item">
-                            <span class="legend-badge status-nao-escalado">-</span>
-                            <span>Não Escalado</span>
-                        </div>
-                        <div class="legend-item">
-                            <span class="legend-badge status-sem-registro"></span>
-                            <span>Sem Registro</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="footer-justificativas">
-                    <h4>Legenda / Justificativas de Ausência</h4>
-                    <ul>
-                        ${justificativasHtml}
-                    </ul>
-                </div>
+        <div class="header-container">
+            <div class="header-left">
+                <div class="title-sub"><h1>LISTA DE PRESENÇA</h1><p>ORQUESTRA EXPERIMENTAL DE REPERTÓRIO</p></div>
             </div>
+            <div class="header-center"><strong>Concertos:</strong><br>${concertosTexto}</div>
+            <div class="header-right"><div class="month-box">${tituloRelatorio}</div><strong>Anotações:</strong><br>${anotacoesTexto}</div>
+        </div>
+        <table>
+            <thead><tr><th style="width:150px">Nome</th>${diasHeadersHtml}</tr></thead>
+            <tbody>${tbodyHtml}</tbody>
+        </table>
+        <div class="footer-wrapper">
+            <div class="legend-items">
+                <div class="legend-item"><span class="legend-badge status-presenca">✓</span>Presença</div>
+                <div class="legend-item"><span class="legend-badge status-falta">F</span>Falta</div>
+                <div class="legend-item"><span class="legend-badge status-cancelado">CL</span>Cancelado</div>
+                <div class="legend-item"><span class="legend-badge status-nao-escalado">-</span>Não Escalado</div>
+            </div>
+            <div class="footer-justificativas"><strong>Justificativas:</strong><ul>${justificativasHtml}</ul></div>
         </div>
     </div>
-    
-    <script>
-        window.addEventListener('DOMContentLoaded', () => {
-            setTimeout(() => {
-                window.print();
-            }, 500);
-        });
-    </script>
 </body>
 </html>
                 `;
@@ -7673,6 +7371,7 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
             const anoInt = parseInt(ano);
             const mesInt = parseInt(mesStr);
             const totalDias = new Date(anoInt, mesInt, 0).getDate();
+            const startOfMonth = `${ano}-${mesStr}-01`;
             
             const concertosTexto = textareaConcertos.value.trim();
             const anotacoesTexto = textareaAnotacoes ? textareaAnotacoes.value.trim() : "";
@@ -7683,13 +7382,13 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
             if (window.lucide) lucide.createIcons();
             
             try {
-                const startOfMonth = `${ano}-${mesStr}-01`;
-                const endOfMonth = `${ano}-${mesStr}-${totalDias}`;
+                const startOfMonthQuery = `${ano}-${mesStr}-01`;
+                const endOfMonthQuery = `${ano}-${mesStr}-${totalDias}`;
                 
                 const presencasQuery = query(
                     collection(db, "presencas"),
-                    where("__name__", ">=", startOfMonth),
-                    where("__name__", "<=", endOfMonth)
+                    where("__name__", ">=", startOfMonthQuery),
+                    where("__name__", "<=", endOfMonthQuery)
                 );
                 
                 const presencasSnapshot = await getDocs(presencasQuery);
@@ -7698,11 +7397,40 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                 presencasSnapshot.forEach(docSnap => {
                     presencasPorData[docSnap.id] = docSnap.data();
                 });
+
+                // Buscar eventos do mês para anotações do cabeçalho de data
+                const eventosQuery = query(
+                    collection(db, "eventos"),
+                    where("date", ">=", startOfMonthQuery),
+                    where("date", "<=", endOfMonthQuery)
+                );
+                const eventosSnapshot = await getDocs(eventosQuery);
+                const eventosPorData = {};
+
+                eventosSnapshot.forEach(docSnap => {
+                    const evt = docSnap.data();
+                    if (evt.date) {
+                        if (!eventosPorData[evt.date]) eventosPorData[evt.date] = [];
+                        const tipoStr = evt.tipo ? `[${evt.tipo.toUpperCase()}] ` : '';
+                        const nomeEvt = evt.concertoNome || evt.descricaoEnsaio || (evt.tipo === 'folga' ? 'Folga' : 'Ensaio');
+                        eventosPorData[evt.date].push(`${tipoStr}${nomeEvt}`);
+                    }
+                });
+
+                const cellCommentsMap = {};
                 
                 const ativos = allMusicians.filter(m => {
-                    if (m.statusFirebase === 'desligado' || m.statusFirebase === 'inativo') return false;
                     const status = (m.Status || '').toLowerCase();
-                    return status.includes('bolsista') || status.includes('monitor');
+                    if (!status.includes('bolsista') && !status.includes('monitor')) return false;
+
+                    const statusFirebase = (m.statusFirebase || 'ativo').toLowerCase();
+                    if (statusFirebase === 'ativo') return true;
+
+                    if (m.dataSaida) {
+                        return m.dataSaida >= startOfMonth;
+                    }
+
+                    return false;
                 });
                 
                 const ordemNaipesExibicao = [
@@ -7754,24 +7482,6 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                     });
                 });
                 
-                const justificativas = [];
-                for (let dia = 1; dia <= totalDias; dia++) {
-                    const dataStr = `${ano}-${mesStr}-${String(dia).padStart(2, '0')}`;
-                    const pres = presencasPorData[dataStr];
-                    if (pres && pres.registros) {
-                        Object.entries(pres.registros).forEach(([musicoId, registro]) => {
-                            if (registro.status === 'justificado' && registro.justificativa) {
-                                const musico = allMusicians.find(m => m.id === musicoId);
-                                const nomeMusico = musico ? (musico.NOMEARTISTICO || musico['NOME REGISTRO']) : 'Músico Desconhecido';
-                                const dataFormatada = `${String(dia).padStart(2, '0')}/${mesStr}`;
-                                justificativas.push({
-                                    texto: `${dataFormatada} - ${nomeMusico}: ${registro.justificativa.trim()}`
-                                });
-                            }
-                        });
-                    }
-                }
-                
                 const mesesNomes = [
                     "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
                     "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
@@ -7788,17 +7498,14 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                 if (anotacoesTexto) {
                     excelRows.push([`Anotações / Folgas: ${anotacoesTexto.replace(/\n/g, ' | ')}`]);
                 }
-                excelRows.push([]); // linha em branco
+                excelRows.push([]); 
 
-                // Cabeçalho da Tabela
                 const headerRow = ["Nome / Instrumento"];
                 for (let dia = 1; dia <= totalDias; dia++) {
                     headerRow.push(`${String(dia).padStart(2, '0')}/${mesStr}`);
                 }
                 headerRow.push("P", "F");
                 excelRows.push(headerRow);
-
-                const naipesComMusicos = [...ordemNaipesExibicao, "Outros"].filter(n => musicosPorNaipe[n].length > 0);
 
                 const getColLetter = (colIndex) => {
                     let letter = '';
@@ -7810,21 +7517,38 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                     return letter;
                 };
 
+                // Comentários de eventos no cabeçalho das datas
+                const headerRowIndexInExcel = excelRows.length;
+                for (let dia = 1; dia <= totalDias; dia++) {
+                    const dataStr = `${ano}-${mesStr}-${String(dia).padStart(2, '0')}`;
+                    if (eventosPorData[dataStr] && eventosPorData[dataStr].length > 0) {
+                        const colLetter = getColLetter(dia);
+                        const cellRef = `${colLetter}${headerRowIndexInExcel}`;
+                        cellCommentsMap[cellRef] = `Atividade(s):\n${eventosPorData[dataStr].join('\n')}`;
+                    }
+                }
+
+                const naipesComMusicos = [...ordemNaipesExibicao, "Outros"].filter(n => musicosPorNaipe[n].length > 0);
+
                 naipesComMusicos.forEach(naipe => {
-                    // Linha do Naipe
                     const naipeRow = [naipe.toUpperCase()];
                     excelRows.push(naipeRow);
 
                     musicosPorNaipe[naipe].forEach(musico => {
                         const nomeExibido = musico.NOMEARTISTICO || musico['NOME REGISTRO'] || 'Músico';
                         const rowMusico = [nomeExibido];
+                        const currentExcelRowIndex = excelRows.length + 1; // Linha (1-based) no Excel
 
                         for (let dia = 1; dia <= totalDias; dia++) {
                             const dataStr = `${ano}-${mesStr}-${String(dia).padStart(2, '0')}`;
                             const presData = presencasPorData[dataStr];
                             let cellText = '';
 
-                            if (presData && presData.registros && presData.registros[musico.id]) {
+                            const isCanceladoNoDia = musico.dataSaida && dataStr >= musico.dataSaida;
+
+                            if (isCanceladoNoDia) {
+                                cellText = 'CL';
+                            } else if (presData && presData.registros && presData.registros[musico.id]) {
                                 const reg = presData.registros[musico.id];
                                 const status = reg.status;
 
@@ -7833,11 +7557,23 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                                 } else if (status === 'falta') {
                                     cellText = 'F';
                                 }
+
+                                const notes = [];
+                                if (status === 'atestado') notes.push("Atestado Médico");
+                                if (status === 'justificado') notes.push("Ausência Justificada");
+                                if (status === 'atraso' && reg.minutes) notes.push(`Atraso: ${reg.minutes} min`);
+                                if (reg.justificativa) notes.push(`Justificativa: ${reg.justificativa.trim()}`);
+                                if (reg.observacao) notes.push(`Obs: ${reg.observacao.trim()}`);
+
+                                if (notes.length > 0) {
+                                    const colLetter = getColLetter(dia);
+                                    const cellRef = `${colLetter}${currentExcelRowIndex}`;
+                                    cellCommentsMap[cellRef] = notes.join('\n');
+                                }
                             }
                             rowMusico.push(cellText);
                         }
 
-                        const currentExcelRowIndex = excelRows.length + 1; // Linha (1-based) no Excel
                         const startCol = 'B';
                         const endCol = getColLetter(totalDias);
                         const formulaRange = `${startCol}${currentExcelRowIndex}:${endCol}${currentExcelRowIndex}`;
@@ -7850,20 +7586,20 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                     });
                 });
 
-                excelRows.push([]); // linha em branco
-                excelRows.push(["LEGENDA / JUSTIFICATIVAS DE AUSÊNCIA"]);
-                if (justificativas.length > 0) {
-                    justificativas.forEach(j => excelRows.push([j.texto]));
-                } else {
-                    excelRows.push(["Nenhuma justificativa de ausência registrada para este período."]);
-                }
-
                 if (typeof XLSX === 'undefined') {
                     showNotification("Erro: Biblioteca de exportação Excel (SheetJS) não encontrada.", "error");
                     return;
                 }
 
                 const worksheet = XLSX.utils.aoa_to_sheet(excelRows);
+
+                // Aplicar anotações/comentários (.c) nas células correspondentes no SheetJS
+                Object.entries(cellCommentsMap).forEach(([cellRef, text]) => {
+                    if (!worksheet[cellRef]) {
+                        worksheet[cellRef] = { t: 's', v: '' };
+                    }
+                    worksheet[cellRef].c = [{ t: text, a: 'OER' }];
+                });
                 
                 // Ajustar largura das colunas
                 const colWidths = [{ wch: 30 }]; // Nome
