@@ -68,7 +68,8 @@ const filterPills = document.querySelectorAll(".filter-pill");
 
 // Estado da Aplicação
 let currentUserEmail = "";
-let allMusicians = []; // Lista carregada do Firestore
+let allMusiciansRaw = []; // Guarda todos os músicos cadastrados do Firestore (ativos e inativos)
+let allMusicians = []; // Lista filtrada de acordo com a data do evento selecionado
 let attendanceData = {}; // { musicoId: { status: 'presenca'|'falta'|'atestado'|'atraso'|'nao_escalado', minutes: 0 } }
 let notesText = "";
 let selectedDate = "";
@@ -236,22 +237,21 @@ const ordemNaipes = [
     "Percussão"
 ];
 
-// Carregar Lista de Músicos Ativos do Firestore
+// Carregar Lista Completa de Músicos do Firestore
 async function loadMusicians() {
     try {
         const snapshot = await getDocs(collection(db, "musicos"));
-        allMusicians = [];
+        allMusiciansRaw = [];
         snapshot.forEach(docSnap => {
             const data = docSnap.data();
             const status = (data.Status || '').toString().toLowerCase().trim();
             
-            // Filtros de segurança e inativos (idênticos ao admin.js)
+            // Filtros de segurança
             if (status.includes('emm')) return;
             
             const nomeRegLower = (data['NOME REGISTRO'] || '').toString().toLowerCase();
             const nomeArtLower = (data.NOMEARTISTICO || '').toString().toLowerCase();
             if (nomeRegLower.includes('angela de santi') || nomeArtLower.includes('angela de santi')) return;
-            if (status.includes('desligado') || (data.statusFirebase || '').toString() === 'desligado' || (data.statusFirebase || '').toString() === 'inativo') return;
 
             const isBolsistaOrMonitor = status.includes("bolsista") || status.includes("monitor") || status.includes("spalla");
 
@@ -262,11 +262,13 @@ async function loadMusicians() {
                 
                 const instrumento = (data.INSTRUMENTOS || '').toString().trim() || "Outros";
 
-                allMusicians.push({
+                allMusiciansRaw.push({
                     id: docSnap.id,
                     Nome: nome,
                     Instrumento: instrumento,
-                    Status: (status.includes("monitor") || status.includes("spalla")) ? "Monitor" : "Bolsista"
+                    Status: (status.includes("monitor") || status.includes("spalla")) ? "Monitor" : "Bolsista",
+                    statusFirebase: (data.statusFirebase || 'ativo').toString().toLowerCase(),
+                    dataSaida: data.dataSaida || null
                 });
             }
         });
@@ -274,6 +276,28 @@ async function loadMusicians() {
         console.error("Erro ao carregar músicos:", e);
         showToast("Erro ao carregar músicos do banco.");
     }
+}
+
+// Filtra dinamicamente a lista de músicos para a data do evento selecionado
+function updateActiveMusiciansForDate(targetDateStr) {
+    if (!allMusiciansRaw || allMusiciansRaw.length === 0) return;
+
+    allMusicians = allMusiciansRaw.filter(m => {
+        const status = m.statusFirebase || 'ativo';
+        if (status === 'ativo') return true;
+
+        // Se o músico for inativo/desligado:
+        // 1. Manter visível se já houver um registro salvo para ele no evento desta data
+        if (attendanceData && attendanceData[m.id]) return true;
+
+        // 2. Se houver dataSaida cadastrada, incluir apenas se o evento ocorreu ANTES da data de saída
+        if (m.dataSaida) {
+            return targetDateStr < m.dataSaida;
+        }
+
+        // Se for inativo sem dataSaida registrada e sem presença gravada, oculta das novas listas
+        return false;
+    });
 }
 
 // Carregar Dados (Firestore ou Rascunho Local) de uma Data Específica
@@ -318,6 +342,9 @@ async function loadDateData(dateStr) {
                     });
                     
                     if (eventosDoDia.length > 0) {
+                        // Aplica atualização prévia da lista para identificar quem estava na orquestra nesta data
+                        updateActiveMusiciansForDate(dateStr);
+
                         // Verifica se há alguma folga programada
                         const temFolga = eventosDoDia.some(e => e.tipo === 'folga');
                         
@@ -359,19 +386,23 @@ async function loadDateData(dateStr) {
                         }
                     } else {
                         // Sem eventos cadastrados: todos como pendentes por padrão
+                        updateActiveMusiciansForDate(dateStr);
                         allMusicians.forEach(m => {
                             attendanceData[m.id] = { status: "none", minutes: 0 };
                         });
                     }
                 } catch (eventError) {
                     console.error("Erro ao carregar eventos para presença inteligente:", eventError);
-                    // Fallback para preenchimento padrão caso a consulta falhe
+                    updateActiveMusiciansForDate(dateStr);
                     allMusicians.forEach(m => {
                         attendanceData[m.id] = { status: "none", minutes: 0 };
                     });
                 }
             }
         }
+
+        // Garantir filtragem temporal com os dados de presença carregados
+        updateActiveMusiciansForDate(dateStr);
         renderMusicians();
     } catch (e) {
         console.error("Erro ao carregar dados da data:", e);

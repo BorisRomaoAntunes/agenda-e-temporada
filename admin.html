@@ -57,7 +57,7 @@
 
             <!-- View de Login -->
             <div id="login-view" class="login-view">
-                <form id="login-form">
+                <form id="login-form" onsubmit="event.preventDefault();">
                     <div class="input-group">
                         <label for="email">E-mail</label>
                         <input type="email" id="email" autocomplete="username" required placeholder="seu@email.com">
@@ -94,7 +94,7 @@
                 </div>
                 <h3>Recuperar Senha</h3>
                 <p>Digite seu e-mail cadastrado. Enviaremos um link para redefinir sua senha.</p>
-                <form id="recovery-form">
+                <form id="recovery-form" onsubmit="event.preventDefault();">
                     <div class="input-group">
                         <label for="recovery-email">E-mail</label>
                         <input type="email" id="recovery-email" autocomplete="email" required placeholder="seu@email.com">
@@ -1862,6 +1862,70 @@ Intervalo
                         Fechar
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL CONFIRMAÇÃO DE IMPORTAÇÃO DE PLANILHA ===== -->
+    <div id="modal-confirm-import-excel" class="modal-overlay" style="display: none; z-index: 10000;">
+        <div class="settings-modal-card" style="max-width: 700px; width: 95%;">
+            <div class="modal-header" style="display: flex; align-items: center; justify-content: space-between; padding: 1.2rem 1.5rem; border-bottom: 1px solid #f0f2f5;">
+                <div class="modal-header-info" style="display: flex; align-items: center; gap: 0.8rem;">
+                    <div style="background: rgba(139, 0, 0, 0.1); color: var(--primary-color, #8b0000); width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center;">
+                        <i data-lucide="file-spreadsheet" style="width: 22px; height: 22px;"></i>
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: #1a1a1a;">Comparação de Importação</h3>
+                        <p style="margin: 0; font-size: 0.85rem; color: #666;" id="import-diff-sheet-name">Planilha: Aba "Dados Gerais"</p>
+                    </div>
+                </div>
+                <button class="btn-close-modal" id="btn-close-import-diff-modal" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #888;">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.2rem;">
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem; font-size: 0.9rem; color: #475569; line-height: 1.5;">
+                    Confira o resumo das alterações identificadas entre a planilha enviada e o banco de dados do site antes de salvar. Músicos ausentes serão sinalizados como <strong>Não Ativos</strong>.
+                </div>
+
+                <!-- Métricas do Diff -->
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.75rem;">
+                    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 0.8rem; text-align: center;">
+                        <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #166534;">Novos</div>
+                        <div style="font-size: 1.4rem; font-weight: 800; color: #15803d; margin-top: 0.2rem;" id="diff-count-novos">0</div>
+                    </div>
+                    <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 10px; padding: 0.8rem; text-align: center;">
+                        <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #1e40af;">Atualizados</div>
+                        <div style="font-size: 1.4rem; font-weight: 800; color: #1d4ed8; margin-top: 0.2rem;" id="diff-count-atualizados">0</div>
+                    </div>
+                    <div style="background: #faf5ff; border: 1px solid #e9d5ff; border-radius: 10px; padding: 0.8rem; text-align: center;">
+                        <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #6b21a8;">Reativados</div>
+                        <div style="font-size: 1.4rem; font-weight: 800; color: #7e22ce; margin-top: 0.2rem;" id="diff-count-reativados">0</div>
+                    </div>
+                    <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 0.8rem; text-align: center;">
+                        <div style="font-size: 0.75rem; font-weight: 700; text-transform: uppercase; color: #991b1b;">Inativados</div>
+                        <div style="font-size: 1.4rem; font-weight: 800; color: #b91c1c; margin-top: 0.2rem;" id="diff-count-inativados">0</div>
+                    </div>
+                </div>
+
+                <!-- Abas para visualizar os detalhes -->
+                <div style="display: flex; border-bottom: 1px solid #e2e8f0; gap: 0.5rem;" id="import-diff-tabs">
+                    <button class="diff-tab-btn active" data-tab="novos" style="padding: 0.5rem 1rem; border: none; background: none; font-weight: 600; font-size: 0.85rem; cursor: pointer; border-bottom: 2px solid var(--primary-color, #8b0000); color: var(--primary-color, #8b0000);">Novos</button>
+                    <button class="diff-tab-btn" data-tab="atualizados" style="padding: 0.5rem 1rem; border: none; background: none; font-weight: 600; font-size: 0.85rem; cursor: pointer; color: #64748b;">Atualizados</button>
+                    <button class="diff-tab-btn" data-tab="reativados" style="padding: 0.5rem 1rem; border: none; background: none; font-weight: 600; font-size: 0.85rem; cursor: pointer; color: #64748b;">Reativados</button>
+                    <button class="diff-tab-btn" data-tab="inativados" style="padding: 0.5rem 1rem; border: none; background: none; font-weight: 600; font-size: 0.85rem; cursor: pointer; color: #64748b;">Inativados</button>
+                </div>
+
+                <!-- Conteúdo da lista detalhada da aba ativa -->
+                <div id="import-diff-list-container" style="max-height: 250px; overflow-y: auto; background: #fafafa; border: 1px solid #f1f5f9; border-radius: 8px; padding: 0.75rem;">
+                    <!-- Preenchido dinamicamente via JS -->
+                </div>
+            </div>
+            <div class="modal-footer" style="padding: 1rem 1.5rem; border-top: 1px solid #f0f2f5; display: flex; justify-content: flex-end; gap: 0.8rem;">
+                <button class="btn-outline" id="btn-cancel-import-diff" style="padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; border: 1px solid #cbd5e1; background: white; color: #334155;">Cancelar</button>
+                <button class="btn-primary" id="btn-confirm-import-diff" style="padding: 0.6rem 1.4rem; border-radius: 8px; font-weight: 600; cursor: pointer; background: var(--primary-color, #8b0000); color: white; border: none; display: flex; align-items: center; gap: 0.5rem;">
+                    <i data-lucide="check-circle" style="width: 16px; height: 16px;"></i> Confirmar Importação
+                </button>
             </div>
         </div>
     </div>

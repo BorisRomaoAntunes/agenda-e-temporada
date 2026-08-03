@@ -5567,7 +5567,109 @@ function initMusiciansManagement() {
     if (btnCloseDrawer) btnCloseDrawer.addEventListener('click', closeMusicoDrawer);
     if (drawerOverlay) drawerOverlay.addEventListener('click', closeMusicoDrawer);
 
-    // 6. Importação da Planilha (.xlsx) com SheetJS
+    // 6. Importação da Planilha (.xlsx) com SheetJS e Modal de Confirmação (Diff)
+    const modalDiff = document.getElementById('modal-confirm-import-excel');
+    const btnCloseDiff = document.getElementById('btn-close-import-diff-modal');
+    const btnCancelDiff = document.getElementById('btn-cancel-import-diff');
+    const btnConfirmDiff = document.getElementById('btn-confirm-import-diff');
+    const diffTabsContainer = document.getElementById('import-diff-tabs');
+    const diffListContainer = document.getElementById('import-diff-list-container');
+    const sheetNameEl = document.getElementById('import-diff-sheet-name');
+
+    let pendingImportData = null; // Armazena os dados do diff antes de confirmar
+
+    const closeModalDiff = () => {
+        if (modalDiff) modalDiff.style.display = 'none';
+        pendingImportData = null;
+        if (importInput) importInput.value = '';
+    };
+
+    if (btnCloseDiff) btnCloseDiff.addEventListener('click', closeModalDiff);
+    if (btnCancelDiff) btnCancelDiff.addEventListener('click', closeModalDiff);
+
+    if (diffTabsContainer) {
+        diffTabsContainer.addEventListener('click', (e) => {
+            const btn = e.target.closest('.diff-tab-btn');
+            if (!btn || !pendingImportData) return;
+
+            diffTabsContainer.querySelectorAll('.diff-tab-btn').forEach(b => {
+                b.classList.remove('active');
+                b.style.borderBottom = 'none';
+                b.style.color = '#64748b';
+            });
+
+            btn.classList.add('active');
+            btn.style.borderBottom = '2px solid var(--primary-color, #8b0000)';
+            btn.style.color = 'var(--primary-color, #8b0000)';
+
+            const tabName = btn.getAttribute('data-tab');
+            renderDiffTabContent(tabName);
+        });
+    }
+
+    // Função utilitária para converter datas do Excel / String para o formato YYYY-MM-DD
+    const parseDateToYYYYMMDD = (val) => {
+        if (!val || val === '-') return null;
+        let d = null;
+        if (!isNaN(val) && typeof val === 'number') {
+            d = new Date((val - 25569) * 86400 * 1000);
+        } else if (typeof val === 'string') {
+            const str = val.trim();
+            const partes = str.split('/');
+            if (partes.length === 3) {
+                const dia = parseInt(partes[0], 10);
+                const mes = parseInt(partes[1], 10) - 1;
+                const ano = parseInt(partes[2], 10);
+                d = new Date(ano, mes, dia);
+            } else {
+                const parsed = Date.parse(str);
+                if (!isNaN(parsed)) d = new Date(parsed);
+            }
+        }
+        if (d && !isNaN(d.getTime())) {
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            return `${yyyy}-${mm}-${dd}`;
+        }
+        return null;
+    };
+
+    function renderDiffTabContent(tabName) {
+        if (!diffListContainer || !pendingImportData) return;
+        const list = pendingImportData[tabName] || [];
+
+        if (list.length === 0) {
+            diffListContainer.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 1.5rem; font-size: 0.9rem;">Nenhum músico nesta categoria.</div>`;
+            return;
+        }
+
+        let html = `<ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem;">`;
+        list.forEach(item => {
+            const nome = item.NOMEARTISTICO || item['NOME REGISTRO'] || item.Nome || 'Músico sem nome';
+            const inst = item.INSTRUMENTOS || item.Instrumento || 'Sem instrumento';
+            const cpf = item.CPF || item.cpfId || '-';
+            const statusLabel = item.Status || item.statusOld || '';
+            const dataSaidaDisplay = item.dataSaida ? item.dataSaida.split('-').reverse().join('/') : '';
+
+            html += `
+                <li style="background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.6rem 0.8rem; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                    <div>
+                        <strong style="color: #1e293b; font-size: 0.9rem;">${nome}</strong>
+                        <div style="font-size: 0.78rem; color: #64748b;">${inst} &bull; CPF: ${cpf} ${statusLabel ? `&bull; <span style="font-weight:600;">${statusLabel}</span>` : ''}</div>
+                    </div>
+                    ${tabName === 'inativados' && dataSaidaDisplay ? `
+                        <div style="background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700; white-space: nowrap;">
+                            Saída: ${dataSaidaDisplay}
+                        </div>
+                    ` : ''}
+                </li>
+            `;
+        });
+        html += `</ul>`;
+        diffListContainer.innerHTML = html;
+    }
+
     if (importInput) {
         importInput.addEventListener('change', async (e) => {
             const file = e.target.files[0];
@@ -5575,10 +5677,12 @@ function initMusiciansManagement() {
 
             showNotification("Lendo planilha...", "info");
             const label = document.getElementById('btn-import-excel-label');
-            const originalHTML = label.innerHTML;
-            label.style.pointerEvents = 'none';
-            label.innerHTML = '<i data-lucide="loader-2" class="spin" style="width: 16px; height: 16px;"></i> <span>Processando...</span>';
-            if (window.lucide) lucide.createIcons();
+            const originalHTML = label ? label.innerHTML : '';
+            if (label) {
+                label.style.pointerEvents = 'none';
+                label.innerHTML = '<i data-lucide="loader-2" class="spin" style="width: 16px; height: 16px;"></i> <span>Processando...</span>';
+            }
+            if (typeof lucide !== 'undefined') lucide.createIcons();
 
             const reader = new FileReader();
             reader.readAsArrayBuffer(file);
@@ -5586,103 +5690,226 @@ function initMusiciansManagement() {
                 try {
                     const data = new Uint8Array(event.target.result);
                     const workbook = XLSX.read(data, { type: 'array' });
-                    
-                    // Buscar aba de dados de forma flexível (aceita "dados", "Dados" ou "Dados Gerais")
-                    let sheetName = workbook.SheetNames.find(name => {
+
+                    // 1. Procurar aba de dados dos músicos ativos
+                    let sheetNameAtivos = workbook.SheetNames.find(name => {
                         const n = name.trim().toLowerCase();
-                        return n === 'dados' || n === 'dados gerais';
+                        return n === 'dados' || n === 'dados gerais' || n === 'músicos' || n === 'musicos';
                     });
-                    if (!sheetName) {
-                        throw new Error('Aba "dados" ou "Dados Gerais" não encontrada na planilha. Verifique o nome da aba.');
+
+                    if (!sheetNameAtivos) {
+                        throw new Error('Aba "Dados Gerais" ou "Dados" não encontrada na planilha.');
                     }
 
-                    const sheet = workbook.Sheets[sheetName];
-                    const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
-                    
-                    if (rows.length === 0) {
-                        throw new Error(`A aba "${sheetName}" está vazia.`);
+                    const sheetAtivos = workbook.Sheets[sheetNameAtivos];
+                    const rowsAtivos = XLSX.utils.sheet_to_json(sheetAtivos, { defval: "" });
+
+                    if (rowsAtivos.length === 0) {
+                        throw new Error(`A aba "${sheetNameAtivos}" está vazia.`);
                     }
 
-                    showNotification(`Processando ${rows.length} linhas...`, "info");
+                    // 2. Procurar aba de músicos cancelados / desligados para capturar a DATA DE SAÍDA
+                    let sheetNameCancelados = workbook.SheetNames.find(name => {
+                        const n = name.trim().toLowerCase();
+                        return n.includes('cancelad') || n.includes('desligad') || n.includes('saida') || n.includes('saída');
+                    });
 
-                    // Validar se as colunas principais existem
-                    const firstRow = rows[0];
-                    if (!firstRow.hasOwnProperty('CPF') && !firstRow.hasOwnProperty('NOME REGISTRO')) {
-                        throw new Error('Estrutura inválida. A planilha deve conter as colunas "CPF" e "NOME REGISTRO".');
+                    const cpfToDataSaidaMap = new Map();
+                    const hojeDataIso = new Date().toISOString().split('T')[0];
+
+                    if (sheetNameCancelados) {
+                        const sheetCancelados = workbook.Sheets[sheetNameCancelados];
+                        const rowsCancelados = XLSX.utils.sheet_to_json(sheetCancelados, { defval: "" });
+                        
+                        rowsCancelados.forEach(row => {
+                            let rawCpf = (row.CPF || row['CPF MÚSICO'] || row['CPF MUSICO'] || "").toString().trim();
+                            if (!rawCpf) return;
+                            const cpfId = rawCpf.replace(/[^\d]/g, "");
+                            if (!cpfId) return;
+
+                            // Procurar coluna de data de saída
+                            let rawDataSaida = null;
+                            for (const key in row) {
+                                if (row.hasOwnProperty(key)) {
+                                    const keyLower = key.trim().toLowerCase();
+                                    if (keyLower.includes('saida') || keyLower.includes('saída') || keyLower.includes('desligamento')) {
+                                        rawDataSaida = row[key];
+                                        break;
+                                    }
+                                }
+                            }
+
+                            const parsedDate = parseDateToYYYYMMDD(rawDataSaida);
+                            cpfToDataSaidaMap.set(cpfId, parsedDate || hojeDataIso);
+                        });
                     }
 
-                    // Iniciar Sincronização com o Firestore
-                    let updatedCount = 0;
-                    let desligadosCount = 0;
-                    const incomingCpfs = new Set();
-
-                    // Instanciar batch
-                    const batch = writeBatch(db);
-
-                    rows.forEach(row => {
+                    // 3. Mapear músicos da planilha importada por CPF
+                    const incomingMap = new Map();
+                    rowsAtivos.forEach(row => {
                         let rawCpf = (row.CPF || "").toString().trim();
-                        if (!rawCpf) return; // Pula linhas sem CPF
-
-                        const cpfId = rawCpf.replace(/[^\d]/g, ""); // Apenas dígitos
+                        if (!rawCpf) return;
+                        const cpfId = rawCpf.replace(/[^\d]/g, "");
                         if (!cpfId) return;
+                        incomingMap.set(cpfId, row);
+                    });
 
-                        incomingCpfs.add(cpfId);
+                    if (incomingMap.size === 0) {
+                        throw new Error('Nenhum CPF válido encontrado na aba de músicos ativos.');
+                    }
 
-                        // Montar objeto de dados
-                        const docData = {};
-                        for (const key in row) {
-                            if (row.hasOwnProperty(key)) {
-                                docData[key] = row[key];
+                    // 4. Buscar músicos atuais no Firestore para calcular o Diff
+                    const currentDocsSnap = await getDocs(collection(db, "musicos"));
+                    const firestoreMap = new Map();
+                    currentDocsSnap.forEach(docSnap => {
+                        firestoreMap.set(docSnap.id, { id: docSnap.id, ...docSnap.data() });
+                    });
+
+                    const novos = [];
+                    const atualizados = [];
+                    const reativados = [];
+                    const inativados = [];
+
+                    // Avaliar músicos recebidos na nova planilha
+                    incomingMap.forEach((rowData, cpfId) => {
+                        const existingDoc = firestoreMap.get(cpfId);
+                        if (!existingDoc) {
+                            novos.push({ cpfId, ...rowData });
+                        } else {
+                            const statusAtual = existingDoc.statusFirebase || 'ativo';
+                            if (statusAtual === 'inativo' || statusAtual === 'desligado') {
+                                reativados.push({ cpfId, statusOld: statusAtual, ...rowData });
+                            } else {
+                                atualizados.push({ cpfId, ...rowData });
                             }
                         }
-
-                        // Forçar campo de status no Firebase
-                        docData.statusFirebase = "ativo";
-                        docData.updatedAt = serverTimestamp();
-
-                        const docRef = doc(db, "musicos", cpfId);
-                        batch.set(docRef, docData, { merge: true });
-                        updatedCount++;
                     });
 
-                    // Identificar músicos no Firestore que não estão na planilha importada e marcá-los como "desligados"
-                    const currentDocsSnap = await getDocs(collection(db, "musicos"));
-                    currentDocsSnap.forEach(docSnap => {
-                        const dbCpf = docSnap.id;
-                        const data = docSnap.data();
-                        if (!incomingCpfs.has(dbCpf) && data.statusFirebase !== "inativo" && data.statusFirebase !== "desligado") {
-                            const docRef = doc(db, "musicos", dbCpf);
-                            batch.update(docRef, { 
-                                statusFirebase: "desligado",
-                                Status: "Desligado",
-                                updatedAt: serverTimestamp()
+                    // Avaliar músicos ativos no banco de dados que NÃO constam na nova planilha
+                    firestoreMap.forEach((existingDoc, cpfId) => {
+                        const statusAtual = existingDoc.statusFirebase || 'ativo';
+                        if (statusAtual === 'ativo' && !incomingMap.has(cpfId)) {
+                            const dataSaidaFinal = cpfToDataSaidaMap.get(cpfId) || hojeDataIso;
+                            inativados.push({
+                                cpfId,
+                                dataSaida: dataSaidaFinal,
+                                ...existingDoc
                             });
-                            desligadosCount++;
                         }
                     });
 
-                    // Salvar o timestamp da importação para expirar o cache da Ficha Técnica
-                    const importRef = doc(db, "config", "musiciansImport");
-                    batch.set(importRef, { lastImportTime: serverTimestamp() }, { merge: true });
+                    pendingImportData = {
+                        sheetName: sheetNameAtivos,
+                        novos,
+                        atualizados,
+                        reativados,
+                        inativados,
+                        incomingMap,
+                        cpfToDataSaidaMap
+                    };
 
-                    // Gravar Lote
-                    await batch.commit();
+                    // Atualizar contadores no modal de diff
+                    document.getElementById('diff-count-novos').textContent = novos.length;
+                    document.getElementById('diff-count-atualizados').textContent = atualizados.length;
+                    document.getElementById('diff-count-reativados').textContent = reativados.length;
+                    document.getElementById('diff-count-inativados').textContent = inativados.length;
+                    if (sheetNameEl) sheetNameEl.textContent = `Planilha: Aba "${sheetNameAtivos}" (${rowsAtivos.length} linhas)`;
 
-                    showNotification(`Sucesso! ${updatedCount} músicos atualizados. ${desligadosCount} marcados como desligados.`, "success");
-                    
-                    // Salvar log de auditoria
-                    await saveLog("sistema", `Planilha de músicos importada com sucesso (${updatedCount} cadastros atualizados, ${desligadosCount} marcados como desligados)`, auth.currentUser.email);
+                    // Selecionar aba 'novos' como padrão ou primeira com conteúdo
+                    if (diffTabsContainer) {
+                        diffTabsContainer.querySelectorAll('.diff-tab-btn').forEach(b => {
+                            b.classList.remove('active');
+                            b.style.borderBottom = 'none';
+                            b.style.color = '#64748b';
+                        });
+                        const firstActiveBtn = diffTabsContainer.querySelector('.diff-tab-btn[data-tab="novos"]');
+                        if (firstActiveBtn) {
+                            firstActiveBtn.classList.add('active');
+                            firstActiveBtn.style.borderBottom = '2px solid var(--primary-color, #8b0000)';
+                            firstActiveBtn.style.color = 'var(--primary-color, #8b0000)';
+                        }
+                    }
+
+                    renderDiffTabContent('novos');
+
+                    if (modalDiff) modalDiff.style.display = 'flex';
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
 
                 } catch (error) {
-                    console.error("Erro ao importar planilha:", error);
-                    showNotification("Erro na importação: " + error.message, "error");
+                    console.error("Erro ao ler planilha:", error);
+                    showNotification("Erro na leitura da planilha: " + error.message, "error");
+                    if (importInput) importInput.value = '';
                 } finally {
-                    importInput.value = '';
-                    label.style.pointerEvents = 'auto';
-                    label.innerHTML = originalHTML;
-                    if (window.lucide) lucide.createIcons();
+                    if (label) {
+                        label.style.pointerEvents = 'auto';
+                        label.innerHTML = originalHTML;
+                    }
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
                 }
             };
+        });
+    }
+
+    // Ação ao clicar em "Confirmar Importação" no Modal de Diff
+    if (btnConfirmDiff) {
+        btnConfirmDiff.addEventListener('click', async () => {
+            if (!pendingImportData) return;
+
+            btnConfirmDiff.disabled = true;
+            btnConfirmDiff.innerHTML = '<i data-lucide="loader-2" class="spin" style="width: 16px; height: 16px;"></i> Salvando...';
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+
+            try {
+                const { novos, atualizados, reativados, inativados } = pendingImportData;
+                const batch = writeBatch(db);
+                let countSaved = 0;
+
+                // 1. Salvar Músicos Ativos (Novos, Atualizados e Reativados)
+                [...novos, ...atualizados, ...reativados].forEach(item => {
+                    const { cpfId, statusOld, ...rowData } = item;
+                    const docRef = doc(db, "musicos", cpfId);
+                    const docData = { ...rowData };
+
+                    docData.statusFirebase = "ativo";
+                    docData.dataSaida = deleteField(); // Remove dataSaida caso estivesse inativo anteriormente
+                    docData.updatedAt = serverTimestamp();
+
+                    batch.set(docRef, docData, { merge: true });
+                    countSaved++;
+                });
+
+                // 2. Marcar Músicos Ausentes como Inativos com sua DATA DE SAÍDA
+                inativados.forEach(item => {
+                    const docRef = doc(db, "musicos", item.cpfId);
+                    batch.update(docRef, {
+                        statusFirebase: "inativo",
+                        Status: "Inativo",
+                        dataSaida: item.dataSaida,
+                        updatedAt: serverTimestamp()
+                    });
+                    countSaved++;
+                });
+
+                // 3. Atualizar carimbo de importação para invalidar cache público de ficha técnica
+                const importRef = doc(db, "config", "musiciansImport");
+                batch.set(importRef, { lastImportTime: serverTimestamp() }, { merge: true });
+
+                // Commit em lote no Firestore
+                await batch.commit();
+
+                showNotification(`Sucesso! Importação concluída. ${countSaved} registros sincronizados (${inativados.length} inativados).`, "success");
+                await saveLog("sistema", `Importação de planilha concluída: ${novos.length} novos, ${atualizados.length} atualizados, ${reativados.length} reativados, ${inativados.length} inativados.`, auth.currentUser?.email || "admin");
+
+                closeModalDiff();
+
+            } catch (err) {
+                console.error("Erro ao salvar importação:", err);
+                showNotification("Erro ao gravar alterações no banco: " + err.message, "error");
+            } finally {
+                btnConfirmDiff.disabled = false;
+                btnConfirmDiff.innerHTML = '<i data-lucide="check-circle" style="width: 16px; height: 16px;"></i> Confirmar Importação';
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
         });
     }
 
@@ -7573,6 +7800,16 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
 
                 const naipesComMusicos = [...ordemNaipesExibicao, "Outros"].filter(n => musicosPorNaipe[n].length > 0);
 
+                const getColLetter = (colIndex) => {
+                    let letter = '';
+                    let tempCol = colIndex;
+                    while (tempCol >= 0) {
+                        letter = String.fromCharCode((tempCol % 26) + 65) + letter;
+                        tempCol = Math.floor(tempCol / 26) - 1;
+                    }
+                    return letter;
+                };
+
                 naipesComMusicos.forEach(naipe => {
                     // Linha do Naipe
                     const naipeRow = [naipe.toUpperCase()];
@@ -7581,8 +7818,6 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                     musicosPorNaipe[naipe].forEach(musico => {
                         const nomeExibido = musico.NOMEARTISTICO || musico['NOME REGISTRO'] || 'Músico';
                         const rowMusico = [nomeExibido];
-                        let totalP = 0;
-                        let totalF = 0;
 
                         for (let dia = 1; dia <= totalDias; dia++) {
                             const dataStr = `${ano}-${mesStr}-${String(dia).padStart(2, '0')}`;
@@ -7593,27 +7828,24 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                                 const reg = presData.registros[musico.id];
                                 const status = reg.status;
 
-                                if (status === 'presenca') {
-                                    cellText = '✓';
-                                    totalP++;
+                                if (status === 'presenca' || status === 'atraso') {
+                                    cellText = 'P';
                                 } else if (status === 'falta') {
                                     cellText = 'F';
-                                    totalF++;
-                                } else if (status === 'atestado') {
-                                    cellText = 'A';
-                                } else if (status === 'justificado') {
-                                    cellText = 'J';
-                                } else if (status === 'atraso') {
-                                    cellText = reg.minutes ? `${reg.minutes} min` : 'At';
-                                    totalP++;
-                                } else if (status === 'nao_escalado') {
-                                    cellText = '-';
                                 }
                             }
                             rowMusico.push(cellText);
                         }
 
-                        rowMusico.push(totalP, totalF);
+                        const currentExcelRowIndex = excelRows.length + 1; // Linha (1-based) no Excel
+                        const startCol = 'B';
+                        const endCol = getColLetter(totalDias);
+                        const formulaRange = `${startCol}${currentExcelRowIndex}:${endCol}${currentExcelRowIndex}`;
+
+                        // Injetar fórmulas do Excel para somar P e F dinamicamente
+                        rowMusico.push({ f: `COUNTIF(${formulaRange}, "P")` });
+                        rowMusico.push({ f: `COUNTIF(${formulaRange}, "F")` });
+
                         excelRows.push(rowMusico);
                     });
                 });
