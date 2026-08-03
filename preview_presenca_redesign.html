@@ -551,6 +551,30 @@
         .opt-btn.nao-escalado { color: var(--color-not-scheduled); border-color: #cbd5e1; background: var(--color-not-scheduled-bg); }
         .opt-btn.justificado { color: var(--color-justified); border-color: #f3e8ff; background: var(--color-justified-bg); grid-column: span 2; }
 
+        .opt-btn-compact {
+            border: 1.5px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 0.55rem 0.4rem;
+            min-height: 44px;
+            background: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.8rem;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+        .opt-btn-compact:active { transform: scale(0.96); }
+        .opt-btn-compact.presenca { color: var(--color-presence); border-color: #a7f3d0; background: var(--color-presence-bg); }
+        .opt-btn-compact.falta { color: var(--color-absence); border-color: #fca5a5; background: var(--color-absence-bg); }
+        .opt-btn-compact.atestado { color: var(--color-medical); border-color: #bfdbfe; background: var(--color-medical-bg); }
+        .opt-btn-compact.nao-escalado { color: var(--color-not-scheduled); border-color: #cbd5e1; background: var(--color-not-scheduled-bg); }
+        .opt-btn-compact.justificado { color: var(--color-justified); border-color: #f3e8ff; background: var(--color-justified-bg); }
+
+
         .justification-input-container {
             grid-column: span 2;
             margin-top: 0.2rem;
@@ -713,35 +737,35 @@
             </div>
         </div>
 
-        <!-- Grid de Opções Principais de Status -->
-        <div class="options-grid">
-            <button class="opt-btn presenca" onclick="selectStatusAndClose('presenca')">
-                <i data-lucide="user-check" style="width: 26px; height: 26px;"></i>
-                <span>Presença</span>
-            </button>
-
-            <button class="opt-btn falta" onclick="selectStatusAndClose('falta')">
-                <i data-lucide="user-x" style="width: 26px; height: 26px;"></i>
-                <span>Falta</span>
-            </button>
-
-            <button class="opt-btn atestado" onclick="selectStatusAndClose('atestado')">
-                <i data-lucide="file-text" style="width: 26px; height: 26px;"></i>
-                <span>Atestado</span>
-            </button>
-
-            <button class="opt-btn nao-escalado" onclick="selectStatusAndClose('nao_escalado')">
-                <i data-lucide="calendar-off" style="width: 26px; height: 26px;"></i>
-                <span>Não Escalado</span>
-            </button>
-
-            <button class="opt-btn justificado" onclick="toggleJustificationField()">
-                <i data-lucide="message-square" style="width: 24px; height: 24px;"></i>
-                <span>Justificado (com motivo)</span>
-            </button>
+        <!-- Opções de Status Grid (2 Linhas Compactas) -->
+        <div class="options-container-compact" style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.5rem;">
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.45rem;">
+                <button class="opt-btn-compact presenca" onclick="selectStatusAndClose('presenca')">
+                    <i data-lucide="user-check" style="width: 18px; height: 18px;"></i>
+                    <span>Presença</span>
+                </button>
+                <button class="opt-btn-compact falta" onclick="selectStatusAndClose('falta')">
+                    <i data-lucide="user-x" style="width: 18px; height: 18px;"></i>
+                    <span>Falta</span>
+                </button>
+                <button class="opt-btn-compact atestado" onclick="selectStatusAndClose('atestado')">
+                    <i data-lucide="file-text" style="width: 18px; height: 18px;"></i>
+                    <span>Atestado</span>
+                </button>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.45rem;">
+                <button class="opt-btn-compact nao-escalado" onclick="selectStatusAndClose('nao_escalado')">
+                    <i data-lucide="calendar-off" style="width: 18px; height: 18px;"></i>
+                    <span>Não Escalado</span>
+                </button>
+                <button class="opt-btn-compact justificado" onclick="toggleJustificationField()">
+                    <i data-lucide="message-square" style="width: 18px; height: 18px;"></i>
+                    <span>Justificado</span>
+                </button>
+            </div>
 
             <!-- Campo de Texto para Justificativa -->
-            <div class="justification-input-container" id="justificationSection" style="display: none;">
+            <div class="justification-input-container" id="justificationSection" style="display: none; margin-top: 0.5rem;">
                 <textarea class="justification-textarea" id="justificationTextarea" placeholder="Digite o motivo da justificativa..."></textarea>
                 <button class="btn-save-justification" onclick="saveJustificationAndClose()">Salvar Motivo e Fechar</button>
             </div>

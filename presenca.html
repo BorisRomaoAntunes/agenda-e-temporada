@@ -137,55 +137,37 @@
             </div>
         </div>
         
-        <div class="options-grid">
-            <button class="opt-btn presenca" id="optBtnPresenca">
-                <i data-lucide="user-check" style="width: 24px; height: 24px;"></i>
-                <span>Presença</span>
-            </button>
-            <button class="opt-btn falta" id="optBtnFalta">
-                <i data-lucide="user-x" style="width: 24px; height: 24px;"></i>
-                <span>Falta</span>
-            </button>
-            <button class="opt-btn atestado" id="optBtnAtestado">
-                <i data-lucide="file-text" style="width: 24px; height: 24px;"></i>
-                <span>Atestado</span>
-            </button>
-            <button class="opt-btn nao-escalado" id="optBtnNaoEscalado">
-                <i data-lucide="calendar-off" style="width: 24px; height: 24px;"></i>
-                <span>Não Escalado</span>
-            </button>
-            <button class="opt-btn justificado" id="optBtnJustificado">
-                <i data-lucide="message-square" style="width: 24px; height: 24px;"></i>
-                <span>Justificado</span>
-            </button>
+        <div class="options-container-compact">
+            <div class="options-row-3">
+                <button class="opt-btn-compact presenca" id="optBtnPresenca">
+                    <i data-lucide="user-check" style="width: 18px; height: 18px;"></i>
+                    <span>Presença</span>
+                </button>
+                <button class="opt-btn-compact falta" id="optBtnFalta">
+                    <i data-lucide="user-x" style="width: 18px; height: 18px;"></i>
+                    <span>Falta</span>
+                </button>
+                <button class="opt-btn-compact atestado" id="optBtnAtestado">
+                    <i data-lucide="file-text" style="width: 18px; height: 18px;"></i>
+                    <span>Atestado</span>
+                </button>
+            </div>
+            <div class="options-row-2">
+                <button class="opt-btn-compact nao-escalado" id="optBtnNaoEscalado">
+                    <i data-lucide="calendar-off" style="width: 18px; height: 18px;"></i>
+                    <span>Não Escalado</span>
+                </button>
+                <button class="opt-btn-compact justificado" id="optBtnJustificado">
+                    <i data-lucide="message-square" style="width: 18px; height: 18px;"></i>
+                    <span>Justificado</span>
+                </button>
+            </div>
             
             <!-- Campo de Texto que substitui o botão quando selecionado -->
             <div class="justification-input-container" id="justificationSection" style="display: none;">
                 <textarea class="justification-textarea" id="justificationTextarea" placeholder="Digite o motivo da justificativa..."></textarea>
                 <button class="btn btn-confirm" id="btnSaveJustification" style="margin-top: 0.5rem; width: 100%;">Salvar Justificativa e Fechar</button>
             </div>
-        </div>
-
-        <!-- Seção de Atraso Customizado (Scroll Wheel) -->
-        <div class="delay-section">
-            <div class="delay-title">
-                <span>Personalizar Atraso (Minutos)</span>
-                <span class="delay-value-display" id="delayValDisplay">Sem atraso</span>
-            </div>
-            
-            <!-- Simulador de Scroll Wheel iOS -->
-            <div class="wheel-container">
-                <div class="wheel-mask"></div>
-                <div class="wheel-highlight"></div>
-                <div class="wheel-scroller" id="delayWheel">
-                    <!-- Valores de atraso gerados por JS -->
-                </div>
-            </div>
-        </div>
-
-        <div class="drawer-actions">
-            <button class="btn btn-cancel" id="btnCancelDrawer">Cancelar</button>
-            <button class="btn btn-confirm btn-delay-confirm" id="btnDelayConfirm">Confirmar Atraso</button>
         </div>
     </div>
 

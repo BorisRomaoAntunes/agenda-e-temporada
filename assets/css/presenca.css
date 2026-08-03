@@ -1014,3 +1014,51 @@ body {
     transform: scale(0.95);
 }
 
+/* Opções de Status Compactas em 2 Linhas Horizontais */
+.options-container-compact {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.options-row-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.45rem;
+}
+
+.options-row-2 {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.45rem;
+}
+
+.opt-btn-compact {
+    border: 1.5px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 0.55rem 0.4rem;
+    min-height: 44px;
+    background: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.8rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.opt-btn-compact:active {
+    transform: scale(0.96);
+}
+
+.opt-btn-compact.presenca { color: var(--color-presence); border-color: #a7f3d0; background: var(--color-presence-bg); }
+.opt-btn-compact.falta { color: var(--color-absence); border-color: #fca5a5; background: var(--color-absence-bg); }
+.opt-btn-compact.atestado { color: var(--color-medical); border-color: #bfdbfe; background: var(--color-medical-bg); }
+.opt-btn-compact.nao-escalado { color: var(--color-not-scheduled); border-color: #cbd5e1; background: var(--color-not-scheduled-bg); }
+.opt-btn-compact.justificado { color: var(--color-justified); border-color: #f3e8ff; background: var(--color-justified-bg); }
+
+
