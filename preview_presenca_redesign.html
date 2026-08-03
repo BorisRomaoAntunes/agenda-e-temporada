@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Modelo Local — Presença OER (Redesenho Mobile)</title>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        :root {
+            --bg-primary: #f8fafc;
+            --bg-card: #ffffff;
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            
+            /* Cores de Status OER */
+            --color-presence: #10b981;
+            --color-presence-bg: #ecfdf5;
+            --color-absence: #ef4444;
+            --color-absence-bg: #fef2f2;
+            --color-medical: #3b82f6;
+            --color-medical-bg: #eff6ff;
+            --color-delay: #f59e0b;
+            --color-delay-bg: #fffbeb;
+            --color-not-scheduled: #64748b;
+            --color-not-scheduled-bg: #f1f5f9;
+            --color-justified: #a855f7;
+            --color-justified-bg: #faf5ff;
+            
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 24px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+            --shadow-lg: 0 12px 32px rgba(0,0,0,0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            padding-bottom: 90px;
+            min-height: 100vh;
+        }
+
+        /* Banner de Protótipo Local */
+        .demo-banner {
+            background: linear-gradient(135deg, #4f46e5, #3b82f6);
+            color: #ffffff;
+            padding: 0.6rem 1rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--shadow-sm);
+        }
+        .demo-banner-tag {
+            background: rgba(255,255,255,0.25);
+            padding: 0.2rem 0.5rem;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Header Principal */
+        .header {
+            background: #ffffff;
+            border-bottom: 1px solid var(--border-color);
+            padding: 0.85rem 1rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .header-title-container {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .btn-back-admin {
+            background: #f1f5f9;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: var(--text-primary);
+        }
+
+        .header-title h1 {
+            font-size: 1.15rem;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+        }
+
+        .date-picker-container {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: #f1f5f9;
+            padding: 0.4rem 0.75rem;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            font-size: 0.85rem;
+        }
+
+        .date-picker-container input {
+            border: none;
+            background: transparent;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            outline: none;
+        }
+
+        /* Barra de Resumo de Chamada */
+        .summary-bar {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.75rem;
+            overflow-x: auto;
+            scrollbar-width: none;
+            padding-bottom: 2px;
+        }
+        .summary-pill {
+            flex: 1;
+            min-width: max-content;
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            padding: 0.4rem 0.6rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+        .summary-pill .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        .summary-pill.presence .dot { background: var(--color-presence); }
+        .summary-pill.delay .dot { background: var(--color-delay); }
+        .summary-pill.absence .dot { background: var(--color-absence); }
+        .summary-pill.pending .dot { background: #cbd5e1; }
+
+        /* Filtros */
+        .filters-container {
+            display: flex;
+            gap: 0.5rem;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+
+        .filter-pill {
+            flex-shrink: 0;
+            padding: 0.4rem 0.9rem;
+            min-height: 38px;
+            display: inline-flex;
+            align-items: center;
+            border-radius: 50px;
+            border: 1.5px solid var(--border-color);
+            background: #f8fafc;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .filter-pill.active {
+            background: #0f172a;
+            color: #ffffff;
+            border-color: #0f172a;
+        }
+
+        /* Banner Informativo */
+        .instructions {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            padding: 0.65rem 0.85rem;
+            margin: 0.75rem 0.8rem;
+            border-radius: var(--radius-md);
+            font-size: 0.78rem;
+            color: #1e40af;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            line-height: 1.35;
+        }
+
+        /* Lista de Músicos */
+        .list-container {
+            padding: 0 0.8rem;
+        }
+
+        .naipe-group {
+            margin-bottom: 1.25rem;
+        }
+
+        .naipe-header {
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            padding: 0.5rem 0.4rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 140px;
+            z-index: 80;
+            background-color: var(--bg-primary);
+        }
+
+        .naipe-count {
+            background: #e2e8f0;
+            color: var(--text-secondary);
+            padding: 0.1rem 0.55rem;
+            border-radius: 10px;
+            font-size: 0.72rem;
+            font-weight: 700;
+        }
+
+        /* Cartão do Músico */
+        .musician-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 0.75rem 0.85rem;
+            margin-bottom: 0.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            gap: 0.5rem;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .musician-info {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+            flex-grow: 1;
+            cursor: pointer;
+        }
+
+        .musician-name-container {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .musician-name {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .role-badge {
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 0.15rem 0.45rem;
+            border-radius: 4px;
+            background: #fef3c7;
+            color: #b45309;
+        }
+
+        .status-subtext {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        /* Ações Rápidas no Cartão */
+        .card-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Botão de Atalho Rápido de Presença ✓ (1 toque) */
+        .btn-quick-check {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            border: 2px solid #cbd5e1;
+            background: #ffffff;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+        .btn-quick-check:active {
+            transform: scale(0.9);
+        }
+        .musician-card.presenca .btn-quick-check {
+            background: var(--color-presence);
+            border-color: var(--color-presence);
+            color: #ffffff;
+            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+        }
+
+        /* Status Badge Clicável */
+        .status-badge {
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 0.45rem 0.85rem;
+            border-radius: 20px;
+            text-transform: uppercase;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 95px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .status-none { background: #f1f5f9; color: var(--text-secondary); border: 1px solid var(--border-color); }
+        
+        .musician-card.presenca { background-color: var(--color-presence-bg); border-color: #a7f3d0; }
+        .musician-card.presenca .status-badge { background-color: var(--color-presence); color: white; }
+        
+        .musician-card.falta { background-color: var(--color-absence-bg); border-color: #fca5a5; }
+        .musician-card.falta .status-badge { background-color: var(--color-absence); color: white; }
+        
+        .musician-card.atraso { background-color: var(--color-delay-bg); border-color: #fde68a; }
+        .musician-card.atraso .status-badge { background-color: var(--color-delay); color: white; }
+        
+        .musician-card.atestado { background-color: var(--color-medical-bg); border-color: #bfdbfe; }
+        .musician-card.atestado .status-badge { background-color: var(--color-medical); color: white; }
+        
+        .musician-card.nao-escalado { background-color: var(--color-not-scheduled-bg); border-color: #cbd5e1; }
+        .musician-card.nao-escalado .status-badge { background-color: var(--color-not-scheduled); color: white; }
+
+        .musician-card.justificado { background-color: var(--color-justified-bg); border-color: #f3e8ff; }
+        .musician-card.justificado .status-badge { background-color: var(--color-justified); color: white; }
+
+        /* ========================================================
+           DRAWER / BOTTOM SHEET REDESENHADO
+           ======================================================== */
+        .drawer-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.55);
+            backdrop-filter: blur(4px);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.25s ease;
+        }
+        .drawer-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .drawer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border-radius: 24px 24px 0 0;
+            box-shadow: var(--shadow-lg);
+            z-index: 1000;
+            padding: 1rem 1.25rem 1.5rem 1.25rem;
+            padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+            transform: translateY(100%);
+            transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+            max-height: 88vh;
+            overflow-y: auto;
+            touch-action: pan-y;
+        }
+        .drawer.open {
+            transform: translateY(0);
+        }
+
+        /* Top Bar da Modal com Botão Fechar ✕ e Alça para Deslizar */
+        .drawer-header-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            position: relative;
+        }
+        
+        .drawer-handle-wrapper {
+            position: absolute;
+            top: -4px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 8px;
+            cursor: grab;
+            width: 100px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .drawer-handle {
+            width: 44px;
+            height: 5px;
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+
+        .drawer-musician-info {
+            padding-top: 0.5rem;
+        }
+
+        .drawer-title {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .drawer-subtitle {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+
+        /* Botão Fechar "✕" Prominente no Topo */
+        .btn-close-drawer {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: #f1f5f9;
+            border: none;
+            color: #475569;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex-shrink: 0;
+        }
+        .btn-close-drawer:active {
+            background: #e2e8f0;
+            transform: scale(0.92);
+        }
+
+        /* Seção de Atalhos Rápidos de Atraso */
+        .quick-delay-container {
+            background: #fffbeb;
+            border: 1px solid #fde68a;
+            border-radius: var(--radius-md);
+            padding: 0.85rem;
+            margin-bottom: 1.25rem;
+        }
+        .quick-delay-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #b45309;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 0.6rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .delay-pills-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.5rem;
+        }
+        .delay-pill-btn {
+            background: #ffffff;
+            border: 1.5px solid #fcd34d;
+            border-radius: 8px;
+            padding: 0.5rem 0.2rem;
+            text-align: center;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #92400e;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .delay-pill-btn:active {
+            background: #f59e0b;
+            color: #ffffff;
+            transform: scale(0.95);
+        }
+
+        /* Opções de Status Grid */
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .opt-btn {
+            border: 1.5px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 0.9rem 0.75rem;
+            background: #ffffff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.4rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.88rem;
+            font-weight: 700;
+        }
+        .opt-btn:active {
+            transform: scale(0.96);
+        }
+
+        .opt-btn.presenca { color: var(--color-presence); border-color: #a7f3d0; background: var(--color-presence-bg); }
+        .opt-btn.falta { color: var(--color-absence); border-color: #fca5a5; background: var(--color-absence-bg); }
+        .opt-btn.atestado { color: var(--color-medical); border-color: #bfdbfe; background: var(--color-medical-bg); }
+        .opt-btn.nao-escalado { color: var(--color-not-scheduled); border-color: #cbd5e1; background: var(--color-not-scheduled-bg); }
+        .opt-btn.justificado { color: var(--color-justified); border-color: #f3e8ff; background: var(--color-justified-bg); grid-column: span 2; }
+
+        .justification-input-container {
+            grid-column: span 2;
+            margin-top: 0.2rem;
+        }
+        .justification-textarea {
+            width: 100%;
+            height: 75px;
+            border: 1.5px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 0.75rem;
+            font-size: 0.9rem;
+            outline: none;
+            resize: none;
+        }
+        .justification-textarea:focus {
+            border-color: var(--color-justified);
+        }
+
+        .btn-save-justification {
+            width: 100%;
+            margin-top: 0.5rem;
+            background: var(--color-justified);
+            color: #ffffff;
+            border: none;
+            padding: 0.75rem;
+            border-radius: var(--radius-md);
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #0f172a;
+            color: #ffffff;
+            padding: 0.75rem 1.25rem;
+            border-radius: 30px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            box-shadow: var(--shadow-lg);
+            z-index: 2000;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .toast.show {
+            transform: translateX(-50%) translateY(0);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Banner Indicativo de Protótipo Local -->
+    <div class="demo-banner">
+        <span>🎨 Modelo de Usabilidade Mobile (Protótipo Redesenhado)</span>
+        <span class="demo-banner-tag">Local Preview</span>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="header-top">
+            <div class="header-title-container">
+                <button class="btn-back-admin" title="Voltar">
+                    <i data-lucide="arrow-left" style="width: 20px; height: 20px;"></i>
+                </button>
+                <div class="header-title">
+                    <h1>Presença OER</h1>
+                </div>
+            </div>
+            <div class="date-picker-container">
+                <i data-lucide="calendar" style="width: 16px; height: 16px;"></i>
+                <input type="date" id="dateInput" value="2026-08-03">
+            </div>
+        </div>
+
+        <!-- Contadores Rápidos de Resumo -->
+        <div class="summary-bar">
+            <div class="summary-pill presence">
+                <span class="dot"></span>
+                <span>Presenças: <strong id="countPresence">0</strong></span>
+            </div>
+            <div class="summary-pill delay">
+                <span class="dot"></span>
+                <span>Atrasos: <strong id="countDelay">0</strong></span>
+            </div>
+            <div class="summary-pill absence">
+                <span class="dot"></span>
+                <span>Faltas: <strong id="countAbsence">0</strong></span>
+            </div>
+            <div class="summary-pill pending">
+                <span class="dot"></span>
+                <span>Pendentes: <strong id="countPending">0</strong></span>
+            </div>
+        </div>
+        
+        <!-- Filtros Pílulas -->
+        <div class="filters-container">
+            <button class="filter-pill active" onclick="filterList('todos', this)">Todos</button>
+            <button class="filter-pill" onclick="filterList('pendente', this)">Pendentes</button>
+            <button class="filter-pill" onclick="filterList('faltas-atrasos', this)">Faltas & Atrasos</button>
+            <button class="filter-pill" onclick="filterList('nao-escalado', this)">Não Escalados</button>
+        </div>
+    </header>
+
+    <!-- Banner Informativo da Usabilidade -->
+    <div class="instructions">
+        <i data-lucide="zap" style="width: 20px; height: 20px; flex-shrink: 0; color: #3b82f6;"></i>
+        <div>
+            <strong>Novidade Usabilidade:</strong> Toque no <strong>✓ (círculo)</strong> para presença em 1 toque. Toque no músico para opções rápidas. A modal possui botão <strong>✕ no topo</strong>, suporte a <strong>deslizar para baixo</strong> e salva e fecha automaticamente ao clicar!
+        </div>
+    </div>
+
+    <!-- Lista de Músicos da Orquestra -->
+    <main class="list-container" id="musiciansList">
+        <!-- Renderizado via Javascript local -->
+    </main>
+
+    <!-- Overlay da Modal -->
+    <div class="drawer-overlay" id="overlay" onclick="closeDrawer()"></div>
+
+    <!-- Drawer/Modal de Status Redesenhada -->
+    <div class="drawer" id="statusDrawer">
+        <!-- Alça de toque com suporte a gesto swipe-down -->
+        <div class="drawer-handle-wrapper" id="drawerHandle">
+            <div class="drawer-handle"></div>
+        </div>
+
+        <!-- Topo da Modal: Informação do Músico + BOTÃO ✕ VISÍVEL -->
+        <div class="drawer-header-bar">
+            <div class="drawer-musician-info">
+                <div class="drawer-title" id="drawerMusicianName">Nome do Músico</div>
+                <div class="drawer-subtitle" id="drawerMusicianSubtitle">Naipe • Status Atual</div>
+            </div>
+            <!-- Botão FECHAR ✕ no topo direito para saída imediata -->
+            <button class="btn-close-drawer" onclick="closeDrawer()" title="Fechar modal">
+                <i data-lucide="x" style="width: 22px; height: 22px;"></i>
+            </button>
+        </div>
+
+        <!-- Seção de Atalhos Rápidos de Atraso (1 toque salva e fecha) -->
+        <div class="quick-delay-container">
+            <div class="quick-delay-title">
+                <span>⏱️ Registrar Atraso Rápido</span>
+                <span style="font-size: 0.72rem; text-transform: none; font-weight: 500; opacity: 0.8;">1 toque salva e fecha</span>
+            </div>
+            <div class="delay-pills-grid">
+                <button class="delay-pill-btn" onclick="applyQuickDelay(5)">+5m</button>
+                <button class="delay-pill-btn" onclick="applyQuickDelay(10)">+10m</button>
+                <button class="delay-pill-btn" onclick="applyQuickDelay(15)">+15m</button>
+                <button class="delay-pill-btn" onclick="applyQuickDelay(20)">+20m</button>
+                <button class="delay-pill-btn" onclick="applyQuickDelay(30)">+30m</button>
+                <button class="delay-pill-btn" onclick="applyQuickDelay(45)">+45m</button>
+                <button class="delay-pill-btn" onclick="applyQuickDelay(60)">+60m</button>
+                <button class="delay-pill-btn" onclick="applyQuickDelay(90)">+90m</button>
+            </div>
+        </div>
+
+        <!-- Grid de Opções Principais de Status -->
+        <div class="options-grid">
+            <button class="opt-btn presenca" onclick="selectStatusAndClose('presenca')">
+                <i data-lucide="user-check" style="width: 26px; height: 26px;"></i>
+                <span>Presença</span>
+            </button>
+
+            <button class="opt-btn falta" onclick="selectStatusAndClose('falta')">
+                <i data-lucide="user-x" style="width: 26px; height: 26px;"></i>
+                <span>Falta</span>
+            </button>
+
+            <button class="opt-btn atestado" onclick="selectStatusAndClose('atestado')">
+                <i data-lucide="file-text" style="width: 26px; height: 26px;"></i>
+                <span>Atestado</span>
+            </button>
+
+            <button class="opt-btn nao-escalado" onclick="selectStatusAndClose('nao_escalado')">
+                <i data-lucide="calendar-off" style="width: 26px; height: 26px;"></i>
+                <span>Não Escalado</span>
+            </button>
+
+            <button class="opt-btn justificado" onclick="toggleJustificationField()">
+                <i data-lucide="message-square" style="width: 24px; height: 24px;"></i>
+                <span>Justificado (com motivo)</span>
+            </button>
+
+            <!-- Campo de Texto para Justificativa -->
+            <div class="justification-input-container" id="justificationSection" style="display: none;">
+                <textarea class="justification-textarea" id="justificationTextarea" placeholder="Digite o motivo da justificativa..."></textarea>
+                <button class="btn-save-justification" onclick="saveJustificationAndClose()">Salvar Motivo e Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <i data-lucide="check-circle" style="width: 18px; height: 18px; color: #10b981;"></i>
+        <span id="toastText">Status atualizado!</span>
+    </div>
+
+    <script>
+        // Dados simulados da Orquestra para o Protótipo Local
+        const mockMusicians = [
+            { id: "m1", name: "Cláudio Micheletti", naipe: "Primeiros Violinos", role: "Monitor" },
+            { id: "m2", name: "Ana Beatriz Silva", naipe: "Primeiros Violinos", role: "Bolsista" },
+            { id: "m3", name: "Carlos Eduardo Lima", naipe: "Primeiros Violinos", role: "Bolsista" },
+            { id: "m4", name: "Mariana Souza", naipe: "Segundos Violinos", role: "Monitora" },
+            { id: "m5", name: "Lucas Gabriel Santos", naipe: "Segundos Violinos", role: "Bolsista" },
+            { id: "m6", name: "Fernanda Oliveira", naipe: "Violas", role: "Monitora" },
+            { id: "m7", name: "Rafael Almeida", naipe: "Violas", role: "Bolsista" },
+            { id: "m8", name: "Gustavo Henrique", naipe: "Violoncelos", role: "Monitor" },
+            { id: "m9", name: "Juliana Costa", naipe: "Violoncelos", role: "Bolsista" },
+            { id: "m10", name: "Rodrigo Mendes", naipe: "Contrabaixos", role: "Monitor" },
+            { id: "m11", name: "Beatriz Ribeiro", naipe: "Flauta", role: "Bolsista" },
+            { id: "m12", name: "Thiago Martins", naipe: "Oboé", role: "Bolsista" }
+        ];
+
+        // Estado local de presença { m1: { status: 'presenca', minutes: 0 } }
+        const attendanceState = {
+            m1: { status: 'none', minutes: 0 },
+            m2: { status: 'none', minutes: 0 },
+            m3: { status: 'none', minutes: 0 },
+            m4: { status: 'none', minutes: 0 },
+            m5: { status: 'none', minutes: 0 }
+        };
+
+        let activeMusicianId = null;
+        let currentFilter = 'todos';
+
+        // Renderizar Lista
+        function renderMusicians() {
+            const container = document.getElementById("musiciansList");
+            container.innerHTML = "";
+
+            // Agrupar por Naipe
+            const grouped = {};
+            mockMusicians.forEach(m => {
+                const statusObj = attendanceState[m.id] || { status: 'none', minutes: 0 };
+                
+                // Aplicar Filtro
+                if (currentFilter === 'pendente' && statusObj.status !== 'none') return;
+                if (currentFilter === 'faltas-atrasos' && !['falta', 'atraso'].includes(statusObj.status)) return;
+                if (currentFilter === 'nao-escalado' && statusObj.status !== 'nao_escalado') return;
+
+                if (!grouped[m.naipe]) grouped[m.naipe] = [];
+                grouped[m.naipe].push(m);
+            });
+
+            for (const [naipe, musicians] of Object.entries(grouped)) {
+                const groupDiv = document.createElement("div");
+                groupDiv.className = "naipe-group";
+
+                let html = `
+                    <div class="naipe-header">
+                        <span>${naipe}</span>
+                        <span class="naipe-count">${musicians.length} Músicos</span>
+                    </div>
+                `;
+
+                musicians.forEach(m => {
+                    const st = attendanceState[m.id] || { status: 'none', minutes: 0 };
+                    let statusClass = st.status;
+                    let badgeLabel = "Pendente";
+                    let subtext = "";
+
+                    if (st.status === 'presenca') { badgeLabel = "Presença"; }
+                    else if (st.status === 'falta') { badgeLabel = "Falta"; }
+                    else if (st.status === 'atraso') { badgeLabel = `Atraso (${st.minutes}m)`; subtext = `Atraso de ${st.minutes} min`; }
+                    else if (st.status === 'atested') { badgeLabel = "Atestado"; }
+                    else if (st.status === 'nao_escalado') { badgeLabel = "Não Escalado"; }
+                    else if (st.status === 'justificado') { badgeLabel = "Justificado"; subtext = st.reason || "Motivo informado"; }
+
+                    html += `
+                        <div class="musician-card ${statusClass}">
+                            <div class="musician-info" onclick="openDrawer('${m.id}')">
+                                <div class="musician-name-container">
+                                    <span class="musician-name">${m.name}</span>
+                                    ${m.role ? `<span class="role-badge">${m.role}</span>` : ''}
+                                </div>
+                                ${subtext ? `<div class="status-subtext"><i data-lucide="clock" style="width: 12px; height: 12px;"></i> ${subtext}</div>` : ''}
+                            </div>
+                            <div class="card-actions">
+                                <!-- Botão de Marcação Rápida em 1 Toque (Presença ✓) -->
+                                <button class="btn-quick-check" onclick="toggleQuickPresence('${m.id}', event)" title="Marcar Presença Rápida">
+                                    <i data-lucide="check" style="width: 22px; height: 22px; stroke-width: 3;"></i>
+                                </button>
+                                <div class="status-badge" onclick="openDrawer('${m.id}')">
+                                    ${badgeLabel}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                groupDiv.innerHTML = html;
+                container.appendChild(groupDiv);
+            }
+
+            updateCounters();
+            if (window.lucide) lucide.createIcons();
+        }
+
+        // Marcação Rápida de Presença em 1 toque no cartão
+        function toggleQuickPresence(musicianId, event) {
+            event.stopPropagation();
+            const current = attendanceState[musicianId] ? attendanceState[musicianId].status : 'none';
+            const musician = mockMusicians.find(m => m.id === musicianId);
+            
+            if (current === 'presenca') {
+                attendanceState[musicianId] = { status: 'none', minutes: 0 };
+                showToast(`Status de ${musician.name} resetado.`);
+            } else {
+                attendanceState[musicianId] = { status: 'presenca', minutes: 0 };
+                showToast(`✓ Presença confirmada para ${musician.name}`);
+            }
+            renderMusicians();
+        }
+
+        // Abrir Drawer Modal
+        function openDrawer(musicianId) {
+            activeMusicianId = musicianId;
+            const musician = mockMusicians.find(m => m.id === musicianId);
+            const st = attendanceState[musicianId] || { status: 'none', minutes: 0 };
+
+            document.getElementById("drawerMusicianName").innerText = musician.name;
+            document.getElementById("drawerMusicianSubtitle").innerText = `${musician.naipe} • ${musician.role || 'Bolsista'}`;
+            document.getElementById("justificationSection").style.display = "none";
+            document.getElementById("justificationTextarea").value = st.reason || "";
+
+            document.getElementById("overlay").classList.add("open");
+            document.getElementById("statusDrawer").classList.add("open");
+        }
+
+        // Fechar Drawer Modal
+        function closeDrawer() {
+            document.getElementById("overlay").classList.remove("open");
+            document.getElementById("statusDrawer").classList.remove("open");
+            activeMusicianId = null;
+        }
+
+        // Selecionar Status e Fechar AUTOMATICAMENTE (Auto-Close & Save)
+        function selectStatusAndClose(status) {
+            if (!activeMusicianId) return;
+            const musician = mockMusicians.find(m => m.id === activeMusicianId);
+            
+            attendanceState[activeMusicianId] = { status: status, minutes: 0 };
+            renderMusicians();
+            closeDrawer();
+            showToast(`✓ ${musician.name} marcado como ${status.toUpperCase()}`);
+        }
+
+        // Aplicar Atraso Rápido e Fechar AUTOMATICAMENTE
+        function applyQuickDelay(minutes) {
+            if (!activeMusicianId) return;
+            const musician = mockMusicians.find(m => m.id === activeMusicianId);
+            
+            attendanceState[activeMusicianId] = { status: 'atraso', minutes: minutes };
+            renderMusicians();
+            closeDrawer();
+            showToast(`⏱️ Atraso de ${minutes} min registrado para ${musician.name}`);
+        }
+
+        // Campo de Justificativa
+        function toggleJustificationField() {
+            const sec = document.getElementById("justificationSection");
+            sec.style.display = sec.style.display === "none" ? "block" : "none";
+        }
+
+        function saveJustificationAndClose() {
+            if (!activeMusicianId) return;
+            const text = document.getElementById("justificationTextarea").value.trim();
+            const musician = mockMusicians.find(m => m.id === activeMusicianId);
+
+            attendanceState[activeMusicianId] = { status: 'justificado', minutes: 0, reason: text };
+            renderMusicians();
+            closeDrawer();
+            showToast(`💬 Justificativa salva para ${musician.name}`);
+        }
+
+        // Atualizar Contadores de Chamada
+        function updateCounters() {
+            let presence = 0, delay = 0, absence = 0, pending = 0;
+            mockMusicians.forEach(m => {
+                const st = attendanceState[m.id] ? attendanceState[m.id].status : 'none';
+                if (st === 'presenca') presence++;
+                else if (st === 'atraso') delay++;
+                else if (st === 'falta') absence++;
+                else if (st === 'none') pending++;
+            });
+
+            document.getElementById("countPresence").innerText = presence;
+            document.getElementById("countDelay").innerText = delay;
+            document.getElementById("countAbsence").innerText = absence;
+            document.getElementById("countPending").innerText = pending;
+        }
+
+        // Toast de Feedback
+        function showToast(msg) {
+            const toast = document.getElementById("toast");
+            document.getElementById("toastText").innerText = msg;
+            toast.classList.add("show");
+            setTimeout(() => toast.classList.remove("show"), 2200);
+        }
+
+        // Filtro de Pílulas
+        function filterList(filter, btn) {
+            currentFilter = filter;
+            document.querySelectorAll(".filter-pill").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            renderMusicians();
+        }
+
+        // Suporte a Gesto Swipe-Down para fechar a modal
+        let startY = 0;
+        let currentY = 0;
+        const drawer = document.getElementById("statusDrawer");
+        const drawerHandle = document.getElementById("drawerHandle");
+
+        drawerHandle.addEventListener("touchstart", (e) => {
+            startY = e.touches[0].clientY;
+        }, { passive: true });
+
+        drawerHandle.addEventListener("touchmove", (e) => {
+            currentY = e.touches[0].clientY;
+            const deltaY = currentY - startY;
+            if (deltaY > 0) {
+                drawer.style.transform = `translateY(${deltaY}px)`;
+            }
+        }, { passive: true });
+
+        drawerHandle.addEventListener("touchend", () => {
+            const deltaY = currentY - startY;
+            if (deltaY > 80) {
+                closeDrawer();
+            }
+            drawer.style.transform = "";
+            startY = 0;
+            currentY = 0;
+        });
+
+        // Inicializar
+        renderMusicians();
+    </script>
+</body>
+</html>

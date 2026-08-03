@@ -31,23 +31,15 @@ const searchInput = document.getElementById("searchInput");
 const dateInput = document.getElementById("dateInput");
 const btnBackAdmin = document.getElementById("btnBackAdmin");
 
-// Drawer de Status
-const overlay = document.getElementById("overlay");
-const statusDrawer = document.getElementById("statusDrawer");
-const drawerTitle = document.getElementById("drawerTitle");
-const drawerSubtitle = document.getElementById("drawerSubtitle");
-const delayValDisplay = document.getElementById("delayValDisplay");
-const delayWheel = document.getElementById("delayWheel");
-const btnDelayConfirm = document.getElementById("btnDelayConfirm");
-const btnCancelDrawer = document.getElementById("btnCancelDrawer");
+const btnCloseDrawer = document.getElementById("btnCloseDrawer");
+const btnSaveJustification = document.getElementById("btnSaveJustification");
+const drawerHandleWrapper = document.getElementById("drawerHandle");
 
-const optBtnPresenca = document.getElementById("optBtnPresenca");
-const optBtnFalta = document.getElementById("optBtnFalta");
-const optBtnAtestado = document.getElementById("optBtnAtestado");
-const optBtnNaoEscalado = document.getElementById("optBtnNaoEscalado");
-const optBtnJustificado = document.getElementById("optBtnJustificado");
-const justificationSection = document.getElementById("justificationSection");
-const justificationTextarea = document.getElementById("justificationTextarea");
+// Contadores de Chamada
+const countPresence = document.getElementById("countPresence");
+const countDelay = document.getElementById("countDelay");
+const countAbsence = document.getElementById("countAbsence");
+const countPending = document.getElementById("countPending");
 
 // Drawer de Anotações
 const notesDrawer = document.getElementById("notesDrawer");
@@ -166,15 +158,52 @@ async function initApp() {
     btnBackAdmin.addEventListener("click", () => window.location.replace("admin.html"));
 
     // Callbacks do Drawer de Status
-    btnCancelDrawer.addEventListener("click", closeDrawer);
-    overlay.addEventListener("click", closeDrawer);
-    optBtnPresenca.addEventListener("click", () => instantSelectStatus("presenca"));
-    optBtnFalta.addEventListener("click", () => instantSelectStatus("falta"));
-    optBtnAtestado.addEventListener("click", () => instantSelectStatus("atestado"));
-    optBtnNaoEscalado.addEventListener("click", () => instantSelectStatus("nao_escalado"));
-    optBtnJustificado.addEventListener("click", () => selectJustificadoStatus());
-    justificationTextarea.addEventListener("input", handleJustificationInput);
-    btnDelayConfirm.addEventListener("click", applyDelayChange);
+    if (btnCancelDrawer) btnCancelDrawer.addEventListener("click", closeDrawer);
+    if (btnCloseDrawer) btnCloseDrawer.addEventListener("click", closeDrawer);
+    if (overlay) overlay.addEventListener("click", closeDrawer);
+    if (optBtnPresenca) optBtnPresenca.addEventListener("click", () => instantSelectStatus("presenca"));
+    if (optBtnFalta) optBtnFalta.addEventListener("click", () => instantSelectStatus("falta"));
+    if (optBtnAtestado) optBtnAtestado.addEventListener("click", () => instantSelectStatus("atestado"));
+    if (optBtnNaoEscalado) optBtnNaoEscalado.addEventListener("click", () => instantSelectStatus("nao_escalado"));
+    if (optBtnJustificado) optBtnJustificado.addEventListener("click", () => selectJustificadoStatus());
+    if (justificationTextarea) justificationTextarea.addEventListener("input", handleJustificationInput);
+    if (btnSaveJustification) btnSaveJustification.addEventListener("click", () => saveJustificationAndClose());
+    if (btnDelayConfirm) btnDelayConfirm.addEventListener("click", applyDelayChange);
+
+    // Atalhos Rápidos de Atraso (Pílulas)
+    document.querySelectorAll(".delay-pill-btn").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+            const minutes = parseInt(e.currentTarget.getAttribute("data-delay"), 10);
+            if (!isNaN(minutes)) {
+                applyQuickDelay(minutes);
+            }
+        });
+    });
+
+    // Suporte a Gesto Swipe-Down na Alça da Modal
+    if (drawerHandleWrapper) {
+        let startY = 0;
+        let currentY = 0;
+        drawerHandleWrapper.addEventListener("touchstart", (e) => {
+            startY = e.touches[0].clientY;
+        }, { passive: true });
+        drawerHandleWrapper.addEventListener("touchmove", (e) => {
+            currentY = e.touches[0].clientY;
+            const deltaY = currentY - startY;
+            if (deltaY > 0) {
+                statusDrawer.style.transform = `translateY(${deltaY}px)`;
+            }
+        }, { passive: true });
+        drawerHandleWrapper.addEventListener("touchend", () => {
+            const deltaY = currentY - startY;
+            if (deltaY > 70) {
+                closeDrawer();
+            }
+            statusDrawer.style.transform = "";
+            startY = 0;
+            currentY = 0;
+        });
+    }
 
     // Callbacks de Anotações
     btnOpenNotes.addEventListener("click", openNotesDrawer);
@@ -522,6 +551,7 @@ function renderMusicians() {
 
             const isMonitor = m.Status === "Monitor";
             const roleText = isMonitor ? '<span class="role-label monitor">(Monitor)</span>' : '<span class="role-label bolsista">(Bolsista)</span>';
+            const isPresence = statusInfo.status === "presenca";
 
             card.innerHTML = `
                 <div class="musician-info" id="info-${m.id}">
@@ -530,12 +560,24 @@ function renderMusicians() {
                         ${roleText}
                     </div>
                 </div>
-                <div class="badge-click-area" id="badge-area-${m.id}">
-                    <span class="status-badge ${statusInfo.status === 'none' ? 'status-none' : ''}">
-                        ${badgeLabel}
-                    </span>
+                <div class="card-actions">
+                    <!-- Botão de Marcação Rápida de Presença em 1 toque ✓ -->
+                    <button class="btn-quick-check ${isPresence ? 'active' : ''}" id="quick-check-${m.id}" title="Marcar Presença Rápida">
+                        <i data-lucide="check" style="width: 20px; height: 20px; stroke-width: 3;"></i>
+                    </button>
+                    <div class="badge-click-area" id="badge-area-${m.id}">
+                        <span class="status-badge ${statusInfo.status === 'none' ? 'status-none' : ''}">
+                            ${badgeLabel}
+                        </span>
+                    </div>
                 </div>
             `;
+
+            // Clique no botão ✓: Presença Rápida em 1 toque
+            card.querySelector(`#quick-check-${m.id}`).addEventListener("click", (e) => {
+                e.stopPropagation();
+                handleQuickPresence(m);
+            });
 
             // Clique no nome: Presença rápida alternada (suporta duplo clique)
             card.querySelector(`#info-${m.id}`).addEventListener("click", () => {
@@ -543,11 +585,9 @@ function renderMusicians() {
                 const lastClickTime = clickTimestamps[m.id] || 0;
                 
                 if (now - lastClickTime < 400) {
-                    // Duplo clique detectado
                     handleDoubleQuickPresence(m);
-                    clickTimestamps[m.id] = 0; // Reseta para evitar triplo clique
+                    clickTimestamps[m.id] = 0;
                 } else {
-                    // Clique simples
                     handleQuickPresence(m);
                     clickTimestamps[m.id] = now;
                 }
@@ -577,6 +617,26 @@ function renderMusicians() {
     for (const naipe in groupsCopy) {
         renderNaipeGroup(naipe, groupsCopy[naipe]);
     }
+
+    // Atualizar Contadores do Header
+    updateCounters();
+}
+
+// Atualizar Contadores de Presença no Header
+function updateCounters() {
+    let presence = 0, delay = 0, absence = 0, pending = 0;
+    allMusicians.forEach(m => {
+        const st = (attendanceData[m.id] || { status: 'none' }).status;
+        if (st === 'presenca') presence++;
+        else if (st === 'atraso') delay++;
+        else if (st === 'falta') absence++;
+        else if (st === 'none') pending++;
+    });
+
+    if (countPresence) countPresence.innerText = presence;
+    if (countDelay) countDelay.innerText = delay;
+    if (countAbsence) countAbsence.innerText = absence;
+    if (countPending) countPending.innerText = pending;
 }
 
 // Alternar presença rápida
@@ -680,7 +740,44 @@ function handleJustificationInput(e) {
     }
 }
 
-// Aplicar Alteração de Atraso
+// Aplicar Atalho Rápido de Atraso (Pílula) e Fechar
+function applyQuickDelay(minutes) {
+    if (!activeMusicianId) return;
+
+    attendanceData[activeMusicianId] = {
+        status: "atraso",
+        minutes: minutes
+    };
+
+    saveDraft();
+    renderMusicians();
+    closeDrawer();
+    showToast(`Atraso de ${minutes}m registrado!`);
+}
+
+// Salvar Justificativa e Fechar
+function saveJustificationAndClose() {
+    if (!activeMusicianId) return;
+    const text = (justificationTextarea.value || "").trim();
+
+    if (text === "") {
+        attendanceData[activeMusicianId] = { status: "none", minutes: 0 };
+        showToast("Justificativa vazia: status revertido para Pendente.");
+    } else {
+        attendanceData[activeMusicianId] = {
+            status: "justificado",
+            minutes: 0,
+            justificativa: text
+        };
+        showToast("Justificativa salva!");
+    }
+
+    saveDraft();
+    renderMusicians();
+    closeDrawer();
+}
+
+// Aplicar Alteração de Atraso Customizado
 function applyDelayChange() {
     if (!activeMusicianId) return;
 

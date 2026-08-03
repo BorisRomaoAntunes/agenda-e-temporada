@@ -857,3 +857,160 @@ body {
 .notes-textarea:focus {
     border-color: #3b82f6;
 }
+
+/* ========================================================
+   NOVAS MELHORIAS DE USABILIDADE MOBILE (REDESENHO 2026)
+   ======================================================== */
+
+/* Barra de Resumo de Chamada */
+.summary-bar {
+    display: flex;
+    gap: 0.5rem;
+    margin: 0.6rem 0 0.2rem 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 2px;
+}
+.summary-bar::-webkit-scrollbar {
+    display: none;
+}
+.summary-pill {
+    flex: 1;
+    min-width: max-content;
+    background: #f8fafc;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    padding: 0.35rem 0.6rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+.summary-pill .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.summary-pill.presence .dot { background: var(--color-presence); }
+.summary-pill.delay .dot { background: var(--color-delay); }
+.summary-pill.absence .dot { background: var(--color-absence); }
+.summary-pill.pending .dot { background: #cbd5e1; }
+
+/* Botão de Atalho Rápido de Presença ✓ (1 toque no cartão) */
+.card-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.btn-quick-check {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid #cbd5e1;
+    background: #ffffff;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+.btn-quick-check:active {
+    transform: scale(0.9);
+}
+.musician-card.presenca .btn-quick-check {
+    background: var(--color-presence);
+    border-color: var(--color-presence);
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(16, 185, 129, 0.35);
+}
+
+/* Modal Drawer Top Bar com Fechar ✕ Visível */
+.drawer-header-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.85rem;
+    position: relative;
+}
+
+.drawer-handle-wrapper {
+    position: absolute;
+    top: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 8px;
+    cursor: grab;
+    width: 100px;
+    display: flex;
+    justify-content: center;
+    z-index: 10;
+}
+
+.btn-close-drawer {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #f1f5f9;
+    border: none;
+    color: #475569;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+.btn-close-drawer:active {
+    background: #e2e8f0;
+    transform: scale(0.92);
+}
+
+/* Seção de Atalhos Rápidos de Atraso */
+.quick-delay-container {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-radius: var(--radius-md);
+    padding: 0.8rem;
+    margin-bottom: 1.25rem;
+}
+.quick-delay-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #b45309;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.delay-pills-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.45rem;
+}
+.delay-pill-btn {
+    background: #ffffff;
+    border: 1.5px solid #fcd34d;
+    border-radius: 8px;
+    padding: 0.5rem 0.2rem;
+    text-align: center;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #92400e;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    min-height: 40px;
+}
+.delay-pill-btn:active {
+    background: #f59e0b;
+    color: #ffffff;
+    transform: scale(0.95);
+}
+

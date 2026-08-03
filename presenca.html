@@ -56,6 +56,26 @@
             </div>
         </div>
         
+        <!-- Barra de Resumo de Chamada -->
+        <div class="summary-bar">
+            <div class="summary-pill presence">
+                <span class="dot"></span>
+                <span>Presenças: <strong id="countPresence">0</strong></span>
+            </div>
+            <div class="summary-pill delay">
+                <span class="dot"></span>
+                <span>Atrasos: <strong id="countDelay">0</strong></span>
+            </div>
+            <div class="summary-pill absence">
+                <span class="dot"></span>
+                <span>Faltas: <strong id="countAbsence">0</strong></span>
+            </div>
+            <div class="summary-pill pending">
+                <span class="dot"></span>
+                <span>Pendentes: <strong id="countPending">0</strong></span>
+            </div>
+        </div>
+
         <!-- Filters Bar -->
         <div class="filters-container">
             <button class="filter-pill" data-filter="pendente">Pendente</button>
@@ -66,9 +86,9 @@
 
     <!-- Instructions Banner -->
     <div class="instructions">
-        <i data-lucide="info" style="width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px;"></i>
+        <i data-lucide="zap" style="width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; color: #3b82f6;"></i>
         <div>
-            <strong>Como usar:</strong> Toque no <strong>Nome do Músico</strong> para Presença rápida. Toque no <strong>Status</strong> para abrir o painel de opções. Selecionar Presença, Falta ou Atestado fecha o painel automaticamente.
+            <strong>Chamada Rápida:</strong> Toque no <strong>✓</strong> no cartão para Presença em 1 toque. Toque no músico para abrir o painel. A modal tem botão <strong>✕ no topo</strong>, deslizar para baixo e fecha automaticamente ao selecionar!
         </div>
     </div>
 
@@ -85,9 +105,37 @@
     
     <!-- Edit Status Drawer -->
     <div class="drawer" id="statusDrawer">
-        <div class="drawer-handle"></div>
-        <div class="drawer-title" id="drawerTitle">Nome do Músico</div>
-        <div class="drawer-subtitle" id="drawerSubtitle">Instrumento - Status Atual</div>
+        <div class="drawer-handle-wrapper" id="drawerHandle">
+            <div class="drawer-handle"></div>
+        </div>
+        
+        <div class="drawer-header-bar">
+            <div class="drawer-musician-info">
+                <div class="drawer-title" id="drawerTitle">Nome do Músico</div>
+                <div class="drawer-subtitle" id="drawerSubtitle">Instrumento - Status Atual</div>
+            </div>
+            <button class="btn-close-drawer" id="btnCloseDrawer" title="Fechar modal">
+                <i data-lucide="x" style="width: 22px; height: 22px;"></i>
+            </button>
+        </div>
+
+        <!-- Seção de Atalhos Rápidos de Atraso -->
+        <div class="quick-delay-container">
+            <div class="quick-delay-title">
+                <span>⏱️ Registrar Atraso Rápido</span>
+                <span style="font-size: 0.72rem; text-transform: none; font-weight: 500; opacity: 0.8;">1 toque salva e fecha</span>
+            </div>
+            <div class="delay-pills-grid">
+                <button class="delay-pill-btn" data-delay="5">+5m</button>
+                <button class="delay-pill-btn" data-delay="10">+10m</button>
+                <button class="delay-pill-btn" data-delay="15">+15m</button>
+                <button class="delay-pill-btn" data-delay="20">+20m</button>
+                <button class="delay-pill-btn" data-delay="30">+30m</button>
+                <button class="delay-pill-btn" data-delay="45">+45m</button>
+                <button class="delay-pill-btn" data-delay="60">+60m</button>
+                <button class="delay-pill-btn" data-delay="90">+90m</button>
+            </div>
+        </div>
         
         <div class="options-grid">
             <button class="opt-btn presenca" id="optBtnPresenca">
@@ -114,13 +162,14 @@
             <!-- Campo de Texto que substitui o botão quando selecionado -->
             <div class="justification-input-container" id="justificationSection" style="display: none;">
                 <textarea class="justification-textarea" id="justificationTextarea" placeholder="Digite o motivo da justificativa..."></textarea>
+                <button class="btn btn-confirm" id="btnSaveJustification" style="margin-top: 0.5rem; width: 100%;">Salvar Justificativa e Fechar</button>
             </div>
         </div>
 
-        <!-- Seção de Atraso -->
+        <!-- Seção de Atraso Customizado (Scroll Wheel) -->
         <div class="delay-section">
             <div class="delay-title">
-                <span>Registrar Atraso</span>
+                <span>Personalizar Atraso (Minutos)</span>
                 <span class="delay-value-display" id="delayValDisplay">Sem atraso</span>
             </div>
             
