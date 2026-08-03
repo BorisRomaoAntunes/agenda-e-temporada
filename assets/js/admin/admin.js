@@ -7757,15 +7757,18 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                 return status.includes('bolsista');
             });
             
-            // Dicionário de controle: bolsistaId -> { nome, faltas: Set(dia), atrasosMin: 0 }
+            // Dicionário de controle: bolsistaId -> { nome, instrumento, faltas: Set(dia), pendentes: Set(dia), atrasosMin: 0 }
             const dadosBolsistas = {};
             
             bolsistas.forEach(b => {
                 const nomeExibido = (b.NOMEARTISTICO || b['NOME REGISTRO'] || '').trim();
+                const instrumento = (b.INSTRUMENTOS || b.Instrumento || b.naipe || '').trim();
                 if (nomeExibido) {
                     dadosBolsistas[b.id] = {
                         nome: nomeExibido,
+                        instrumento: instrumento,
                         faltas: new Set(),
+                        pendentes: new Set(),
                         atrasosMin: 0
                     };
                 }
@@ -7777,14 +7780,19 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                 const pres = presencasPorData[dataStr];
                 
                 if (pres && pres.registros) {
-                    Object.entries(pres.registros).forEach(([musicoId, registro]) => {
-                        if (dadosBolsistas[musicoId]) {
+                    Object.keys(dadosBolsistas).forEach(musicoId => {
+                        const registro = pres.registros[musicoId];
+                        if (registro) {
                             if (registro.status === 'falta') {
                                 dadosBolsistas[musicoId].faltas.add(dia);
                             } else if (registro.status === 'atraso') {
                                 const min = parseInt(registro.minutes) || 0;
                                 dadosBolsistas[musicoId].atrasosMin += min;
+                            } else if (registro.status === 'none' || registro.status === 'pendente' || !registro.status) {
+                                dadosBolsistas[musicoId].pendentes.add(dia);
                             }
+                        } else {
+                            dadosBolsistas[musicoId].pendentes.add(dia);
                         }
                     });
                 }
@@ -7825,6 +7833,28 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                 listaAtrasadosLines.push(`\t• ${b.nome} - ${b.atrasosMin} min`);
             });
             
+            // 3. Processar e formatar Pendências de Lista de Presença
+            const listaPendentesLines = [];
+            bolsistasOrdenadosPorNome.forEach(b => {
+                if (b.pendentes.size > 0) {
+                    const diasPendente = Array.from(b.pendentes).sort((x, y) => x - y);
+                    
+                    let datasFormatadas = "";
+                    if (diasPendente.length === 1) {
+                        datasFormatadas = `${String(diasPendente[0]).padStart(2, '0')}/${mesStr}`;
+                    } else if (diasPendente.length === 2) {
+                        datasFormatadas = `${String(diasPendente[0]).padStart(2, '0')} e ${String(diasPendente[1]).padStart(2, '0')}/${mesStr}`;
+                    } else {
+                        const ult = diasPendente.pop();
+                        const diasPad = diasPendente.map(d => String(d).padStart(2, '0'));
+                        datasFormatadas = `${diasPad.join(', ')} e ${String(ult).padStart(2, '0')}/${mesStr}`;
+                    }
+                    
+                    const musicoInfo = b.instrumento ? `${b.nome} (${b.instrumento})` : b.nome;
+                    listaPendentesLines.push(`\t• ${musicoInfo} - ${datasFormatadas}`);
+                }
+            });
+            
             const mesesNomes = [
                 "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
                 "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
@@ -7843,6 +7873,13 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                 relatorioText += listaAtrasadosLines.join('\n');
             } else {
                 relatorioText += "\t• Nenhum bolsista teve atraso registrado neste mês.";
+            }
+            
+            relatorioText += `\n\n*Pendências de Lista de Presença (Mês de ${mesNomeAno})*\n`;
+            if (listaPendentesLines.length > 0) {
+                relatorioText += listaPendentesLines.join('\n');
+            } else {
+                relatorioText += "\t• Nenhum bolsista possui chamada pendente neste mês.";
             }
             
             resultFaltasAtrasosContainer.textContent = relatorioText;
