@@ -3945,6 +3945,7 @@ function initAtestadosManagement() {
                 btnDeleteOnly.innerHTML = '<i data-lucide="trash-2"></i> Apagar Atestado Sem Adicionar na Lista';
                 if (window.lucide) lucide.createIcons();
             }
+        });
     }
 }
 
@@ -3965,26 +3966,51 @@ function initDispensasModule() {
 
     if (!btnOpenModal || !modalDispensa) return;
 
-    // Popula select de músicos ativos
-    function populateMusiciansSelect() {
+    // Popula select de músicos ativos buscando direto do Firestore
+    async function populateMusiciansSelect() {
         if (!selectMusico) return;
-        selectMusico.innerHTML = '<option value="">-- Selecione o Músico --</option>';
-        if (typeof musiciansList !== 'undefined' && musiciansList && musiciansList.length > 0) {
-            musiciansList.forEach(m => {
+        selectMusico.innerHTML = '<option value="">Carregando músicos...</option>';
+        try {
+            const snapshot = await getDocs(collection(db, "musicos"));
+            const lista = [];
+            snapshot.forEach(docSnap => {
+                const data = docSnap.data();
+                const status = (data.Status || '').toLowerCase().trim();
+                if (status.includes('emm')) return;
+                const nomeRegLower = (data['NOME REGISTRO'] || '').toLowerCase();
+                const nomeArtLower = (data.NOMEARTISTICO || '').toLowerCase();
+                if (nomeRegLower.includes('angela de santi') || nomeArtLower.includes('angela de santi')) return;
+                if (status.includes('desligado') || data.statusFirebase === 'desligado' || data.statusFirebase === 'inativo') return;
+                const isBolsistaOrMonitor = status.includes("bolsista") || status.includes("monitor") || status.includes("spalla");
+                if (isBolsistaOrMonitor) {
+                    const nomeArtistico = (data.NOMEARTISTICO || '').trim();
+                    const nomeCompleto = (data['NOME REGISTRO'] || '').trim();
+                    lista.push({
+                        id: docSnap.id,
+                        nome: nomeArtistico || nomeCompleto || "Sem Nome"
+                    });
+                }
+            });
+            lista.sort((a, b) => a.nome.localeCompare(b.nome));
+            selectMusico.innerHTML = '<option value="">-- Selecione o Músico --</option>';
+            lista.forEach(m => {
                 const opt = document.createElement('option');
                 opt.value = m.id;
                 opt.textContent = m.nome;
                 selectMusico.appendChild(opt);
             });
+        } catch (err) {
+            console.error("Erro ao carregar músicos para dispensa:", err);
+            selectMusico.innerHTML = '<option value="">Erro ao carregar músicos</option>';
         }
     }
 
     function openDispensaModal() {
-        populateMusiciansSelect();
         if (formDispensa) formDispensa.reset();
         modalDispensa.style.display = 'flex';
         document.body.style.overflow = 'hidden';
         if (window.lucide) lucide.createIcons();
+        populateMusiciansSelect();
     }
 
     function closeDispensaModal() {
@@ -4054,7 +4080,19 @@ function initDispensasModule() {
                 });
 
                 // 2. Atualizar Listas de Presença Existentes no Firestore para o período
-                const dates = getDatesInRange(dataInicio, dataFim);
+                // Helper local para gerar array de datas
+                function getDateRange(start, end) {
+                    const result = [];
+                    if (!start || !end) return result;
+                    let cur = new Date(start + 'T00:00:00');
+                    const endDate = new Date(end + 'T00:00:00');
+                    while (cur <= endDate) {
+                        result.push(cur.toISOString().split('T')[0]);
+                        cur.setDate(cur.getDate() + 1);
+                    }
+                    return result;
+                }
+                const dates = getDateRange(dataInicio, dataFim);
                 let updatedCount = 0;
 
                 for (const date of dates) {
@@ -4117,7 +4155,19 @@ function initDispensasModule() {
             const snapshot = await getDocs(q);
 
             if (snapshot.empty) {
-                tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 1rem; color: #888;">Nenhuma dispensa concedida.</td></tr>';
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" style="text-align: center; padding: 3rem 1rem;">
+                            <div style="display: flex; flex-direction: column; align-items: center; gap: 0.75rem;">
+                                <div style="width: 52px; height: 52px; background: #faf5ff; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                    <i data-lucide="shield-check" style="width: 24px; height: 24px; color: #a78bfa;"></i>
+                                </div>
+                                <p style="margin: 0; font-size: 0.95rem; font-weight: 600; color: #6b7280;">Nenhuma dispensa concedida</p>
+                                <p style="margin: 0; font-size: 0.8rem; color: #9ca3af;">Clique em "Conceder Dispensa" para registrar uma.</p>
+                            </div>
+                        </td>
+                    </tr>`;
+                if (window.lucide) lucide.createIcons();
                 return;
             }
 
@@ -4128,31 +4178,60 @@ function initDispensasModule() {
                 const data = docSnap.data();
                 const id = docSnap.id;
                 const tr = document.createElement('tr');
-                tr.style.borderBottom = '1px solid #f0f2f5';
+                tr.style.cssText = 'border-bottom: 1px solid #ede9fe; transition: background 0.15s ease;';
+                tr.addEventListener('mouseenter', () => tr.style.background = '#faf5ff');
+                tr.addEventListener('mouseleave', () => tr.style.background = '');
 
                 const dataInicioFmt = formatBR(data.dataInicio);
                 const dataFimFmt = formatBR(data.dataFim);
                 const dataCriacaoFmt = data.criadoEm ? new Date(data.criadoEm).toLocaleDateString('pt-BR') : '---';
 
                 tr.innerHTML = `
-                    <td style="padding: 0.8rem 1rem; font-weight: 600; color: #333;">${data.nomeMusico || 'Músico'}</td>
-                    <td style="padding: 0.8rem 1rem;"><span style="background: #f3e8ff; color: #6b21a8; padding: 0.2rem 0.6rem; border-radius: 6px; font-weight: 600; font-size: 0.85rem;">${dataInicioFmt} até ${dataFimFmt}</span></td>
-                    <td style="padding: 0.8rem 1rem; color: #555; max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${data.descricao || ''}">${data.descricao || '-'}</td>
-                    <td style="padding: 0.8rem 1rem; color: #888; font-size: 0.85rem;">${dataCriacaoFmt}</td>
-                    <td style="padding: 0.8rem 1rem; text-align: right;">
-                        <button class="btn-delete-dispensa" data-id="${id}" data-nome="${data.nomeMusico || ''}" style="background: #fef2f2; border: 1px solid #fca5a5; color: #dc2626; cursor: pointer; padding: 0.35rem 0.6rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.3rem;" title="Cancelar / Excluir Dispensa">
-                            <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i> Excluir
+                    <td style="padding: 0.9rem 1.1rem;">
+                        <div style="display: flex; align-items: center; gap: 0.6rem;">
+                            <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #ede9fe, #ddd6fe); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 0.75rem; font-weight: 700; color: #6b21a8;">${(data.nomeMusico || 'M').charAt(0).toUpperCase()}</div>
+                            <span class="btn-view-dispensa-detail" data-id="${id}" style="font-weight: 600; color: #6b21a8; font-size: 0.9rem; cursor: pointer; text-decoration: underline; text-underline-offset: 2px;" title="Clique para ver os detalhes da dispensa">${data.nomeMusico || 'Músico'}</span>
+                        </div>
+                    </td>
+                    <td style="padding: 0.9rem 1.1rem;">
+                        <span style="background: #ede9fe; color: #6b21a8; padding: 0.3rem 0.75rem; border-radius: 20px; font-weight: 600; font-size: 0.8rem; white-space: nowrap;">
+                            ${dataInicioFmt} → ${dataFimFmt}
+                        </span>
+                    </td>
+                    <td style="padding: 0.9rem 1.1rem; color: #4b5563; max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${data.descricao || ''}">${data.descricao || '—'}</td>
+                    <td style="padding: 0.9rem 1.1rem; color: #9ca3af; font-size: 0.82rem; white-space: nowrap;">${dataCriacaoFmt}</td>
+                    <td style="padding: 0.9rem 1.1rem; text-align: right;">
+                        <button class="btn-delete-dispensa" data-id="${id}" data-nome="${data.nomeMusico || ''}" 
+                            style="background: transparent; border: 1.5px solid #fca5a5; color: #ef4444; cursor: pointer; padding: 0.35rem 0.75rem; border-radius: 8px; font-size: 0.8rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem; transition: all 0.15s ease;"
+                            onmouseover="this.style.background='#fef2f2'; this.style.borderColor='#ef4444';"
+                            onmouseout="this.style.background='transparent'; this.style.borderColor='#fca5a5';"
+                            title="Cancelar / Excluir Dispensa">
+                            <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i> Excluir
                         </button>
                     </td>
                 `;
+                tr._dispensaData = data;
+                tr._dispensaId = id;
                 tableBody.appendChild(tr);
             });
 
             if (window.lucide) lucide.createIcons();
 
+            // Event listener para abrir modal de detalhe
+            document.querySelectorAll('.btn-view-dispensa-detail').forEach(span => {
+                span.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const tr = span.closest('tr');
+                    if (tr && tr._dispensaData) {
+                        openDispensaDetalheModal(tr._dispensaData);
+                    }
+                });
+            });
+
             // Event listener para botões de exclusão
             document.querySelectorAll('.btn-delete-dispensa').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
                     const id = btn.getAttribute('data-id');
                     const nome = btn.getAttribute('data-nome');
                     
@@ -4176,6 +4255,86 @@ function initDispensasModule() {
             console.error("Erro ao carregar tabela de dispensas:", err);
             tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 1rem; color: #dc2626;">Erro ao carregar dispensas.</td></tr>';
         }
+    }
+
+    // Modal de Detalhe da Dispensa
+    const modalDetalhe = document.getElementById('dispensa-detalhe-modal');
+    const btnCloseDetalhe = document.getElementById('btn-close-dispensa-detalhe-modal');
+    const btnCloseDetalheFooter = document.getElementById('btn-close-dispensa-detalhe-footer');
+    const btnCopyDetalhe = document.getElementById('btn-copy-dispensa-detalhe');
+    let currentDetalheData = null;
+
+    function openDispensaDetalheModal(data) {
+        if (!modalDetalhe) return;
+        currentDetalheData = data;
+
+        const formatBR = (iso) => iso ? iso.split('-').reverse().join('/') : '---';
+        const dInicio = data.dataInicio ? new Date(data.dataInicio + 'T00:00:00') : null;
+        const dFim = data.dataFim ? new Date(data.dataFim + 'T00:00:00') : null;
+        let dias = 0;
+        if (dInicio && dFim) {
+            dias = Math.round((dFim - dInicio) / (1000 * 60 * 60 * 24)) + 1;
+        }
+
+        const elemAvatar = document.getElementById('dispensa-detalhe-avatar');
+        const elemMusico = document.getElementById('dispensa-detalhe-musico');
+        const elemPeriodo = document.getElementById('dispensa-detalhe-periodo');
+        const elemDuracao = document.getElementById('dispensa-detalhe-duracao');
+        const elemDescricao = document.getElementById('dispensa-detalhe-descricao');
+        const elemCriadoEm = document.getElementById('dispensa-detalhe-criadoem');
+        const elemCriadoPor = document.getElementById('dispensa-detalhe-criadopor');
+
+        if (elemAvatar) elemAvatar.textContent = (data.nomeMusico || 'M').charAt(0).toUpperCase();
+        if (elemMusico) elemMusico.textContent = data.nomeMusico || 'Músico';
+        if (elemPeriodo) elemPeriodo.textContent = `${formatBR(data.dataInicio)} → ${formatBR(data.dataFim)}`;
+        if (elemDuracao) elemDuracao.textContent = `${dias} dia${dias !== 1 ? 's' : ''}`;
+        if (elemDescricao) elemDescricao.textContent = data.descricao || 'Nenhuma observação informada.';
+        if (elemCriadoEm) elemCriadoEm.textContent = data.criadoEm ? new Date(data.criadoEm).toLocaleDateString('pt-BR') + ' às ' + new Date(data.criadoEm).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '---';
+        if (elemCriadoPor) elemCriadoPor.textContent = data.criadoPor || 'admin';
+
+        modalDetalhe.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function closeDispensaDetalheModal() {
+        if (modalDetalhe) {
+            modalDetalhe.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+    }
+
+    if (btnCloseDetalhe) btnCloseDetalhe.addEventListener('click', closeDispensaDetalheModal);
+    if (btnCloseDetalheFooter) btnCloseDetalheFooter.addEventListener('click', closeDispensaDetalheModal);
+    if (modalDetalhe) {
+        modalDetalhe.addEventListener('click', (e) => {
+            if (e.target === modalDetalhe) closeDispensaDetalheModal();
+        });
+    }
+
+    if (btnCopyDetalhe) {
+        btnCopyDetalhe.addEventListener('click', () => {
+            if (!currentDetalheData) return;
+            const formatBR = (iso) => iso ? iso.split('-').reverse().join('/') : '---';
+            const dInicio = currentDetalheData.dataInicio ? new Date(currentDetalheData.dataInicio + 'T00:00:00') : null;
+            const dFim = currentDetalheData.dataFim ? new Date(currentDetalheData.dataFim + 'T00:00:00') : null;
+            let dias = 0;
+            if (dInicio && dFim) {
+                dias = Math.round((dFim - dInicio) / (1000 * 60 * 60 * 24)) + 1;
+            }
+
+            const texto = `DISPENSA DE BOLSISTA — OER
+Músico: ${currentDetalheData.nomeMusico || 'Músico'}
+Período: ${formatBR(currentDetalheData.dataInicio)} até ${formatBR(currentDetalheData.dataFim)} (${dias} dia${dias !== 1 ? 's' : ''})
+Motivo / Justificativa: ${currentDetalheData.descricao || '-'}
+Cadastrado por: ${currentDetalheData.criadoPor || 'admin'}`;
+
+            navigator.clipboard.writeText(texto).then(() => {
+                showNotification('Resumo da dispensa copiado com sucesso!', 'success');
+            }).catch(() => {
+                showNotification('Erro ao copiar resumo.', 'error');
+            });
+        });
     }
 
     loadDispensasTable();
@@ -7282,6 +7441,23 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                 presencasSnapshot.forEach(docSnap => {
                     presencasPorData[docSnap.id] = docSnap.data();
                 });
+
+                // Buscar dispensas no Firestore para o período
+                const dispensasQuery = query(collection(db, "dispensas"));
+                const dispensasSnapshot = await getDocs(dispensasQuery);
+                const dispensasMap = {};
+                dispensasSnapshot.forEach(docSnap => {
+                    const dData = docSnap.data();
+                    if (dData.musicianId && dData.dataInicio && dData.dataFim) {
+                        if (!dispensasMap[dData.musicianId]) dispensasMap[dData.musicianId] = new Set();
+                        let cur = new Date(dData.dataInicio + 'T00:00:00');
+                        const end = new Date(dData.dataFim + 'T00:00:00');
+                        while (cur <= end) {
+                            dispensasMap[dData.musicianId].add(cur.toISOString().split('T')[0]);
+                            cur.setDate(cur.getDate() + 1);
+                        }
+                    }
+                });
                 
                 const ativos = allMusicians.filter(m => {
                     const statusFirebase = (m.statusFirebase || 'ativo').toLowerCase();
@@ -7440,10 +7616,15 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                             let cellClass = 'status-sem-registro';
                             
                             const isCanceladoNoDia = musico.dataSaida && dataStr >= musico.dataSaida;
+                            const isDispensadoNoDia = (presData && presData.registros && presData.registros[musico.id] && presData.registros[musico.id].status === 'dispensa') ||
+                                                      (dispensasMap[musico.id] && dispensasMap[musico.id].has(dataStr));
 
                             if (isCanceladoNoDia) {
                                 cellText = 'CL';
                                 cellClass = 'status-cancelado';
+                            } else if (isDispensadoNoDia) {
+                                cellText = 'D';
+                                cellClass = 'status-dispensa';
                             } else if (presData && presData.registros && presData.registros[musico.id]) {
                                 const reg = presData.registros[musico.id];
                                 const status = reg.status;
@@ -7459,6 +7640,9 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                                 } else if (status === 'atestado') {
                                     cellText = 'A';
                                     cellClass = 'status-atestado';
+                                } else if (status === 'dispensa') {
+                                    cellText = 'D';
+                                    cellClass = 'status-dispensa';
                                 } else if (status === 'justificado') {
                                     cellText = 'J';
                                     cellClass = 'status-justificado';
@@ -7564,6 +7748,7 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
         .status-presenca { background-color: #dcfce7 !important; color: #166534 !important; }
         .status-falta { background-color: #fee2e2 !important; color: #991b1b !important; }
         .status-atestado { background-color: #dbeafe !important; color: #1e40af !important; }
+        .status-dispensa { background-color: #e0f2fe !important; color: #075985 !important; font-weight: bold; }
         .status-justificado { background-color: #f3e8ff !important; color: #6b21a8 !important; }
         .status-atraso { background-color: #fef3c7 !important; color: #92400e !important; }
         .status-nao-escalado { background-color: #fafafa !important; color: #757575 !important; }
@@ -7592,6 +7777,10 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
             <div class="legend-items">
                 <div class="legend-item"><span class="legend-badge status-presenca">✓</span>Presença</div>
                 <div class="legend-item"><span class="legend-badge status-falta">F</span>Falta</div>
+                <div class="legend-item"><span class="legend-badge status-atestado">A</span>Atestado Médico</div>
+                <div class="legend-item"><span class="legend-badge status-dispensa">D</span>Dispensado</div>
+                <div class="legend-item"><span class="legend-badge status-justificado">J</span>Justificado</div>
+                <div class="legend-item"><span class="legend-badge status-atraso">At</span>Atraso</div>
                 <div class="legend-item"><span class="legend-badge status-cancelado">CL</span>Cancelado</div>
                 <div class="legend-item"><span class="legend-badge status-nao-escalado">-</span>Não Escalado</div>
             </div>
@@ -7808,9 +7997,16 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                             let cellText = '';
 
                             const isCanceladoNoDia = musico.dataSaida && dataStr >= musico.dataSaida;
+                            const isDispensadoNoDia = (presData && presData.registros && presData.registros[musico.id] && presData.registros[musico.id].status === 'dispensa') ||
+                                                      (dispensasMap[musico.id] && dispensasMap[musico.id].has(dataStr));
 
                             if (isCanceladoNoDia) {
                                 cellText = 'CL';
+                            } else if (isDispensadoNoDia) {
+                                cellText = 'D';
+                                const colLetter = getColLetter(dia);
+                                const cellRef = `${colLetter}${currentExcelRowIndex}`;
+                                cellCommentsMap[cellRef] = "Bolsista Dispensado";
                             } else if (presData && presData.registros && presData.registros[musico.id]) {
                                 const reg = presData.registros[musico.id];
                                 const status = reg.status;
@@ -7819,10 +8015,15 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                                     cellText = 'P';
                                 } else if (status === 'falta') {
                                     cellText = 'F';
+                                } else if (status === 'atestado') {
+                                    cellText = 'A';
+                                } else if (status === 'dispensa') {
+                                    cellText = 'D';
                                 }
 
                                 const notes = [];
                                 if (status === 'atestado') notes.push("Atestado Médico");
+                                if (status === 'dispensa') notes.push("Dispensa Concedida");
                                 if (status === 'justificado') notes.push("Ausência Justificada");
                                 if (status === 'atraso' && reg.minutes) notes.push(`Atraso: ${reg.minutes} min`);
                                 if (reg.justificativa) notes.push(`Justificativa: ${reg.justificativa.trim()}`);
@@ -7876,6 +8077,24 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
 
                 const workbook = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(workbook, worksheet, `Presenca_${mesStr}_${ano}`);
+
+                // Adicionar aba de Legenda no Excel
+                const legendaRows = [
+                    ["LEGENDA DE SIGLAS - LISTA DE PRESENÇA OER"],
+                    [],
+                    ["Sigla", "Descrição / Status", "Efeito na Frequência"],
+                    ["P", "Presença / Atraso", "Soma no total de Presenças (P)"],
+                    ["F", "Falta Não Justificada", "Soma no total de Faltas (F)"],
+                    ["A", "Atestado Médico", "Não soma como Falta (Isento)"],
+                    ["D", "Dispensa Concedida", "Não soma como Falta (Isento)"],
+                    ["J", "Ausência Justificada", "Não soma como Falta (Isento)"],
+                    ["At", "Atraso (minutos)", "Soma no total de Presenças (P)"],
+                    ["CL", "Contrato Cancelado / Desligado", "Músico inativo a partir desta data"],
+                    ["-", "Não Escalado", "Músico não escalado para o ensaio/concerto"]
+                ];
+                const legendaSheet = XLSX.utils.aoa_to_sheet(legendaRows);
+                legendaSheet['!cols'] = [{ wch: 10 }, { wch: 35 }, { wch: 40 }];
+                XLSX.utils.book_append_sheet(workbook, legendaSheet, "Legenda");
 
                 XLSX.writeFile(workbook, `Lista_de_Presenca_Mensal_${mesStr}_${ano}.xlsx`);
 

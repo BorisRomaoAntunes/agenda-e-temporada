@@ -860,32 +860,66 @@ Intervalo
                     </div>
 
                     <!-- Área de Dispensas Concedidas -->
-                    <div class="musicos-dispensas-container" style="margin-top: 1.5rem; background: white; padding: 1.5rem; border-radius: 12px; border: 1px solid #f0f2f5;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.8rem;">
-                            <h4 style="margin: 0; font-size: 1.1rem; font-weight: 600; color: #333; display: flex; align-items: center; gap: 0.5rem;">
-                                <i data-lucide="user-check" style="color: #6b21a8; width: 18px; height: 18px;"></i> Dispensas Concedidas
-                            </h4>
-                            <button id="btn-open-dispensa-modal" class="btn-report-card" style="background: #6b21a8; margin: 0;">
-                                <i data-lucide="plus-circle"></i> <span>+ Conceder Dispensa</span>
+                    <div class="musicos-dispensas-container" style="margin-top: 1.5rem;">
+                        <!-- Header da seção -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
+                            <div style="display: flex; align-items: center; gap: 0.65rem;">
+                                <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #7c3aed, #6b21a8); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 10px rgba(107,33,168,0.25);">
+                                    <i data-lucide="shield-check" style="color: white; width: 18px; height: 18px;"></i>
+                                </div>
+                                <div>
+                                    <h4 style="margin: 0; font-size: 1rem; font-weight: 700; color: #1e1b4b; line-height: 1.2;">Dispensas Concedidas</h4>
+                                    <p style="margin: 0; font-size: 0.78rem; color: #7c3aed; font-weight: 500;">Bolsistas com dispensa no período</p>
+                                </div>
+                            </div>
+                            <button id="btn-open-dispensa-modal" style="
+                                display: inline-flex;
+                                align-items: center;
+                                gap: 0.5rem;
+                                padding: 0.6rem 1.2rem;
+                                background: linear-gradient(135deg, #7c3aed, #6b21a8);
+                                color: white;
+                                border: none;
+                                border-radius: 10px;
+                                font-size: 0.875rem;
+                                font-weight: 600;
+                                cursor: pointer;
+                                box-shadow: 0 4px 12px rgba(107,33,168,0.3);
+                                transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+                                white-space: nowrap;
+                            "
+                            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(107,33,168,0.4)'; this.style.filter='brightness(1.08)'"
+                            onmouseout="this.style.transform=''; this.style.boxShadow='0 4px 12px rgba(107,33,168,0.3)'; this.style.filter=''">
+                                <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i>
+                                Conceder Dispensa
                             </button>
                         </div>
-                        <div id="dispensas-list-wrapper" style="overflow-x: auto;">
-                            <table class="dispensas-table" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
-                                <thead>
-                                    <tr style="background: #fafafa; border-bottom: 1px solid #f0f2f5; color: #666; font-weight: 600;">
-                                        <th style="padding: 0.8rem 1rem;">Músico</th>
-                                        <th style="padding: 0.8rem 1rem;">Período</th>
-                                        <th style="padding: 0.8rem 1rem;">Descrição / Motivo</th>
-                                        <th style="padding: 0.8rem 1rem;">Cadastrado Em</th>
-                                        <th style="padding: 0.8rem 1rem; text-align: right;">Ações</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="dispensas-table-body">
-                                    <tr>
-                                        <td colspan="5" style="text-align: center; padding: 1rem; color: #888;">Carregando dispensas...</td>
-                                    </tr>
-                                </tbody>
-                            </table>
+
+                        <!-- Tabela de dispensas -->
+                        <div style="background: white; border-radius: 14px; border: 1px solid #ede9fe; overflow: hidden; box-shadow: 0 2px 8px rgba(107,33,168,0.06);">
+                            <div id="dispensas-list-wrapper" style="overflow-x: auto;">
+                                <table class="dispensas-table" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.875rem;">
+                                    <thead>
+                                        <tr style="background: linear-gradient(135deg, #faf5ff, #f3e8ff); border-bottom: 1px solid #ede9fe;">
+                                            <th style="padding: 0.9rem 1.1rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #7c3aed;">Músico</th>
+                                            <th style="padding: 0.9rem 1.1rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #7c3aed;">Período</th>
+                                            <th style="padding: 0.9rem 1.1rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #7c3aed;">Descrição / Motivo</th>
+                                            <th style="padding: 0.9rem 1.1rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #7c3aed;">Cadastrado Em</th>
+                                            <th style="padding: 0.9rem 1.1rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #7c3aed; text-align: right;">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="dispensas-table-body">
+                                        <tr>
+                                            <td colspan="5" style="text-align: center; padding: 2.5rem 1rem; color: #a78bfa;">
+                                                <div style="display: flex; flex-direction: column; align-items: center; gap: 0.6rem;">
+                                                    <i data-lucide="loader-2" style="width: 24px; height: 24px; animation: spin 1s linear infinite;"></i>
+                                                    <span style="font-size: 0.875rem; color: #9ca3af;">Carregando dispensas...</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
 
@@ -1481,6 +1515,62 @@ Intervalo
                         </button>
                     </div>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Detalhe da Dispensa -->
+    <div id="dispensa-detalhe-modal" class="modal-overlay" style="display: none;">
+        <div class="settings-modal-card" style="max-width: 520px; width: 95%;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #faf5ff, #f3e8ff); border-bottom: 1px solid #ede9fe;">
+                <div class="modal-header-info">
+                    <h3 style="color: #6b21a8; display: flex; align-items: center; gap: 0.5rem;"><i data-lucide="shield-check"></i> Detalhes da Dispensa</h3>
+                    <p style="color: #7c3aed;">Informações completas da dispensa concedida</p>
+                </div>
+                <button class="btn-close-modal" id="btn-close-dispensa-detalhe-modal">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem;">
+                <div style="background: #faf5ff; padding: 1rem; border-radius: 10px; border: 1px solid #ede9fe; display: flex; align-items: center; gap: 0.8rem;">
+                    <div style="width: 42px; height: 42px; background: linear-gradient(135deg, #7c3aed, #6b21a8); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1.1rem; flex-shrink: 0;" id="dispensa-detalhe-avatar">
+                        M
+                    </div>
+                    <div>
+                        <div style="font-size: 1.05rem; font-weight: 700; color: #1e1b4b;" id="dispensa-detalhe-musico">Nome do Bolsista</div>
+                        <span style="font-size: 0.78rem; color: #7c3aed; font-weight: 600;" id="dispensa-detalhe-status-tag">Bolsista em Dispensa</span>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div style="background: #f9fafb; padding: 0.85rem; border-radius: 8px; border: 1px solid #f3f4f6;">
+                        <span style="display: block; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #6b7280; margin-bottom: 0.2rem;">Período da Dispensa</span>
+                        <span style="font-size: 0.95rem; font-weight: 700; color: #6b21a8;" id="dispensa-detalhe-periodo">00/00/0000 → 00/00/0000</span>
+                    </div>
+                    <div style="background: #f9fafb; padding: 0.85rem; border-radius: 8px; border: 1px solid #f3f4f6;">
+                        <span style="display: block; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #6b7280; margin-bottom: 0.2rem;">Duração Total</span>
+                        <span style="font-size: 0.95rem; font-weight: 700; color: #1e1b4b;" id="dispensa-detalhe-duracao">0 dias</span>
+                    </div>
+                </div>
+
+                <div style="background: #f9fafb; padding: 0.85rem; border-radius: 8px; border: 1px solid #f3f4f6;">
+                    <span style="display: block; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #6b7280; margin-bottom: 0.3rem;">Descrição / Motivo</span>
+                    <p style="margin: 0; font-size: 0.9rem; color: #374151; line-height: 1.5; white-space: pre-wrap;" id="dispensa-detalhe-descricao">-</p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.8rem; color: #6b7280; border-top: 1px solid #f3f4f6; padding-top: 0.8rem;">
+                    <div><strong>Cadastrado em:</strong> <span id="dispensa-detalhe-criadoem">-</span></div>
+                    <div><strong>Cadastrado por:</strong> <span id="dispensa-detalhe-criadopor">-</span></div>
+                </div>
+
+                <div style="display: flex; gap: 0.75rem; margin-top: 0.5rem;">
+                    <button type="button" class="btn-outline-cancel" id="btn-close-dispensa-detalhe-footer" style="flex: 1; height: 42px; justify-content: center;">
+                        Fechar
+                    </button>
+                    <button type="button" id="btn-copy-dispensa-detalhe" style="flex: 1; height: 42px; justify-content: center; background: linear-gradient(135deg, #7c3aed, #6b21a8); color: white; border: none; font-weight: 600; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; box-shadow: 0 4px 10px rgba(107,33,168,0.25);">
+                        <i data-lucide="copy" style="width: 16px; height: 16px;"></i> Copiar Resumo
+                    </button>
+                </div>
             </div>
         </div>
     </div>
