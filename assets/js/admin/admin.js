@@ -136,7 +136,11 @@ onAuthStateChanged(auth, (user) => {
         initEmulatorToggle(); // Inicia o toggle de emulação
         syncTickerWithLatest(); // Força sincronização do letreiro na inicialização
         initAtestadosManagement(); // Inicia a gestão de atestados médicos (Fase 3)
-        initDispensasModule(); // Inicia o módulo de dispensas de bolsistas
+        try {
+            initDispensasModule(); // Inicia o módulo de dispensas de bolsistas
+        } catch (dispErr) {
+            console.error("⚠️ [Admin] Erro ao inicializar módulo de dispensas:", dispErr);
+        }
         initCalendarManagement(); // Inicia o módulo de calendário interativo
         initIntervalTimerControls(); // Inicia o controle do cronômetro de intervalo
         initMusiciansManagement(); // Inicia o gerenciamento de músicos (importação e busca reativa)
@@ -263,7 +267,7 @@ loginForm.addEventListener('submit', async (e) => {
             btn.disabled = false;
         }
         btn.innerHTML = 'Entrar <i data-lucide="arrow-right"></i>';
-        lucide.createIcons();
+        if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 });
 

@@ -57,6 +57,11 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // Coleção "dispensas" — módulo de dispensas de bolsistas
+    match /dispensas/{document} {
+      allow read, write: if isAdmin();
+    }
+
     // Coleção "musicos" — dados cadastrais completos dos músicos (sensíveis)
     match /musicos/{document} {
       allow read, write: if isAdmin();
