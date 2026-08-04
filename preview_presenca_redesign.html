@@ -852,19 +852,15 @@
 
                     html += `
                         <div class="musician-card ${statusClass}">
-                            <div class="musician-info" onclick="openDrawer('${m.id}')">
+                            <div class="musician-info" onclick="toggleQuickPresence('${m.id}', event)">
                                 <div class="musician-name-container">
                                     <span class="musician-name">${m.name}</span>
                                     ${m.role ? `<span class="role-badge">${m.role}</span>` : ''}
                                 </div>
                                 ${subtext ? `<div class="status-subtext"><i data-lucide="clock" style="width: 12px; height: 12px;"></i> ${subtext}</div>` : ''}
                             </div>
-                            <div class="card-actions">
-                                <!-- Botão de Marcação Rápida em 1 Toque (Presença ✓) -->
-                                <button class="btn-quick-check" onclick="toggleQuickPresence('${m.id}', event)" title="Marcar Presença Rápida">
-                                    <i data-lucide="check" style="width: 22px; height: 22px; stroke-width: 3;"></i>
-                                </button>
-                                <div class="status-badge" onclick="openDrawer('${m.id}')">
+                            <div class="badge-click-area" onclick="openDrawer('${m.id}')">
+                                <div class="status-badge">
                                     ${badgeLabel}
                                 </div>
                             </div>

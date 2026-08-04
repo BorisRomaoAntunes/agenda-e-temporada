@@ -347,6 +347,16 @@ body {
     border: none;
 }
 
+.musician-card.dispensa {
+    background-color: #f3e8ff;
+    border-color: #d8b4fe;
+}
+.musician-card.dispensa .status-badge {
+    background-color: #6b21a8;
+    color: white;
+    border: none;
+}
+
 .musician-card.atraso {
     background-color: var(--color-delay-bg);
     border-color: #fde68a;
@@ -1058,6 +1068,8 @@ body {
 .opt-btn-compact.presenca { color: var(--color-presence); border-color: #a7f3d0; background: var(--color-presence-bg); }
 .opt-btn-compact.falta { color: var(--color-absence); border-color: #fca5a5; background: var(--color-absence-bg); }
 .opt-btn-compact.atestado { color: var(--color-medical); border-color: #bfdbfe; background: var(--color-medical-bg); }
+.opt-btn-compact.dispensa { color: #6b21a8; border-color: #d8b4fe; background: #f3e8ff; }
+.opt-btn-compact.dispensa.selected { background: #6b21a8; color: white; border-color: #6b21a8; }
 .opt-btn-compact.nao-escalado { color: var(--color-not-scheduled); border-color: #cbd5e1; background: var(--color-not-scheduled-bg); }
 .opt-btn-compact.justificado { color: var(--color-justified); border-color: #f3e8ff; background: var(--color-justified-bg); }
 

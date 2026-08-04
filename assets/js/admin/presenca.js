@@ -31,9 +31,23 @@ const searchInput = document.getElementById("searchInput");
 const dateInput = document.getElementById("dateInput");
 const btnBackAdmin = document.getElementById("btnBackAdmin");
 
+// Drawer de Status
+const overlay = document.getElementById("overlay");
+const statusDrawer = document.getElementById("statusDrawer");
+const drawerTitle = document.getElementById("drawerTitle");
+const drawerSubtitle = document.getElementById("drawerSubtitle");
 const btnCloseDrawer = document.getElementById("btnCloseDrawer");
-const btnSaveJustification = document.getElementById("btnSaveJustification");
 const drawerHandleWrapper = document.getElementById("drawerHandle");
+
+const optBtnPresenca = document.getElementById("optBtnPresenca");
+const optBtnFalta = document.getElementById("optBtnFalta");
+const optBtnAtestado = document.getElementById("optBtnAtestado");
+const optBtnDispensa = document.getElementById("optBtnDispensa");
+const optBtnNaoEscalado = document.getElementById("optBtnNaoEscalado");
+const optBtnJustificado = document.getElementById("optBtnJustificado");
+const justificationSection = document.getElementById("justificationSection");
+const justificationTextarea = document.getElementById("justificationTextarea");
+const btnSaveJustification = document.getElementById("btnSaveJustification");
 
 // Contadores de Chamada
 const countPresence = document.getElementById("countPresence");
@@ -50,6 +64,11 @@ const btnSaveNotes = document.getElementById("btnSaveNotes");
 
 // Botão Salvar Oficialmente
 const btnSaveOfficial = document.getElementById("btnSaveOfficial");
+
+// Elementos removidos do DOM (mantidos como null para evitar ReferenceError)
+const btnDelayConfirm = null;
+const delayWheel = null;
+const delayValDisplay = null;
 
 // Busca expansível e Filtros
 const btnToggleSearch = document.getElementById("btnToggleSearch");
@@ -90,63 +109,70 @@ onAuthStateChanged(auth, (user) => {
 
 // Inicialização da Página
 async function initApp() {
-    // Definir data padrão como hoje (fuso local YYYY-MM-DD)
-    const today = getLocalTodayString();
-    dateInput.value = today;
-    selectedDate = today;
+    try {
+        // Definir data padrão como hoje (fuso local YYYY-MM-DD)
+        const today = getLocalTodayString();
+        if (dateInput) dateInput.value = today;
+        selectedDate = today;
 
-    // Configurar altura dinâmica do header para os sticky dos naipes
-    const headerEl = document.querySelector('.header');
-    if (headerEl) {
-        const updateHeaderHeight = () => {
-            // Pequeno desconto para o header se alinhar perfeitamente sem borda vazada
-            document.documentElement.style.setProperty('--header-height', `${headerEl.offsetHeight - 1}px`);
-        };
-        updateHeaderHeight();
-        window.addEventListener('resize', updateHeaderHeight);
+        // Configurar altura dinâmica do header para os sticky dos naipes
+        const headerEl = document.querySelector('.header');
+        if (headerEl) {
+            const updateHeaderHeight = () => {
+                document.documentElement.style.setProperty('--header-height', `${headerEl.offsetHeight - 1}px`);
+            };
+            updateHeaderHeight();
+            window.addEventListener('resize', updateHeaderHeight);
+        }
+
+        // Carregar Músicos
+        await loadMusicians();
+
+        // Construir a rodinha de atraso se existir no DOM
+        if (typeof buildDelayWheel === 'function') buildDelayWheel();
+
+        // Carregar dados da data atual (ou rascunho)
+        await loadDateData(selectedDate);
+
+        // Restaurar a posição de rolagem salva
+        setTimeout(() => {
+            const savedScroll = localStorage.getItem("presenca_scroll_pos");
+            if (savedScroll !== null) {
+                window.scrollTo({ top: parseInt(savedScroll, 10), behavior: 'smooth' });
+            }
+        }, 150);
+    } catch (err) {
+        console.error("Erro ao inicializar app de presença:", err);
+        updateActiveMusiciansForDate(selectedDate || getLocalTodayString());
+        renderMusicians();
     }
 
-    // Carregar Músicos
-    await loadMusicians();
-
-    // Construir a rodinha de atraso estilo iOS
-    buildDelayWheel();
-
-    // Carregar dados da data atual (ou rascunho)
-    await loadDateData(selectedDate);
-
-    // Restaurar a posição de rolagem salva
-    setTimeout(() => {
-        const savedScroll = localStorage.getItem("presenca_scroll_pos");
-        if (savedScroll !== null) {
-            window.scrollTo({ top: parseInt(savedScroll, 10), behavior: 'smooth' });
-        }
-    }, 150);
-
     // Eventos
-    searchInput.addEventListener("input", renderMusicians);
+    if (searchInput) searchInput.addEventListener("input", renderMusicians);
 
     // Busca expansível na barra inferior
-    btnToggleSearch.addEventListener("click", () => {
-        bottomBar.classList.add("search-active");
-        searchInput.focus();
-    });
-    btnCloseSearch.addEventListener("click", () => {
-        bottomBar.classList.remove("search-active");
-        searchInput.value = "";
-        renderMusicians();
-    });
+    if (btnToggleSearch && bottomBar && searchInput) {
+        btnToggleSearch.addEventListener("click", () => {
+            bottomBar.classList.add("search-active");
+            searchInput.focus();
+        });
+    }
+    if (btnCloseSearch && bottomBar && searchInput) {
+        btnCloseSearch.addEventListener("click", () => {
+            bottomBar.classList.remove("search-active");
+            searchInput.value = "";
+            renderMusicians();
+        });
+    }
 
     // Filtros (pílulas)
     filterPills.forEach(pill => {
         pill.addEventListener("click", () => {
             const filter = pill.dataset.filter;
             if (activeFilter === filter) {
-                // Desativar filtro
                 activeFilter = null;
                 pill.classList.remove("active");
             } else {
-                // Ativar novo filtro e desativar o anterior
                 filterPills.forEach(p => p.classList.remove("active"));
                 activeFilter = filter;
                 pill.classList.add("active");
@@ -154,21 +180,20 @@ async function initApp() {
             renderMusicians();
         });
     });
-    dateInput.addEventListener("change", handleDateChange);
-    btnBackAdmin.addEventListener("click", () => window.location.replace("admin.html"));
+    if (dateInput) dateInput.addEventListener("change", handleDateChange);
+    if (btnBackAdmin) btnBackAdmin.addEventListener("click", () => window.location.replace("admin.html"));
 
     // Callbacks do Drawer de Status
-    if (btnCancelDrawer) btnCancelDrawer.addEventListener("click", closeDrawer);
     if (btnCloseDrawer) btnCloseDrawer.addEventListener("click", closeDrawer);
     if (overlay) overlay.addEventListener("click", closeDrawer);
     if (optBtnPresenca) optBtnPresenca.addEventListener("click", () => instantSelectStatus("presenca"));
     if (optBtnFalta) optBtnFalta.addEventListener("click", () => instantSelectStatus("falta"));
     if (optBtnAtestado) optBtnAtestado.addEventListener("click", () => instantSelectStatus("atestado"));
+    if (optBtnDispensa) optBtnDispensa.addEventListener("click", () => instantSelectStatus("dispensa"));
     if (optBtnNaoEscalado) optBtnNaoEscalado.addEventListener("click", () => instantSelectStatus("nao_escalado"));
     if (optBtnJustificado) optBtnJustificado.addEventListener("click", () => selectJustificadoStatus());
     if (justificationTextarea) justificationTextarea.addEventListener("input", handleJustificationInput);
     if (btnSaveJustification) btnSaveJustification.addEventListener("click", () => saveJustificationAndClose());
-    if (btnDelayConfirm) btnDelayConfirm.addEventListener("click", applyDelayChange);
 
     // Atalhos Rápidos de Atraso (Pílulas)
     document.querySelectorAll(".delay-pill-btn").forEach(btn => {
@@ -190,7 +215,7 @@ async function initApp() {
         drawerHandleWrapper.addEventListener("touchmove", (e) => {
             currentY = e.touches[0].clientY;
             const deltaY = currentY - startY;
-            if (deltaY > 0) {
+            if (deltaY > 0 && statusDrawer) {
                 statusDrawer.style.transform = `translateY(${deltaY}px)`;
             }
         }, { passive: true });
@@ -199,21 +224,21 @@ async function initApp() {
             if (deltaY > 70) {
                 closeDrawer();
             }
-            statusDrawer.style.transform = "";
+            if (statusDrawer) statusDrawer.style.transform = "";
             startY = 0;
             currentY = 0;
         });
     }
 
     // Callbacks de Anotações
-    btnOpenNotes.addEventListener("click", openNotesDrawer);
-    btnCancelNotes.addEventListener("click", closeDrawer);
-    btnSaveNotes.addEventListener("click", saveNotes);
+    if (btnOpenNotes) btnOpenNotes.addEventListener("click", openNotesDrawer);
+    if (btnCancelNotes) btnCancelNotes.addEventListener("click", closeDrawer);
+    if (btnSaveNotes) btnSaveNotes.addEventListener("click", saveNotes);
 
     // Salvar Oficialmente
-    btnSaveOfficial.addEventListener("click", saveOfficialData);
+    if (btnSaveOfficial) btnSaveOfficial.addEventListener("click", saveOfficialData);
     
-    // Salvar a posição do scroll continuamente (com debounce para performance)
+    // Salvar a posição do scroll continuamente
     window.addEventListener("scroll", () => {
         clearTimeout(scrollTimeout);
         scrollTimeout = setTimeout(() => {
@@ -273,33 +298,28 @@ async function loadMusicians() {
         allMusiciansRaw = [];
         snapshot.forEach(docSnap => {
             const data = docSnap.data();
-            const status = (data.Status || '').toString().toLowerCase().trim();
+            const rawStatus = (data.Status || data.status || data.Cargo || data.cargo || '').toString().toLowerCase().trim();
             
             // Filtros de segurança
-            if (status.includes('emm')) return;
+            if (rawStatus.includes('emm')) return;
             
             const nomeRegLower = (data['NOME REGISTRO'] || '').toString().toLowerCase();
             const nomeArtLower = (data.NOMEARTISTICO || '').toString().toLowerCase();
             if (nomeRegLower.includes('angela de santi') || nomeArtLower.includes('angela de santi')) return;
 
-            const isBolsistaOrMonitor = status.includes("bolsista") || status.includes("monitor") || status.includes("spalla");
+            const nomeArtistico = (data.NOMEARTISTICO || '').toString().trim();
+            const nomeCompleto = (data['NOME REGISTRO'] || '').toString().trim();
+            const nome = nomeArtistico || nomeCompleto || data.Nome || "Sem Nome";
+            const instrumento = (data.INSTRUMENTOS || data.Instrumento || '').toString().trim() || "Outros";
 
-            if (isBolsistaOrMonitor) {
-                const nomeArtistico = (data.NOMEARTISTICO || '').toString().trim();
-                const nomeCompleto = (data['NOME REGISTRO'] || '').toString().trim();
-                const nome = nomeArtistico || nomeCompleto || "Sem Nome";
-                
-                const instrumento = (data.INSTRUMENTOS || '').toString().trim() || "Outros";
-
-                allMusiciansRaw.push({
-                    id: docSnap.id,
-                    Nome: nome,
-                    Instrumento: instrumento,
-                    Status: (status.includes("monitor") || status.includes("spalla")) ? "Monitor" : "Bolsista",
-                    statusFirebase: (data.statusFirebase || 'ativo').toString().toLowerCase(),
-                    dataSaida: data.dataSaida || null
-                });
-            }
+            allMusiciansRaw.push({
+                id: docSnap.id,
+                Nome: nome,
+                Instrumento: instrumento,
+                Status: (rawStatus.includes("monitor") || rawStatus.includes("spalla")) ? "Monitor" : "Bolsista",
+                statusFirebase: (data.statusFirebase || 'ativo').toString().toLowerCase(),
+                dataSaida: data.dataSaida || null
+            });
         });
     } catch (e) {
         console.error("Erro ao carregar músicos:", e);
@@ -315,16 +335,12 @@ function updateActiveMusiciansForDate(targetDateStr) {
         const status = m.statusFirebase || 'ativo';
         if (status === 'ativo') return true;
 
-        // Se o músico for inativo/desligado:
-        // 1. Manter visível se já houver um registro salvo para ele no evento desta data
         if (attendanceData && attendanceData[m.id]) return true;
 
-        // 2. Se houver dataSaida cadastrada, incluir apenas se o evento ocorreu ANTES da data de saída
         if (m.dataSaida) {
             return targetDateStr < m.dataSaida;
         }
 
-        // Se for inativo sem dataSaida registrada e sem presença gravada, oculta das novas listas
         return false;
     });
 }
@@ -335,109 +351,103 @@ async function loadDateData(dateStr) {
         existedInFirestore = false;
         attendanceData = {};
         notesText = "";
-        notesTextarea.value = "";
+        if (notesTextarea) notesTextarea.value = "";
 
         // 1. Tentar buscar no Firestore
-        const docRef = doc(db, "presencas", dateStr);
-        const docSnap = await getDoc(docRef);
+        try {
+            const docRef = doc(db, "presencas", dateStr);
+            const docSnap = await getDoc(docRef);
 
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            attendanceData = data.registros || {};
-            notesText = data.anotacoes || "";
-            notesTextarea.value = notesText;
-            existedInFirestore = true;
-            showToast(`Dados de ${formatDateDisplay(dateStr)} carregados do Firestore.`);
-        } else {
-            // 2. Se não existir no Firestore, tenta carregar Rascunho Local (LocalStorage)
-            const draftKey = `presenca_oer_draft_${dateStr}`;
-            const savedState = localStorage.getItem(draftKey);
-            if (savedState) {
-                const parsed = JSON.parse(savedState);
-                attendanceData = parsed.attendance || {};
-                notesText = parsed.notes || "";
-                notesTextarea.value = notesText;
-                showToast(`Rascunho local carregado para ${formatDateDisplay(dateStr)}.`);
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                attendanceData = data.registros || {};
+                notesText = data.anotacoes || "";
+                if (notesTextarea) notesTextarea.value = notesText;
+                existedInFirestore = true;
             } else {
-                // 3. Se não houver rascunho local, consulta a base de eventos para preenchimento inteligente
-                try {
-                    const eventosRef = collection(db, "eventos");
-                    const q = query(eventosRef, where("date", "==", dateStr), where("status", "==", "Confirmado"));
-                    const querySnapshot = await getDocs(q);
-                    
-                    let eventosDoDia = [];
-                    querySnapshot.forEach(doc => {
-                        eventosDoDia.push(doc.data());
-                    });
-                    
-                    if (eventosDoDia.length > 0) {
-                        // Aplica atualização prévia da lista para identificar quem estava na orquestra nesta data
+                // Rascunho Local
+                const draftKey = `presenca_oer_draft_${dateStr}`;
+                const savedState = localStorage.getItem(draftKey);
+                if (savedState) {
+                    const parsed = JSON.parse(savedState);
+                    attendanceData = parsed.attendance || {};
+                    notesText = parsed.notes || "";
+                    if (notesTextarea) notesTextarea.value = notesText;
+                } else {
+                    // Consulta de eventos inteligente
+                    try {
+                        const eventosRef = collection(db, "eventos");
+                        const q = query(eventosRef, where("date", "==", dateStr), where("status", "==", "Confirmado"));
+                        const querySnapshot = await getDocs(q);
+                        let eventosDoDia = [];
+                        querySnapshot.forEach(dSnap => eventosDoDia.push(dSnap.data()));
+                        
                         updateActiveMusiciansForDate(dateStr);
 
-                        // Verifica se há alguma folga programada
-                        const temFolga = eventosDoDia.some(e => e.tipo === 'folga');
-                        
-                        if (temFolga) {
-                            // Se for folga, marca todos como "Não Escalado"
-                            allMusicians.forEach(m => {
-                                attendanceData[m.id] = { status: "nao_escalado", minutes: 0 };
-                            });
-                            showToast(`Presença inteligente: Folga programada. Todos marcados como Não Escalado.`);
-                        } else {
-                            // Verifica se há ensaios de naipe
-                            const ensaiosNaipe = eventosDoDia.filter(e => e.tipo === 'ensaio_naipe');
-                            const temTuttiOuConcerto = eventosDoDia.some(e => e.tipo === 'ensaio_tutti' || e.tipo === 'concerto');
-                            
-                            if (ensaiosNaipe.length > 0 && !temTuttiOuConcerto) {
-                                // Apenas ensaios de naipe: escalamos apenas quem for dos naipes correspondentes
-                                const naipesEscalados = ensaiosNaipe.map(e => normalizarNaipe(e.naipe || '')).filter(Boolean);
-                                
-                                allMusicians.forEach(m => {
-                                    const musicoNaipe = normalizarNaipe(m.Instrumento || '');
-                                    // Verifica se o naipe do músico corresponde a algum dos naipes do ensaio
-                                    const estaEscalado = naipesEscalados.some(ne => 
-                                        ne.includes(musicoNaipe) || musicoNaipe.includes(ne)
-                                    );
-                                    
-                                    if (estaEscalado) {
-                                        attendanceData[m.id] = { status: "none", minutes: 0 };
-                                    } else {
-                                        attendanceData[m.id] = { status: "nao_escalado", minutes: 0 };
-                                    }
-                                });
-                                showToast(`Presença inteligente: Ensaio de Naipe (${ensaiosNaipe.map(e => e.naipe).join(', ')}).`);
+                        if (eventosDoDia.length > 0) {
+                            const temFolga = eventosDoDia.some(e => e.tipo === 'folga');
+                            if (temFolga) {
+                                allMusicians.forEach(m => { attendanceData[m.id] = { status: "nao_escalado", minutes: 0 }; });
                             } else {
-                                // Tutti ou Concerto (ou ambos): todos são escalados por padrão
-                                allMusicians.forEach(m => {
-                                    attendanceData[m.id] = { status: "none", minutes: 0 };
-                                });
+                                const ensaiosNaipe = eventosDoDia.filter(e => e.tipo === 'ensaio_naipe');
+                                const temTuttiOuConcerto = eventosDoDia.some(e => e.tipo === 'ensaio_tutti' || e.tipo === 'concerto');
+                                if (ensaiosNaipe.length > 0 && !temTuttiOuConcerto) {
+                                    const naipesEscalados = ensaiosNaipe.map(e => normalizarNaipe(e.naipe || '')).filter(Boolean);
+                                    allMusicians.forEach(m => {
+                                        const musicoNaipe = normalizarNaipe(m.Instrumento || '');
+                                        const estaEscalado = naipesEscalados.some(ne => ne.includes(musicoNaipe) || musicoNaipe.includes(ne));
+                                        attendanceData[m.id] = estaEscalado ? { status: "none", minutes: 0 } : { status: "nao_escalado", minutes: 0 };
+                                    });
+                                } else {
+                                    allMusicians.forEach(m => { attendanceData[m.id] = { status: "none", minutes: 0 }; });
+                                }
                             }
+                        } else {
+                            allMusicians.forEach(m => { attendanceData[m.id] = { status: "none", minutes: 0 }; });
                         }
-                    } else {
-                        // Sem eventos cadastrados: todos como pendentes por padrão
+                    } catch (evErr) {
+                        console.warn("Aviso ao carregar eventos:", evErr);
                         updateActiveMusiciansForDate(dateStr);
-                        allMusicians.forEach(m => {
-                            attendanceData[m.id] = { status: "none", minutes: 0 };
-                        });
+                        allMusicians.forEach(m => { attendanceData[m.id] = { status: "none", minutes: 0 }; });
                     }
-                } catch (eventError) {
-                    console.error("Erro ao carregar eventos para presença inteligente:", eventError);
-                    updateActiveMusiciansForDate(dateStr);
-                    allMusicians.forEach(m => {
-                        attendanceData[m.id] = { status: "none", minutes: 0 };
-                    });
                 }
             }
+        } catch (fsErr) {
+            console.error("Erro ao carregar presenças:", fsErr);
         }
 
-        // Garantir filtragem temporal com os dados de presença carregados
+        // Verificar se existem dispensas ativas para a data selecionada
+        try {
+            const dispensasRef = collection(db, "dispensas");
+            const qDisp = query(dispensasRef, where("dataInicio", "<=", dateStr));
+            const snapDisp = await getDocs(qDisp);
+            snapDisp.forEach(dDoc => {
+                const disp = dDoc.data();
+                if (disp.dataFim >= dateStr && disp.musicianId) {
+                    const mId = disp.musicianId;
+                    const currentStatus = attendanceData[mId] ? attendanceData[mId].status : 'none';
+                    if (currentStatus === 'none' || currentStatus === 'falta' || !attendanceData[mId]) {
+                        attendanceData[mId] = {
+                            status: 'dispensa',
+                            minutes: 0,
+                            justificativa: disp.descricao || ''
+                        };
+                    }
+                }
+            });
+        } catch (dispErr) {
+            console.warn("Aviso ao verificar dispensas ativas:", dispErr);
+        }
+
+        // Garantir atualização da lista e renderização SEMPRE
         updateActiveMusiciansForDate(dateStr);
         renderMusicians();
     } catch (e) {
-        console.error("Erro ao carregar dados da data:", e);
-        showToast("Erro ao carregar dados do histórico.");
+        console.error("Erro em loadDateData:", e);
+        updateActiveMusiciansForDate(dateStr);
+        renderMusicians();
     }
-}
+};
 
 // Tratar Mudança de Data no DatePicker
 async function handleDateChange(e) {
@@ -533,6 +543,7 @@ function renderMusicians() {
             if (statusInfo.status === "presenca") badgeLabel = "Presença";
             else if (statusInfo.status === "falta") badgeLabel = "Falta";
             else if (statusInfo.status === "atestado") badgeLabel = "Atestado";
+            else if (statusInfo.status === "dispensa") badgeLabel = "Dispensa";
             else if (statusInfo.status === "nao_escalado") badgeLabel = "Não Escalado";
             else if (statusInfo.status === "justificado") {
                 const justMsg = statusInfo.justificativa ? `: ${statusInfo.justificativa}` : "";
@@ -554,48 +565,36 @@ function renderMusicians() {
             const isPresence = statusInfo.status === "presenca";
 
             card.innerHTML = `
-                <div class="musician-info" id="info-${m.id}">
+                <div class="musician-info">
                     <div class="musician-name-container">
                         <span class="musician-name">${m.Nome}</span>
                         ${roleText}
                     </div>
                 </div>
-                <div class="card-actions">
-                    <!-- Botão de Marcação Rápida de Presença em 1 toque ✓ -->
-                    <button class="btn-quick-check ${isPresence ? 'active' : ''}" id="quick-check-${m.id}" title="Marcar Presença Rápida">
-                        <i data-lucide="check" style="width: 20px; height: 20px; stroke-width: 3;"></i>
-                    </button>
-                    <div class="badge-click-area" id="badge-area-${m.id}">
-                        <span class="status-badge ${statusInfo.status === 'none' ? 'status-none' : ''}">
-                            ${badgeLabel}
-                        </span>
-                    </div>
+                <div class="badge-click-area">
+                    <span class="status-badge ${statusInfo.status === 'none' ? 'status-none' : ''}">
+                        ${badgeLabel}
+                    </span>
                 </div>
             `;
 
-            // Clique no botão ✓: Presença Rápida em 1 toque
-            card.querySelector(`#quick-check-${m.id}`).addEventListener("click", (e) => {
-                e.stopPropagation();
-                handleQuickPresence(m);
-            });
-
-            // Clique no nome: Presença rápida alternada (suporta duplo clique)
-            card.querySelector(`#info-${m.id}`).addEventListener("click", () => {
-                const now = new Date().getTime();
-                const lastClickTime = clickTimestamps[m.id] || 0;
-                
-                if (now - lastClickTime < 400) {
-                    handleDoubleQuickPresence(m);
-                    clickTimestamps[m.id] = 0;
+            // Delegação de evento única no card:
+            // - Clique no badge/status → abre modal
+            // - Clique em qualquer outra parte → presença rápida
+            card.addEventListener("click", (e) => {
+                if (e.target.closest('.badge-click-area')) {
+                    openDrawerForMusician(m);
                 } else {
-                    handleQuickPresence(m);
-                    clickTimestamps[m.id] = now;
+                    const now = new Date().getTime();
+                    const lastClickTime = clickTimestamps[m.id] || 0;
+                    if (now - lastClickTime < 400) {
+                        handleDoubleQuickPresence(m);
+                        clickTimestamps[m.id] = 0;
+                    } else {
+                        handleQuickPresence(m);
+                        clickTimestamps[m.id] = now;
+                    }
                 }
-            });
-
-            // Clique no badge: Abre painel de opções
-            card.querySelector(`#badge-area-${m.id}`).addEventListener("click", () => {
-                openDrawerForMusician(m);
             });
 
             section.appendChild(card);
@@ -678,11 +677,11 @@ function openDrawerForMusician(musician) {
     }
 
     updateDrawerButtonsVisuals();
-    scrollToDelayValue(selectedDelayTemp);
-    updateDelayDisplay(selectedDelayTemp);
+    if (typeof scrollToDelayValue === 'function') scrollToDelayValue(selectedDelayTemp);
+    if (typeof updateDelayDisplay === 'function') updateDelayDisplay(selectedDelayTemp);
 
-    overlay.classList.add("open");
-    statusDrawer.classList.add("open");
+    if (overlay) overlay.classList.add("open");
+    if (statusDrawer) statusDrawer.classList.add("open");
 }
 
 // Selecionar Instantaneamente Status Simples e Fechar
@@ -797,22 +796,24 @@ function updateDrawerButtonsVisuals() {
     const btns = [optBtnPresenca, optBtnFalta, optBtnAtestado, optBtnNaoEscalado, optBtnJustificado];
     btns.forEach(btn => btn?.classList.remove("selected"));
 
-    if (selectedStatusTemp === "presenca") optBtnPresenca.classList.add("selected");
-    else if (selectedStatusTemp === "falta") optBtnFalta.classList.add("selected");
-    else if (selectedStatusTemp === "atestado") optBtnAtestado.classList.add("selected");
-    else if (selectedStatusTemp === "nao_escalado") optBtnNaoEscalado.classList.add("selected");
-    else if (selectedStatusTemp === "justificado") optBtnJustificado.classList.add("selected");
+    if (selectedStatusTemp === "presenca") optBtnPresenca?.classList.add("selected");
+    else if (selectedStatusTemp === "falta") optBtnFalta?.classList.add("selected");
+    else if (selectedStatusTemp === "atestado") optBtnAtestado?.classList.add("selected");
+    else if (selectedStatusTemp === "nao_escalado") optBtnNaoEscalado?.classList.add("selected");
+    else if (selectedStatusTemp === "justificado") optBtnJustificado?.classList.add("selected");
 
-    // Exibir/Ocultar seção de justificativa e botão Justificado (comportamento transformável)
-    if (selectedStatusTemp === "justificado") {
-        justificationSection.style.display = "flex";
-        optBtnJustificado.style.display = "none";
-    } else {
-        justificationSection.style.display = "none";
-        optBtnJustificado.style.display = "flex";
+    // Exibir/Ocultar seção de justificativa e botão Justificado
+    if (justificationSection) {
+        if (selectedStatusTemp === "justificado") {
+            justificationSection.style.display = "flex";
+            if (optBtnJustificado) optBtnJustificado.style.display = "none";
+        } else {
+            justificationSection.style.display = "none";
+            if (optBtnJustificado) optBtnJustificado.style.display = "flex";
+        }
     }
 
-    // Exibir/Ocultar seção de atraso/rodinha
+    // Exibir/Ocultar seção de atraso/rodinha se existir
     const delaySection = document.querySelector(".delay-section");
     if (delaySection) {
         if (selectedStatusTemp === "nao_escalado") {
@@ -822,11 +823,13 @@ function updateDrawerButtonsVisuals() {
         }
     }
 
-    // Exibir/Ocultar botão Confirmar Atraso
-    if (selectedDelayTemp > 0 && selectedStatusTemp === "atraso") {
-        btnDelayConfirm.style.display = "inline-flex";
-    } else {
-        btnDelayConfirm.style.display = "none";
+    // Exibir/Ocultar botão Confirmar Atraso se existir
+    if (btnDelayConfirm) {
+        if (selectedDelayTemp > 0 && selectedStatusTemp === "atraso") {
+            btnDelayConfirm.style.display = "inline-flex";
+        } else {
+            btnDelayConfirm.style.display = "none";
+        }
     }
 }
 
@@ -909,11 +912,12 @@ async function saveOfficialData() {
         });
 
         // 2. Contabilizar totais para detalhes do Log
-        let presencas = 0, faltas = 0, atestados = 0, atrasos = 0, naoEscalados = 0, justificados = 0;
+        let presencas = 0, faltas = 0, atestados = 0, dispensas = 0, atrasos = 0, naoEscalados = 0, justificados = 0;
         registrados.forEach(r => {
             if (r.status === 'presenca') presencas++;
             else if (r.status === 'falta') faltas++;
             else if (r.status === 'atestado') atestados++;
+            else if (r.status === 'dispensa') dispensas++;
             else if (r.status === 'atraso') atrasos++;
             else if (r.status === 'nao_escalado') naoEscalados++;
             else if (r.status === 'justificado') justificados++;
@@ -939,6 +943,7 @@ async function saveOfficialData() {
                 let resultado = `Total: ${total} (${partesParen.join(' | ')})`;
                 const extras = [];
                 if (atestados > 0) extras.push(`Atestados: ${atestados}`);
+                if (dispensas > 0) extras.push(`Dispensas: ${dispensas}`);
                 if (atrasos > 0) extras.push(`Atrasos: ${atrasos}`);
                 if (faltas > 0) extras.push(`Faltas: ${faltas}`);
                 if (justificados > 0) extras.push(`Justificados: ${justificados}`);
@@ -972,6 +977,7 @@ function showToast(msg) {
 
 // Construir Rodinha de Atraso
 function buildDelayWheel() {
+    if (!delayWheel) return;
     delayWheel.innerHTML = "";
 
     delayValues.forEach(val => {
@@ -1024,19 +1030,19 @@ function buildDelayWheel() {
 
                 if (val > 0) {
                     selectedStatusTemp = 'atraso';
-                    btnDelayConfirm.style.display = "inline-flex";
+                    if (btnDelayConfirm) btnDelayConfirm.style.display = "inline-flex";
                 } else {
                     if (selectedStatusTemp === 'atraso') {
                         selectedStatusTemp = 'presenca';
                     }
-                    btnDelayConfirm.style.display = "none";
+                    if (btnDelayConfirm) btnDelayConfirm.style.display = "none";
                 }
                 
                 // Atualiza destaques visuais do Drawer
                 const btns = [optBtnPresenca, optBtnFalta, optBtnAtestado, optBtnNaoEscalado];
-                btns.forEach(btn => btn.classList.remove("selected"));
+                btns.forEach(btn => btn?.classList.remove("selected"));
                 if (selectedStatusTemp === "presenca" && val === 0) {
-                    optBtnPresenca.classList.add("selected");
+                    optBtnPresenca?.classList.add("selected");
                 }
             }
         }, 80);
@@ -1045,6 +1051,7 @@ function buildDelayWheel() {
 
 // Scroll automático para centrar o valor da rodinha
 function scrollToDelayValue(value) {
+    if (!delayWheel) return;
     const items = delayWheel.querySelectorAll(".wheel-item");
     items.forEach(item => {
         const val = parseInt(item.getAttribute("data-value"));
@@ -1060,6 +1067,7 @@ function scrollToDelayValue(value) {
 
 // Atualizar valor textual do atraso no painel
 function updateDelayDisplay(minutes) {
+    if (!delayValDisplay) return;
     if (minutes === 0) {
         delayValDisplay.innerText = "Sem atraso";
         delayValDisplay.style.color = "var(--text-secondary)";

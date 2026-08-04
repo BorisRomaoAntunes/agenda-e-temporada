@@ -86,9 +86,9 @@
 
     <!-- Instructions Banner -->
     <div class="instructions">
-        <i data-lucide="zap" style="width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; color: #3b82f6;"></i>
+        <i data-lucide="info" style="width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; color: #3b82f6;"></i>
         <div>
-            <strong>Chamada Rápida:</strong> Toque no <strong>✓</strong> no cartão para Presença em 1 toque. Toque no músico para abrir o painel. A modal tem botão <strong>✕ no topo</strong>, deslizar para baixo e fecha automaticamente ao selecionar!
+            <strong>Como usar:</strong> Toque no <strong>Nome do Músico</strong> para marcar Presença rápida (verdinho). Toque no <strong>Botão de Status (ex: Pendente)</strong> para abrir o painel de opções.
         </div>
     </div>
 
@@ -152,7 +152,11 @@
                     <span>Atestado</span>
                 </button>
             </div>
-            <div class="options-row-2">
+            <div class="options-row-2" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.5rem;">
+                <button class="opt-btn-compact dispensa" id="optBtnDispensa">
+                    <i data-lucide="user-check" style="width: 18px; height: 18px;"></i>
+                    <span>Dispensa</span>
+                </button>
                 <button class="opt-btn-compact nao-escalado" id="optBtnNaoEscalado">
                     <i data-lucide="calendar-off" style="width: 18px; height: 18px;"></i>
                     <span>Não Escalado</span>
@@ -212,6 +216,6 @@
     </footer>
 
     <!-- Firebase SDK & Custom Logics -->
-    <script type="module" src="assets/js/admin/presenca.js?v=1"></script>
+    <script type="module" src="assets/js/admin/presenca.js?v=20260803_10"></script>
 </body>
 </html>

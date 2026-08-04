@@ -136,6 +136,7 @@ onAuthStateChanged(auth, (user) => {
         initEmulatorToggle(); // Inicia o toggle de emulação
         syncTickerWithLatest(); // Força sincronização do letreiro na inicialização
         initAtestadosManagement(); // Inicia a gestão de atestados médicos (Fase 3)
+        initDispensasModule(); // Inicia o módulo de dispensas de bolsistas
         initCalendarManagement(); // Inicia o módulo de calendário interativo
         initIntervalTimerControls(); // Inicia o controle do cronômetro de intervalo
         initMusiciansManagement(); // Inicia o gerenciamento de músicos (importação e busca reativa)
@@ -3574,6 +3575,17 @@ function initAtestadosManagement() {
                     selectMusico.appendChild(option);
                 });
             }
+
+            const dispensaSelectMusico = document.getElementById('dispensa-select-musico');
+            if (dispensaSelectMusico) {
+                dispensaSelectMusico.innerHTML = '<option value="">-- Selecione o Músico --</option>';
+                musiciansList.forEach(m => {
+                    const option = document.createElement('option');
+                    option.value = m.id;
+                    option.textContent = m.nome;
+                    dispensaSelectMusico.appendChild(option);
+                });
+            }
         } catch (error) {
             console.error("Erro ao carregar lista de músicos para atestados:", error);
         }
@@ -3929,8 +3941,240 @@ function initAtestadosManagement() {
                 btnDeleteOnly.innerHTML = '<i data-lucide="trash-2"></i> Apagar Atestado Sem Adicionar na Lista';
                 if (window.lucide) lucide.createIcons();
             }
+    }
+}
+
+// ================= MÓDULO DE DISPENSAS DE BOLSISTAS =================
+function initDispensasModule() {
+    const btnOpenModal = document.getElementById('btn-open-dispensa-modal');
+    const modalDispensa = document.getElementById('dispensa-modal');
+    const btnCloseModal = document.getElementById('btn-close-dispensa-modal');
+    const btnCancel = document.getElementById('btn-cancel-dispensa');
+    const formDispensa = document.getElementById('form-dispensa');
+    
+    const selectMusico = document.getElementById('dispensa-select-musico');
+    const inputInicio = document.getElementById('dispensa-input-inicio');
+    const inputFim = document.getElementById('dispensa-input-fim');
+    const inputDescricao = document.getElementById('dispensa-input-descricao');
+    const tableBody = document.getElementById('dispensas-table-body');
+    const btnSave = document.getElementById('btn-save-dispensa');
+
+    if (!btnOpenModal || !modalDispensa) return;
+
+    // Popula select de músicos ativos
+    function populateMusiciansSelect() {
+        if (!selectMusico) return;
+        selectMusico.innerHTML = '<option value="">-- Selecione o Músico --</option>';
+        if (typeof musiciansList !== 'undefined' && musiciansList && musiciansList.length > 0) {
+            musiciansList.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                opt.textContent = m.nome;
+                selectMusico.appendChild(opt);
+            });
+        }
+    }
+
+    function openDispensaModal() {
+        populateMusiciansSelect();
+        if (formDispensa) formDispensa.reset();
+        modalDispensa.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function closeDispensaModal() {
+        modalDispensa.style.display = 'none';
+        document.body.style.overflow = 'auto';
+    }
+
+    btnOpenModal.addEventListener('click', openDispensaModal);
+    if (btnCloseModal) btnCloseModal.addEventListener('click', closeDispensaModal);
+    if (btnCancel) btnCancel.addEventListener('click', closeDispensaModal);
+
+    modalDispensa.addEventListener('click', (e) => {
+        if (e.target === modalDispensa) closeDispensaModal();
+    });
+
+    // Salvar e Aplicar Dispensa
+    if (formDispensa) {
+        formDispensa.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            if (!auth.currentUser) {
+                showNotification('Sessão expirada. Faça login novamente.', 'error');
+                return;
+            }
+
+            const musicianId = selectMusico ? selectMusico.value : '';
+            const dataInicio = inputInicio ? inputInicio.value : '';
+            const dataFim = inputFim ? inputFim.value : '';
+            const descricao = inputDescricao ? inputDescricao.value.trim() : '';
+
+            if (!musicianId) {
+                showNotification('Por favor, selecione um músico ativo.', 'error');
+                return;
+            }
+            if (!dataInicio || !dataFim) {
+                showNotification('Por favor, informe a Data Inicial e Data Final.', 'error');
+                return;
+            }
+            if (dataInicio > dataFim) {
+                showNotification('A Data Inicial não pode ser maior que a Data Final.', 'error');
+                return;
+            }
+            if (!descricao) {
+                showNotification('Por favor, informe a descrição/motivo da dispensa.', 'error');
+                return;
+            }
+
+            const selectedOption = selectMusico.options[selectMusico.selectedIndex];
+            const nomeMusico = selectedOption ? selectedOption.text : 'Músico';
+
+            try {
+                if (btnSave) {
+                    btnSave.disabled = true;
+                    btnSave.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Salvando...';
+                    if (window.lucide) lucide.createIcons();
+                }
+
+                // 1. Salvar na coleção "dispensas" no Firestore
+                await addDoc(collection(db, "dispensas"), {
+                    musicianId: musicianId,
+                    nomeMusico: nomeMusico,
+                    dataInicio: dataInicio,
+                    dataFim: dataFim,
+                    descricao: descricao,
+                    criadoEm: new Date().toISOString(),
+                    criadoPor: auth.currentUser.email || 'admin'
+                });
+
+                // 2. Atualizar Listas de Presença Existentes no Firestore para o período
+                const dates = getDatesInRange(dataInicio, dataFim);
+                let updatedCount = 0;
+
+                for (const date of dates) {
+                    const presenceDocRef = doc(db, "presencas", date);
+                    const presenceSnap = await getDoc(presenceDocRef);
+                    
+                    if (presenceSnap.exists()) {
+                        const presenceData = presenceSnap.data();
+                        const registros = presenceData.registros || {};
+                        
+                        registros[musicianId] = {
+                            status: 'dispensa',
+                            minutes: 0,
+                            justificativa: descricao
+                        };
+
+                        await updateDoc(presenceDocRef, {
+                            registros: registros,
+                            ultimaAtualizacao: new Date().toISOString(),
+                            usuarioResponsavel: auth.currentUser.email || 'admin'
+                        });
+                        updatedCount++;
+                    }
+                }
+
+                // 3. Registrar Log de Auditoria
+                try {
+                    const formatBR = (iso) => iso ? iso.split('-').reverse().join('/') : '---';
+                    const detailsText = `Músico: ${nomeMusico} (ID: ${musicianId})\nPeríodo: ${formatBR(dataInicio)} até ${formatBR(dataFim)}\nListas Existentes Atualizadas: ${updatedCount} data(s)\nMotivo: ${descricao}`;
+                    await saveLog("dispensa", `Dispensa concedida: ${nomeMusico}`, null, detailsText);
+                } catch (logErr) {
+                    console.error("⚠️ [Dispensas] Erro ao salvar log:", logErr);
+                }
+
+                showNotification(`Dispensa concedida com sucesso! ${updatedCount} lista(s) de presença atualizada(s).`, 'success');
+                closeDispensaModal();
+                loadDispensasTable();
+
+            } catch (err) {
+                console.error("Erro ao salvar dispensa:", err);
+                showNotification(`Erro ao conceder dispensa: ${err.message}`, 'error');
+            } finally {
+                if (btnSave) {
+                    btnSave.disabled = false;
+                    btnSave.innerHTML = '<i data-lucide="check-circle"></i> Salvar e Aplicar Dispensa';
+                    if (window.lucide) lucide.createIcons();
+                }
+            }
         });
     }
+
+    // Carregar Tabela de Dispensas
+    async function loadDispensasTable() {
+        if (!tableBody) return;
+        try {
+            tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 1rem; color: #888;"><i data-lucide="loader-2" class="spin"></i> Carregando dispensas...</td></tr>';
+            if (window.lucide) lucide.createIcons();
+
+            const q = query(collection(db, "dispensas"), orderBy("criadoEm", "desc"));
+            const snapshot = await getDocs(q);
+
+            if (snapshot.empty) {
+                tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 1rem; color: #888;">Nenhuma dispensa concedida.</td></tr>';
+                return;
+            }
+
+            tableBody.innerHTML = '';
+            const formatBR = (iso) => iso ? iso.split('-').reverse().join('/') : '---';
+
+            snapshot.forEach(docSnap => {
+                const data = docSnap.data();
+                const id = docSnap.id;
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid #f0f2f5';
+
+                const dataInicioFmt = formatBR(data.dataInicio);
+                const dataFimFmt = formatBR(data.dataFim);
+                const dataCriacaoFmt = data.criadoEm ? new Date(data.criadoEm).toLocaleDateString('pt-BR') : '---';
+
+                tr.innerHTML = `
+                    <td style="padding: 0.8rem 1rem; font-weight: 600; color: #333;">${data.nomeMusico || 'Músico'}</td>
+                    <td style="padding: 0.8rem 1rem;"><span style="background: #f3e8ff; color: #6b21a8; padding: 0.2rem 0.6rem; border-radius: 6px; font-weight: 600; font-size: 0.85rem;">${dataInicioFmt} até ${dataFimFmt}</span></td>
+                    <td style="padding: 0.8rem 1rem; color: #555; max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${data.descricao || ''}">${data.descricao || '-'}</td>
+                    <td style="padding: 0.8rem 1rem; color: #888; font-size: 0.85rem;">${dataCriacaoFmt}</td>
+                    <td style="padding: 0.8rem 1rem; text-align: right;">
+                        <button class="btn-delete-dispensa" data-id="${id}" data-nome="${data.nomeMusico || ''}" style="background: #fef2f2; border: 1px solid #fca5a5; color: #dc2626; cursor: pointer; padding: 0.35rem 0.6rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.3rem;" title="Cancelar / Excluir Dispensa">
+                            <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i> Excluir
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+            if (window.lucide) lucide.createIcons();
+
+            // Event listener para botões de exclusão
+            document.querySelectorAll('.btn-delete-dispensa').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    const id = btn.getAttribute('data-id');
+                    const nome = btn.getAttribute('data-nome');
+                    
+                    if (!confirm(`Deseja realmente cancelar/excluir a dispensa de "${nome}"?`)) return;
+
+                    try {
+                        await deleteDoc(doc(db, "dispensas", id));
+                        showNotification('Dispensa excluída com sucesso.', 'info');
+                        try {
+                            await saveLog("dispensa", `Dispensa cancelada/excluída: ${nome}`, null, `ID Dispensa: ${id}`);
+                        } catch(lErr) {}
+                        loadDispensasTable();
+                    } catch (err) {
+                        console.error("Erro ao excluir dispensa:", err);
+                        showNotification(`Erro ao excluir dispensa: ${err.message}`, 'error');
+                    }
+                });
+            });
+
+        } catch (err) {
+            console.error("Erro ao carregar tabela de dispensas:", err);
+            tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 1rem; color: #dc2626;">Erro ao carregar dispensas.</td></tr>';
+        }
+    }
+
+    loadDispensasTable();
 }
 
 // ================= CRONÔMETRO DO INTERVALO =================
