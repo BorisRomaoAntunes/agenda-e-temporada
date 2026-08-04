@@ -7843,6 +7843,23 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                     presencasPorData[docSnap.id] = docSnap.data();
                 });
 
+                // Buscar dispensas no Firestore para o período
+                const dispensasQuery = query(collection(db, "dispensas"));
+                const dispensasSnapshot = await getDocs(dispensasQuery);
+                const dispensasMap = {};
+                dispensasSnapshot.forEach(docSnap => {
+                    const dData = docSnap.data();
+                    if (dData.musicianId && dData.dataInicio && dData.dataFim) {
+                        if (!dispensasMap[dData.musicianId]) dispensasMap[dData.musicianId] = new Set();
+                        let cur = new Date(dData.dataInicio + 'T00:00:00');
+                        const end = new Date(dData.dataFim + 'T00:00:00');
+                        while (cur <= end) {
+                            dispensasMap[dData.musicianId].add(cur.toISOString().split('T')[0]);
+                            cur.setDate(cur.getDate() + 1);
+                        }
+                    }
+                });
+
                 // Buscar eventos do mês para anotações do cabeçalho de data
                 const eventosQuery = query(
                     collection(db, "eventos"),
