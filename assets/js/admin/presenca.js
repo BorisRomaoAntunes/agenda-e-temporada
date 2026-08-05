@@ -307,6 +307,10 @@ async function loadMusicians() {
             const nomeArtLower = (data.NOMEARTISTICO || '').toString().toLowerCase();
             if (nomeRegLower.includes('angela de santi') || nomeArtLower.includes('angela de santi')) return;
 
+            // Filtro de status: Apenas Bolsistas, Monitores e Spallas
+            const isBolsistaOrMonitor = rawStatus.includes("bolsista") || rawStatus.includes("monitor") || rawStatus.includes("spalla");
+            if (!isBolsistaOrMonitor) return;
+
             const nomeArtistico = (data.NOMEARTISTICO || '').toString().trim();
             const nomeCompleto = (data['NOME REGISTRO'] || '').toString().trim();
             const nome = nomeArtistico || nomeCompleto || data.Nome || "Sem Nome";
