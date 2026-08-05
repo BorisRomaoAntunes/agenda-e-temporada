@@ -307,6 +307,19 @@ async function loadMusicians() {
             const nomeArtLower = (data.NOMEARTISTICO || '').toString().toLowerCase();
             if (nomeRegLower.includes('angela de santi') || nomeArtLower.includes('angela de santi')) return;
 
+            // Excluir expressamente equipe técnica, administrativa e regentes
+            const isApoioOuAdmin = rawStatus.includes('montagem') ||
+                                   rawStatus.includes('produç') ||
+                                   rawStatus.includes('produc') ||
+                                   rawStatus.includes('coorden') ||
+                                   rawStatus.includes('coo.') ||
+                                   rawStatus.includes('diret') ||
+                                   rawStatus.includes('apoio') ||
+                                   rawStatus.includes('arquiv') ||
+                                   rawStatus.includes('regente') ||
+                                   rawStatus.includes('reg.');
+            if (isApoioOuAdmin) return;
+
             // Filtro de status: Apenas Bolsistas, Monitores e Spallas
             const isBolsistaOrMonitor = rawStatus.includes("bolsista") || rawStatus.includes("monitor") || rawStatus.includes("spalla");
             if (!isBolsistaOrMonitor) return;
