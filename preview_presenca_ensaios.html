@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Protótipo — Chamada de Naipe (Com Horários Independentes)</title>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        :root {
+            --bg-primary: #f8fafc;
+            --bg-card: #ffffff;
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
+            --border-color: #e2e8f0;
+            
+            --color-presence: #10b981;
+            --color-presence-bg: #ecfdf5;
+            --color-absence: #ef4444;
+            --color-absence-bg: #fef2f2;
+            --color-delay: #f59e0b;
+            --color-delay-bg: #fffbeb;
+            --color-not-scheduled: #64748b;
+            --color-not-scheduled-bg: #f1f5f9;
+            
+            --color-tutti: #4f46e5;
+            --color-tutti-bg: #eef2ff;
+            --color-naipe: #8b5cf6;
+            --color-naipe-bg: #f5f3ff;
+            
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+            --shadow-lg: 0 12px 32px rgba(0,0,0,0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            padding-bottom: 60px;
+            min-height: 100vh;
+        }
+
+        .proto-banner {
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%);
+            color: #ffffff;
+            padding: 12px 16px;
+            text-align: center;
+            font-size: 0.85rem;
+            font-weight: 500;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            position: sticky;
+            top: 0;
+            z-index: 90;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .proto-banner span strong {
+            color: #a7f3d0;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+
+        /* Header Card */
+        .header-card {
+            background: var(--bg-card);
+            border-radius: var(--radius-lg);
+            padding: 16px;
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-color);
+            margin-bottom: 16px;
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .header-title h1 {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .date-badge {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: #f1f5f9;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #334155;
+            border: 1px solid #cbd5e1;
+        }
+
+        /* Botão Ação Sob Demanda */
+        .header-actions {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .btn-add-naipe {
+            flex: 1;
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+            color: white;
+            border: none;
+            padding: 10px 14px;
+            border-radius: var(--radius-md);
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            box-shadow: 0 2px 8px rgba(124, 58, 237, 0.25);
+            transition: all 0.2s;
+        }
+
+        .btn-add-naipe:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.35);
+        }
+
+        /* Abas de Ensaio com Horário */
+        .tabs-container {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+            margin-bottom: 12px;
+        }
+
+        .tab-item {
+            background: #ffffff;
+            border: 1.5px solid var(--border-color);
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            transition: all 0.2s;
+        }
+
+        .tab-item.active {
+            background: var(--color-tutti-bg);
+            border-color: var(--color-tutti);
+            color: var(--color-tutti);
+        }
+
+        .tab-item.active.naipe-tab {
+            background: var(--color-naipe-bg);
+            border-color: var(--color-naipe);
+            color: var(--color-naipe);
+        }
+
+        .time-chip {
+            background: rgba(0,0,0,0.06);
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-size: 0.7rem;
+            font-weight: 600;
+        }
+
+        /* Banner informativo */
+        .info-banner {
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            font-size: 0.8rem;
+            line-height: 1.4;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #e0e7ff;
+            color: #1e1b4b;
+            border-left: 4px solid var(--color-tutti);
+        }
+
+        .info-banner.naipe {
+            background: #f3e8ff;
+            color: #581c87;
+            border-left-color: var(--color-naipe);
+        }
+
+        /* Lista de Músicos */
+        .section-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 16px 4px 8px 4px;
+        }
+
+        .musician-card {
+            background: var(--bg-card);
+            border-radius: var(--radius-md);
+            padding: 12px 14px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .musician-card.disabled-naipe {
+            opacity: 0.45;
+            background: #f8fafc;
+        }
+
+        .musician-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.85rem;
+            color: #475569;
+        }
+
+        .musician-details h3 {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .musician-details p {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .status-btn {
+            padding: 8px 14px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-btn.presence {
+            background: var(--color-presence-bg);
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+        .status-btn.absence {
+            background: var(--color-absence-bg);
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+        .status-btn.not-scheduled {
+            background: var(--color-not-scheduled-bg);
+            color: #475569;
+            border: 1px solid #cbd5e1;
+            cursor: default;
+        }
+
+        /* MODAL SOB DEMANDA */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+        }
+
+        .modal-overlay.open {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal-box {
+            background: #ffffff;
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 480px;
+            padding: 20px;
+            box-shadow: var(--shadow-lg);
+            transform: translateY(10px);
+            transition: transform 0.2s ease;
+        }
+
+        .modal-overlay.open .modal-box {
+            transform: translateY(0);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .modal-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-close-modal {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #334155;
+            margin-bottom: 6px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .select-dropdown-container {
+            position: relative;
+        }
+
+        .select-input-custom {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            border: 1.5px solid var(--border-color);
+            font-size: 0.88rem;
+            outline: none;
+            background: #fff;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .select-dropdown-menu {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            margin-top: 4px;
+            background: white;
+            border: 1.5px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            box-shadow: var(--shadow-md);
+            max-height: 200px;
+            overflow-y: auto;
+            z-index: 10;
+            display: none;
+        }
+
+        .select-dropdown-menu.open {
+            display: block;
+        }
+
+        .opt-group-label {
+            font-size: 0.72rem;
+            font-weight: 800;
+            color: #64748b;
+            text-transform: uppercase;
+            padding: 8px 12px 4px 12px;
+            background: #f8fafc;
+        }
+
+        .opt-item {
+            padding: 8px 12px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+
+        .opt-item:hover {
+            background: #f1f5f9;
+        }
+
+        .opt-item input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            accent-color: var(--color-naipe);
+        }
+
+        .tags-selected-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .selected-tag {
+            background: #f3e8ff;
+            color: #6b21a8;
+            border: 1px solid #d8b4fe;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .text-input {
+            width: 100%;
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            border: 1.5px solid var(--border-color);
+            font-size: 0.88rem;
+            outline: none;
+            background: #fff;
+            color: var(--text-primary);
+        }
+
+        .modal-footer {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-cancel {
+            flex: 1;
+            background: #f1f5f9;
+            color: #475569;
+            border: none;
+            padding: 10px;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .btn-confirm {
+            flex: 2;
+            background: var(--color-naipe);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: var(--radius-sm);
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="proto-banner">
+        <span><strong>PROTÓTIPO:</strong> Horários Independentes por Ensaio</span>
+    </div>
+
+    <div class="container">
+        
+        <!-- Header da Página de Presença -->
+        <div class="header-card">
+            <div class="header-top">
+                <div class="header-title">
+                    <h1>Presença OER</h1>
+                </div>
+                <div class="date-badge">
+                    <i data-lucide="calendar" style="width: 14px; height: 14px;"></i>
+                    <span>15/08/2026</span>
+                </div>
+            </div>
+
+            <!-- Botão Sob Demanda -->
+            <div class="header-actions">
+                <button class="btn-add-naipe" onclick="openModal()">
+                    <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i>
+                    <span>+ Abrir Chamada de Naipe (Sob Demanda)</span>
+                </button>
+            </div>
+
+            <!-- Abas de Chamada Ativas na Data (COM HORÁRIOS) -->
+            <div class="tabs-container">
+                <div class="tab-item active" id="tabTutti" onclick="switchTab('tutti')">
+                    <i data-lucide="users" style="width: 14px; height: 14px;"></i>
+                    <span>Ensaio Tutti</span>
+                    <span class="time-chip">18:00</span>
+                </div>
+                <div class="tab-item naipe-tab" id="tabNaipeMadeiras" onclick="switchTab('madeiras')">
+                    <i data-lucide="music" style="width: 14px; height: 14px;"></i>
+                    <span>Madeiras</span>
+                    <span class="time-chip">14:00</span>
+                </div>
+            </div>
+
+            <!-- Banner de Orientação -->
+            <div class="info-banner" id="infoBanner">
+                <i data-lucide="clock" style="width: 16px; height: 16px; flex-shrink: 0;"></i>
+                <span id="infoText">Exibindo chamada do <strong>Ensaio Tutti (18:00 - 21:00)</strong>. Todos os músicos da orquestra estão convocados.</span>
+            </div>
+        </div>
+
+        <!-- LISTA DE MÚSICOS -->
+        <div class="section-title" id="sectionTitle">Chamada Tutti (18:00)</div>
+
+        <!-- Musico 1 (Flauta) -->
+        <div class="musician-card">
+            <div class="musician-info">
+                <div class="avatar" style="background:#dcfce7; color:#166534;">MS</div>
+                <div class="musician-details">
+                    <h3>Maria Silva</h3>
+                    <p>Flauta 1 • Madeiras</p>
+                </div>
+            </div>
+            <button class="status-btn presence">
+                <i data-lucide="check" style="width: 14px; height: 14px;"></i> Presença
+            </button>
+        </div>
+
+        <!-- Musico 2 (Oboé) -->
+        <div class="musician-card">
+            <div class="musician-info">
+                <div class="avatar" style="background:#dcfce7; color:#166534;">CS</div>
+                <div class="musician-details">
+                    <h3>Carlos Souza</h3>
+                    <p>Oboé 1 • Madeiras</p>
+                </div>
+            </div>
+            <button class="status-btn presence" id="btnCarlos">
+                <i data-lucide="check" style="width: 14px; height: 14px;"></i> Presença
+            </button>
+        </div>
+    </div>
+
+
+    <!-- MODAL COM CAMPO DE HORÁRIO ESPECÍFICO -->
+    <div class="modal-overlay" id="modalNaipe">
+        <div class="modal-box">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <i data-lucide="music" style="color: var(--color-naipe); width: 20px; height: 20px;"></i>
+                    <span>Abrir Chamada de Naipe</span>
+                </div>
+                <button class="btn-close-modal" onclick="closeModal()">
+                    <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                </button>
+            </div>
+
+            <div class="form-group">
+                <label>Selecione um ou mais Naipes / Famílias:</label>
+                <div class="select-dropdown-container">
+                    <div class="select-input-custom" onclick="toggleDropdown()">
+                        <span id="dropdownPlaceholderText">1 naipe selecionado</span>
+                        <i data-lucide="chevron-down" style="width: 16px; height: 16px;"></i>
+                    </div>
+
+                    <div class="select-dropdown-menu" id="dropdownMenu">
+                        <div class="opt-group-label">── FAMÍLIAS GERAIS ──</div>
+                        <div class="opt-item"><input type="checkbox" id="chk_fam_madeiras" checked onchange="updateSelectedTags()"><label for="chk_fam_madeiras">🎷 Madeiras (Todas)</label></div>
+                        <div class="opt-item"><input type="checkbox" id="chk_fam_metais" onchange="updateSelectedTags()"><label for="chk_fam_metais">🎺 Metais (Todos)</label></div>
+                        <div class="opt-item"><input type="checkbox" id="chk_fam_cordas" onchange="updateSelectedTags()"><label for="chk_fam_cordas">🎻 Cordas (Todas)</label></div>
+                    </div>
+                </div>
+
+                <div class="tags-selected-container" id="tagsContainer">
+                    <span class="selected-tag">Madeiras (Todas) <i data-lucide="x" style="width:12px;height:12px;"></i></span>
+                </div>
+            </div>
+
+            <!-- CAMPO DE HORÁRIO DO ENSAIO -->
+            <div class="form-group">
+                <div class="form-row">
+                    <div>
+                        <label>Horário de Início:</label>
+                        <input type="time" class="text-input" id="inputHoraInicio" value="14:00">
+                    </div>
+                    <div>
+                        <label>Horário de Término:</label>
+                        <input type="time" class="text-input" id="inputHoraFim" value="16:00">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Observações / Sala (Opcional):</label>
+                <input type="text" class="text-input" id="inputObs" placeholder="Ex: Sala de Madeiras / Ensaio parcial" value="Ensaio de Madeiras na Sala 2">
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+                <button class="btn-confirm" onclick="closeModal()">Criar Ensaio (14:00 - 16:00)</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        lucide.createIcons();
+
+        function openModal() {
+            document.getElementById('modalNaipe').classList.add('open');
+        }
+
+        function closeModal() {
+            document.getElementById('modalNaipe').classList.remove('open');
+        }
+
+        function toggleDropdown() {
+            document.getElementById('dropdownMenu').classList.toggle('open');
+        }
+
+        function switchTab(tab) {
+            const tabTutti = document.getElementById('tabTutti');
+            const tabNaipeMadeiras = document.getElementById('tabNaipeMadeiras');
+            const infoBanner = document.getElementById('infoBanner');
+            const infoText = document.getElementById('infoText');
+            const sectionTitle = document.getElementById('sectionTitle');
+            const btnCarlos = document.getElementById('btnCarlos');
+
+            if (tab === 'madeiras') {
+                tabTutti.className = 'tab-item';
+                tabNaipeMadeiras.className = 'tab-item active naipe-tab';
+                
+                infoBanner.className = 'info-banner naipe';
+                infoText.innerHTML = 'Chamada do <strong>Ensaio de Madeiras (14:00 - 16:00)</strong>. Chamada específica do naipe.';
+                sectionTitle.innerText = 'Chamada de Madeiras (14:00)';
+
+                btnCarlos.className = 'status-btn absence';
+                btnCarlos.innerHTML = '<i data-lucide="x" style="width: 14px; height: 14px;"></i> Falta';
+            } else {
+                tabTutti.className = 'tab-item active';
+                tabNaipeMadeiras.className = 'tab-item naipe-tab';
+                
+                infoBanner.className = 'info-banner';
+                infoText.innerHTML = 'Exibindo chamada do <strong>Ensaio Tutti (18:00 - 21:00)</strong>. Todos os músicos convocados.';
+                sectionTitle.innerText = 'Chamada Tutti (18:00)';
+
+                btnCarlos.className = 'status-btn presence';
+                btnCarlos.innerHTML = '<i data-lucide="check" style="width: 14px; height: 14px;"></i> Presença';
+            }
+
+            lucide.createIcons();
+        }
+    </script>
+</body>
+</html>
