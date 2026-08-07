@@ -133,7 +133,7 @@
                     <div class="header-separator"></div>
                     <div>
                         <h1>Painel de Controle</h1>
-                        <p id="user-email">admin@email.com</p>
+                        <p id="user-email" style="display:flex;align-items:center;gap:0.6rem;">admin@email.com <span id="app-version-badge" style="font-size:0.62rem;color:#aaa;font-weight:400;letter-spacing:0.04em;opacity:0.8;"></span></p>
                     </div>
                 </div>
                 <div class="header-actions">
@@ -2107,6 +2107,20 @@ Intervalo
             </div>
         </div>
     </div>
+
+    <script>
+        // Badge de versão do sistema
+        fetch('/version.json?_=' + Date.now())
+            .then(r => r.json())
+            .then(v => {
+                const el = document.getElementById('app-version-badge');
+                if (el) {
+                    el.textContent = 'v' + v.hash + ' · ' + v.date;
+                    el.title = 'Versão implantada em: ' + v.date;
+                }
+            })
+            .catch(() => {});
+    </script>
 
 </body>
 

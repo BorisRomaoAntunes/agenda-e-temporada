@@ -2,6 +2,7 @@
   "hosting": {
     "site": "oer-agenda",
     "public": ".",
+    "predeploy": ["bash scripts/update-version.sh"],
     "ignore": [
       "firebase.json",
       "**/.*",
@@ -18,6 +19,15 @@
     "headers": [
       {
         "source": "**/admin.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
+          }
+        ]
+      },
+      {
+        "source": "**/version.json",
         "headers": [
           {
             "key": "Cache-Control",

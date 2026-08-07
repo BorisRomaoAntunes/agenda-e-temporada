@@ -91,7 +91,7 @@ self.addEventListener('notificationclick', function(event) {
 // ==========================================
 // CONFIGURAÇÃO DO PWA & CACHE OFFLINE
 // ==========================================
-const CACHE_NAME = 'oer-agenda-v32';
+const CACHE_NAME = 'oer-agenda-v33';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -136,10 +136,11 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
     const url = event.request.url;
 
-    // Ignorar requisições para o Firebase (Firestore/Auth/Functions) para evitar problemas de dados estáticos
+    // Ignorar requisições para o Firebase e para o arquivo de versão
     if (url.includes('firestore.googleapis.com') || 
         url.includes('firebaseinstallations.googleapis.com') ||
-        url.includes('firebaselogging.googleapis.com')) {
+        url.includes('firebaselogging.googleapis.com') ||
+        url.includes('version.json')) {
         return;
     }
 

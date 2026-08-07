@@ -1,4 +1,7 @@
 {
+  "scripts": {
+    "predeploy": "bash scripts/update-version.sh"
+  },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "firebase": "^12.12.1"
