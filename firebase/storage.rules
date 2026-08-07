@@ -27,11 +27,14 @@ service firebase.storage {
 
     // Pasta temporária para upload de atestados (Músicos enviam aqui)
     // Upload público mas restrito a imagens e PDFs com máximo de 10MB.
+    // Inclui HEIC/HEIF — formato nativo da câmera do iPhone.
     // A Cloud Function onAtestadoUpload processa esses arquivos automaticamente.
     match /atestados_temp/{allPaths=**} {
       allow write: if request.resource.size < 10 * 1024 * 1024
                   && (request.resource.contentType.matches('image/.*')
-                      || request.resource.contentType == 'application/pdf');
+                      || request.resource.contentType == 'application/pdf'
+                      || request.resource.contentType == 'image/heic'
+                      || request.resource.contentType == 'image/heif');
       allow read: if request.auth != null
                   && request.auth.token.admin == true;
     }

@@ -1,11 +1,16 @@
 /**
  * medical-cert.js — Módulo Público de Envio de Atestados
  * Gerencia a visibilidade do botão de upload e a lógica de envio para o Firebase Storage.
+ *
+ * v2 — Correções para compatibilidade com iPhone (iOS Safari):
+ * - Usa uploadBytes em vez de uploadBytesResumable (evita protocolo resumable multi-etapa)
+ * - Suporte a HEIC/HEIF (formato nativo da câmera Apple)
+ * - Barra de progresso simulada para melhor UX
  */
 
 import { db, storage } from '../firebase-config.js';
 import { doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-import { ref, uploadBytesResumable } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
+import { ref, uploadBytes } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
 // Inicializa quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', () => {
@@ -67,7 +72,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (progressBar) progressBar.style.width = '0%';
         
         // Reset visual feedback
-        const zoneContent = dropArea.querySelector('.upload-zone-content');
         const fileInfo = dropArea.querySelector('.file-selected-info');
         const uploadText = dropArea.querySelector('.upload-text');
         const iconWrapper = dropArea.querySelector('.upload-icon-wrapper');
@@ -109,7 +113,45 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /**
-     * Lógica de Upload
+     * Barra de progresso simulada para uploadBytes (que não tem eventos de progresso).
+     * Avança suavemente até 90%, depois salta para 100% ao concluir.
+     */
+    function startSimulatedProgress(progressBar, progressPercent) {
+        let current = 0;
+        const interval = setInterval(() => {
+            // Avança mais rápido no início e desacelera conforme se aproxima de 90%
+            const increment = (90 - current) * 0.06;
+            current = Math.min(current + increment, 90);
+            progressBar.style.width = current + '%';
+            if (progressPercent) progressPercent.innerText = Math.round(current) + '%';
+        }, 150);
+        return interval;
+    }
+
+    /**
+     * Normaliza o content-type do arquivo para garantir compatibilidade.
+     * No iOS Safari, HEIC pode vir sem tipo ou com tipo incorreto.
+     */
+    function resolveContentType(file) {
+        if (file.type) return file.type;
+        // Inferir pelo nome se o tipo estiver vazio (pode acontecer no iOS)
+        const ext = file.name.split('.').pop().toLowerCase();
+        const extMap = {
+            'pdf': 'application/pdf',
+            'jpg': 'image/jpeg',
+            'jpeg': 'image/jpeg',
+            'png': 'image/png',
+            'webp': 'image/webp',
+            'heic': 'image/heic',
+            'heif': 'image/heif',
+        };
+        return extMap[ext] || 'application/octet-stream';
+    }
+
+    /**
+     * Lógica de Upload — usa uploadBytes para máxima compatibilidade com iOS Safari.
+     * O uploadBytesResumable usa um protocolo de múltiplas requisições que pode
+     * falhar no Safari iOS por restrições de CORS em sequência e gestão de sessão.
      */
     if (uploadForm) {
         uploadForm.addEventListener('submit', async (e) => {
@@ -118,12 +160,25 @@ document.addEventListener('DOMContentLoaded', () => {
             const file = fileInput.files[0];
             if (!file) return;
 
-            // Validação de Tipo e Tamanho (Máx 10MB)
-            const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+            // Tipos aceitos — inclui HEIC/HEIF (formato nativo de câmera do iPhone)
+            const validTypes = [
+                'application/pdf',
+                'image/jpeg',
+                'image/png',
+                'image/webp',
+                'image/heic',
+                'image/heif',
+                // iOS às vezes envia com tipo vazio; validamos pela extensão abaixo
+                '',
+            ];
+            const validExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'];
             const maxSize = 10 * 1024 * 1024; // 10MB
 
-            if (!validTypes.includes(file.type)) {
-                alert("Por favor, envie apenas arquivos PDF ou Imagens (JPG/PNG/WebP).");
+            const fileExt = file.name.split('.').pop().toLowerCase();
+            const isValidType = validTypes.includes(file.type) || validExtensions.includes(fileExt);
+
+            if (!isValidType) {
+                alert("Por favor, envie apenas arquivos PDF ou Imagens (JPG, PNG, WebP, HEIC).");
                 return;
             }
 
@@ -136,6 +191,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const cleanFileName = file.name.replace(/[^a-z0-9.]/gi, '_').toLowerCase();
             const storagePath = `atestados_temp/${timestamp}_${cleanFileName}`;
             const storageRef = ref(storage, storagePath);
+            const contentType = resolveContentType(file);
 
             // Iniciar upload
             btnSubmit.disabled = true;
@@ -145,29 +201,35 @@ document.addEventListener('DOMContentLoaded', () => {
             if (btnSpan) btnSpan.innerText = 'Enviando...';
             progressContainer.style.display = 'block';
 
-            const uploadTask = uploadBytesResumable(storageRef, file);
+            // Inicia barra de progresso simulada (uploadBytes não emite eventos de progresso)
+            const progressInterval = startSimulatedProgress(progressBar, progressPercent);
 
-            uploadTask.on('state_changed', 
-                (snapshot) => {
-                    const progress = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 100);
-                    progressBar.style.width = progress + '%';
-                    if (progressPercent) progressPercent.innerText = progress + '%';
-                }, 
-                (error) => {
-                    console.error("Erro no upload:", error);
-                    alert("Erro ao enviar arquivo. Verifique sua conexão e tente novamente.");
-                    btnSubmit.disabled = false;
-                    if (btnSpan) btnSpan.innerText = 'Tentar Novamente';
-                }, 
-                () => {
-                    // Mensagem de Sucesso
-                    if (btnSpan) btnSpan.innerText = '✅ Enviado!';
-                    setTimeout(() => {
-                        alert("O seu atestado já está disponível para o Inspetor.");
-                        closeUploadModal();
-                    }, 1000);
-                }
-            );
+            try {
+                // uploadBytes: upload único e direto — sem protocolo resumable multi-etapa.
+                // Muito mais estável no Safari iOS.
+                await uploadBytes(storageRef, file, { contentType });
+
+                // Upload concluído — finaliza a barra
+                clearInterval(progressInterval);
+                progressBar.style.width = '100%';
+                if (progressPercent) progressPercent.innerText = '100%';
+
+                if (btnSpan) btnSpan.innerText = '✅ Enviado!';
+                setTimeout(() => {
+                    alert("O seu atestado já está disponível para o Inspetor.");
+                    closeUploadModal();
+                }, 1000);
+
+            } catch (error) {
+                clearInterval(progressInterval);
+                // Log detalhado para facilitar diagnóstico futuro
+                console.error("Erro no upload:", error?.code, error?.message, error);
+                alert("Erro ao enviar arquivo. Verifique sua conexão e tente novamente.");
+                btnSubmit.disabled = false;
+                if (btnSpan) btnSpan.innerText = 'Tentar Novamente';
+                progressBar.style.width = '0%';
+                if (progressPercent) progressPercent.innerText = '0%';
+            }
         });
     }
 
@@ -202,4 +264,3 @@ document.addEventListener('DOMContentLoaded', () => {
     // Inicializa
     initAtestadosFeature();
 });
-
