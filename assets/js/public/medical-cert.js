@@ -132,10 +132,13 @@ document.addEventListener('DOMContentLoaded', () => {
      * Normaliza o content-type do arquivo para garantir compatibilidade.
      * No iOS Safari, HEIC pode vir sem tipo ou com tipo incorreto.
      */
+    /**
+     * Normaliza o content-type do arquivo para garantir compatibilidade.
+     * No iOS Safari, o file.type costuma vir como 'application/octet-stream' ou vazio.
+     * Priorizamos a extensão para evitar rejeição no Firebase Storage Rules.
+     */
     function resolveContentType(file) {
-        if (file.type) return file.type;
-        // Inferir pelo nome se o tipo estiver vazio (pode acontecer no iOS)
-        const ext = file.name.split('.').pop().toLowerCase();
+        const ext = file.name ? file.name.split('.').pop().toLowerCase() : '';
         const extMap = {
             'pdf': 'application/pdf',
             'jpg': 'image/jpeg',
@@ -145,7 +148,18 @@ document.addEventListener('DOMContentLoaded', () => {
             'heic': 'image/heic',
             'heif': 'image/heif',
         };
-        return extMap[ext] || 'application/octet-stream';
+
+        // 1. Prioriza a extensão se for reconhecida
+        if (ext && extMap[ext]) {
+            return extMap[ext];
+        }
+
+        // 2. Usa o file.type se não for o tipo genérico do Safari
+        if (file.type && file.type !== 'application/octet-stream' && file.type !== 'binary/octet-stream') {
+            return file.type;
+        }
+
+        return 'application/octet-stream';
     }
 
     /**
@@ -168,7 +182,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 'image/webp',
                 'image/heic',
                 'image/heif',
-                // iOS às vezes envia com tipo vazio; validamos pela extensão abaixo
+                'application/octet-stream',
+                'binary/octet-stream',
                 '',
             ];
             const validExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'webp', 'heic', 'heif'];
@@ -222,9 +237,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
             } catch (error) {
                 clearInterval(progressInterval);
-                // Log detalhado para facilitar diagnóstico futuro
                 console.error("Erro no upload:", error?.code, error?.message, error);
-                alert("Erro ao enviar arquivo. Verifique sua conexão e tente novamente.");
+                const errCode = error?.code ? ` (${error.code})` : '';
+                alert(`Erro ao enviar arquivo${errCode}. Verifique sua conexão e tente novamente.`);
                 btnSubmit.disabled = false;
                 if (btnSpan) btnSpan.innerText = 'Tentar Novamente';
                 progressBar.style.width = '0%';

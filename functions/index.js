@@ -827,7 +827,18 @@ exports.onAtestadoUpload = onObjectFinalized({
 }, async (event) => {
     const object = event.data;
     const filePath = object.name;
-    const contentType = object.contentType;
+    let contentType = object.contentType;
+
+    // Normalizar contentType se for octet-stream ou vazio
+    if (!contentType || contentType === "application/octet-stream" || contentType === "binary/octet-stream") {
+        const ext = filePath.split('.').pop().toLowerCase();
+        if (ext === 'pdf') contentType = 'application/pdf';
+        else if (ext === 'png') contentType = 'image/png';
+        else if (ext === 'webp') contentType = 'image/webp';
+        else if (ext === 'heic') contentType = 'image/heic';
+        else if (ext === 'heif') contentType = 'image/heif';
+        else contentType = 'image/jpeg';
+    }
 
     // 1. Validar se está na pasta correta
     if (!filePath.startsWith("atestados_temp/")) {
