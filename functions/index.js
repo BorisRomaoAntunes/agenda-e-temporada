@@ -1,6 +1,7 @@
 const { onDocumentCreated, onDocumentDeleted, onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onObjectFinalized } = require("firebase-functions/v2/storage");
 const { defineSecret } = require("firebase-functions/params");
 const functions = require("firebase-functions");
 const { FieldValue } = require("firebase-admin/firestore");
@@ -815,12 +816,16 @@ exports.onPDFUpload = functions.runWith({
 /**
  * Processamento Inteligente de Atestados Médicos (Fase 2)
  * Acionado quando um músico faz upload de um atestado (PDF ou Imagem) na pasta atestados_temp/
+ * Migrado para v2 para garantir compatibilidade com o bucket oer-agenda.firebasestorage.app
  */
-exports.onAtestadoUpload = functions.runWith({
-    timeoutSeconds: 540, 
-    memory: "1GB",
+exports.onAtestadoUpload = onObjectFinalized({
+    bucket: "oer-agenda.firebasestorage.app",
+    region: "us-east1",
+    timeoutSeconds: 540,
+    memory: "1GiB",
     secrets: ["GEMINI_API_KEY"]
-}).storage.object().onFinalize(async (object) => {
+}, async (event) => {
+    const object = event.data;
     const filePath = object.name;
     const contentType = object.contentType;
 

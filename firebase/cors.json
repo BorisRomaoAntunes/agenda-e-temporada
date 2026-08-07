@@ -2,9 +2,26 @@
   {
     "origin": [
       "https://oer-agenda.web.app",
-      "https://oer-agenda.firebaseapp.com"
+      "https://oer-agenda.firebaseapp.com",
+      "http://localhost:5002",
+      "http://localhost:5000",
+      "http://127.0.0.1:5000",
+      "http://127.0.0.1:5002"
     ],
-    "method": ["GET"],
-    "maxAgeSeconds": 3600
+    "method": ["GET", "PUT", "POST", "DELETE", "HEAD"],
+    "maxAgeSeconds": 3600,
+    "responseHeader": [
+      "Content-Type",
+      "Content-Length",
+      "Content-Disposition",
+      "Authorization",
+      "X-Goog-Upload-Protocol",
+      "X-Goog-Upload-Command",
+      "X-Goog-Upload-Header-Content-Encoding",
+      "X-Goog-Upload-Header-Content-Type",
+      "X-Goog-Upload-Offset",
+      "X-Goog-Upload-Status",
+      "X-Firebase-Storage-Version"
+    ]
   }
 ]
