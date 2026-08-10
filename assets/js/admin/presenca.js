@@ -618,7 +618,6 @@ function setActiveCall(callId) {
         renderMusicians();
     }
 }
-};
 
 // Tratar Mudança de Data no DatePicker
 async function handleDateChange(e) {
