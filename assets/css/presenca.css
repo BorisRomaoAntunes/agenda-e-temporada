@@ -96,20 +96,20 @@ body {
     gap: 0.6rem;
 }
 
-/* Linha 1: Título + Data */
+/* Linha 1: Título | Contadores Inline (desktop) | Grupo da Direita (Data + Ação) */
 .header-top {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 0.5rem;
+    width: 100%;
 }
 
 .header-title-container {
     display: flex;
     align-items: center;
     gap: 0.4rem;
-    flex: 1;
-    min-width: 0;
+    flex-shrink: 0;
 }
 
 .btn-back-admin {
@@ -128,6 +128,14 @@ body {
     font-weight: 700;
     color: var(--text-primary);
     white-space: nowrap;
+}
+
+/* Grupo Superior Direito (Data + Botão Chamada de Naipe) */
+.header-top-right {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-shrink: 0;
 }
 
 /* Contadores inline (desktop apenas) */
@@ -166,9 +174,9 @@ body {
 .date-picker-container {
     display: flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.35rem;
     background: #f1f5f9;
-    padding: 0.4rem 0.7rem;
+    padding: 0.4rem 0.6rem;
     border-radius: var(--radius-md);
     font-weight: 600;
     font-size: 0.85rem;
@@ -178,21 +186,21 @@ body {
 .date-picker-container input {
     border: none;
     background: transparent;
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     font-weight: 600;
     color: var(--text-primary);
     outline: none;
     cursor: pointer;
 }
 
-/* Linha 2: Contadores + Botão Naipe */
-.header-actions-row {
+/* Resumo de Contadores (Mobile) */
+.summary-bar-mobile-row {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    width: 100%;
 }
 
-/* Barra de Resumo (mobile) */
 .summary-bar {
     display: flex;
     gap: 0.4rem;
@@ -263,6 +271,15 @@ body {
 
 .btn-add-naipe:active {
     transform: scale(0.97);
+}
+
+/* Linha Inferior: Abas + Filtros */
+.header-bottom-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    width: 100%;
 }
 
 /* Abas de Ensaios da Data */
@@ -366,7 +383,6 @@ body {
     color: #b91c1c;
 }
 
-
 /* Filtros */
 .filters-container {
     display: flex;
@@ -406,48 +422,35 @@ body {
 }
 
 /* ========================
-   RESPONSIVIDADE — DESKTOP
+   RESPONSIVIDADE — DESKTOP (>= 768px)
    ======================== */
 @media (min-width: 768px) {
     .header {
         padding: 0.75rem 1.5rem;
-        gap: 0.5rem;
+        gap: 0.75rem;
     }
 
-    /* No desktop, mostrar contadores inline e esconder a barra mobile */
+    /* Mostrar contadores inline centralizados */
     .summary-bar-inline {
         display: flex;
         align-items: center;
-        gap: 0.35rem;
+        gap: 0.4rem;
         flex: 1;
         justify-content: center;
     }
 
-    .summary-bar {
+    /* Esconder barra de contadores mobile */
+    .summary-bar-mobile-row {
         display: none;
     }
 
-    /* Linha 2 no desktop: botão sozinho alinhado à direita */
-    .header-actions-row {
-        position: absolute;
-        top: calc(0.75rem + env(safe-area-inset-top));
-        right: 1.5rem;
-    }
-
-    .rehearsal-action-bar {
-        display: flex;
-        align-items: center;
-    }
-
-    /* Linha 3 (abas) e 4 (filtros) ficam na mesma linha no desktop */
-    .events-tabs-container {
-        order: 0;
-    }
-
-    .filters-container {
-        order: 1;
+    /* Abas de ensaios e pílulas de filtro lado a lado */
+    .header-bottom-row {
+        flex-wrap: nowrap;
+        justify-content: space-between;
     }
 }
+
 
 /* Instructions Banner */
 .instructions {

@@ -42,7 +42,7 @@
     <!-- Header Section -->
     <header class="header">
 
-        <!-- Linha 1: Título + Data -->
+        <!-- Linha Superior: Título | Contadores (desktop) | Data e Botão Chamada de Naipe -->
         <div class="header-top">
             <div class="header-title-container">
                 <button class="btn-back-admin" id="btnBackAdmin" title="Voltar ao Painel Admin">
@@ -61,15 +61,24 @@
                 <span class="summary-chip pending"><span class="summary-dot"></span><strong id="countPendingInline">0</strong> Pe</span>
             </div>
 
-            <div class="date-picker-container">
-                <i data-lucide="calendar" style="width: 15px; height: 15px;"></i>
-                <input type="date" id="dateInput">
+            <!-- Grupo da Direita: Data + Ação Sob Demanda -->
+            <div class="header-top-right">
+                <div class="date-picker-container">
+                    <i data-lucide="calendar" style="width: 15px; height: 15px;"></i>
+                    <input type="date" id="dateInput">
+                </div>
+
+                <div class="rehearsal-action-bar">
+                    <button class="btn-add-naipe" id="btnOpenNaipeModal">
+                        <i data-lucide="plus-circle" style="width: 15px; height: 15px;"></i>
+                        <span>Chamada de Naipe</span>
+                    </button>
+                </div>
             </div>
         </div>
 
-        <!-- Linha 2: Contadores (mobile full-width) + Botão de Naipe -->
-        <div class="header-actions-row">
-            <!-- Contadores de chamada (mobile) -->
+        <!-- Linha Mobile: Contadores de resumo -->
+        <div class="summary-bar-mobile-row">
             <div class="summary-bar" id="summaryBar">
                 <div class="summary-pill presence">
                     <span class="dot"></span>
@@ -88,28 +97,24 @@
                     <span>Pendentes: <strong id="countPending">0</strong></span>
                 </div>
             </div>
+        </div>
 
-            <!-- Botão Abrir Chamada de Naipe -->
-            <div class="rehearsal-action-bar">
-                <button class="btn-add-naipe" id="btnOpenNaipeModal">
-                    <i data-lucide="plus-circle" style="width: 15px; height: 15px;"></i>
-                    <span>Chamada de Naipe</span>
-                </button>
+        <!-- Linha Inferior: Abas de Ensaios + Filtros de Status -->
+        <div class="header-bottom-row">
+            <!-- Abas de Ensaios da Data (quando há múltiplas chamadas) -->
+            <div class="events-tabs-container" id="eventsTabsContainer" style="display: none;">
+                <!-- Abas geradas dinamicamente pelo presenca.js -->
+            </div>
+
+            <!-- Filtros -->
+            <div class="filters-container">
+                <button class="filter-pill" data-filter="pendente">Pendente</button>
+                <button class="filter-pill" data-filter="nao-escalado">Não Escalados</button>
+                <button class="filter-pill" data-filter="faltas-atrasos">Faltas e Atrasos</button>
             </div>
         </div>
-
-        <!-- Linha 3: Abas de Ensaios da Data (quando há múltiplas chamadas) -->
-        <div class="events-tabs-container" id="eventsTabsContainer" style="display: none;">
-            <!-- Abas geradas dinamicamente pelo presenca.js -->
-        </div>
-
-        <!-- Linha 4: Filtros -->
-        <div class="filters-container">
-            <button class="filter-pill" data-filter="pendente">Pendente</button>
-            <button class="filter-pill" data-filter="nao-escalado">Não Escalados</button>
-            <button class="filter-pill" data-filter="faltas-atrasos">Faltas e Atrasos</button>
-        </div>
     </header>
+
 
     <!-- Instructions Banner -->
     <div class="instructions">
