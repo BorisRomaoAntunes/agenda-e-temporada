@@ -82,10 +82,6 @@ const clickTimestamps = {}; // Controle de duplo clique por músico
 let scrollTimeout; // Controle do debounce de scroll
 let activeFilter = null; // Filtro ativo: 'nao-escalado' | 'faltas-atrasos' | null
 
-// Estado de Chamadas por Evento / Naipe Sob Demanda
-let dailyEventsCalls = []; // [ { id, tipo, label, naipe, horarioInicio, horarioFim, registros, anotacoes, oficial } ]
-let activeCallId = null; // ID da chamada aberta no momento
-
 // Valores de atraso para o seletor scroll (minutos)
 const delayValues = [0, 5, 10, 15, 20, 25, 30, 40, 50, 60, 75, 90, 120, 150, 180];
 
@@ -143,9 +139,6 @@ async function initApp() {
 
         // Carregar dados da data atual (ou rascunho)
         await loadDateData(selectedDate);
-
-        // Inicializar eventos do modal de chamada de naipe sob demanda
-        initNaipeModal();
 
         // Restaurar a posição de rolagem salva
         setTimeout(() => {
@@ -379,227 +372,81 @@ function updateActiveMusiciansForDate(targetDateStr) {
 async function loadDateData(dateStr) {
     try {
         existedInFirestore = false;
-        dailyEventsCalls = [];
-        activeCallId = null;
         attendanceData = {};
         notesText = "";
         if (notesTextarea) notesTextarea.value = "";
 
-        // 1. Tentar buscar no Firestore chamadas registradas para esta data
+        // 1. Tentar buscar no Firestore
         try {
-            const presencasRef = collection(db, "presencas");
-            const qPres = query(presencasRef, where("data", "==", dateStr));
-            const snapPres = await getDocs(qPres);
-            let docsPres = [];
-            snapPres.forEach(d => docsPres.push({ id: d.id, ...d.data() }));
+            const docRef = doc(db, "presencas", dateStr);
+            const docSnap = await getDoc(docRef);
 
-            // Tentar também buscar pelo doc ID igual a dateStr se não houver campo "data"
-            if (docsPres.length === 0) {
-                const docRefSingle = doc(db, "presencas", dateStr);
-                const snapSingle = await getDoc(docRefSingle);
-                if (snapSingle.exists()) {
-                    docsPres.push({ id: snapSingle.id, ...snapSingle.data() });
-                }
-            }
-
-            if (docsPres.length > 0) {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                attendanceData = data.registros || {};
+                notesText = data.anotacoes || "";
+                if (notesTextarea) notesTextarea.value = notesText;
                 existedInFirestore = true;
-                docsPres.forEach(d => {
-                    const labelNaipe = Array.isArray(d.naipe) ? d.naipe.join(" + ") : (d.naipe || "Naipe");
-                    dailyEventsCalls.push({
-                        id: d.id,
-                        tipo: d.tipo || "ensaio_tutti",
-                        label: d.tipo === "ensaio_naipe" ? `Naipe: ${labelNaipe}` : "Ensaio Tutti",
-                        naipe: d.naipe || null,
-                        horarioInicio: d.horarioInicio || (d.tipo === "ensaio_naipe" ? "14:00" : "18:00"),
-                        horarioFim: d.horarioFim || (d.tipo === "ensaio_naipe" ? "16:00" : "21:00"),
-                        anotacoes: d.anotacoes || "",
-                        registros: d.registros || {},
-                        oficial: d.oficial !== undefined ? d.oficial : true
-                    });
-                });
             } else {
                 // Rascunho Local
                 const draftKey = `presenca_oer_draft_${dateStr}`;
                 const savedState = localStorage.getItem(draftKey);
                 if (savedState) {
                     const parsed = JSON.parse(savedState);
-                    if (parsed.calls && Array.isArray(parsed.calls) && parsed.calls.length > 0) {
-                        dailyEventsCalls = parsed.calls;
-                    } else {
-                        dailyEventsCalls.push({
-                            id: dateStr,
-                            tipo: "ensaio_tutti",
-                            label: "Ensaio Tutti",
-                            naipe: null,
-                            horarioInicio: "18:00",
-                            horarioFim: "21:00",
-                            anotacoes: parsed.notes || "",
-                            registros: parsed.attendance || {},
-                            oficial: false
-                        });
-                    }
+                    attendanceData = parsed.attendance || {};
+                    notesText = parsed.notes || "";
+                    if (notesTextarea) notesTextarea.value = notesText;
                 } else {
-                    // Consulta de eventos cadastrados no calendário
-                    dailyEventsCalls.push({
-                        id: dateStr,
-                        tipo: "ensaio_tutti",
-                        label: "Ensaio Tutti",
-                        naipe: null,
-                        horarioInicio: "18:00",
-                        horarioFim: "21:00",
-                        anotacoes: "",
-                        registros: {},
-                        oficial: false
-                    });
-
+                    // Consulta de eventos inteligente
                     try {
                         const eventosRef = collection(db, "eventos");
-                        const qEvt = query(eventosRef, where("date", "==", dateStr), where("status", "==", "Confirmado"));
-                        const snapEvt = await getDocs(qEvt);
-                        snapEvt.forEach(dSnap => {
-                            const evt = dSnap.data();
-                            if (evt.tipo === "ensaio_naipe" && evt.naipe) {
-                                const naipeArr = Array.isArray(evt.naipe) ? evt.naipe : [evt.naipe];
-                                const labelNaipe = naipeArr.join(" + ");
-                                const existsAlready = dailyEventsCalls.some(c => c.label === `Naipe: ${labelNaipe}`);
-                                if (!existsAlready) {
-                                    dailyEventsCalls.push({
-                                        id: `${dateStr}_naipe_${Date.now()}`,
-                                        tipo: "ensaio_naipe",
-                                        label: `Naipe: ${labelNaipe}`,
-                                        naipe: naipeArr,
-                                        horarioInicio: evt.horarioInicio || "14:00",
-                                        horarioFim: evt.horarioFim || "16:00",
-                                        anotacoes: "",
-                                        registros: {},
-                                        oficial: false
+                        const q = query(eventosRef, where("date", "==", dateStr), where("status", "==", "Confirmado"));
+                        const querySnapshot = await getDocs(q);
+                        let eventosDoDia = [];
+                        querySnapshot.forEach(dSnap => eventosDoDia.push(dSnap.data()));
+                        
+                        updateActiveMusiciansForDate(dateStr);
+
+                        if (eventosDoDia.length > 0) {
+                            const temFolga = eventosDoDia.some(e => e.tipo === 'folga');
+                            if (temFolga) {
+                                allMusicians.forEach(m => { attendanceData[m.id] = { status: "nao_escalado", minutes: 0 }; });
+                            } else {
+                                const ensaiosNaipe = eventosDoDia.filter(e => e.tipo === 'ensaio_naipe');
+                                const temTuttiOuConcerto = eventosDoDia.some(e => e.tipo === 'ensaio_tutti' || e.tipo === 'concerto');
+                                if (ensaiosNaipe.length > 0 && !temTuttiOuConcerto) {
+                                    const naipesEscalados = ensaiosNaipe.map(e => normalizarNaipe(e.naipe || '')).filter(Boolean);
+                                    allMusicians.forEach(m => {
+                                        const musicoNaipe = normalizarNaipe(m.Instrumento || '');
+                                        const estaEscalado = naipesEscalados.some(ne => ne.includes(musicoNaipe) || musicoNaipe.includes(ne));
+                                        attendanceData[m.id] = estaEscalado ? { status: "none", minutes: 0 } : { status: "nao_escalado", minutes: 0 };
                                     });
+                                } else {
+                                    allMusicians.forEach(m => { attendanceData[m.id] = { status: "none", minutes: 0 }; });
                                 }
                             }
-                        });
+                        } else {
+                            allMusicians.forEach(m => { attendanceData[m.id] = { status: "none", minutes: 0 }; });
+                        }
                     } catch (evErr) {
                         console.warn("Aviso ao carregar eventos:", evErr);
+                        updateActiveMusiciansForDate(dateStr);
+                        allMusicians.forEach(m => { attendanceData[m.id] = { status: "none", minutes: 0 }; });
                     }
                 }
             }
         } catch (fsErr) {
             console.error("Erro ao carregar presenças:", fsErr);
-            dailyEventsCalls = [{
-                id: dateStr,
-                tipo: "ensaio_tutti",
-                label: "Ensaio Tutti",
-                naipe: null,
-                horarioInicio: "18:00",
-                horarioFim: "21:00",
-                anotacoes: "",
-                registros: {},
-                oficial: false
-            }];
         }
 
-        // Renderizar abas de ensaios e selecionar a chamada ativa
-        renderEventsTabs();
-        setActiveCall(dailyEventsCalls[0].id);
-    } catch (e) {
-        console.error("Erro em loadDateData:", e);
-        updateActiveMusiciansForDate(dateStr);
-        renderMusicians();
-    }
-}
-
-// Renderizar Abas de Ensaios/Chamadas da Data
-function renderEventsTabs() {
-    const container = document.getElementById("eventsTabsContainer");
-    if (!container) return;
-
-    if (dailyEventsCalls.length <= 1 && (!dailyEventsCalls[0] || dailyEventsCalls[0].tipo === "ensaio_tutti")) {
-        container.style.display = "none";
-        return;
-    }
-
-    container.style.display = "flex";
-    container.innerHTML = "";
-
-    dailyEventsCalls.forEach(call => {
-        const tab = document.createElement("div");
-        const isNaipe = call.tipo === "ensaio_naipe";
-        tab.className = `event-tab-item ${call.id === activeCallId ? 'active' : ''} ${isNaipe ? 'naipe-tab' : ''}`;
-        
-        const iconName = isNaipe ? 'music' : 'users';
-        const timeText = call.horarioInicio ? call.horarioInicio : (isNaipe ? '14:00' : '18:00');
-
-        tab.innerHTML = `
-            <i data-lucide="${iconName}" style="width: 14px; height: 14px;"></i>
-            <span>${call.label}</span>
-            <span class="event-time-chip">${timeText}</span>
-        `;
-
-        tab.addEventListener("click", () => setActiveCall(call.id));
-        container.appendChild(tab);
-    });
-
-    if (window.lucide) window.lucide.createIcons();
-}
-
-// Definir Chamada Ativa
-function setActiveCall(callId) {
-    activeCallId = callId;
-    const call = dailyEventsCalls.find(c => c.id === callId) || dailyEventsCalls[0];
-    if (!call) return;
-
-    attendanceData = call.registros || {};
-    notesText = call.anotacoes || "";
-    if (notesTextarea) notesTextarea.value = notesText;
-
-    // Atualizar banner de instruções
-    const instructionsText = document.getElementById("instructionsText");
-    if (instructionsText) {
-        if (call.tipo === "ensaio_naipe") {
-            const naipesStr = Array.isArray(call.naipe) ? call.naipe.join(" + ") : (call.naipe || "Naipe");
-            const horaStr = call.horarioInicio ? ` (${call.horarioInicio}${call.horarioFim ? ' às ' + call.horarioFim : ''})` : "";
-            instructionsText.innerHTML = `Chamada Sob Demanda para o <strong>Naipe: ${naipesStr}</strong>${horaStr}. Apenas músicos convocados deste naipe respondem por chamada. Outros ficam como <em>Não Escalado</em>.`;
-        } else {
-            const horaStr = call.horarioInicio ? ` (${call.horarioInicio}${call.horarioFim ? ' às ' + call.horarioFim : ''})` : "";
-            instructionsText.innerHTML = `Chamada do <strong>Ensaio Tutti</strong>${horaStr}. Todos os músicos da orquestra estão convocados.`;
-        }
-    }
-
-    // Filtrar músicos ativos para a data
-    updateActiveMusiciansForDate(selectedDate);
-
-    // Ajustar status para músicos convocados vs não escalados no ensaio de naipe
-    if (call.tipo === "ensaio_naipe" && call.naipe) {
-        const naipesEscalados = (Array.isArray(call.naipe) ? call.naipe : [call.naipe])
-            .map(n => normalizarNaipe(n))
-            .filter(Boolean);
-
-        allMusicians.forEach(m => {
-            const musicoNaipeNorm = normalizarNaipe(m.Instrumento || '');
-            const estaEscalado = naipesEscalados.some(ne => ne === musicoNaipeNorm || ne.includes(musicoNaipeNorm) || musicoNaipeNorm.includes(ne));
-
-            if (!estaEscalado) {
-                attendanceData[m.id] = { status: "nao_escalado", minutes: 0 };
-            } else if (!attendanceData[m.id]) {
-                attendanceData[m.id] = { status: "none", minutes: 0 };
-            }
-        });
-    } else {
-        allMusicians.forEach(m => {
-            if (!attendanceData[m.id]) {
-                attendanceData[m.id] = { status: "none", minutes: 0 };
-            }
-        });
-    }
-
-    // Verificar se existem dispensas ativas para a data selecionada
-    try {
-        const dispensasRef = collection(db, "dispensas");
-        const qDisp = query(dispensasRef, where("dataInicio", "<=", selectedDate));
-        getDocs(qDisp).then(snapDisp => {
+        // Verificar se existem dispensas ativas para a data selecionada
+        try {
+            const dispensasRef = collection(db, "dispensas");
+            const qDisp = query(dispensasRef, where("dataInicio", "<=", dateStr));
+            const snapDisp = await getDocs(qDisp);
             snapDisp.forEach(dDoc => {
                 const disp = dDoc.data();
-                if (disp.dataFim >= selectedDate && disp.musicianId) {
+                if (disp.dataFim >= dateStr && disp.musicianId) {
                     const mId = disp.musicianId;
                     const currentStatus = attendanceData[mId] ? attendanceData[mId].status : 'none';
                     if (currentStatus === 'none' || currentStatus === 'falta' || !attendanceData[mId]) {
@@ -611,17 +458,18 @@ function setActiveCall(callId) {
                     }
                 }
             });
-            renderEventsTabs();
-            renderMusicians();
-        }).catch(err => {
-            renderEventsTabs();
-            renderMusicians();
-        });
-    } catch (dispErr) {
-        renderEventsTabs();
+        } catch (dispErr) {
+            console.warn("Aviso ao verificar dispensas ativas:", dispErr);
+        }
+
+        // Garantir atualização da lista e renderização SEMPRE
+        updateActiveMusiciansForDate(dateStr);
+        renderMusicians();
+    } catch (e) {
+        console.error("Erro em loadDateData:", e);
+        updateActiveMusiciansForDate(dateStr);
         renderMusicians();
     }
-}
 };
 
 // Tratar Mudança de Data no DatePicker
@@ -1032,19 +880,10 @@ function closeDrawer() {
 
 // Salvar Rascunho Local
 function saveDraft() {
-    if (!selectedDate) return;
-    const activeCall = dailyEventsCalls.find(c => c.id === activeCallId);
-    if (activeCall) {
-        activeCall.registros = { ...attendanceData };
-        activeCall.anotacoes = notesText;
-    }
     const draftKey = `presenca_oer_draft_${selectedDate}`;
     const state = {
-        selectedDate: selectedDate,
-        calls: dailyEventsCalls,
         attendance: attendanceData,
-        notes: notesText,
-        timestamp: new Date().toISOString()
+        notes: notesText
     };
     localStorage.setItem(draftKey, JSON.stringify(state));
 }
@@ -1062,144 +901,8 @@ function saveNotes() {
     showToast("Anotações salvas temporariamente!");
 }
 
-// Modal & Dropdown Handlers de Chamada de Naipe
-function initNaipeModal() {
-    const btnOpen = document.getElementById("btnOpenNaipeModal");
-    const modalOverlay = document.getElementById("modalNaipeOverlay");
-    const btnClose = document.getElementById("btnCloseNaipeModal");
-    const btnCancel = document.getElementById("btnCancelNaipeModal");
-    const btnConfirm = document.getElementById("btnConfirmCreateNaipeCall");
-
-    const dropdownTrigger = document.getElementById("dropdownTrigger");
-    const dropdownMenu = document.getElementById("dropdownMenu");
-
-    if (btnOpen) {
-        btnOpen.addEventListener("click", () => {
-            if (modalOverlay) modalOverlay.classList.add("open");
-        });
-    }
-
-    const closeModal = () => {
-        if (modalOverlay) modalOverlay.classList.remove("open");
-        if (dropdownMenu) dropdownMenu.classList.remove("open");
-    };
-
-    if (btnClose) btnClose.addEventListener("click", closeModal);
-    if (btnCancel) btnCancel.addEventListener("click", closeModal);
-    if (modalOverlay) {
-        modalOverlay.addEventListener("click", (e) => {
-            if (e.target === modalOverlay) closeModal();
-        });
-    }
-
-    if (dropdownTrigger && dropdownMenu) {
-        dropdownTrigger.addEventListener("click", (e) => {
-            e.stopPropagation();
-            dropdownMenu.classList.toggle("open");
-        });
-
-        document.addEventListener("click", (e) => {
-            if (!dropdownTrigger.contains(e.target) && !dropdownMenu.contains(e.target)) {
-                dropdownMenu.classList.remove("open");
-            }
-        });
-    }
-
-    // Gerenciar seleções por família
-    const famMap = {
-        chk_fam_cordas: ["chk_v1", "chk_v2", "chk_va", "chk_vc", "chk_cb"],
-        chk_fam_madeiras: ["chk_fl", "chk_ob", "chk_cl", "chk_fg"],
-        chk_fam_metais: ["chk_tp", "chk_tr", "chk_tb", "chk_tu"],
-        chk_fam_percussao: ["chk_pr"]
-    };
-
-    Object.entries(famMap).forEach(([famId, childIds]) => {
-        const famChk = document.getElementById(famId);
-        if (famChk) {
-            famChk.addEventListener("change", () => {
-                const isChecked = famChk.checked;
-                childIds.forEach(cId => {
-                    const cChk = document.getElementById(cId);
-                    if (cChk) cChk.checked = isChecked;
-                });
-                updateNaipeTags();
-            });
-        }
-    });
-
-    document.querySelectorAll(".chk-naipe-item").forEach(item => {
-        item.addEventListener("change", updateNaipeTags);
-    });
-
-    if (btnConfirm) {
-        btnConfirm.addEventListener("click", () => {
-            const checkedItems = Array.from(document.querySelectorAll(".chk-naipe-item:checked")).map(el => el.value);
-            if (checkedItems.length === 0) {
-                alert("Por favor, selecione ao menos um naipe para a chamada.");
-                return;
-            }
-
-            const horaInicio = document.getElementById("inputNaipeHoraInicio")?.value || "14:00";
-            const horaFim = document.getElementById("inputNaipeHoraFim")?.value || "16:00";
-            const obs = document.getElementById("inputNaipeObs")?.value || "";
-
-            const newCallId = `${selectedDate}_naipe_${Date.now()}`;
-            const labelNaipe = checkedItems.join(" + ");
-            const newCall = {
-                id: newCallId,
-                tipo: "ensaio_naipe",
-                label: `Naipe: ${labelNaipe}`,
-                naipe: checkedItems,
-                horarioInicio: horaInicio,
-                horarioFim: horaFim,
-                anotacoes: obs,
-                registros: {},
-                oficial: false
-            };
-
-            dailyEventsCalls.push(newCall);
-            saveDraft();
-            closeModal();
-            renderEventsTabs();
-            setActiveCall(newCallId);
-            showToast(`Chamada criada para o Naipe: ${labelNaipe}`);
-        });
-    }
-}
-
-function updateNaipeTags() {
-    const checkedItems = Array.from(document.querySelectorAll(".chk-naipe-item:checked"));
-    const container = document.getElementById("tagsSelectedContainer");
-    const placeholder = document.getElementById("dropdownPlaceholderText");
-    if (!container || !placeholder) return;
-
-    container.innerHTML = "";
-
-    if (checkedItems.length === 0) {
-        placeholder.innerText = "Clique para selecionar naipes...";
-    } else {
-        placeholder.innerText = `${checkedItems.length} naipe(s) selecionado(s)`;
-        checkedItems.forEach(chk => {
-            const tag = document.createElement("span");
-            tag.className = "selected-tag";
-            tag.innerHTML = `${chk.value} <i data-lucide="x" style="width:12px;height:12px;"></i>`;
-            tag.querySelector("i").addEventListener("click", (e) => {
-                e.stopPropagation();
-                chk.checked = false;
-                updateNaipeTags();
-            });
-            container.appendChild(tag);
-        });
-    }
-
-    if (window.lucide) window.lucide.createIcons();
-}
-
 // Salvar Oficialmente no Firestore e Gerar Log
 async function saveOfficialData() {
-    const activeCall = dailyEventsCalls.find(c => c.id === activeCallId) || dailyEventsCalls[0];
-    if (!activeCall) return;
-
     // Varredura preventiva para limpar justificativas vazias
     Object.keys(attendanceData).forEach(mId => {
         const item = attendanceData[mId];
@@ -1220,24 +923,16 @@ async function saveOfficialData() {
     loader.classList.remove("hidden");
 
     try {
-        // 1. Gravar dados da presença da chamada ativa
-        const docRef = doc(db, "presencas", activeCall.id);
+        // 1. Gravar dados da presença
+        const docRef = doc(db, "presencas", selectedDate);
         await setDoc(docRef, {
             data: selectedDate,
-            tipo: activeCall.tipo || "ensaio_tutti",
-            naipe: activeCall.naipe || null,
-            horarioInicio: activeCall.horarioInicio || "",
-            horarioFim: activeCall.horarioFim || "",
             anotacoes: notesText,
             oficial: true,
             registros: attendanceData,
             ultimaAtualizacao: new Date().toISOString(),
             usuarioResponsavel: currentUserEmail
         });
-
-        activeCall.registros = { ...attendanceData };
-        activeCall.anotacoes = notesText;
-        activeCall.oficial = true;
 
         // 2. Contabilizar totais para detalhes do Log
         let presencas = 0, faltas = 0, atestados = 0, dispensas = 0, atrasos = 0, naoEscalados = 0, justificados = 0;
@@ -1254,13 +949,9 @@ async function saveOfficialData() {
         // 3. Definir tipo e mensagem do log com base na auditoria
         const formattedDate = formatDateDisplay(selectedDate);
         const logType = existedInFirestore ? "presenca-corrigida" : "presenca-salva";
-        const descNaipe = activeCall.tipo === "ensaio_naipe" 
-            ? ` (Naipe: ${Array.isArray(activeCall.naipe) ? activeCall.naipe.join(' + ') : activeCall.naipe})`
-            : "";
-            
         const logMessage = existedInFirestore 
-            ? `Alteração retroativa realizada na lista de presença${descNaipe} do dia ${formattedDate} por ${currentUserEmail}`
-            : `Lista de presença${descNaipe} do dia ${formattedDate} registrada por ${currentUserEmail}`;
+            ? `Alteração retroativa realizada na lista de presença do dia ${formattedDate} por ${currentUserEmail}`
+            : `Lista de presença do dia ${formattedDate} registrada por ${currentUserEmail}`;
 
         // 4. Gravar log na coleção adminLogs
         await addDoc(collection(db, "adminLogs"), {

@@ -55,19 +55,6 @@
                 <input type="date" id="dateInput">
             </div>
         </div>
-
-        <!-- Ação Sob Demanda & Abas de Chamadas da Data -->
-        <div class="rehearsal-action-bar">
-            <button class="btn-add-naipe" id="btnOpenNaipeModal">
-                <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i>
-                <span>+ Abrir Chamada de Naipe (Sob Demanda)</span>
-            </button>
-        </div>
-
-        <!-- Abas de Ensaios da Data -->
-        <div class="events-tabs-container" id="eventsTabsContainer" style="display: none;">
-            <!-- Abas serão geradas dinamicamente pelo presenca.js -->
-        </div>
         
         <!-- Barra de Resumo de Chamada -->
         <div class="summary-bar">
@@ -98,9 +85,9 @@
     </header>
 
     <!-- Instructions Banner -->
-    <div class="instructions" id="instructionsBanner">
+    <div class="instructions">
         <i data-lucide="info" style="width: 18px; height: 18px; flex-shrink: 0; margin-top: 1px; color: #3b82f6;"></i>
-        <div id="instructionsText">
+        <div>
             <strong>Como usar:</strong> Toque no <strong>Nome do Músico</strong> para marcar Presença rápida (verdinho). Toque no <strong>Botão de Status (ex: Pendente)</strong> para abrir o painel de opções.
         </div>
     </div>
@@ -228,85 +215,7 @@
         </div>
     </footer>
 
-    <!-- Modal de Chamada de Naipe Sob Demanda -->
-    <div class="modal-overlay" id="modalNaipeOverlay">
-        <div class="modal-box" id="modalNaipeBox">
-            <div class="modal-header">
-                <div class="modal-title">
-                    <i data-lucide="music" style="color: var(--color-justified); width: 20px; height: 20px;"></i>
-                    <span>Abrir Chamada de Naipe</span>
-                </div>
-                <button class="btn-close-modal" id="btnCloseNaipeModal">
-                    <i data-lucide="x" style="width: 20px; height: 20px;"></i>
-                </button>
-            </div>
-
-            <div class="modal-body">
-                <div class="form-group">
-                    <label class="form-label">Selecione os Naipes ou Famílias:</label>
-                    <div class="select-dropdown-container">
-                        <div class="select-input-custom" id="dropdownTrigger">
-                            <span id="dropdownPlaceholderText">Clique para selecionar naipes...</span>
-                            <i data-lucide="chevron-down" style="width: 16px; height: 16px; color: var(--text-secondary);"></i>
-                        </div>
-
-                        <div class="select-dropdown-menu" id="dropdownMenu">
-                            <div class="opt-group-label">── FAMÍLIAS GERAIS ──</div>
-                            <div class="opt-item"><input type="checkbox" id="chk_fam_cordas" data-fam="cordas"><label for="chk_fam_cordas">🎻 Cordas (Todas)</label></div>
-                            <div class="opt-item"><input type="checkbox" id="chk_fam_madeiras" data-fam="madeiras"><label for="chk_fam_madeiras">🎷 Madeiras (Todas)</label></div>
-                            <div class="opt-item"><input type="checkbox" id="chk_fam_metais" data-fam="metais"><label for="chk_fam_metais">🎺 Metais (Todos)</label></div>
-                            <div class="opt-item"><input type="checkbox" id="chk_fam_percussao" data-fam="percussao"><label for="chk_fam_percussao">🥁 Percussão (Todas)</label></div>
-
-                            <div class="opt-group-label">── NAIPES ESPECÍFICOS ──</div>
-                            <div class="opt-item"><input type="checkbox" class="chk-naipe-item" id="chk_v1" value="Primeiros Violinos"><label for="chk_v1">Primeiros Violinos</label></div>
-                            <div class="opt-item"><input type="checkbox" class="chk-naipe-item" id="chk_v2" value="Segundos Violinos"><label for="chk_v2">Segundos Violinos</label></div>
-                            <div class="opt-item"><input type="checkbox" class="chk-naipe-item" id="chk_va" value="Violas"><label for="chk_va">Violas</label></div>
-                            <div class="opt-item"><input type="checkbox" class="chk-naipe-item" id="chk_vc" value="Violoncelos"><label for="chk_vc">Violoncelos</label></div>
-                            <div class="opt-item"><input type="checkbox" class="chk-naipe-item" id="chk_cb" value="Contrabaixos"><label for="chk_cb">Contrabaixos</label></div>
-                            <div class="opt-item"><input type="checkbox" class="chk-naipe-item" id="chk_fl" value="Flauta"><label for="chk_fl">Flautas</label></div>
-                            <div class="opt-item"><input type="checkbox" class="chk-naipe-item" id="chk_ob" value="Oboé"><label for="chk_ob">Oboés</label></div>
-                            <div class="opt-item"><input type="checkbox" class="chk-naipe-item" id="chk_cl" value="Clarinete"><label for="chk_cl">Clarinetes</label></div>
-                            <div class="opt-item"><input type="checkbox" class="chk-naipe-item" id="chk_fg" value="Fagote"><label for="chk_fg">Fagotes</label></div>
-                            <div class="opt-item"><input type="checkbox" class="chk-naipe-item" id="chk_tp" value="Trompa"><label for="chk_tp">Trompas</label></div>
-                            <div class="opt-item"><input type="checkbox" class="chk-naipe-item" id="chk_tr" value="Trompete"><label for="chk_tr">Trompetes</label></div>
-                            <div class="opt-item"><input type="checkbox" class="chk-naipe-item" id="chk_tb" value="Trombone"><label for="chk_tb">Trombones</label></div>
-                            <div class="opt-item"><input type="checkbox" class="chk-naipe-item" id="chk_tu" value="Tuba"><label for="chk_tu">Tuba</label></div>
-                            <div class="opt-item"><input type="checkbox" class="chk-naipe-item" id="chk_hp" value="Harpa"><label for="chk_hp">Harpa</label></div>
-                            <div class="opt-item"><input type="checkbox" class="chk-naipe-item" id="chk_pn" value="Piano"><label for="chk_pn">Piano</label></div>
-                            <div class="opt-item"><input type="checkbox" class="chk-naipe-item" id="chk_pr" value="Percussão"><label for="chk_pr">Percussão</label></div>
-                        </div>
-                    </div>
-
-                    <div class="tags-selected-container" id="tagsSelectedContainer"></div>
-                </div>
-
-                <div class="form-group">
-                    <div class="form-row-2">
-                        <div>
-                            <label class="form-label">Horário de Início:</label>
-                            <input type="time" class="modal-input" id="inputNaipeHoraInicio" value="14:00">
-                        </div>
-                        <div>
-                            <label class="form-label">Horário de Término:</label>
-                            <input type="time" class="modal-input" id="inputNaipeHoraFim" value="16:00">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="form-label">Observação / Sala (Opcional):</label>
-                    <input type="text" class="modal-input" id="inputNaipeObs" placeholder="Ex: Ensaio de naipe na sala 2">
-                </div>
-            </div>
-
-            <div class="modal-footer">
-                <button class="btn btn-cancel" id="btnCancelNaipeModal">Cancelar</button>
-                <button class="btn btn-confirm" id="btnConfirmCreateNaipeCall" style="background: var(--color-justified); border-color: var(--color-justified);">Gerar Lista do Naipe</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Firebase SDK & Custom Logics -->
-    <script type="module" src="assets/js/admin/presenca.js?v=20260805_03"></script>
+    <script type="module" src="assets/js/admin/presenca.js?v=20260805_02"></script>
 </body>
 </html>
