@@ -7432,14 +7432,17 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                 const presencasQuery = query(
                     collection(db, "presencas"),
                     where("__name__", ">=", startOfMonthQuery),
-                    where("__name__", "<=", endOfMonthQuery)
+                    where("__name__", "<=", endOfMonthQuery + "_\uffff")
                 );
                 
                 const presencasSnapshot = await getDocs(presencasQuery);
                 const presencasPorData = {};
                 
                 presencasSnapshot.forEach(docSnap => {
-                    presencasPorData[docSnap.id] = docSnap.data();
+                    const dData = docSnap.data();
+                    const dateKey = dData.data || docSnap.id.split('_')[0];
+                    if (!presencasPorData[dateKey]) presencasPorData[dateKey] = [];
+                    presencasPorData[dateKey].push({ id: docSnap.id, ...dData });
                 });
 
                 // Buscar dispensas no Firestore para o período
@@ -7602,6 +7605,96 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                         </tr>
                     `;
                     
+                    const getMusicianStatusForDate = (musico, docsDoDia, dispensasMapRef, dataStr) => {
+                        if (!docsDoDia || docsDoDia.length === 0) {
+                            const isDispensadoNoDia = dispensasMapRef && dispensasMapRef[musico.id] && dispensasMapRef[musico.id].has(dataStr);
+                            if (isDispensadoNoDia) {
+                                return { cellText: 'D', cellClass: 'status-dispensa', incP: 0, incF: 0, excelText: 'D' };
+                            }
+                            return { cellText: '', cellClass: 'status-sem-registro', incP: 0, incF: 0, excelText: '' };
+                        }
+
+                        const isCanceladoNoDia = musico.dataSaida && dataStr >= musico.dataSaida;
+                        if (isCanceladoNoDia) {
+                            return { cellText: 'CL', cellClass: 'status-cancelado', incP: 0, incF: 0, excelText: 'CL' };
+                        }
+
+                        const isDispensadoGlobal = dispensasMapRef && dispensasMapRef[musico.id] && dispensasMapRef[musico.id].has(dataStr);
+                        const musicoInstNorm = normalizarNaipe(musico.INSTRUMENTOS || musico.Instrumento || '');
+                        
+                        const relevantDocs = docsDoDia.filter(docData => {
+                            if (docData.tipo === 'ensaio_naipe' && docData.naipe) {
+                                const naipesArr = (Array.isArray(docData.naipe) ? docData.naipe : [docData.naipe])
+                                    .map(n => normalizarNaipe(n))
+                                    .filter(Boolean);
+                                return naipesArr.some(nn => nn === musicoInstNorm || nn.includes(musicoInstNorm) || musicoInstNorm.includes(nn));
+                            }
+                            return true;
+                        });
+
+                        if (relevantDocs.length === 0) {
+                            if (isDispensadoGlobal) {
+                                return { cellText: 'D', cellClass: 'status-dispensa', incP: 0, incF: 0, excelText: 'D' };
+                            }
+                            return { cellText: '-', cellClass: 'status-nao-escalado', incP: 0, incF: 0, excelText: '-' };
+                        }
+
+                        const getSymbol = (reg) => {
+                            if (!reg) return { symbol: '-', status: 'none', incP: 0, incF: 0, excelSym: '-' };
+                            const st = reg.status;
+                            if (st === 'presenca') return { symbol: '✓', status: 'presenca', incP: 1, incF: 0, excelSym: 'P' };
+                            if (st === 'falta') return { symbol: 'F', status: 'falta', incP: 0, incF: 1, excelSym: 'F' };
+                            if (st === 'atestado') return { symbol: 'A', status: 'atestado', incP: 0, incF: 0, excelSym: 'A' };
+                            if (st === 'dispensa') return { symbol: 'D', status: 'dispensa', incP: 0, incF: 0, excelSym: 'D' };
+                            if (st === 'justificado') return { symbol: 'J', status: 'justificado', incP: 0, incF: 0, excelSym: 'J' };
+                            if (st === 'atraso') return { symbol: reg.minutes ? `${reg.minutes}m` : 'At', status: 'atraso', incP: 1, incF: 0, excelSym: 'P' };
+                            if (st === 'nao_escalado') return { symbol: '-', status: 'nao_escalado', incP: 0, incF: 0, excelSym: '-' };
+                            return { symbol: '-', status: 'none', incP: 0, incF: 0, excelSym: '-' };
+                        };
+
+                        if (relevantDocs.length === 1) {
+                            const docSingle = relevantDocs[0];
+                            const reg = docSingle.registros ? docSingle.registros[musico.id] : null;
+                            if (isDispensadoGlobal || (reg && reg.status === 'dispensa')) {
+                                return { cellText: 'D', cellClass: 'status-dispensa', incP: 0, incF: 0, excelText: 'D' };
+                            }
+                            const sym = getSymbol(reg);
+                            let cClass = 'status-sem-registro';
+                            if (sym.status === 'presenca') cClass = 'status-presenca';
+                            else if (sym.status === 'falta') cClass = 'status-falta';
+                            else if (sym.status === 'atestado') cClass = 'status-atestado';
+                            else if (sym.status === 'dispensa') cClass = 'status-dispensa';
+                            else if (sym.status === 'justificado') cClass = 'status-justificado';
+                            else if (sym.status === 'atraso') cClass = 'status-atraso';
+                            else if (sym.status === 'nao_escalado') cClass = 'status-nao-escalado';
+
+                            return { cellText: sym.symbol, cellClass: cClass, incP: sym.incP, incF: sym.incF, excelText: sym.excelSym };
+                        }
+
+                        const naipeDoc = relevantDocs.find(d => d.tipo === 'ensaio_naipe');
+                        const tuttiDoc = relevantDocs.find(d => d.tipo !== 'ensaio_naipe');
+
+                        const regNaipe = (naipeDoc && naipeDoc.registros) ? naipeDoc.registros[musico.id] : null;
+                        const regTutti = (tuttiDoc && tuttiDoc.registros) ? tuttiDoc.registros[musico.id] : null;
+
+                        const symNaipe = getSymbol(regNaipe);
+                        const symTutti = getSymbol(regTutti);
+
+                        let incP = symNaipe.incP + symTutti.incP;
+                        let incF = symNaipe.incF + symTutti.incF;
+
+                        let cellText = `N:${symNaipe.symbol} T:${symTutti.symbol}`;
+                        let excelText = `N:${symNaipe.excelSym}/T:${symTutti.excelSym}`;
+                        let cellClass = 'status-composto';
+                        if (symNaipe.status === 'falta' || symTutti.status === 'falta') {
+                            cellClass = 'status-falta';
+                        } else if (symNaipe.status === 'presenca' && symTutti.status === 'presenca') {
+                            cellClass = 'status-presenca';
+                        }
+
+                        return { cellText, cellClass, incP, incF, excelText };
+                    };
+
                     musicosPorNaipe[naipe].forEach(musico => {
                         const nomeExibido = musico.NOMEARTISTICO || musico['NOME REGISTRO'] || 'Músico';
                         let cellsHtml = '';
@@ -7610,53 +7703,13 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                         
                         for (let dia = 1; dia <= totalDias; dia++) {
                             const dataStr = `${ano}-${mesStr}-${String(dia).padStart(2, '0')}`;
-                            const presData = presencasPorData[dataStr];
+                            const docsDoDia = presencasPorData[dataStr] || [];
                             
-                            let cellText = '';
-                            let cellClass = 'status-sem-registro';
+                            const statusRes = getMusicianStatusForDate(musico, docsDoDia, dispensasMap, dataStr);
+                            totalP += statusRes.incP;
+                            totalF += statusRes.incF;
                             
-                            const isCanceladoNoDia = musico.dataSaida && dataStr >= musico.dataSaida;
-                            const isDispensadoNoDia = (presData && presData.registros && presData.registros[musico.id] && presData.registros[musico.id].status === 'dispensa') ||
-                                                      (dispensasMap[musico.id] && dispensasMap[musico.id].has(dataStr));
-
-                            if (isCanceladoNoDia) {
-                                cellText = 'CL';
-                                cellClass = 'status-cancelado';
-                            } else if (isDispensadoNoDia) {
-                                cellText = 'D';
-                                cellClass = 'status-dispensa';
-                            } else if (presData && presData.registros && presData.registros[musico.id]) {
-                                const reg = presData.registros[musico.id];
-                                const status = reg.status;
-                                
-                                if (status === 'presenca') {
-                                    cellText = '✓';
-                                    cellClass = 'status-presenca';
-                                    totalP++;
-                                } else if (status === 'falta') {
-                                    cellText = 'F';
-                                    cellClass = 'status-falta';
-                                    totalF++;
-                                } else if (status === 'atestado') {
-                                    cellText = 'A';
-                                    cellClass = 'status-atestado';
-                                } else if (status === 'dispensa') {
-                                    cellText = 'D';
-                                    cellClass = 'status-dispensa';
-                                } else if (status === 'justificado') {
-                                    cellText = 'J';
-                                    cellClass = 'status-justificado';
-                                } else if (status === 'atraso') {
-                                    cellText = reg.minutes || 'At';
-                                    cellClass = 'status-atraso';
-                                    totalP++;
-                                } else if (status === 'nao_escalado') {
-                                    cellText = '-';
-                                    cellClass = 'status-nao-escalado';
-                                }
-                            }
-                            
-                            cellsHtml += `<td class="cell-status ${cellClass}">${cellText}</td>`;
+                            cellsHtml += `<td class="cell-status ${statusRes.cellClass}">${statusRes.cellText}</td>`;
                         }
                         
                         cellsHtml += `<td class="cell-status cell-total-p">${totalP}</td>`;
@@ -7833,14 +7886,17 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                 const presencasQuery = query(
                     collection(db, "presencas"),
                     where("__name__", ">=", startOfMonthQuery),
-                    where("__name__", "<=", endOfMonthQuery)
+                    where("__name__", "<=", endOfMonthQuery + "_\uffff")
                 );
                 
                 const presencasSnapshot = await getDocs(presencasQuery);
                 const presencasPorData = {};
                 
                 presencasSnapshot.forEach(docSnap => {
-                    presencasPorData[docSnap.id] = docSnap.data();
+                    const dData = docSnap.data();
+                    const dateKey = dData.data || docSnap.id.split('_')[0];
+                    if (!presencasPorData[dateKey]) presencasPorData[dateKey] = [];
+                    presencasPorData[dateKey].push({ id: docSnap.id, ...dData });
                 });
 
                 // Buscar dispensas no Firestore para o período
@@ -8010,47 +8066,15 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
 
                         for (let dia = 1; dia <= totalDias; dia++) {
                             const dataStr = `${ano}-${mesStr}-${String(dia).padStart(2, '0')}`;
-                            const presData = presencasPorData[dataStr];
-                            let cellText = '';
+                            const docsDoDia = presencasPorData[dataStr] || [];
 
-                            const isCanceladoNoDia = musico.dataSaida && dataStr >= musico.dataSaida;
-                            const isDispensadoNoDia = (presData && presData.registros && presData.registros[musico.id] && presData.registros[musico.id].status === 'dispensa') ||
-                                                      (dispensasMap[musico.id] && dispensasMap[musico.id].has(dataStr));
+                            const statusRes = getMusicianStatusForDate(musico, docsDoDia, dispensasMap, dataStr);
+                            const cellText = statusRes.excelText || statusRes.cellText;
 
-                            if (isCanceladoNoDia) {
-                                cellText = 'CL';
-                            } else if (isDispensadoNoDia) {
-                                cellText = 'D';
+                            if (statusRes.cellClass === 'status-dispensa') {
                                 const colLetter = getColLetter(dia);
                                 const cellRef = `${colLetter}${currentExcelRowIndex}`;
                                 cellCommentsMap[cellRef] = "Bolsista Dispensado";
-                            } else if (presData && presData.registros && presData.registros[musico.id]) {
-                                const reg = presData.registros[musico.id];
-                                const status = reg.status;
-
-                                if (status === 'presenca' || status === 'atraso') {
-                                    cellText = 'P';
-                                } else if (status === 'falta') {
-                                    cellText = 'F';
-                                } else if (status === 'atestado') {
-                                    cellText = 'A';
-                                } else if (status === 'dispensa') {
-                                    cellText = 'D';
-                                }
-
-                                const notes = [];
-                                if (status === 'atestado') notes.push("Atestado Médico");
-                                if (status === 'dispensa') notes.push("Dispensa Concedida");
-                                if (status === 'justificado') notes.push("Ausência Justificada");
-                                if (status === 'atraso' && reg.minutes) notes.push(`Atraso: ${reg.minutes} min`);
-                                if (reg.justificativa) notes.push(`Justificativa: ${reg.justificativa.trim()}`);
-                                if (reg.observacao) notes.push(`Obs: ${reg.observacao.trim()}`);
-
-                                if (notes.length > 0) {
-                                    const colLetter = getColLetter(dia);
-                                    const cellRef = `${colLetter}${currentExcelRowIndex}`;
-                                    cellCommentsMap[cellRef] = notes.join('\n');
-                                }
                             }
                             rowMusico.push(cellText);
                         }
@@ -8209,14 +8233,17 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
             const presencasQuery = query(
                 collection(db, "presencas"),
                 where("__name__", ">=", startOfMonth),
-                where("__name__", "<=", endOfMonth)
+                where("__name__", "<=", endOfMonth + "_\uffff")
             );
             
             const presencasSnapshot = await getDocs(presencasQuery);
             const presencasPorData = {};
             
             presencasSnapshot.forEach(docSnap => {
-                presencasPorData[docSnap.id] = docSnap.data();
+                const dData = docSnap.data();
+                const dateKey = dData.data || docSnap.id.split('_')[0];
+                if (!presencasPorData[dateKey]) presencasPorData[dateKey] = [];
+                presencasPorData[dateKey].push({ id: docSnap.id, ...dData });
             });
             
             // Filtrar apenas bolsistas ativos
@@ -8226,7 +8253,7 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                 return status.includes('bolsista');
             });
             
-            // Dicionário de controle: bolsistaId -> { nome, faltas: Set(dia), atrasosMin: 0 }
+            // Dicionário de controle: bolsistaId -> { nome, faltas: [ { dia, obs } ], atrasosMin: 0 }
             const dadosBolsistas = {};
             
             bolsistas.forEach(b => {
@@ -8234,7 +8261,8 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                 if (nomeExibido) {
                     dadosBolsistas[b.id] = {
                         nome: nomeExibido,
-                        faltas: new Set(),
+                        inst: (b.INSTRUMENTOS || b.Instrumento || ''),
+                        faltas: [],
                         atrasosMin: 0
                     };
                 }
@@ -8243,20 +8271,37 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
             // Varre as presenças do mês
             for (let dia = 1; dia <= totalDias; dia++) {
                 const dataStr = `${ano}-${mesStr}-${String(dia).padStart(2, '0')}`;
-                const pres = presencasPorData[dataStr];
+                const docsDoDia = presencasPorData[dataStr] || [];
                 
-                if (pres && pres.registros) {
-                    Object.entries(pres.registros).forEach(([musicoId, registro]) => {
-                        if (dadosBolsistas[musicoId]) {
-                            if (registro.status === 'falta') {
-                                dadosBolsistas[musicoId].faltas.add(dia);
-                            } else if (registro.status === 'atraso') {
-                                const min = parseInt(registro.minutes) || 0;
-                                dadosBolsistas[musicoId].atrasosMin += min;
+                docsDoDia.forEach(pres => {
+                    if (pres && pres.registros) {
+                        Object.entries(pres.registros).forEach(([musicoId, registro]) => {
+                            if (dadosBolsistas[musicoId]) {
+                                const bInfo = dadosBolsistas[musicoId];
+                                const musicoInstNorm = normalizarNaipe(bInfo.inst);
+
+                                // Se for ensaio de naipe, verificar relevância
+                                if (pres.tipo === 'ensaio_naipe' && pres.naipe) {
+                                    const naipesArr = (Array.isArray(pres.naipe) ? pres.naipe : [pres.naipe])
+                                        .map(n => normalizarNaipe(n))
+                                        .filter(Boolean);
+                                    const isRelevant = naipesArr.some(nn => nn === musicoInstNorm || nn.includes(musicoInstNorm) || musicoInstNorm.includes(nn));
+                                    if (!isRelevant) return; // Músico não faz parte deste naipe
+                                }
+
+                                if (registro.status === 'falta') {
+                                    const labelNaipe = pres.tipo === 'ensaio_naipe' && pres.naipe 
+                                        ? ` (Ensaio de Naipe - ${Array.isArray(pres.naipe) ? pres.naipe.join(' + ') : pres.naipe})`
+                                        : '';
+                                    bInfo.faltas.push({ dia, obs: labelNaipe });
+                                } else if (registro.status === 'atraso') {
+                                    const min = parseInt(registro.minutes) || 0;
+                                    bInfo.atrasosMin += min;
+                                }
                             }
-                        }
-                    });
-                }
+                        });
+                    }
+                });
             }
             
             // 1. Processar e formatar Faltas
@@ -8266,21 +8311,9 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
             const bolsistasOrdenadosPorNome = Object.values(dadosBolsistas).sort((a, b) => a.nome.localeCompare(b.nome));
             
             bolsistasOrdenadosPorNome.forEach(b => {
-                if (b.faltas.size > 0) {
-                    const diasFalta = Array.from(b.faltas).sort((x, y) => x - y);
-                    
-                    let datasFormatadas = "";
-                    if (diasFalta.length === 1) {
-                        datasFormatadas = `${String(diasFalta[0]).padStart(2, '0')}/${mesStr}`;
-                    } else if (diasFalta.length === 2) {
-                        datasFormatadas = `${String(diasFalta[0]).padStart(2, '0')} e ${String(diasFalta[1]).padStart(2, '0')}/${mesStr}`;
-                    } else {
-                        const ult = diasFalta.pop();
-                        const diasPad = diasFalta.map(d => String(d).padStart(2, '0'));
-                        datasFormatadas = `${diasPad.join(', ')} e ${String(ult).padStart(2, '0')}/${mesStr}`;
-                    }
-                    
-                    listaFaltantesLines.push(`\t• ${b.nome} - ${datasFormatadas}`);
+                if (b.faltas.length > 0) {
+                    const listDatasStr = b.faltas.map(f => `${String(f.dia).padStart(2, '0')}/${mesStr}${f.obs}`).join(', ');
+                    listaFaltantesLines.push(`\t• ${b.nome} - ${listDatasStr}`);
                 }
             });
             
