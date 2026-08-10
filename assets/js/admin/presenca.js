@@ -78,6 +78,8 @@ let activeMusicianId = null;
 let selectedStatusTemp = null;
 let selectedDelayTemp = 0;
 let existedInFirestore = false; // Indica se a lista da data selecionada já estava salva no Firestore
+let dailyEventsCalls = []; // Lista de chamadas (Tutti + Naipes) para a data selecionada
+let activeCallId = null; // ID da chamada ativa no momento
 const clickTimestamps = {}; // Controle de duplo clique por músico
 let scrollTimeout; // Controle do debounce de scroll
 let activeFilter = null; // Filtro ativo: 'nao-escalado' | 'faltas-atrasos' | null
