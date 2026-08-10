@@ -326,6 +326,47 @@ body {
     color: var(--text-secondary);
 }
 
+/* Botão × para apagar chamada de naipe */
+.tab-delete-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(255, 255, 255, 0.25);
+    color: inherit;
+    cursor: pointer;
+    padding: 0;
+    margin-left: 2px;
+    flex-shrink: 0;
+    transition: background 0.15s ease, transform 0.15s ease;
+    font-family: inherit;
+    line-height: 1;
+}
+
+.tab-delete-btn:hover {
+    background: rgba(239, 68, 68, 0.85);
+    color: #fff;
+    transform: scale(1.15);
+}
+
+.tab-delete-btn:active {
+    transform: scale(0.95);
+}
+
+.event-tab-item:not(.active) .tab-delete-btn {
+    background: #e2e8f0;
+    color: var(--text-secondary);
+}
+
+.event-tab-item:not(.active) .tab-delete-btn:hover {
+    background: #fca5a5;
+    color: #b91c1c;
+}
+
+
 /* Filtros */
 .filters-container {
     display: flex;

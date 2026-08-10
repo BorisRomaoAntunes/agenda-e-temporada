@@ -527,18 +527,91 @@ function renderEventsTabs() {
         const iconName = isNaipe ? 'music' : 'users';
         const timeText = call.horarioInicio ? call.horarioInicio : (isNaipe ? '14:00' : '18:00');
 
+        // Botão × só aparece em abas de naipe (não no Tutti)
+        const deleteBtnHtml = isNaipe
+            ? `<button class="tab-delete-btn" title="Apagar chamada de naipe" data-call-id="${call.id}">
+                   <i data-lucide="x" style="width: 12px; height: 12px;"></i>
+               </button>`
+            : '';
+
         tab.innerHTML = `
             <i data-lucide="${iconName}" style="width: 14px; height: 14px;"></i>
             <span>${call.label}</span>
             <span class="event-time-chip">${timeText}</span>
+            ${deleteBtnHtml}
         `;
 
-        tab.addEventListener("click", () => setActiveCall(call.id));
+        // Clique na aba seleciona a chamada
+        tab.addEventListener("click", (e) => {
+            // Não ativar a aba se clicar no botão × ou no ícone dentro dele
+            if (e.target.closest('.tab-delete-btn')) return;
+            setActiveCall(call.id);
+        });
+
+        // Botão × — apagar chamada de naipe
+        const deleteBtn = tab.querySelector('.tab-delete-btn');
+        if (deleteBtn) {
+            deleteBtn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                deleteNaipeCall(call.id);
+            });
+        }
+
         container.appendChild(tab);
     });
 
     if (window.lucide) window.lucide.createIcons();
 }
+
+// Apagar Chamada de Naipe
+function deleteNaipeCall(callId) {
+    const call = dailyEventsCalls.find(c => c.id === callId);
+    if (!call) return;
+
+    // Verificar se já há algum status preenchido (diferente de nao_escalado e none)
+    const registros = call.registros || {};
+    const temRegistros = Object.values(registros).some(r =>
+        r && r.status && r.status !== 'none' && r.status !== 'nao_escalado'
+    );
+
+    const executarExclusao = async () => {
+        // Remover da lista local
+        dailyEventsCalls = dailyEventsCalls.filter(c => c.id !== callId);
+
+        // Se estava salvo no Firestore (ID sem timestamp indica doc existente), deletar
+        try {
+            const { deleteDoc, doc: fsDoc } = await import("https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js");
+            await deleteDoc(fsDoc(db, "presencas", callId));
+        } catch (e) {
+            // Pode não existir no Firestore ainda se era rascunho — ignorar erro
+        }
+
+        // Salvar rascunho sem a chamada excluída
+        saveDraft();
+
+        // Reativar a primeira chamada disponível
+        if (dailyEventsCalls.length > 0) {
+            setActiveCall(dailyEventsCalls[0].id);
+        } else {
+            attendanceData = {};
+            notesText = "";
+            if (notesTextarea) notesTextarea.value = "";
+            renderEventsTabs();
+            renderMusicians();
+        }
+
+        showToast("Chamada de naipe apagada.");
+    };
+
+    if (temRegistros) {
+        const naipeStr = Array.isArray(call.naipe) ? call.naipe.join(" + ") : (call.naipe || "Naipe");
+        const confirmar = confirm(`Há registros de presença preenchidos nesta chamada (${naipeStr}).\n\nTem certeza que deseja apagar?`);
+        if (confirmar) executarExclusao();
+    } else {
+        executarExclusao();
+    }
+}
+
 
 // Definir Chamada Ativa
 function setActiveCall(callId) {
