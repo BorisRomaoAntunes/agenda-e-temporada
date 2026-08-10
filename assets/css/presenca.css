@@ -96,7 +96,7 @@ body {
     gap: 0.6rem;
 }
 
-/* Linha 1: Título | Contadores Inline (desktop) | Grupo da Direita (Data + Ação) */
+/* Linha 1: Título | Contadores Inline (desktop) | Seletor de Data */
 .header-top {
     display: flex;
     justify-content: space-between;
@@ -128,14 +128,6 @@ body {
     font-weight: 700;
     color: var(--text-primary);
     white-space: nowrap;
-}
-
-/* Grupo Superior Direito (Data + Botão Chamada de Naipe) */
-.header-top-right {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    flex-shrink: 0;
 }
 
 /* Contadores inline (desktop apenas) */
@@ -176,7 +168,7 @@ body {
     align-items: center;
     gap: 0.35rem;
     background: #f1f5f9;
-    padding: 0.4rem 0.6rem;
+    padding: 0.4rem 0.65rem;
     border-radius: var(--radius-md);
     font-weight: 600;
     font-size: 0.85rem;
@@ -240,20 +232,29 @@ body {
 .summary-pill.pending { background: #f1f5f9; color: var(--text-secondary); }
 .summary-pill.pending .dot { background: var(--text-secondary); }
 
-/* Barra de Ação — Botão Chamada de Naipe */
-.rehearsal-action-bar {
-    flex-shrink: 0;
+/* Linha de Ações: Botão + Abas + Filtros */
+.header-actions-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: 2px;
 }
 
+.header-actions-bar::-webkit-scrollbar { display: none; }
+
+/* Botão Chamada de Naipe (Destaque Roxo) */
 .btn-add-naipe {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
-    padding: 0.4rem 0.75rem;
+    padding: 0.4rem 0.8rem;
     background: linear-gradient(135deg, #7c3aed, #6d28d9);
     color: #ffffff;
     border: none;
-    border-radius: var(--radius-md);
+    border-radius: 50px;
     font-size: 0.78rem;
     font-weight: 700;
     cursor: pointer;
@@ -261,6 +262,7 @@ body {
     transition: all 0.2s ease;
     font-family: inherit;
     box-shadow: 0 2px 8px rgba(109, 40, 217, 0.25);
+    flex-shrink: 0;
 }
 
 .btn-add-naipe:hover {
@@ -273,15 +275,6 @@ body {
     transform: scale(0.97);
 }
 
-/* Linha Inferior: Abas + Filtros */
-.header-bottom-row {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    flex-wrap: wrap;
-    width: 100%;
-}
-
 /* Abas de Ensaios da Data */
 .events-tabs-container {
     display: flex;
@@ -289,7 +282,7 @@ body {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
-    padding-bottom: 2px;
+    flex-shrink: 0;
 }
 
 .events-tabs-container::-webkit-scrollbar { display: none; }
@@ -390,6 +383,7 @@ body {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
+    flex-shrink: 0;
 }
 
 .filters-container::-webkit-scrollbar { display: none; }
@@ -444,12 +438,13 @@ body {
         display: none;
     }
 
-    /* Abas de ensaios e pílulas de filtro lado a lado */
-    .header-bottom-row {
-        flex-wrap: nowrap;
-        justify-content: space-between;
+    /* Barra de ações fluída no desktop */
+    .header-actions-bar {
+        overflow-x: visible;
+        flex-wrap: wrap;
     }
 }
+
 
 
 /* Instructions Banner */
