@@ -610,14 +610,40 @@ function setActiveCall(callId) {
                 }
             });
             renderEventsTabs();
+            // Filtro automático: ao selecionar aba de naipe, ocultar não-escalados
+            applyAutoNaipeFilter(call);
             renderMusicians();
         }).catch(err => {
             renderEventsTabs();
+            applyAutoNaipeFilter(call);
             renderMusicians();
         });
     } catch (dispErr) {
         renderEventsTabs();
+        applyAutoNaipeFilter(call);
         renderMusicians();
+    }
+}
+
+// Aplicar filtro automático ao mudar de chamada (naipe oculta não-escalados automaticamente)
+function applyAutoNaipeFilter(call) {
+    if (call && call.tipo === 'ensaio_naipe') {
+        // Filtro especial: oculta quem está como não-escalado (apenas convocados aparecem)
+        activeFilter = 'somente-naipe';
+        // Acende visualmente o pill de Não Escalados para indicar que o filtro está ativo
+        document.querySelectorAll('.filter-pill').forEach(p => {
+            if (p.dataset.filter === 'nao-escalado') {
+                p.classList.add('active');
+            } else {
+                p.classList.remove('active');
+            }
+        });
+    } else {
+        // Ao voltar para Tutti, limpar o filtro automático se for o de naipe
+        if (activeFilter === 'somente-naipe') {
+            activeFilter = null;
+            document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+        }
     }
 }
 
@@ -654,6 +680,9 @@ function renderMusicians() {
             const statusInfo = attendanceData[m.id] || { status: "none", minutes: 0 };
             if (activeFilter === "nao-escalado") {
                 matchFilter = statusInfo.status === "nao_escalado";
+            } else if (activeFilter === "somente-naipe") {
+                // Filtro automático de ensaio de naipe: oculta não-escalados, mostra todos os convocados
+                matchFilter = statusInfo.status !== "nao_escalado";
             } else if (activeFilter === "faltas-atrasos") {
                 matchFilter = statusInfo.status === "falta" || statusInfo.status === "atraso";
             } else if (activeFilter === "pendente") {
@@ -793,7 +822,7 @@ function renderMusicians() {
     updateCounters();
 }
 
-// Atualizar Contadores de Presença no Header
+// Atualizar Contadores de Presença no Header (mobile + inline desktop)
 function updateCounters() {
     let presence = 0, delay = 0, absence = 0, pending = 0;
     allMusicians.forEach(m => {
@@ -804,10 +833,21 @@ function updateCounters() {
         else if (st === 'none') pending++;
     });
 
+    // Mobile
     if (countPresence) countPresence.innerText = presence;
     if (countDelay) countDelay.innerText = delay;
     if (countAbsence) countAbsence.innerText = absence;
     if (countPending) countPending.innerText = pending;
+
+    // Desktop inline
+    const cPi = document.getElementById('countPresenceInline');
+    const cDi = document.getElementById('countDelayInline');
+    const cAi = document.getElementById('countAbsenceInline');
+    const cPei = document.getElementById('countPendingInline');
+    if (cPi) cPi.innerText = presence;
+    if (cDi) cDi.innerText = delay;
+    if (cAi) cAi.innerText = absence;
+    if (cPei) cPei.innerText = pending;
 }
 
 // Alternar presença rápida

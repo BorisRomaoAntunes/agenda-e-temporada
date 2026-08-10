@@ -41,54 +41,69 @@
 
     <!-- Header Section -->
     <header class="header">
+
+        <!-- Linha 1: Título + Data -->
         <div class="header-top">
             <div class="header-title-container">
                 <button class="btn-back-admin" id="btnBackAdmin" title="Voltar ao Painel Admin">
-                    <i data-lucide="arrow-left" style="width: 24px; height: 24px;"></i>
+                    <i data-lucide="arrow-left" style="width: 22px; height: 22px;"></i>
                 </button>
                 <div class="header-title">
                     <h1>Presença OER</h1>
                 </div>
             </div>
+
+            <!-- Contadores compactos (visíveis no desktop ao lado do título) -->
+            <div class="summary-bar-inline" id="summaryBarInline">
+                <span class="summary-chip presence"><span class="summary-dot"></span><strong id="countPresenceInline">0</strong> Pr</span>
+                <span class="summary-chip delay"><span class="summary-dot"></span><strong id="countDelayInline">0</strong> At</span>
+                <span class="summary-chip absence"><span class="summary-dot"></span><strong id="countAbsenceInline">0</strong> Fa</span>
+                <span class="summary-chip pending"><span class="summary-dot"></span><strong id="countPendingInline">0</strong> Pe</span>
+            </div>
+
             <div class="date-picker-container">
-                <i data-lucide="calendar" style="width: 16px; height: 16px;"></i>
+                <i data-lucide="calendar" style="width: 15px; height: 15px;"></i>
                 <input type="date" id="dateInput">
-        </div>
-        
-        <!-- Ação Sob Demanda & Abas de Chamadas da Data -->
-        <div class="rehearsal-action-bar">
-            <button class="btn-add-naipe" id="btnOpenNaipeModal">
-                <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i>
-                <span>+ Abrir Chamada de Naipe (Sob Demanda)</span>
-            </button>
+            </div>
         </div>
 
-        <!-- Abas de Ensaios da Data -->
+        <!-- Linha 2: Contadores (mobile full-width) + Botão de Naipe -->
+        <div class="header-actions-row">
+            <!-- Contadores de chamada (mobile) -->
+            <div class="summary-bar" id="summaryBar">
+                <div class="summary-pill presence">
+                    <span class="dot"></span>
+                    <span>Presenças: <strong id="countPresence">0</strong></span>
+                </div>
+                <div class="summary-pill delay">
+                    <span class="dot"></span>
+                    <span>Atrasos: <strong id="countDelay">0</strong></span>
+                </div>
+                <div class="summary-pill absence">
+                    <span class="dot"></span>
+                    <span>Faltas: <strong id="countAbsence">0</strong></span>
+                </div>
+                <div class="summary-pill pending">
+                    <span class="dot"></span>
+                    <span>Pendentes: <strong id="countPending">0</strong></span>
+                </div>
+            </div>
+
+            <!-- Botão Abrir Chamada de Naipe -->
+            <div class="rehearsal-action-bar">
+                <button class="btn-add-naipe" id="btnOpenNaipeModal">
+                    <i data-lucide="plus-circle" style="width: 15px; height: 15px;"></i>
+                    <span>Chamada de Naipe</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Linha 3: Abas de Ensaios da Data (quando há múltiplas chamadas) -->
         <div class="events-tabs-container" id="eventsTabsContainer" style="display: none;">
-            <!-- Abas serão geradas dinamicamente pelo presenca.js -->
-        </div>
-        
-        <!-- Barra de Resumo de Chamada -->
-        <div class="summary-bar">
-            <div class="summary-pill presence">
-                <span class="dot"></span>
-                <span>Presenças: <strong id="countPresence">0</strong></span>
-            </div>
-            <div class="summary-pill delay">
-                <span class="dot"></span>
-                <span>Atrasos: <strong id="countDelay">0</strong></span>
-            </div>
-            <div class="summary-pill absence">
-                <span class="dot"></span>
-                <span>Faltas: <strong id="countAbsence">0</strong></span>
-            </div>
-            <div class="summary-pill pending">
-                <span class="dot"></span>
-                <span>Pendentes: <strong id="countPending">0</strong></span>
-            </div>
+            <!-- Abas geradas dinamicamente pelo presenca.js -->
         </div>
 
-        <!-- Filters Bar -->
+        <!-- Linha 4: Filtros -->
         <div class="filters-container">
             <button class="filter-pill" data-filter="pendente">Pendente</button>
             <button class="filter-pill" data-filter="nao-escalado">Não Escalados</button>
