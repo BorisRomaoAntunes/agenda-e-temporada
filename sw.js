@@ -91,7 +91,7 @@ self.addEventListener('notificationclick', function(event) {
 // ==========================================
 // CONFIGURAÇÃO DO PWA & CACHE OFFLINE
 // ==========================================
-const CACHE_NAME = 'oer-agenda-v33';
+const CACHE_NAME = 'oer-agenda-v34';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -99,11 +99,38 @@ const ASSETS_TO_CACHE = [
     '/assets/js/public/version-tracker.js',
     '/assets/js/public/notifications.js',
     '/assets/js/public/dynamic-links.js',
-    '/assets/js/firebase-config.js',
     '/manifest.json',
-    'https://unpkg.com/lucide@latest',
     'https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js'
-    // NOTA: admin.html e assets/js/admin/admin.js não são cacheados no SW para evitar servir versões antigas no login
+    // NOTA: firebase-config.js, admin.html e scripts admin NÃO são cacheados para evitar
+    // servir versões antigas que bloqueiam a autenticação do Firebase
+];
+
+// ==========================================
+// URLs que o SW NUNCA deve interceptar
+// (Firebase Auth, Firestore, instalações, tokens, etc.)
+// ==========================================
+const FIREBASE_BYPASS_PATTERNS = [
+    'firestore.googleapis.com',
+    'firebaseinstallations.googleapis.com',
+    'firebaselogging.googleapis.com',
+    'identitytoolkit.googleapis.com',
+    'securetoken.googleapis.com',
+    'fcmregistrations.googleapis.com',
+    'fcm.googleapis.com',
+    'firebase.googleapis.com',
+    'www.googleapis.com',
+    'version.json'
+];
+
+// ==========================================
+// URLs de scripts dinâmicos que NUNCA devem ser cacheadas
+// ==========================================
+const NO_CACHE_PATTERNS = [
+    '/assets/js/firebase-config.js',
+    '/assets/js/admin/',
+    '/admin.html',
+    '/presenca.html',
+    'gstatic.com/firebasejs'
 ];
 
 // Instalação: Cacheia os ativos estáticos
@@ -123,6 +150,7 @@ self.addEventListener('activate', (event) => {
             return Promise.all(
                 cacheNames.map((cacheName) => {
                     if (cacheName !== CACHE_NAME) {
+                        console.log('[SW] Removendo cache antigo:', cacheName);
                         return caches.delete(cacheName);
                     }
                 })
@@ -132,34 +160,40 @@ self.addEventListener('activate', (event) => {
     self.clients.claim();
 });
 
-// Estratégia Stale-while-revalidate + Cache Inteligente para PDFs
+// Estratégia de Fetch com proteções de autenticação
 self.addEventListener('fetch', (event) => {
     const url = event.request.url;
+    const method = event.request.method;
 
-    // Ignorar requisições para o Firebase e para o arquivo de versão
-    if (url.includes('firestore.googleapis.com') || 
-        url.includes('firebaseinstallations.googleapis.com') ||
-        url.includes('firebaselogging.googleapis.com') ||
-        url.includes('version.json')) {
+    // 1. NUNCA interceptar requisições do Firebase (auth, firestore, instalações, tokens)
+    if (FIREBASE_BYPASS_PATTERNS.some(pattern => url.includes(pattern))) {
+        return; // Deixa passar direto para a rede
+    }
+
+    // 2. NUNCA cachear métodos não-GET (POST, PUT, DELETE, etc.)
+    if (method !== 'GET') {
+        return; // Deixa passar direto para a rede
+    }
+
+    // 3. NUNCA cachear scripts dinâmicos críticos (firebase-config, scripts admin, presenca.html)
+    if (NO_CACHE_PATTERNS.some(pattern => url.includes(pattern))) {
+        event.respondWith(fetch(event.request));
         return;
     }
 
-    // Lógica especial para PDFs do Firebase Storage
+    // 4. Cache inteligente para PDFs do Firebase Storage
     if (url.includes('firebasestorage.googleapis.com') && url.toLowerCase().includes('.pdf')) {
         event.respondWith(
             caches.open(CACHE_NAME).then(async (cache) => {
                 const cachedResponse = await cache.match(event.request);
                 
-                // Se já estiver no cache, retorna imediatamente (performance máxima)
                 if (cachedResponse) {
                     return cachedResponse;
                 }
                 
-                // Se não está no cache, busca na rede
                 try {
                     const networkResponse = await fetch(event.request);
                     if (networkResponse.status === 200) {
-                        // Limpeza Inteligente: Remove versões antigas do mesmo tipo de PDF para economizar espaço
                         const isAgenda = url.includes('agenda');
                         const isTemporada = url.includes('temporada');
                         const typeKey = isAgenda ? 'agenda' : (isTemporada ? 'temporada' : null);
@@ -167,7 +201,6 @@ self.addEventListener('fetch', (event) => {
                         if (typeKey) {
                             const cachedRequests = await cache.keys();
                             for (const req of cachedRequests) {
-                                // Se for do storage, do mesmo tipo (agenda/temporada) mas URL diferente (versão antiga)
                                 if (req.url.includes('firebasestorage.googleapis.com') && 
                                     req.url.includes(typeKey) && 
                                     req.url !== url) {
@@ -177,7 +210,6 @@ self.addEventListener('fetch', (event) => {
                             }
                         }
                         
-                        // Salva a nova versão no cache
                         cache.put(event.request, networkResponse.clone());
                     }
                     return networkResponse;
@@ -189,12 +221,12 @@ self.addEventListener('fetch', (event) => {
         return;
     }
 
-    // Estratégia padrão para outros ativos: Stale-while-revalidate
+    // 5. Estratégia Stale-while-revalidate para demais ativos estáticos (apenas GET)
     event.respondWith(
         caches.open(CACHE_NAME).then((cache) => {
             return cache.match(event.request).then((cachedResponse) => {
                 const fetchedResponse = fetch(event.request).then((networkResponse) => {
-                    if (networkResponse.status === 200) {
+                    if (networkResponse.status === 200 && event.request.method === 'GET') {
                         cache.put(event.request, networkResponse.clone());
                     }
                     return networkResponse;
