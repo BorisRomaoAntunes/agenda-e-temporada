@@ -9,19 +9,9 @@ import {
     collection,
     addDoc,
     getDocs,
-    enableIndexedDbPersistence,
     query,
     where
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-
-// Habilitar persistência offline do Firestore
-enableIndexedDbPersistence(db).catch((err) => {
-    if (err.code == 'failed-precondition') {
-        console.warn("Múltiplas abas abertas. Persistência offline ativa apenas na primeira aba.");
-    } else if (err.code == 'unimplemented') {
-        console.warn("Este navegador não suporta persistência offline do Firestore.");
-    }
-});
 
 // Referências DOM
 const loader = document.getElementById("loader");
@@ -99,11 +89,27 @@ let activeCallId = null; // ID da chamada aberta no momento
 // Valores de atraso para o seletor scroll (minutos)
 const delayValues = [0, 5, 10, 15, 20, 25, 30, 40, 50, 60, 75, 90, 120, 150, 180];
 
+// Controle de Timeout de Segurança da Autenticação
+let authCheckHandled = false;
+const authFallbackTimer = setTimeout(() => {
+    if (!authCheckHandled) {
+        authCheckHandled = true;
+        if (loader) loader.classList.add("hidden");
+        if (!auth.currentUser) {
+            window.location.replace("admin.html");
+        }
+    }
+}, 4000);
+
 // Inicialização: Monitor de Autenticação
 onAuthStateChanged(auth, (user) => {
+    if (authCheckHandled) return;
+    authCheckHandled = true;
+    clearTimeout(authFallbackTimer);
+
     if (user) {
         currentUserEmail = user.email || "sistema";
-        loader.classList.add("hidden");
+        if (loader) loader.classList.add("hidden");
         initApp();
     } else {
         // Se não autenticado, redireciona para tela de login administrativa
