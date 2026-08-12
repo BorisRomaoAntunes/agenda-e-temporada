@@ -7408,6 +7408,96 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
         }
     }
 
+    const getMusicianStatusForDate = (musico, docsDoDia, dispensasMapRef, dataStr) => {
+        if (!docsDoDia || docsDoDia.length === 0) {
+            const isDispensadoNoDia = dispensasMapRef && dispensasMapRef[musico.id] && dispensasMapRef[musico.id].has(dataStr);
+            if (isDispensadoNoDia) {
+                return { cellText: 'D', cellClass: 'status-dispensa', incP: 0, incF: 0, excelText: 'D' };
+            }
+            return { cellText: '', cellClass: 'status-sem-registro', incP: 0, incF: 0, excelText: '' };
+        }
+
+        const isCanceladoNoDia = musico.dataSaida && dataStr >= musico.dataSaida;
+        if (isCanceladoNoDia) {
+            return { cellText: 'CL', cellClass: 'status-cancelado', incP: 0, incF: 0, excelText: 'CL' };
+        }
+
+        const isDispensadoGlobal = dispensasMapRef && dispensasMapRef[musico.id] && dispensasMapRef[musico.id].has(dataStr);
+        const musicoInstNorm = normalizarNaipe(musico.INSTRUMENTOS || musico.Instrumento || '');
+        
+        const relevantDocs = docsDoDia.filter(docData => {
+            if (docData.tipo === 'ensaio_naipe' && docData.naipe) {
+                const naipesArr = (Array.isArray(docData.naipe) ? docData.naipe : [docData.naipe])
+                    .map(n => normalizarNaipe(n))
+                    .filter(Boolean);
+                return naipesArr.some(nn => nn === musicoInstNorm || nn.includes(musicoInstNorm) || musicoInstNorm.includes(nn));
+            }
+            return true;
+        });
+
+        if (relevantDocs.length === 0) {
+            if (isDispensadoGlobal) {
+                return { cellText: 'D', cellClass: 'status-dispensa', incP: 0, incF: 0, excelText: 'D' };
+            }
+            return { cellText: '-', cellClass: 'status-nao-escalado', incP: 0, incF: 0, excelText: '-' };
+        }
+
+        const getSymbol = (reg) => {
+            if (!reg) return { symbol: '-', status: 'none', incP: 0, incF: 0, excelSym: '-' };
+            const st = reg.status;
+            if (st === 'presenca') return { symbol: '✓', status: 'presenca', incP: 1, incF: 0, excelSym: 'P' };
+            if (st === 'falta') return { symbol: 'F', status: 'falta', incP: 0, incF: 1, excelSym: 'F' };
+            if (st === 'atestado') return { symbol: 'A', status: 'atestado', incP: 0, incF: 0, excelSym: 'A' };
+            if (st === 'dispensa') return { symbol: 'D', status: 'dispensa', incP: 0, incF: 0, excelSym: 'D' };
+            if (st === 'justificado') return { symbol: 'J', status: 'justificado', incP: 0, incF: 0, excelSym: 'J' };
+            if (st === 'atraso') return { symbol: reg.minutes ? `${reg.minutes}m` : 'At', status: 'atraso', incP: 1, incF: 0, excelSym: 'P' };
+            if (st === 'nao_escalado') return { symbol: '-', status: 'nao_escalado', incP: 0, incF: 0, excelSym: '-' };
+            return { symbol: '-', status: 'none', incP: 0, incF: 0, excelSym: '-' };
+        };
+
+        if (relevantDocs.length === 1) {
+            const docSingle = relevantDocs[0];
+            const reg = docSingle.registros ? docSingle.registros[musico.id] : null;
+            if (isDispensadoGlobal || (reg && reg.status === 'dispensa')) {
+                return { cellText: 'D', cellClass: 'status-dispensa', incP: 0, incF: 0, excelText: 'D' };
+            }
+            const sym = getSymbol(reg);
+            let cClass = 'status-sem-registro';
+            if (sym.status === 'presenca') cClass = 'status-presenca';
+            else if (sym.status === 'falta') cClass = 'status-falta';
+            else if (sym.status === 'atestado') cClass = 'status-atestado';
+            else if (sym.status === 'dispensa') cClass = 'status-dispensa';
+            else if (sym.status === 'justificado') cClass = 'status-justificado';
+            else if (sym.status === 'atraso') cClass = 'status-atraso';
+            else if (sym.status === 'nao_escalado') cClass = 'status-nao-escalado';
+
+            return { cellText: sym.symbol, cellClass: cClass, incP: sym.incP, incF: sym.incF, excelText: sym.excelSym };
+        }
+
+        const naipeDoc = relevantDocs.find(d => d.tipo === 'ensaio_naipe');
+        const tuttiDoc = relevantDocs.find(d => d.tipo !== 'ensaio_naipe');
+
+        const regNaipe = (naipeDoc && naipeDoc.registros) ? naipeDoc.registros[musico.id] : null;
+        const regTutti = (tuttiDoc && tuttiDoc.registros) ? tuttiDoc.registros[musico.id] : null;
+
+        const symNaipe = getSymbol(regNaipe);
+        const symTutti = getSymbol(regTutti);
+
+        let incP = symNaipe.incP + symTutti.incP;
+        let incF = symNaipe.incF + symTutti.incF;
+
+        let cellText = `N:${symNaipe.symbol} T:${symTutti.symbol}`;
+        let excelText = `N:${symNaipe.excelSym}/T:${symTutti.excelSym}`;
+        let cellClass = 'status-composto';
+        if (symNaipe.status === 'falta' || symTutti.status === 'falta') {
+            cellClass = 'status-falta';
+        } else if (symNaipe.status === 'presenca' && symTutti.status === 'presenca') {
+            cellClass = 'status-presenca';
+        }
+
+        return { cellText, cellClass, incP, incF, excelText };
+    };
+
     if (btnGeneratePresencaPdf) {
         btnGeneratePresencaPdf.addEventListener('click', async () => {
             const valorMes = selectPresencaMes.value;
@@ -7605,96 +7695,6 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                         </tr>
                     `;
                     
-                    const getMusicianStatusForDate = (musico, docsDoDia, dispensasMapRef, dataStr) => {
-                        if (!docsDoDia || docsDoDia.length === 0) {
-                            const isDispensadoNoDia = dispensasMapRef && dispensasMapRef[musico.id] && dispensasMapRef[musico.id].has(dataStr);
-                            if (isDispensadoNoDia) {
-                                return { cellText: 'D', cellClass: 'status-dispensa', incP: 0, incF: 0, excelText: 'D' };
-                            }
-                            return { cellText: '', cellClass: 'status-sem-registro', incP: 0, incF: 0, excelText: '' };
-                        }
-
-                        const isCanceladoNoDia = musico.dataSaida && dataStr >= musico.dataSaida;
-                        if (isCanceladoNoDia) {
-                            return { cellText: 'CL', cellClass: 'status-cancelado', incP: 0, incF: 0, excelText: 'CL' };
-                        }
-
-                        const isDispensadoGlobal = dispensasMapRef && dispensasMapRef[musico.id] && dispensasMapRef[musico.id].has(dataStr);
-                        const musicoInstNorm = normalizarNaipe(musico.INSTRUMENTOS || musico.Instrumento || '');
-                        
-                        const relevantDocs = docsDoDia.filter(docData => {
-                            if (docData.tipo === 'ensaio_naipe' && docData.naipe) {
-                                const naipesArr = (Array.isArray(docData.naipe) ? docData.naipe : [docData.naipe])
-                                    .map(n => normalizarNaipe(n))
-                                    .filter(Boolean);
-                                return naipesArr.some(nn => nn === musicoInstNorm || nn.includes(musicoInstNorm) || musicoInstNorm.includes(nn));
-                            }
-                            return true;
-                        });
-
-                        if (relevantDocs.length === 0) {
-                            if (isDispensadoGlobal) {
-                                return { cellText: 'D', cellClass: 'status-dispensa', incP: 0, incF: 0, excelText: 'D' };
-                            }
-                            return { cellText: '-', cellClass: 'status-nao-escalado', incP: 0, incF: 0, excelText: '-' };
-                        }
-
-                        const getSymbol = (reg) => {
-                            if (!reg) return { symbol: '-', status: 'none', incP: 0, incF: 0, excelSym: '-' };
-                            const st = reg.status;
-                            if (st === 'presenca') return { symbol: '✓', status: 'presenca', incP: 1, incF: 0, excelSym: 'P' };
-                            if (st === 'falta') return { symbol: 'F', status: 'falta', incP: 0, incF: 1, excelSym: 'F' };
-                            if (st === 'atestado') return { symbol: 'A', status: 'atestado', incP: 0, incF: 0, excelSym: 'A' };
-                            if (st === 'dispensa') return { symbol: 'D', status: 'dispensa', incP: 0, incF: 0, excelSym: 'D' };
-                            if (st === 'justificado') return { symbol: 'J', status: 'justificado', incP: 0, incF: 0, excelSym: 'J' };
-                            if (st === 'atraso') return { symbol: reg.minutes ? `${reg.minutes}m` : 'At', status: 'atraso', incP: 1, incF: 0, excelSym: 'P' };
-                            if (st === 'nao_escalado') return { symbol: '-', status: 'nao_escalado', incP: 0, incF: 0, excelSym: '-' };
-                            return { symbol: '-', status: 'none', incP: 0, incF: 0, excelSym: '-' };
-                        };
-
-                        if (relevantDocs.length === 1) {
-                            const docSingle = relevantDocs[0];
-                            const reg = docSingle.registros ? docSingle.registros[musico.id] : null;
-                            if (isDispensadoGlobal || (reg && reg.status === 'dispensa')) {
-                                return { cellText: 'D', cellClass: 'status-dispensa', incP: 0, incF: 0, excelText: 'D' };
-                            }
-                            const sym = getSymbol(reg);
-                            let cClass = 'status-sem-registro';
-                            if (sym.status === 'presenca') cClass = 'status-presenca';
-                            else if (sym.status === 'falta') cClass = 'status-falta';
-                            else if (sym.status === 'atestado') cClass = 'status-atestado';
-                            else if (sym.status === 'dispensa') cClass = 'status-dispensa';
-                            else if (sym.status === 'justificado') cClass = 'status-justificado';
-                            else if (sym.status === 'atraso') cClass = 'status-atraso';
-                            else if (sym.status === 'nao_escalado') cClass = 'status-nao-escalado';
-
-                            return { cellText: sym.symbol, cellClass: cClass, incP: sym.incP, incF: sym.incF, excelText: sym.excelSym };
-                        }
-
-                        const naipeDoc = relevantDocs.find(d => d.tipo === 'ensaio_naipe');
-                        const tuttiDoc = relevantDocs.find(d => d.tipo !== 'ensaio_naipe');
-
-                        const regNaipe = (naipeDoc && naipeDoc.registros) ? naipeDoc.registros[musico.id] : null;
-                        const regTutti = (tuttiDoc && tuttiDoc.registros) ? tuttiDoc.registros[musico.id] : null;
-
-                        const symNaipe = getSymbol(regNaipe);
-                        const symTutti = getSymbol(regTutti);
-
-                        let incP = symNaipe.incP + symTutti.incP;
-                        let incF = symNaipe.incF + symTutti.incF;
-
-                        let cellText = `N:${symNaipe.symbol} T:${symTutti.symbol}`;
-                        let excelText = `N:${symNaipe.excelSym}/T:${symTutti.excelSym}`;
-                        let cellClass = 'status-composto';
-                        if (symNaipe.status === 'falta' || symTutti.status === 'falta') {
-                            cellClass = 'status-falta';
-                        } else if (symNaipe.status === 'presenca' && symTutti.status === 'presenca') {
-                            cellClass = 'status-presenca';
-                        }
-
-                        return { cellText, cellClass, incP, incF, excelText };
-                    };
-
                     musicosPorNaipe[naipe].forEach(musico => {
                         const nomeExibido = musico.NOMEARTISTICO || musico['NOME REGISTRO'] || 'Músico';
                         let cellsHtml = '';
