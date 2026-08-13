@@ -247,9 +247,16 @@
         .naipe-count {
             background: #e2e8f0;
             color: var(--text-secondary);
-            padding: 0.1rem 0.55rem;
+            padding: 0.15rem 0.6rem;
             border-radius: 10px;
             font-size: 0.72rem;
+            font-weight: 500;
+            transition: all 0.25s ease;
+        }
+
+        .naipe-count.complete {
+            background: #dcfce7;
+            color: #15803d;
             font-weight: 700;
         }
 
@@ -830,10 +837,18 @@
                 const groupDiv = document.createElement("div");
                 groupDiv.className = "naipe-group";
 
+                const presentCount = musicians.filter(m => {
+                    const st = (attendanceState[m.id] || { status: 'none' }).status;
+                    return st === 'presenca' || st === 'atraso';
+                }).length;
+                const totalCount = musicians.length;
+                const isComplete = presentCount === totalCount && totalCount > 0;
+                const countText = isComplete ? `${totalCount}` : `${presentCount} de ${totalCount}`;
+
                 let html = `
                     <div class="naipe-header">
                         <span>${naipe}</span>
-                        <span class="naipe-count">${musicians.length} Músicos</span>
+                        <span class="naipe-count ${isComplete ? 'complete' : ''}">${countText}</span>
                     </div>
                 `;
 

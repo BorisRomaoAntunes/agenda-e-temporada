@@ -561,6 +561,13 @@ function renderEventsTabs() {
     });
 
     if (window.lucide) window.lucide.createIcons();
+
+    setTimeout(() => {
+        const activeTab = container.querySelector(".event-tab-item.active");
+        if (activeTab) {
+            activeTab.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+        }
+    }, 50);
 }
 
 // Apagar Chamada de Naipe
@@ -791,9 +798,17 @@ function renderMusicians() {
         const section = document.createElement("div");
         section.className = "naipe-group";
         
+        const presentCount = list.filter(m => {
+            const st = (attendanceData[m.id] || { status: 'none' }).status;
+            return st === 'presenca' || st === 'atraso';
+        }).length;
+        const totalCount = list.length;
+        const isComplete = presentCount === totalCount && totalCount > 0;
+        const countText = isComplete ? `${totalCount}` : `${presentCount} de ${totalCount}`;
+
         const header = document.createElement("div");
         header.className = "naipe-header";
-        header.innerHTML = `<span>${naipe}</span><span class="naipe-count">${list.length}</span>`;
+        header.innerHTML = `<span>${naipe}</span><span class="naipe-count ${isComplete ? 'complete' : ''}">${countText}</span>`;
         section.appendChild(header);
 
         // Ordenar: Monitores no topo, depois bolsistas, ordenados alfabeticamente
@@ -1242,7 +1257,7 @@ function initNaipeModal() {
     });
 
     if (btnConfirm) {
-        btnConfirm.addEventListener("click", () => {
+        btnConfirm.addEventListener("click", async () => {
             const checkedItems = Array.from(document.querySelectorAll(".chk-naipe-item:checked")).map(el => el.value);
             if (checkedItems.length === 0) {
                 alert("Por favor, selecione ao menos um naipe para a chamada.");
@@ -1264,12 +1279,32 @@ function initNaipeModal() {
                 horarioFim: horaFim,
                 anotacoes: obs,
                 registros: {},
-                oficial: false
+                oficial: true
             };
 
             dailyEventsCalls.push(newCall);
             saveDraft();
             closeModal();
+
+            // Gravar chamada no Firestore para refletir imediatamente no computador e outros dispositivos
+            try {
+                const docRef = doc(db, "presencas", newCallId);
+                await setDoc(docRef, {
+                    data: selectedDate,
+                    tipo: "ensaio_naipe",
+                    naipe: checkedItems,
+                    horarioInicio: horaInicio,
+                    horarioFim: horaFim,
+                    anotacoes: obs,
+                    oficial: true,
+                    registros: {},
+                    ultimaAtualizacao: new Date().toISOString(),
+                    usuarioResponsavel: currentUserEmail || "Admin"
+                });
+            } catch (fsErr) {
+                console.warn("Aviso ao sincronizar chamada de naipe no Firestore:", fsErr);
+            }
+
             renderEventsTabs();
             setActiveCall(newCallId);
             showToast(`Chamada criada para o Naipe: ${labelNaipe}`);

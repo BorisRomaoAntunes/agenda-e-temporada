@@ -41,7 +41,7 @@ body {
     color: var(--text-primary);
     padding-bottom: calc(95px + env(safe-area-inset-bottom));
     min-height: 100vh;
-    min-height: 100svh; /* svh: small viewport height — ignora barra de URL dinâmica do iOS Safari */
+    min-height: 100svh;
 }
 
 /* Loader global */
@@ -236,7 +236,7 @@ body {
 .header-actions-bar {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.6rem;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
@@ -249,8 +249,10 @@ body {
 .btn-add-naipe {
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
-    padding: 0.4rem 0.8rem;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.9rem;
+    min-height: 36px;
     background: linear-gradient(135deg, #7c3aed, #6d28d9);
     color: #ffffff;
     border: none;
@@ -304,6 +306,16 @@ body {
     flex-shrink: 0;
     font-family: inherit;
 }
+
+.event-tab-item span:not(.event-time-chip) {
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: inline-block;
+    vertical-align: middle;
+}
+
 
 .event-tab-item.active {
     background: #0f172a;
@@ -445,8 +457,6 @@ body {
     }
 }
 
-
-
 /* Instructions Banner */
 .instructions {
     background: #eff6ff;
@@ -460,7 +470,6 @@ body {
     align-items: flex-start;
     gap: 0.5rem;
 }
-
 
 /* Musician List Container */
 .list-container {
@@ -489,16 +498,24 @@ body {
     z-index: 90;
     background-color: var(--bg-primary);
     box-shadow: 0 4px 6px -4px rgba(0,0,0,0.05);
-    margin-top: -0.5rem; /* Compensa o padding superior adicionado */
+    margin-top: -0.5rem;
     border-radius: 4px;
 }
 
 .naipe-count {
     background: #e2e8f0;
     color: var(--text-secondary);
-    padding: 0.1rem 0.5rem;
+    padding: 0.15rem 0.6rem;
     border-radius: 10px;
     font-size: 0.75rem;
+    font-weight: 500;
+    transition: all 0.25s ease;
+}
+
+.naipe-count.complete {
+    background: #dcfce7;
+    color: #15803d;
+    font-weight: 700;
 }
 
 .musician-card {
@@ -1347,33 +1364,7 @@ body {
     width: 100%;
 }
 
-.btn-add-naipe {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.4rem;
-    background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
-    color: #ffffff;
-    border: none;
-    border-radius: var(--radius-md);
-    padding: 0.5rem 0.9rem;
-    font-size: 0.8rem;
-    font-weight: 700;
-    cursor: pointer;
-    box-shadow: 0 2px 8px rgba(109, 40, 217, 0.25);
-    transition: all 0.2s ease;
-    width: 100%;
-}
-
-.btn-add-naipe:hover {
-    background: linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(109, 40, 217, 0.35);
-}
-
-.btn-add-naipe:active {
-    transform: scale(0.98);
-}
+/* .btn-add-naipe mantido como pílula compacta definida na seção do header */
 
 /* Abas de Chamadas da Data */
 .events-tabs-container {
