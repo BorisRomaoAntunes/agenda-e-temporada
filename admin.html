@@ -952,40 +952,72 @@ Intervalo
                                 </div>
                                 <div>
                                     <h4 style="margin: 0; font-size: 1rem; font-weight: 700; color: #1e1b4b; line-height: 1.2;">Dispensas Concedidas</h4>
-                                    <p style="margin: 0; font-size: 0.78rem; color: #7c3aed; font-weight: 500;">Bolsistas com dispensa no período</p>
+                                    <p style="margin: 0; font-size: 0.78rem; color: #7c3aed; font-weight: 500;" id="dispensas-subtitle">Bolsistas com dispensa no período</p>
                                 </div>
                             </div>
-                            <button id="btn-open-dispensa-modal" style="
-                                display: inline-flex;
-                                align-items: center;
-                                gap: 0.5rem;
-                                padding: 0.6rem 1.2rem;
-                                background: linear-gradient(135deg, #7c3aed, #6b21a8);
-                                color: white;
-                                border: none;
-                                border-radius: 10px;
-                                font-size: 0.875rem;
-                                font-weight: 600;
-                                cursor: pointer;
-                                box-shadow: 0 4px 12px rgba(107,33,168,0.3);
-                                transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
-                                white-space: nowrap;
-                            "
-                            onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(107,33,168,0.4)'; this.style.filter='brightness(1.08)'"
-                            onmouseout="this.style.transform=''; this.style.boxShadow='0 4px 12px rgba(107,33,168,0.3)'; this.style.filter=''">
-                                <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i>
-                                Conceder Dispensa
-                            </button>
+
+                            <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                                <!-- Campo de Busca -->
+                                <div style="position: relative; width: 220px;">
+                                    <i data-lucide="search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: #9ca3af; pointer-events: none;"></i>
+                                    <input type="text" id="dispensa-search-input" autocomplete="off" placeholder="Buscar bolsista..." style="
+                                        width: 100%;
+                                        padding: 0.5rem 0.75rem 0.5rem 2.1rem;
+                                        font-size: 0.825rem;
+                                        border: 1.5px solid #ddd6fe;
+                                        border-radius: 10px;
+                                        outline: none;
+                                        background: #fcfaff;
+                                        color: #1e1b4b;
+                                        transition: all 0.2s ease;
+                                    "
+                                    onfocus="this.style.borderColor='#7c3aed'; this.style.background='white'; this.style.boxShadow='0 0 0 3px rgba(124,58,237,0.12)';"
+                                    onblur="this.style.borderColor='#ddd6fe'; this.style.background='#fcfaff'; this.style.boxShadow='none';">
+                                </div>
+
+                                <!-- Botão Conceder Dispensa -->
+                                <button id="btn-open-dispensa-modal" style="
+                                    display: inline-flex;
+                                    align-items: center;
+                                    gap: 0.5rem;
+                                    padding: 0.55rem 1.1rem;
+                                    background: linear-gradient(135deg, #7c3aed, #6b21a8);
+                                    color: white;
+                                    border: none;
+                                    border-radius: 10px;
+                                    font-size: 0.85rem;
+                                    font-weight: 600;
+                                    cursor: pointer;
+                                    box-shadow: 0 4px 12px rgba(107,33,168,0.3);
+                                    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+                                    white-space: nowrap;
+                                "
+                                onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(107,33,168,0.4)'; this.style.filter='brightness(1.08)'"
+                                onmouseout="this.style.transform=''; this.style.boxShadow='0 4px 12px rgba(107,33,168,0.3)'; this.style.filter=''">
+                                    <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i>
+                                    Conceder Dispensa
+                                </button>
+                            </div>
                         </div>
 
-                        <!-- Tabela de dispensas -->
+                        <!-- Barra de Chips de Filtro Rápido -->
+                        <div style="display: flex; gap: 0.4rem; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap;">
+                            <span style="font-size: 0.75rem; font-weight: 600; color: #6b7280; margin-right: 0.25rem;">Filtrar:</span>
+                            <button class="chip-dispensa-filter active" data-filter="todas" style="padding: 0.25rem 0.7rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; border: 1px solid #7c3aed; background: #7c3aed; color: white; cursor: pointer; transition: all 0.15s ease;">Todas</button>
+                            <button class="chip-dispensa-filter" data-filter="ativa" style="padding: 0.25rem 0.7rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; border: 1px solid #ddd6fe; background: white; color: #4c1d95; cursor: pointer; transition: all 0.15s ease;">Ativas</button>
+                            <button class="chip-dispensa-filter" data-filter="futura" style="padding: 0.25rem 0.7rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; border: 1px solid #ddd6fe; background: white; color: #4c1d95; cursor: pointer; transition: all 0.15s ease;">Futuras</button>
+                            <button class="chip-dispensa-filter" data-filter="encerrada" style="padding: 0.25rem 0.7rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; border: 1px solid #ddd6fe; background: white; color: #4c1d95; cursor: pointer; transition: all 0.15s ease;">Encerradas</button>
+                        </div>
+
+                        <!-- Tabela de dispensas com Max-Height e Scroll -->
                         <div style="background: white; border-radius: 14px; border: 1px solid #ede9fe; overflow: hidden; box-shadow: 0 2px 8px rgba(107,33,168,0.06);">
-                            <div id="dispensas-list-wrapper" style="overflow-x: auto;">
+                            <div id="dispensas-list-wrapper" style="max-height: 320px; overflow-y: auto; overflow-x: auto; position: relative;">
                                 <table class="dispensas-table" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.875rem;">
-                                    <thead>
+                                    <thead style="position: sticky; top: 0; z-index: 5; background: #faf5ff;">
                                         <tr style="background: linear-gradient(135deg, #faf5ff, #f3e8ff); border-bottom: 1px solid #ede9fe;">
                                             <th style="padding: 0.9rem 1.1rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #7c3aed;">Músico</th>
                                             <th style="padding: 0.9rem 1.1rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #7c3aed;">Período</th>
+                                            <th style="padding: 0.9rem 1.1rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #7c3aed;">Status</th>
                                             <th style="padding: 0.9rem 1.1rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #7c3aed;">Descrição / Motivo</th>
                                             <th style="padding: 0.9rem 1.1rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #7c3aed;">Cadastrado Em</th>
                                             <th style="padding: 0.9rem 1.1rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #7c3aed; text-align: right;">Ações</th>
@@ -993,7 +1025,7 @@ Intervalo
                                     </thead>
                                     <tbody id="dispensas-table-body">
                                         <tr>
-                                            <td colspan="5" style="text-align: center; padding: 2.5rem 1rem; color: #a78bfa;">
+                                            <td colspan="6" style="text-align: center; padding: 2.5rem 1rem; color: #a78bfa;">
                                                 <div style="display: flex; flex-direction: column; align-items: center; gap: 0.6rem;">
                                                     <i data-lucide="loader-2" style="width: 24px; height: 24px; animation: spin 1s linear infinite;"></i>
                                                     <span style="font-size: 0.875rem; color: #9ca3af;">Carregando dispensas...</span>

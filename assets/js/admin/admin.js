@@ -4529,117 +4529,265 @@ function initDispensasModule() {
         });
     }
 
-    // Carregar Tabela de Dispensas
+    // Estado do módulo de dispensas
+    let rawDispensasData = [];
+    let currentDispensaFilter = 'todas';
+
+    const searchInput = document.getElementById('dispensa-search-input');
+    const chipFilters = document.querySelectorAll('.chip-dispensa-filter');
+
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            renderFilteredDispensas();
+        });
+    }
+
+    if (chipFilters && chipFilters.length > 0) {
+        chipFilters.forEach(chip => {
+            chip.addEventListener('click', () => {
+                chipFilters.forEach(c => {
+                    c.classList.remove('active');
+                    c.style.background = 'white';
+                    c.style.color = '#4c1d95';
+                    c.style.borderColor = '#ddd6fe';
+                });
+                chip.classList.add('active');
+                chip.style.background = '#7c3aed';
+                chip.style.color = 'white';
+                chip.style.borderColor = '#7c3aed';
+
+                currentDispensaFilter = chip.getAttribute('data-filter') || 'todas';
+                renderFilteredDispensas();
+            });
+        });
+    }
+
+    // Carregar Tabela de Dispensas do Firestore
     async function loadDispensasTable() {
         if (!tableBody) return;
         try {
-            tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 1rem; color: #888;"><i data-lucide="loader-2" class="spin"></i> Carregando dispensas...</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 1.5rem; color: #888;"><i data-lucide="loader-2" class="spin"></i> Carregando dispensas...</td></tr>';
             if (window.lucide) lucide.createIcons();
 
             const q = query(collection(db, "dispensas"), orderBy("criadoEm", "desc"));
             const snapshot = await getDocs(q);
 
-            if (snapshot.empty) {
-                tableBody.innerHTML = `
-                    <tr>
-                        <td colspan="5" style="text-align: center; padding: 3rem 1rem;">
-                            <div style="display: flex; flex-direction: column; align-items: center; gap: 0.75rem;">
-                                <div style="width: 52px; height: 52px; background: #faf5ff; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                                    <i data-lucide="shield-check" style="width: 24px; height: 24px; color: #a78bfa;"></i>
-                                </div>
-                                <p style="margin: 0; font-size: 0.95rem; font-weight: 600; color: #6b7280;">Nenhuma dispensa concedida</p>
-                                <p style="margin: 0; font-size: 0.8rem; color: #9ca3af;">Clique em "Conceder Dispensa" para registrar uma.</p>
-                            </div>
-                        </td>
-                    </tr>`;
-                if (window.lucide) lucide.createIcons();
-                return;
-            }
-
-            tableBody.innerHTML = '';
-            const formatBR = (iso) => iso ? iso.split('-').reverse().join('/') : '---';
-
+            rawDispensasData = [];
             snapshot.forEach(docSnap => {
-                const data = docSnap.data();
-                const id = docSnap.id;
-                const tr = document.createElement('tr');
-                tr.style.cssText = 'border-bottom: 1px solid #ede9fe; transition: background 0.15s ease;';
-                tr.addEventListener('mouseenter', () => tr.style.background = '#faf5ff');
-                tr.addEventListener('mouseleave', () => tr.style.background = '');
-
-                const dataInicioFmt = formatBR(data.dataInicio);
-                const dataFimFmt = formatBR(data.dataFim);
-                const dataCriacaoFmt = data.criadoEm ? new Date(data.criadoEm).toLocaleDateString('pt-BR') : '---';
-
-                tr.innerHTML = `
-                    <td style="padding: 0.9rem 1.1rem;">
-                        <div style="display: flex; align-items: center; gap: 0.6rem;">
-                            <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #ede9fe, #ddd6fe); border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 0.75rem; font-weight: 700; color: #6b21a8;">${(data.nomeMusico || 'M').charAt(0).toUpperCase()}</div>
-                            <span class="btn-view-dispensa-detail" data-id="${id}" style="font-weight: 600; color: #6b21a8; font-size: 0.9rem; cursor: pointer; text-decoration: underline; text-underline-offset: 2px;" title="Clique para ver os detalhes da dispensa">${data.nomeMusico || 'Músico'}</span>
-                        </div>
-                    </td>
-                    <td style="padding: 0.9rem 1.1rem;">
-                        <span style="background: #ede9fe; color: #6b21a8; padding: 0.3rem 0.75rem; border-radius: 20px; font-weight: 600; font-size: 0.8rem; white-space: nowrap;">
-                            ${dataInicioFmt} → ${dataFimFmt}
-                        </span>
-                    </td>
-                    <td style="padding: 0.9rem 1.1rem; color: #4b5563; max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${data.descricao || ''}">${data.descricao || '—'}</td>
-                    <td style="padding: 0.9rem 1.1rem; color: #9ca3af; font-size: 0.82rem; white-space: nowrap;">${dataCriacaoFmt}</td>
-                    <td style="padding: 0.9rem 1.1rem; text-align: right;">
-                        <button class="btn-delete-dispensa" data-id="${id}" data-nome="${data.nomeMusico || ''}" 
-                            style="background: transparent; border: 1.5px solid #fca5a5; color: #ef4444; cursor: pointer; padding: 0.35rem 0.75rem; border-radius: 8px; font-size: 0.8rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem; transition: all 0.15s ease;"
-                            onmouseover="this.style.background='#fef2f2'; this.style.borderColor='#ef4444';"
-                            onmouseout="this.style.background='transparent'; this.style.borderColor='#fca5a5';"
-                            title="Cancelar / Excluir Dispensa">
-                            <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i> Excluir
-                        </button>
-                    </td>
-                `;
-                tr._dispensaData = data;
-                tr._dispensaId = id;
-                tableBody.appendChild(tr);
-            });
-
-            if (window.lucide) lucide.createIcons();
-
-            // Event listener para abrir modal de detalhe
-            document.querySelectorAll('.btn-view-dispensa-detail').forEach(span => {
-                span.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const tr = span.closest('tr');
-                    if (tr && tr._dispensaData) {
-                        openDispensaDetalheModal(tr._dispensaData);
-                    }
+                rawDispensasData.push({
+                    id: docSnap.id,
+                    ...docSnap.data()
                 });
             });
 
-            // Event listener para botões de exclusão
-            document.querySelectorAll('.btn-delete-dispensa').forEach(btn => {
-                btn.addEventListener('click', async (e) => {
-                    e.stopPropagation();
-                    const id = btn.getAttribute('data-id');
-                    const nome = btn.getAttribute('data-nome');
-                    
-                    if (!confirm(`Deseja realmente cancelar/excluir a dispensa de "${nome}"?`)) return;
-
-                    try {
-                        await deleteDoc(doc(db, "dispensas", id));
-                        showNotification('Dispensa excluída com sucesso.', 'info');
-                        try {
-                            await saveLog("dispensa", `Dispensa cancelada/excluída: ${nome}`, null, `ID Dispensa: ${id}`);
-                        } catch(lErr) {}
-                        loadDispensasTable();
-                    } catch (err) {
-                        console.error("Erro ao excluir dispensa:", err);
-                        showNotification(`Erro ao excluir dispensa: ${err.message}`, 'error');
-                    }
-                });
-            });
+            renderFilteredDispensas();
 
         } catch (err) {
             console.error("Erro ao carregar tabela de dispensas:", err);
-            tableBody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 1rem; color: #dc2626;">Erro ao carregar dispensas.</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 1rem; color: #dc2626;">Erro ao carregar dispensas.</td></tr>';
         }
+    }
+
+    // Renderizar Tabela com Filtros, Busca e Ordenação por Status
+    function renderFilteredDispensas() {
+        if (!tableBody) return;
+
+        const hojeStr = new Date().toISOString().split('T')[0];
+        const searchVal = (searchInput ? searchInput.value : '').toLowerCase().trim();
+
+        // 1. Processar status e prioridade de cada dispensa
+        const processedList = rawDispensasData.map(item => {
+            const inicio = item.dataInicio || '';
+            const fim = item.dataFim || '';
+
+            let statusKey = 'ativa';
+            let statusLabel = 'Ativa';
+            let priority = 1;
+
+            if (fim && fim < hojeStr) {
+                statusKey = 'encerrada';
+                statusLabel = 'Encerrada';
+                priority = 3;
+            } else if (inicio && inicio > hojeStr) {
+                statusKey = 'futura';
+                statusLabel = 'Futura';
+                priority = 2;
+            } else {
+                statusKey = 'ativa';
+                statusLabel = 'Ativa';
+                priority = 1;
+            }
+
+            return {
+                ...item,
+                _statusKey: statusKey,
+                _statusLabel: statusLabel,
+                _priority: priority
+            };
+        });
+
+        // 2. Filtrar por Busca (nome do músico ou descrição)
+        let filtered = processedList.filter(item => {
+            if (!searchVal) return true;
+            const nome = (item.nomeMusico || '').toLowerCase();
+            const desc = (item.descricao || '').toLowerCase();
+            return nome.includes(searchVal) || desc.includes(searchVal);
+        });
+
+        // 3. Filtrar por Chip de Status
+        if (currentDispensaFilter !== 'todas') {
+            filtered = filtered.filter(item => item._statusKey === currentDispensaFilter);
+        }
+
+        // 4. Ordenar: Ativas (1) -> Futuras (2) -> Encerradas (3)
+        // Dentro do mesmo status: por dataInicio decrescente ou criadoEm decrescente
+        filtered.sort((a, b) => {
+            if (a._priority !== b._priority) {
+                return a._priority - b._priority;
+            }
+            // Secundário: por dataInicio decrescente
+            const dateA = a.dataInicio || a.criadoEm || '';
+            const dateB = b.dataInicio || b.criadoEm || '';
+            return dateB.localeCompare(dateA);
+        });
+
+        // Atualizar subtítulo com estatísticas
+        const ativasHojeCount = processedList.filter(i => i._statusKey === 'ativa').length;
+        const subtitleEl = document.getElementById('dispensas-subtitle');
+        if (subtitleEl) {
+            subtitleEl.textContent = `${ativasHojeCount} dispensa(s) ativa(s) hoje • Total de ${processedList.length} registro(s)`;
+        }
+
+        // 5. Se estiver vazio
+        if (filtered.length === 0) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 2.5rem 1rem;">
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 0.75rem;">
+                            <div style="width: 48px; height: 48px; background: #faf5ff; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                <i data-lucide="search-x" style="width: 22px; height: 22px; color: #a78bfa;"></i>
+                            </div>
+                            <p style="margin: 0; font-size: 0.9rem; font-weight: 600; color: #6b7280;">Nenhuma dispensa encontrada</p>
+                            <p style="margin: 0; font-size: 0.78rem; color: #9ca3af;">${searchVal ? 'Tente alterar os termos da busca ou o filtro de status.' : 'Clique em "Conceder Dispensa" para registrar uma.'}</p>
+                        </div>
+                    </td>
+                </tr>`;
+            if (window.lucide) lucide.createIcons();
+            return;
+        }
+
+        // 6. Renderizar linhas
+        tableBody.innerHTML = '';
+        const formatBR = (iso) => iso ? iso.split('-').reverse().join('/') : '---';
+
+        filtered.forEach(data => {
+            const id = data.id;
+            const isEncerrada = data._statusKey === 'encerrada';
+            const isAtiva = data._statusKey === 'ativa';
+            const isFutura = data._statusKey === 'futura';
+
+            const tr = document.createElement('tr');
+
+            if (isEncerrada) {
+                tr.style.cssText = 'background: #f8fafc; border-bottom: 1px solid #e2e8f0; opacity: 0.78; transition: background 0.15s ease, opacity 0.15s ease;';
+                tr.addEventListener('mouseenter', () => { tr.style.background = '#f1f5f9'; tr.style.opacity = '1'; });
+                tr.addEventListener('mouseleave', () => { tr.style.background = '#f8fafc'; tr.style.opacity = '0.78'; });
+            } else {
+                tr.style.cssText = 'background: white; border-bottom: 1px solid #ede9fe; transition: background 0.15s ease;';
+                tr.addEventListener('mouseenter', () => tr.style.background = '#faf5ff');
+                tr.addEventListener('mouseleave', () => tr.style.background = 'white');
+            }
+
+            const dataInicioFmt = formatBR(data.dataInicio);
+            const dataFimFmt = formatBR(data.dataFim);
+            const dataCriacaoFmt = data.criadoEm ? new Date(data.criadoEm).toLocaleDateString('pt-BR') : '---';
+
+            // Badge de Status
+            let statusBadgeHtml = '';
+            if (isAtiva) {
+                statusBadgeHtml = `<span style="background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; padding: 0.25rem 0.65rem; border-radius: 12px; font-weight: 600; font-size: 0.75rem; white-space: nowrap; display: inline-flex; align-items: center; gap: 0.3rem;"><i data-lucide="check-circle-2" style="width: 12px; height: 12px;"></i> Ativa</span>`;
+            } else if (isFutura) {
+                statusBadgeHtml = `<span style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 0.25rem 0.65rem; border-radius: 12px; font-weight: 600; font-size: 0.75rem; white-space: nowrap; display: inline-flex; align-items: center; gap: 0.3rem;"><i data-lucide="calendar" style="width: 12px; height: 12px;"></i> Futura</span>`;
+            } else {
+                statusBadgeHtml = `<span style="background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; padding: 0.25rem 0.65rem; border-radius: 12px; font-weight: 600; font-size: 0.75rem; white-space: nowrap; display: inline-flex; align-items: center; gap: 0.3rem;"><i data-lucide="clock" style="width: 12px; height: 12px;"></i> Encerrada</span>`;
+            }
+
+            // Estilos do Avatar e Nome
+            const avatarBg = isEncerrada ? '#cbd5e1' : 'linear-gradient(135deg, #ede9fe, #ddd6fe)';
+            const avatarColor = isEncerrada ? '#475569' : '#6b21a8';
+            const nomeColor = isEncerrada ? '#64748b' : '#6b21a8';
+
+            // Estilos da Badge Período
+            const periodoBg = isEncerrada ? '#e2e8f0' : '#ede9fe';
+            const periodoColor = isEncerrada ? '#475569' : '#6b21a8';
+
+            tr.innerHTML = `
+                <td style="padding: 0.85rem 1.1rem;">
+                    <div style="display: flex; align-items: center; gap: 0.6rem;">
+                        <div style="width: 32px; height: 32px; background: ${avatarBg}; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 0.75rem; font-weight: 700; color: ${avatarColor};">${(data.nomeMusico || 'M').charAt(0).toUpperCase()}</div>
+                        <span class="btn-view-dispensa-detail" data-id="${id}" style="font-weight: 600; color: ${nomeColor}; font-size: 0.875rem; cursor: pointer; text-decoration: underline; text-underline-offset: 2px;" title="Clique para ver os detalhes da dispensa">${data.nomeMusico || 'Músico'}</span>
+                    </div>
+                </td>
+                <td style="padding: 0.85rem 1.1rem;">
+                    <span style="background: ${periodoBg}; color: ${periodoColor}; padding: 0.3rem 0.75rem; border-radius: 20px; font-weight: 600; font-size: 0.78rem; white-space: nowrap;">
+                        ${dataInicioFmt} → ${dataFimFmt}
+                    </span>
+                </td>
+                <td style="padding: 0.85rem 1.1rem;">
+                    ${statusBadgeHtml}
+                </td>
+                <td style="padding: 0.85rem 1.1rem; color: ${isEncerrada ? '#64748b' : '#4b5563'}; max-width: 240px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${data.descricao || ''}">${data.descricao || '—'}</td>
+                <td style="padding: 0.85rem 1.1rem; color: #9ca3af; font-size: 0.82rem; white-space: nowrap;">${dataCriacaoFmt}</td>
+                <td style="padding: 0.85rem 1.1rem; text-align: right;">
+                    <button class="btn-delete-dispensa" data-id="${id}" data-nome="${data.nomeMusico || ''}" 
+                        style="background: transparent; border: 1.5px solid ${isEncerrada ? '#cbd5e1' : '#fca5a5'}; color: ${isEncerrada ? '#64748b' : '#ef4444'}; cursor: pointer; padding: 0.35rem 0.75rem; border-radius: 8px; font-size: 0.78rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem; transition: all 0.15s ease;"
+                        onmouseover="this.style.background='${isEncerrada ? '#f1f5f9' : '#fef2f2'}'; this.style.borderColor='${isEncerrada ? '#94a3b8' : '#ef4444'}';"
+                        onmouseout="this.style.background='transparent'; this.style.borderColor='${isEncerrada ? '#cbd5e1' : '#fca5a5'}';"
+                        title="Cancelar / Excluir Dispensa">
+                        <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i> Excluir
+                    </button>
+                </td>
+            `;
+            tr._dispensaData = data;
+            tr._dispensaId = id;
+            tableBody.appendChild(tr);
+        });
+
+        if (window.lucide) lucide.createIcons();
+
+        // Event listener para abrir modal de detalhe
+        document.querySelectorAll('.btn-view-dispensa-detail').forEach(span => {
+            span.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const tr = span.closest('tr');
+                if (tr && tr._dispensaData) {
+                    openDispensaDetalheModal(tr._dispensaData);
+                }
+            });
+        });
+
+        // Event listener para botões de exclusão
+        document.querySelectorAll('.btn-delete-dispensa').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const id = btn.getAttribute('data-id');
+                const nome = btn.getAttribute('data-nome');
+                
+                if (!confirm(`Deseja realmente cancelar/excluir a dispensa de "${nome}"?`)) return;
+
+                try {
+                    await deleteDoc(doc(db, "dispensas", id));
+                    showNotification('Dispensa excluída com sucesso.', 'info');
+                    try {
+                        await saveLog("dispensa", `Dispensa cancelada/excluída: ${nome}`, null, `ID Dispensa: ${id}`);
+                    } catch(lErr) {}
+                    loadDispensasTable();
+                } catch (err) {
+                    console.error("Erro ao excluir dispensa:", err);
+                    showNotification(`Erro ao excluir dispensa: ${err.message}`, 'error');
+                }
+            });
+        });
     }
 
     // Modal de Detalhe da Dispensa
