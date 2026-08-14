@@ -49,7 +49,7 @@ function ensurePopupModalDOM() {
                     <i data-lucide="x"></i>
                 </button>
                 <div class="popup-modal-image-container" id="popup-modal-image-container" style="display: none;">
-                    <img id="popup-modal-image" src="" alt="Capa" referrerpolicy="no-referrer">
+                    <img id="popup-modal-image" src="" alt="Capa">
                 </div>
                 <div class="popup-modal-body">
                     <div class="popup-modal-icon-badge">

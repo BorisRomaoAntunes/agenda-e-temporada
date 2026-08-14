@@ -1896,11 +1896,13 @@ exports.forceSyncCalendar = onCall({
 
 /**
  * Função callable para extrair metadados Open Graph (imagem de capa e título) de links externos (Instagram, Facebook, etc).
+ * A imagem é baixada e armazenada permanentemente no Firebase Storage para evitar URLs expiráveis do Instagram/redes sociais.
  */
 exports.extractLinkMetadata = onCall({
     region: "us-central1",
-    timeoutSeconds: 30,
-    memory: "256MiB"
+
+    timeoutSeconds: 60,
+    memory: "512MiB"
 }, async (request) => {
     if (!request.auth) {
         throw new HttpsError("unauthenticated", "Autenticação obrigatória.");
@@ -1912,7 +1914,7 @@ exports.extractLinkMetadata = onCall({
 
     try {
         const parsedUrl = new URL(url);
-        let imageUrl = null;
+        let rawImageUrl = null;
         let title = null;
 
         // 1. Tenta extrair usando Microlink API (suporta Instagram, Facebook, TikTok, YouTube, etc)
@@ -1924,7 +1926,7 @@ exports.extractLinkMetadata = onCall({
                 const microData = await microlinkRes.json();
                 if (microData && microData.status === "success" && microData.data) {
                     if (microData.data.image && microData.data.image.url) {
-                        imageUrl = microData.data.image.url;
+                        rawImageUrl = microData.data.image.url;
                     }
                     if (microData.data.title) {
                         title = microData.data.title;
@@ -1936,7 +1938,7 @@ exports.extractLinkMetadata = onCall({
         }
 
         // 2. Fallback: Raspagem direta se o Microlink não retornou a imagem
-        if (!imageUrl) {
+        if (!rawImageUrl) {
             const response = await fetch(parsedUrl.href, {
                 headers: {
                     "User-Agent": "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",
@@ -1954,7 +1956,7 @@ exports.extractLinkMetadata = onCall({
                                      html.match(/<meta[^>]*name=["']twitter:image["'][^>]*content=["']([^"']+)["']/i);
 
                 if (ogImageMatch && ogImageMatch[1]) {
-                    imageUrl = ogImageMatch[1].replace(/&amp;/g, "&");
+                    rawImageUrl = ogImageMatch[1].replace(/&amp;/g, "&");
                 }
 
                 if (!title) {
@@ -1968,9 +1970,51 @@ exports.extractLinkMetadata = onCall({
             }
         }
 
+        // 3. Se encontrou uma imagem, faz proxy para o Firebase Storage (evita URLs expiráveis)
+        if (rawImageUrl) {
+            try {
+                const imgResponse = await fetch(rawImageUrl, {
+                    headers: {
+                        "User-Agent": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
+                    }
+                });
+
+                if (imgResponse.ok) {
+                    const contentType = imgResponse.headers.get("content-type") || "image/jpeg";
+                    const ext = contentType.includes("png") ? "png" : contentType.includes("webp") ? "webp" : "jpg";
+                    const buffer = Buffer.from(await imgResponse.arrayBuffer());
+
+                    const bucket = admin.storage().bucket();
+                    const fileName = `link_popups/auto_${Date.now()}.${ext}`;
+                    const file = bucket.file(fileName);
+
+                    await file.save(buffer, {
+                        metadata: { contentType },
+                        public: true
+                    });
+
+                    const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+
+                    return {
+                        success: true,
+                        imageUrl: publicUrl,
+                        title: title
+                    };
+                }
+            } catch (proxyErr) {
+                console.warn("Falha ao fazer proxy da imagem para o Storage, retornando URL original:", proxyErr);
+                // Fallback: retorna a URL original caso o proxy falhe
+                return {
+                    success: true,
+                    imageUrl: rawImageUrl,
+                    title: title
+                };
+            }
+        }
+
         return {
-            success: Boolean(imageUrl),
-            imageUrl: imageUrl,
+            success: Boolean(rawImageUrl),
+            imageUrl: rawImageUrl,
             title: title
         };
     } catch (error) {
