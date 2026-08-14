@@ -3233,10 +3233,18 @@ function setupLinks() {
     }
 
     if (urlInput) {
-        urlInput.addEventListener('blur', () => {
-            if (selectedLinkFormat === 'popup' && (!linkImageUrlInput || !linkImageUrlInput.value.trim())) {
+        let extractDebounceTimeout = null;
+        const triggerAutoExtract = () => {
+            if (selectedLinkFormat === 'popup' && urlInput.value.trim() && (!linkImageUrlInput || !linkImageUrlInput.value.trim())) {
                 handleExtractImage(true);
             }
+        };
+
+        urlInput.addEventListener('blur', triggerAutoExtract);
+        urlInput.addEventListener('paste', () => setTimeout(triggerAutoExtract, 100));
+        urlInput.addEventListener('input', () => {
+            clearTimeout(extractDebounceTimeout);
+            extractDebounceTimeout = setTimeout(triggerAutoExtract, 800);
         });
     }
 
@@ -3344,15 +3352,6 @@ function setupLinks() {
         const docId = idInput ? idInput.value : '';
         const name = nameInput.value.trim();
         const url = urlInput.value.trim();
-        
-        const fromVal = fromInput ? fromInput.value : '';
-        const untilVal = untilInput ? untilInput.value : '';
-        
-        const availableFrom = fromVal ? Timestamp.fromDate(new Date(fromVal)) : null;
-        const availableUntil = untilVal ? Timestamp.fromDate(new Date(untilVal)) : null;
-
-        const isPopup = (selectedLinkFormat === 'popup');
-        const imageUrl = isPopup && linkImageUrlInput ? linkImageUrlInput.value.trim() : null;
 
         if (!name || !url) {
             showNotification('Preencha o nome e a URL do link.', 'error');
@@ -3363,6 +3362,25 @@ function setupLinks() {
             showNotification('O nome do botão não pode ter mais de 30 caracteres.', 'error');
             return;
         }
+
+        const isPopup = (selectedLinkFormat === 'popup');
+
+        // Se for Pop-up e a imagem ainda não estiver preenchida, extrai automaticamente antes de salvar
+        if (isPopup && url && (!linkImageUrlInput || !linkImageUrlInput.value.trim())) {
+            btnCreate.disabled = true;
+            btnCreate.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Extraindo imagem da capa...';
+            if (window.lucide) lucide.createIcons();
+            await handleExtractImage(true);
+        }
+
+        const imageUrl = isPopup && linkImageUrlInput ? linkImageUrlInput.value.trim() : null;
+
+        const fromVal = fromInput ? fromInput.value : '';
+        const untilVal = untilInput ? untilInput.value : '';
+        
+        const availableFrom = fromVal ? Timestamp.fromDate(new Date(fromVal)) : null;
+        const availableUntil = untilVal ? Timestamp.fromDate(new Date(untilVal)) : null;
+
 
         try {
             btnCreate.disabled = true;
