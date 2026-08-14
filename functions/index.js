@@ -600,7 +600,7 @@ exports.generateFichaTecnica = onCall({
   * O cargo "Montadores" e outros cargos finais não especificados vêm sem negrito (Exemplo: Montadores Nome e Nome.). Não levam asterisco.
 
 🔹 REGRAS ESPECÍFICAS DE HIERARQUIA (SPALLA E MONITOR)
-- Spalla: O primeiro nome do naipe de "Primeiros Violinos" é sempre o Spalla. Ele deve receber negrito duplo manual no início do nome e um asterisco ao final (Exemplo: **Primeiros Violinos** **Nome*, Nome2, Nome3.).
+- Spalla: O primeiro nome do naipe de "Primeiros Violinos" é sempre o Spalla. Ele deve receber dois asteriscos ao final do nome (Exemplo: **Primeiros Violinos** Nome**, Nome2, Nome3.).
 - Monitores: O primeiro nome de TODOS os outros naipes de instrumentos (exceto Primeiros Violinos) é o Monitor. Ele deve receber um asterisco ao final do nome (Exemplo: **Trompas** Nome*, Nome2, Nome3.).
 
 🔹 TEXTO DE LEGENDA OBRIGATÓRIO (AO FIM DA LISTA)

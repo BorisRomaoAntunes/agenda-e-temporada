@@ -6945,7 +6945,7 @@ function initMusiciansManagement() {
             if (list.length > 0) {
                 let formattedList = [...list];
                 if (naipe === "Primeiros Violinos") {
-                    formattedList[0] = `**${formattedList[0]}*`;
+                    formattedList[0] = `${formattedList[0]}**`;
                 } else {
                     formattedList[0] = `${formattedList[0]}*`;
                 }
@@ -7011,7 +7011,7 @@ function initMusiciansManagement() {
             if (list.length > 0) {
                 let formattedList = [...list];
                 if (naipe === "Primeiros Violinos") {
-                    formattedList[0] = `<strong>${formattedList[0]}*</strong>`;
+                    formattedList[0] = `${formattedList[0]}**`;
                 } else {
                     formattedList[0] = `${formattedList[0]}*`;
                 }
