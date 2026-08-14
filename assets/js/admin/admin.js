@@ -3116,8 +3116,153 @@ function setupLinks() {
     const extractImageStatus = document.getElementById('extract-image-status');
     const linkImagePreviewWrapper = document.getElementById('link-image-preview-wrapper');
     const linkImagePreview = document.getElementById('link-image-preview');
+    const linkImageCropperWrapper = document.getElementById('link-image-cropper-wrapper');
+    const linkImageCropperSrc = document.getElementById('link-image-cropper-src');
+    const btnConfirmCrop = document.getElementById('btn-confirm-crop');
     const btnRemoveLinkImage = document.getElementById('btn-remove-link-image');
+    const btnEditCrop = document.getElementById('btn-edit-crop');
+    const btnRemoveFinalImage = document.getElementById('btn-remove-final-image');
     const urlInput = document.getElementById('link-url');
+    let cropperInstance = null;
+    let currentRawImageUrl = null; // URL original antes do recorte
+
+    // ----- Cropper.js -----
+    const initCropper = (imageSrc, ratio = 1) => {
+        if (cropperInstance) { cropperInstance.destroy(); cropperInstance = null; }
+        if (!linkImageCropperSrc || !linkImageCropperWrapper) return;
+
+        linkImageCropperSrc.src = imageSrc;
+        linkImageCropperWrapper.style.display = 'block';
+        if (linkImagePreviewWrapper) linkImagePreviewWrapper.style.display = 'none';
+
+        // Aguarda a imagem carregar para inicializar o Cropper
+        linkImageCropperSrc.onload = () => {
+            cropperInstance = new Cropper(linkImageCropperSrc, {
+                aspectRatio: isNaN(ratio) ? NaN : ratio,
+                viewMode: 1,
+                autoCropArea: 0.9,
+                movable: true,
+                zoomable: true,
+                rotatable: false,
+                scalable: false,
+                responsive: true,
+                background: false
+            });
+        };
+        if (linkImageCropperSrc.complete && linkImageCropperSrc.naturalWidth) {
+            linkImageCropperSrc.onload();
+        }
+        if (window.lucide) lucide.createIcons();
+    };
+
+    // Botões de proporção
+    document.querySelectorAll('.crop-ratio-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.crop-ratio-btn').forEach(b => {
+                b.style.background = 'rgba(255,255,255,0.05)';
+                b.style.borderColor = 'rgba(255,255,255,0.15)';
+                b.style.color = 'var(--text-secondary)';
+            });
+            btn.style.background = 'rgba(139,0,0,0.25)';
+            btn.style.borderColor = 'rgba(139,0,0,0.5)';
+            btn.style.color = '#fff';
+
+            const ratio = parseFloat(btn.dataset.ratio);
+            if (cropperInstance) cropperInstance.setAspectRatio(isNaN(ratio) ? NaN : ratio);
+        });
+    });
+
+    // Confirmar recorte → exporta canvas → faz upload no Firebase Storage
+    if (btnConfirmCrop) {
+        btnConfirmCrop.addEventListener('click', async () => {
+            if (!cropperInstance) return;
+            btnConfirmCrop.disabled = true;
+            btnConfirmCrop.innerHTML = '<i data-lucide="loader-2" class="spin" style="width:16px;height:16px;"></i> Salvando...';
+            if (window.lucide) lucide.createIcons();
+
+            try {
+                const canvas = cropperInstance.getCroppedCanvas({ maxWidth: 1080, maxHeight: 1080, imageSmoothingQuality: 'high' });
+                const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.92));
+
+                const fileName = `link_popups/crop_${Date.now()}.jpg`;
+                const storageRefPath = ref(storage, fileName);
+                const uploadTask = await uploadBytesResumable(storageRefPath, blob);
+                const downloadUrl = await getDownloadURL(uploadTask.ref);
+
+                if (linkImageUrlInput) linkImageUrlInput.value = downloadUrl;
+                if (linkImagePreview) linkImagePreview.src = downloadUrl;
+                if (linkImagePreviewWrapper) linkImagePreviewWrapper.style.display = 'block';
+                if (linkImageCropperWrapper) linkImageCropperWrapper.style.display = 'none';
+
+                cropperInstance.destroy();
+                cropperInstance = null;
+
+                showNotification('Imagem recortada e salva!', 'success');
+                if (extractImageStatus) {
+                    extractImageStatus.style.display = 'block';
+                    extractImageStatus.style.color = '#2E8B57';
+                    extractImageStatus.textContent = '✓ Imagem recortada e salva com sucesso!';
+                }
+            } catch (err) {
+                console.error('Erro ao salvar recorte:', err);
+                showNotification('Erro ao salvar o recorte.', 'error');
+            } finally {
+                btnConfirmCrop.disabled = false;
+                btnConfirmCrop.innerHTML = '<i data-lucide="check"></i> Confirmar Recorte';
+                if (window.lucide) lucide.createIcons();
+            }
+        });
+    }
+
+    // Reeditar recorte a partir do preview final
+    if (btnEditCrop) {
+        btnEditCrop.addEventListener('click', () => {
+            if (currentRawImageUrl) {
+                initCropper(currentRawImageUrl, 1);
+            }
+        });
+    }
+
+    // Remover imagem (dentro do cropper)
+    if (btnRemoveLinkImage) {
+        btnRemoveLinkImage.addEventListener('click', () => {
+            if (cropperInstance) { cropperInstance.destroy(); cropperInstance = null; }
+            if (linkImageCropperWrapper) linkImageCropperWrapper.style.display = 'none';
+            if (linkImageCropperSrc) linkImageCropperSrc.src = '';
+            if (linkImageUrlInput) linkImageUrlInput.value = '';
+            currentRawImageUrl = null;
+            if (extractImageStatus) extractImageStatus.style.display = 'none';
+        });
+    }
+
+    // Remover imagem (preview final)
+    if (btnRemoveFinalImage) {
+        btnRemoveFinalImage.addEventListener('click', () => {
+            if (linkImagePreview) linkImagePreview.src = '';
+            if (linkImagePreviewWrapper) linkImagePreviewWrapper.style.display = 'none';
+            if (linkImageUrlInput) linkImageUrlInput.value = '';
+            currentRawImageUrl = null;
+            if (extractImageStatus) extractImageStatus.style.display = 'none';
+        });
+    }
+
+    // Função central: abre o cropper com a URL bruta da imagem
+    const openCropperWithUrl = (imageUrl) => {
+        currentRawImageUrl = imageUrl;
+        initCropper(imageUrl, 1);
+        // Resetar seleção de proporção para Quadrado (padrão)
+        document.querySelectorAll('.crop-ratio-btn').forEach((b, i) => {
+            if (i === 0) {
+                b.style.background = 'rgba(139,0,0,0.25)';
+                b.style.borderColor = 'rgba(139,0,0,0.5)';
+                b.style.color = '#fff';
+            } else {
+                b.style.background = 'rgba(255,255,255,0.05)';
+                b.style.borderColor = 'rgba(255,255,255,0.15)';
+                b.style.color = 'var(--text-secondary)';
+            }
+        });
+    };
 
     // Alternar Formato (Botão vs Pop-up)
     const updateFormatUI = (format) => {
@@ -3153,35 +3298,8 @@ function setupLinks() {
         }
     };
 
-    if (formatBtnOption) {
-        formatBtnOption.addEventListener('click', () => updateFormatUI('button'));
-    }
-    if (formatPopupOption) {
-        formatPopupOption.addEventListener('click', () => updateFormatUI('popup'));
-    }
-
-    const updateImagePreview = (url) => {
-        if (url && linkImagePreview && linkImagePreviewWrapper) {
-            linkImagePreview.src = url;
-            linkImagePreviewWrapper.style.display = 'block';
-        } else if (linkImagePreviewWrapper) {
-            linkImagePreviewWrapper.style.display = 'none';
-            if (linkImagePreview) linkImagePreview.src = '';
-        }
-    };
-
-    if (linkImageUrlInput) {
-        linkImageUrlInput.addEventListener('input', (e) => {
-            updateImagePreview(e.target.value.trim());
-        });
-    }
-
-    if (btnRemoveLinkImage) {
-        btnRemoveLinkImage.addEventListener('click', () => {
-            if (linkImageUrlInput) linkImageUrlInput.value = '';
-            updateImagePreview('');
-        });
-    }
+    if (formatBtnOption) formatBtnOption.addEventListener('click', () => updateFormatUI('button'));
+    if (formatPopupOption) formatPopupOption.addEventListener('click', () => updateFormatUI('popup'));
 
     const handleExtractImage = async (silent = false) => {
         const targetUrl = urlInput ? urlInput.value.trim() : '';
@@ -3202,13 +3320,13 @@ function setupLinks() {
             const result = await extractFn({ url: targetUrl });
 
             if (result.data && result.data.success && result.data.imageUrl) {
+                openCropperWithUrl(result.data.imageUrl);
                 if (linkImageUrlInput) linkImageUrlInput.value = result.data.imageUrl;
-                updateImagePreview(result.data.imageUrl);
                 if (extractImageStatus) {
                     extractImageStatus.style.color = '#2E8B57';
-                    extractImageStatus.textContent = '✓ Imagem extraída com sucesso!';
+                    extractImageStatus.textContent = '✓ Imagem obtida! Ajuste o recorte e confirme.';
                 }
-                if (!silent) showNotification('Imagem extraída com sucesso!', 'success');
+                if (!silent) showNotification('Imagem extraída! Ajuste o recorte e confirme.', 'success');
             } else {
                 if (extractImageStatus) {
                     extractImageStatus.style.color = '#ffaa00';
@@ -3249,39 +3367,20 @@ function setupLinks() {
     }
 
     if (linkImageFileInput) {
-        linkImageFileInput.addEventListener('change', async (e) => {
+        linkImageFileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
 
-            try {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+                openCropperWithUrl(ev.target.result);
                 if (extractImageStatus) {
                     extractImageStatus.style.display = 'block';
-                    extractImageStatus.style.color = 'var(--text-secondary)';
-                    extractImageStatus.innerHTML = '<i data-lucide="loader-2" class="spin" style="width: 14px; height: 14px; vertical-align: middle;"></i> Enviando imagem...';
-                    if (window.lucide) lucide.createIcons();
-                }
-
-                const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
-                const storageRefPath = ref(storage, `link_popups/${fileName}`);
-                const uploadTask = await uploadBytesResumable(storageRefPath, file);
-                const downloadUrl = await getDownloadURL(uploadTask.ref);
-
-                if (linkImageUrlInput) linkImageUrlInput.value = downloadUrl;
-                updateImagePreview(downloadUrl);
-
-                if (extractImageStatus) {
                     extractImageStatus.style.color = '#2E8B57';
-                    extractImageStatus.textContent = '✓ Imagem enviada com sucesso!';
+                    extractImageStatus.textContent = '✓ Imagem carregada! Ajuste o recorte e confirme.';
                 }
-                showNotification('Imagem enviada com sucesso!', 'success');
-            } catch (err) {
-                console.error('Erro no upload de imagem:', err);
-                if (extractImageStatus) {
-                    extractImageStatus.style.color = '#ff4444';
-                    extractImageStatus.textContent = 'Erro ao enviar a imagem.';
-                }
-                showNotification('Erro ao enviar imagem.', 'error');
-            }
+            };
+            reader.readAsDataURL(file);
         });
     }
 

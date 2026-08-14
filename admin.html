@@ -42,6 +42,10 @@
     <!-- Ícones Lucide -->
     <script src="https://unpkg.com/lucide@latest"></script>
 
+    <!-- Cropper.js - Recortador de imagem para Admin -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+
 </head>
 
 <body class="admin-body">
@@ -590,17 +594,11 @@
                             <i data-lucide="image" style="vertical-align: middle; margin-right: 4px;"></i> Imagem do Pop-up (Capa)
                         </label>
                         <p style="font-size: 0.825rem; color: var(--text-secondary); margin-bottom: 1rem;">
-                            Ao colar um link do Instagram, Facebook ou site externo, tentaremos extrair a imagem automaticamente. Você também pode enviar ou alterar a imagem.
+                            Cole o link do Instagram ou outro site — extraímos a imagem automaticamente. Depois, use o recortador para ajustar o enquadramento ideal antes de salvar.
                         </p>
 
-                        <div id="link-image-preview-wrapper" style="display: none; position: relative; margin-bottom: 1rem; text-align: center; border-radius: 10px; overflow: hidden; background: #000; max-height: 250px;">
-                            <img id="link-image-preview" src="" alt="Preview da Imagem" referrerpolicy="no-referrer" style="max-width: 100%; max-height: 250px; object-fit: contain;">
-                            <button type="button" id="btn-remove-link-image" title="Remover Imagem" style="position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.7); border: none; color: #ff4444; border-radius: 50%; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
-                                <i data-lucide="trash-2"></i>
-                            </button>
-                        </div>
-
-                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+                        <!-- Botões de URL / Upload / Extrair -->
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; margin-bottom: 0.5rem;">
                             <input type="text" id="link-image-url" class="version-input" placeholder="URL da imagem (https://...)" style="flex: 1; min-width: 200px;">
                             <label class="btn-primary" style="padding: 0.6rem 1rem; font-size: 0.85rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; white-space: nowrap;">
                                 <i data-lucide="upload"></i> Upload
@@ -610,7 +608,48 @@
                                 <i data-lucide="refresh-cw"></i> Extrair Imagem
                             </button>
                         </div>
-                        <div id="extract-image-status" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.5rem; display: none;"></div>
+                        <div id="extract-image-status" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.25rem; margin-bottom: 0.75rem; display: none;"></div>
+
+                        <!-- Área do Recortador -->
+                        <div id="link-image-cropper-wrapper" style="display: none; margin-bottom: 1rem;">
+
+                            <!-- Controles de proporção -->
+                            <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 0.75rem; align-items: center;">
+                                <span style="font-size: 0.8rem; color: var(--text-secondary); margin-right: 0.25rem;">Proporção:</span>
+                                <button type="button" class="crop-ratio-btn active" data-ratio="1" style="padding: 0.3rem 0.7rem; font-size: 0.78rem; border-radius: 8px; border: 1px solid rgba(139,0,0,0.5); background: rgba(139,0,0,0.25); color: #fff; cursor: pointer;">■ Quadrado</button>
+                                <button type="button" class="crop-ratio-btn" data-ratio="0.75" style="padding: 0.3rem 0.7rem; font-size: 0.78rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); color: var(--text-secondary); cursor: pointer;">▬ Retrato 3:4</button>
+                                <button type="button" class="crop-ratio-btn" data-ratio="1.7778" style="padding: 0.3rem 0.7rem; font-size: 0.78rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); color: var(--text-secondary); cursor: pointer;">▬ Paisagem 16:9</button>
+                                <button type="button" class="crop-ratio-btn" data-ratio="NaN" style="padding: 0.3rem 0.7rem; font-size: 0.78rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05); color: var(--text-secondary); cursor: pointer;">✦ Livre</button>
+                            </div>
+
+                            <!-- Canvas do Cropper -->
+                            <div style="border-radius: 10px; overflow: hidden; background: #000; max-height: 350px;">
+                                <img id="link-image-cropper-src" src="" alt="" style="max-width: 100%; display: block;">
+                            </div>
+
+                            <!-- Botão Confirmar Recorte -->
+                            <div style="display: flex; gap: 0.5rem; margin-top: 0.75rem;">
+                                <button type="button" id="btn-confirm-crop" class="btn-primary" style="flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;">
+                                    <i data-lucide="check"></i> Confirmar Recorte
+                                </button>
+                                <button type="button" id="btn-remove-link-image" style="padding: 0.6rem 1rem; background: rgba(255,68,68,0.15); border: 1px solid rgba(255,68,68,0.3); color: #ff6b6b; border-radius: 10px; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.85rem;">
+                                    <i data-lucide="trash-2"></i> Remover
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Preview final (após confirmar recorte) -->
+                        <div id="link-image-preview-wrapper" style="display: none; position: relative; margin-bottom: 0.75rem; text-align: center; border-radius: 10px; overflow: hidden; background: #000;">
+                            <img id="link-image-preview" src="" alt="Preview da Imagem" style="max-width: 100%; display: block; margin: 0 auto;">
+                            <div style="position: absolute; top: 8px; right: 8px; display: flex; gap: 0.4rem;">
+                                <button type="button" id="btn-edit-crop" title="Reeditar recorte" style="background: rgba(0,0,0,0.75); border: none; color: #fff; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                                    <i data-lucide="crop"></i>
+                                </button>
+                                <button type="button" id="btn-remove-final-image" title="Remover Imagem" style="background: rgba(0,0,0,0.75); border: none; color: #ff4444; border-radius: 8px; width: 32px; height: 32px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                                    <i data-lucide="trash-2"></i>
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
 
