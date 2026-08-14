@@ -3125,8 +3125,8 @@ function setupLinks() {
         if (format === 'popup') {
             if (formatPopupOption) {
                 formatPopupOption.classList.add('active');
-                formatPopupOption.style.background = 'rgba(138, 43, 226, 0.15)';
-                formatPopupOption.style.borderColor = '#8A2BE2';
+                formatPopupOption.style.background = 'rgba(139, 0, 0, 0.25)';
+                formatPopupOption.style.borderColor = '#8B0000';
                 formatPopupOption.style.color = '#fff';
             }
             if (formatBtnOption) {
@@ -3139,8 +3139,8 @@ function setupLinks() {
         } else {
             if (formatBtnOption) {
                 formatBtnOption.classList.add('active');
-                formatBtnOption.style.background = 'rgba(138, 43, 226, 0.15)';
-                formatBtnOption.style.borderColor = '#8A2BE2';
+                formatBtnOption.style.background = 'rgba(139, 0, 0, 0.25)';
+                formatBtnOption.style.borderColor = '#8B0000';
                 formatBtnOption.style.color = '#fff';
             }
             if (formatPopupOption) {
@@ -3637,11 +3637,11 @@ function loadAdminLinks() {
             const imageUrl = data.imageUrl || '';
 
             const isPopupBadge = isPopup 
-                ? `<span style="background: rgba(138, 43, 226, 0.2); color: #ba68c8; font-size: 0.72rem; padding: 2px 8px; border-radius: 12px; border: 1px solid rgba(138, 43, 226, 0.4); display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="maximize-2" style="width: 10px; height: 10px;"></i> Pop-up Modal</span>`
+                ? `<span style="background: rgba(139, 0, 0, 0.2); color: #ef5350; font-size: 0.72rem; padding: 2px 8px; border-radius: 12px; border: 1px solid rgba(139, 0, 0, 0.4); display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="maximize-2" style="width: 10px; height: 10px;"></i> Pop-up Modal</span>`
                 : `<span style="background: rgba(255, 255, 255, 0.08); color: var(--text-secondary); font-size: 0.72rem; padding: 2px 8px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="mouse-pointer-click" style="width: 10px; height: 10px;"></i> Botão</span>`;
 
             const imgThumbHtml = imageUrl 
-                ? `<div style="width: 48px; height: 48px; border-radius: 8px; overflow: hidden; background: #000; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.1); margin-right: 0.75rem;"><img src="${imageUrl}" style="width: 100%; height: 100%; object-fit: cover;"></div>`
+                ? `<div style="width: 48px; height: 48px; border-radius: 8px; overflow: hidden; background: #000; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.1); margin-right: 0.75rem;"><img src="${imageUrl}" referrerpolicy="no-referrer" style="width: 100%; height: 100%; object-fit: cover;"></div>`
                 : '';
 
             const item = document.createElement('div');

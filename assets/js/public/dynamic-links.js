@@ -49,7 +49,7 @@ function ensurePopupModalDOM() {
                     <i data-lucide="x"></i>
                 </button>
                 <div class="popup-modal-image-container" id="popup-modal-image-container" style="display: none;">
-                    <img id="popup-modal-image" src="" alt="Capa">
+                    <img id="popup-modal-image" src="" alt="Capa" referrerpolicy="no-referrer">
                 </div>
                 <div class="popup-modal-body">
                     <div class="popup-modal-icon-badge">
@@ -190,6 +190,10 @@ function openPopupModal(data) {
     if (iconEl) iconEl.setAttribute('data-lucide', iconName);
 
     if (data.imageUrl && imageContainer && imageEl) {
+        imageEl.onerror = () => {
+            if (imageContainer) imageContainer.style.display = 'none';
+        };
+        imageEl.setAttribute('referrerpolicy', 'no-referrer');
         imageEl.src = data.imageUrl;
         imageContainer.style.display = 'block';
     } else if (imageContainer) {
@@ -354,10 +358,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 linkElement.className = 'btn-form btn-dynamic-link btn-popup-link';
                 linkElement.title = data.name;
                 linkElement.innerHTML = `
-                    <span class="btn-form-icon" style="background: rgba(138, 43, 226, 0.2); color: #ba68c8;">
+                    <span class="btn-form-icon" style="background: rgba(139, 0, 0, 0.2); color: #ef5350;">
                         <i data-lucide="${iconName}"></i>
                     </span>
                     <span class="btn-form-label">${data.name}</span>
+
                 `;
                 linkElement.addEventListener('click', (e) => {
                     e.preventDefault();
