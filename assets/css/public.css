@@ -1474,16 +1474,17 @@ iframe {
 
 .popup-modal-image-container {
     width: 100%;
-    aspect-ratio: 1 / 1;
     background: #000;
     overflow: hidden;
     position: relative;
+    max-height: 380px;
 }
 
 .popup-modal-image-container img {
     width: 100%;
-    height: 100%;
-    object-fit: cover;
+    height: auto;
+    max-height: 380px;
+    object-fit: contain;
     display: block;
 }
 
