@@ -1912,41 +1912,64 @@ exports.extractLinkMetadata = onCall({
 
     try {
         const parsedUrl = new URL(url);
-
-        const response = await fetch(parsedUrl.href, {
-            headers: {
-                "User-Agent": "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",
-                "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7"
-            },
-            redirect: "follow"
-        });
-
-        if (!response.ok) {
-            return { success: false, message: `Status HTTP ${response.status}` };
-        }
-
-        const html = await response.text();
-
         let imageUrl = null;
-        const ogImageMatch = html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i) ||
-                             html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:image["']/i) ||
-                             html.match(/<meta[^>]*name=["']og:image["'][^>]*content=["']([^"']+)["']/i) ||
-                             html.match(/<meta[^>]*name=["']twitter:image["'][^>]*content=["']([^"']+)["']/i);
+        let title = null;
 
-        if (ogImageMatch && ogImageMatch[1]) {
-            imageUrl = ogImageMatch[1].replace(/&amp;/g, "&");
+        // 1. Tenta extrair usando Microlink API (suporta Instagram, Facebook, TikTok, YouTube, etc)
+        try {
+            const microlinkRes = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(parsedUrl.href)}`, {
+                headers: { "Accept": "application/json" }
+            });
+            if (microlinkRes.ok) {
+                const microData = await microlinkRes.json();
+                if (microData && microData.status === "success" && microData.data) {
+                    if (microData.data.image && microData.data.image.url) {
+                        imageUrl = microData.data.image.url;
+                    }
+                    if (microData.data.title) {
+                        title = microData.data.title;
+                    }
+                }
+            }
+        } catch (microErr) {
+            console.warn("Falha na chamada da Microlink API, tentando raspagem direta:", microErr);
         }
 
-        let title = null;
-        const ogTitleMatch = html.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/i) ||
-                             html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:title["']/i);
+        // 2. Fallback: Raspagem direta se o Microlink não retornou a imagem
+        if (!imageUrl) {
+            const response = await fetch(parsedUrl.href, {
+                headers: {
+                    "User-Agent": "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",
+                    "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7"
+                },
+                redirect: "follow"
+            });
 
-        if (ogTitleMatch && ogTitleMatch[1]) {
-            title = ogTitleMatch[1].replace(/&amp;/g, "&");
+            if (response.ok) {
+                const html = await response.text();
+
+                const ogImageMatch = html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i) ||
+                                     html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:image["']/i) ||
+                                     html.match(/<meta[^>]*name=["']og:image["'][^>]*content=["']([^"']+)["']/i) ||
+                                     html.match(/<meta[^>]*name=["']twitter:image["'][^>]*content=["']([^"']+)["']/i);
+
+                if (ogImageMatch && ogImageMatch[1]) {
+                    imageUrl = ogImageMatch[1].replace(/&amp;/g, "&");
+                }
+
+                if (!title) {
+                    const ogTitleMatch = html.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/i) ||
+                                         html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:title["']/i);
+
+                    if (ogTitleMatch && ogTitleMatch[1]) {
+                        title = ogTitleMatch[1].replace(/&amp;/g, "&");
+                    }
+                }
+            }
         }
 
         return {
-            success: true,
+            success: Boolean(imageUrl),
             imageUrl: imageUrl,
             title: title
         };
@@ -1955,5 +1978,6 @@ exports.extractLinkMetadata = onCall({
         return { success: false, error: error.message };
     }
 });
+
 
 
