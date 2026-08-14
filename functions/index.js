@@ -1994,10 +1994,13 @@ exports.extractLinkMetadata = onCall({
                     });
 
                     const publicUrl = `https://storage.googleapis.com/${bucket.name}/${fileName}`;
+                    const base64Data = buffer.toString("base64");
+                    const dataUrl = `data:${contentType};base64,${base64Data}`;
 
                     return {
                         success: true,
                         imageUrl: publicUrl,
+                        dataUrl: dataUrl,
                         title: title
                     };
                 }
@@ -2007,6 +2010,7 @@ exports.extractLinkMetadata = onCall({
                 return {
                     success: true,
                     imageUrl: rawImageUrl,
+                    dataUrl: null,
                     title: title
                 };
             }

@@ -3131,12 +3131,14 @@ function setupLinks() {
         if (cropperInstance) { cropperInstance.destroy(); cropperInstance = null; }
         if (!linkImageCropperSrc || !linkImageCropperWrapper) return;
 
+        linkImageCropperSrc.crossOrigin = "anonymous";
         linkImageCropperSrc.src = imageSrc;
         linkImageCropperWrapper.style.display = 'block';
         if (linkImagePreviewWrapper) linkImagePreviewWrapper.style.display = 'none';
 
         // Aguarda a imagem carregar para inicializar o Cropper
         linkImageCropperSrc.onload = () => {
+            if (cropperInstance) { cropperInstance.destroy(); }
             cropperInstance = new Cropper(linkImageCropperSrc, {
                 aspectRatio: isNaN(ratio) ? NaN : ratio,
                 viewMode: 1,
@@ -3182,11 +3184,20 @@ function setupLinks() {
 
             try {
                 const canvas = cropperInstance.getCroppedCanvas({ maxWidth: 1080, maxHeight: 1080, imageSmoothingQuality: 'high' });
-                const blob = await new Promise(res => canvas.toBlob(res, 'image/jpeg', 0.92));
+                if (!canvas) {
+                    throw new Error('Não foi possível gerar a área recortada da imagem.');
+                }
+                const blob = await new Promise((res, rej) => {
+                    canvas.toBlob((b) => {
+                        if (b) res(b);
+                        else rej(new Error('Falha ao exportar imagem do Canvas.'));
+                    }, 'image/jpeg', 0.92);
+                });
 
                 const fileName = `link_popups/crop_${Date.now()}.jpg`;
                 const storageRefPath = ref(storage, fileName);
-                const uploadTask = await uploadBytesResumable(storageRefPath, blob);
+                const metadata = { contentType: 'image/jpeg' };
+                const uploadTask = await uploadBytesResumable(storageRefPath, blob, metadata);
                 const downloadUrl = await getDownloadURL(uploadTask.ref);
 
                 if (linkImageUrlInput) linkImageUrlInput.value = downloadUrl;
@@ -3197,7 +3208,7 @@ function setupLinks() {
                 cropperInstance.destroy();
                 cropperInstance = null;
 
-                showNotification('Imagem recortada e salva!', 'success');
+                showNotification('Imagem recortada e salva com sucesso!', 'success');
                 if (extractImageStatus) {
                     extractImageStatus.style.display = 'block';
                     extractImageStatus.style.color = '#2E8B57';
@@ -3205,7 +3216,7 @@ function setupLinks() {
                 }
             } catch (err) {
                 console.error('Erro ao salvar recorte:', err);
-                showNotification('Erro ao salvar o recorte.', 'error');
+                showNotification(`Erro ao salvar o recorte: ${err.message || 'Verifique as permissões'}`, 'error');
             } finally {
                 btnConfirmCrop.disabled = false;
                 btnConfirmCrop.innerHTML = '<i data-lucide="check"></i> Confirmar Recorte';
@@ -3319,9 +3330,9 @@ function setupLinks() {
             const extractFn = httpsCallable(functions, 'extractLinkMetadata');
             const result = await extractFn({ url: targetUrl });
 
-            if (result.data && result.data.success && result.data.imageUrl) {
-                openCropperWithUrl(result.data.imageUrl);
-                if (linkImageUrlInput) linkImageUrlInput.value = result.data.imageUrl;
+            if (result.data && result.data.success && (result.data.dataUrl || result.data.imageUrl)) {
+                openCropperWithUrl(result.data.dataUrl || result.data.imageUrl);
+                if (linkImageUrlInput) linkImageUrlInput.value = result.data.imageUrl || '';
                 if (extractImageStatus) {
                     extractImageStatus.style.color = '#2E8B57';
                     extractImageStatus.textContent = '✓ Imagem obtida! Ajuste o recorte e confirme.';
