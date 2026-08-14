@@ -1894,3 +1894,66 @@ exports.forceSyncCalendar = onCall({
     return { success: true, message: "Forçada sincronização! A trigger syncScheduleOnPDFUpload foi disparada em segundo plano." };
 });
 
+/**
+ * Função callable para extrair metadados Open Graph (imagem de capa e título) de links externos (Instagram, Facebook, etc).
+ */
+exports.extractLinkMetadata = onCall({
+    region: "us-central1",
+    timeoutSeconds: 30,
+    memory: "256MiB"
+}, async (request) => {
+    if (!request.auth) {
+        throw new HttpsError("unauthenticated", "Autenticação obrigatória.");
+    }
+    const { url } = request.data || {};
+    if (!url || typeof url !== "string") {
+        throw new HttpsError("invalid-argument", "URL é obrigatória.");
+    }
+
+    try {
+        const parsedUrl = new URL(url);
+
+        const response = await fetch(parsedUrl.href, {
+            headers: {
+                "User-Agent": "facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)",
+                "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7"
+            },
+            redirect: "follow"
+        });
+
+        if (!response.ok) {
+            return { success: false, message: `Status HTTP ${response.status}` };
+        }
+
+        const html = await response.text();
+
+        let imageUrl = null;
+        const ogImageMatch = html.match(/<meta[^>]*property=["']og:image["'][^>]*content=["']([^"']+)["']/i) ||
+                             html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:image["']/i) ||
+                             html.match(/<meta[^>]*name=["']og:image["'][^>]*content=["']([^"']+)["']/i) ||
+                             html.match(/<meta[^>]*name=["']twitter:image["'][^>]*content=["']([^"']+)["']/i);
+
+        if (ogImageMatch && ogImageMatch[1]) {
+            imageUrl = ogImageMatch[1].replace(/&amp;/g, "&");
+        }
+
+        let title = null;
+        const ogTitleMatch = html.match(/<meta[^>]*property=["']og:title["'][^>]*content=["']([^"']+)["']/i) ||
+                             html.match(/<meta[^>]*content=["']([^"']+)["'][^>]*property=["']og:title["']/i);
+
+        if (ogTitleMatch && ogTitleMatch[1]) {
+            title = ogTitleMatch[1].replace(/&amp;/g, "&");
+        }
+
+        return {
+            success: true,
+            imageUrl: imageUrl,
+            title: title
+        };
+    } catch (error) {
+        console.error("Erro ao extrair metadados da URL:", error);
+        return { success: false, error: error.message };
+    }
+});
+
+

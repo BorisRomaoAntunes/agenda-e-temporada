@@ -36,13 +36,194 @@ function formatAvailabilityText(availableFrom, availableUntil, isFuture = false)
     return '';
 }
 
+// ----- ESTRUTURA DO MODAL POP-UP (CRIADA DINAMICAMENTE SE NÃO EXISTIR) -----
+function ensurePopupModalDOM() {
+    let overlay = document.getElementById('link-popup-modal-overlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'link-popup-modal-overlay';
+        overlay.className = 'popup-modal-overlay';
+        overlay.innerHTML = `
+            <div class="popup-modal-card" id="popup-modal-card">
+                <button type="button" class="popup-modal-close" id="btn-close-popup-modal" aria-label="Fechar">
+                    <i data-lucide="x"></i>
+                </button>
+                <div class="popup-modal-image-container" id="popup-modal-image-container" style="display: none;">
+                    <img id="popup-modal-image" src="" alt="Capa">
+                </div>
+                <div class="popup-modal-body">
+                    <div class="popup-modal-icon-badge">
+                        <i data-lucide="share-2" id="popup-modal-icon"></i>
+                    </div>
+                    <h3 class="popup-modal-title" id="popup-modal-title">Destaque Especial</h3>
+                    <div class="popup-modal-actions">
+                        <button type="button" class="btn-popup-share" id="btn-popup-share-action">
+                            <i data-lucide="share-2"></i>
+                            <span>Compartilhar</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        // Eventos de Fechamento
+        const btnClose = overlay.querySelector('#btn-close-popup-modal');
+        if (btnClose) {
+            btnClose.addEventListener('click', () => {
+                overlay.classList.remove('active');
+            });
+        }
+
+        // Fechar ao clicar fora do card
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                overlay.classList.remove('active');
+            }
+        });
+    }
+    return overlay;
+}
+
+// ----- FUNÇÃO DE COMPARTILHAMENTO NATIVO / FALLBACK -----
+async function handleShare(data) {
+    const title = data.name || 'Destaque OER';
+    const text = data.name || 'Confira este destaque';
+    const url = data.url;
+
+    if (navigator.share) {
+        try {
+            await navigator.share({
+                title: title,
+                text: text,
+                url: url
+            });
+        } catch (err) {
+            if (err.name !== 'AbortError') {
+                console.warn('Erro ao abrir o compartilhamento nativo:', err);
+                copyToClipboard(url);
+            }
+        }
+    } else {
+        copyToClipboard(url);
+    }
+}
+
+function copyToClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('Link copiado para a área de transferência!');
+        }).catch(() => {
+            fallbackCopy(text);
+        });
+    } else {
+        fallbackCopy(text);
+    }
+}
+
+function fallbackCopy(text) {
+    const textArea = document.createElement("textarea");
+    textArea.value = text;
+    textArea.style.position = "fixed";
+    textArea.style.opacity = "0";
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+        document.execCommand('copy');
+        showToast('Link copiado para a área de transferência!');
+    } catch (err) {
+        console.error('Erro ao copiar link:', err);
+    }
+    document.body.removeChild(textArea);
+}
+
+function showToast(message) {
+    let toast = document.getElementById('popup-share-toast');
+    if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'popup-share-toast';
+        toast.style.cssText = `
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #141419;
+            color: #fff;
+            padding: 12px 24px;
+            border-radius: 30px;
+            border: 1px solid rgba(138, 43, 226, 0.4);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            font-size: 0.9rem;
+            font-weight: 500;
+            z-index: 100000;
+            transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        `;
+        document.body.appendChild(toast);
+    }
+    toast.innerHTML = `<i data-lucide="check-circle-2" style="width: 18px; height: 18px; color: #2E8B57;"></i> ${message}`;
+    if (window.lucide) window.lucide.createIcons();
+
+    toast.style.transform = 'translateX(-50%) translateY(0)';
+    setTimeout(() => {
+        toast.style.transform = 'translateX(-50%) translateY(100px)';
+    }, 3000);
+}
+
+// ----- EXIBIR POP-UP MODAL NA TELA -----
+function openPopupModal(data) {
+    const overlay = ensurePopupModalDOM();
+    const titleEl = overlay.querySelector('#popup-modal-title');
+    const imageContainer = overlay.querySelector('#popup-modal-image-container');
+    const imageEl = overlay.querySelector('#popup-modal-image');
+    const iconEl = overlay.querySelector('#popup-modal-icon');
+    const btnShare = overlay.querySelector('#btn-popup-share-action');
+    const cardEl = overlay.querySelector('#popup-modal-card');
+
+    if (titleEl) titleEl.textContent = data.name || 'Destaque';
+    
+    const iconName = data.icon || 'share-2';
+    if (iconEl) iconEl.setAttribute('data-lucide', iconName);
+
+    if (data.imageUrl && imageContainer && imageEl) {
+        imageEl.src = data.imageUrl;
+        imageContainer.style.display = 'block';
+    } else if (imageContainer) {
+        imageContainer.style.display = 'none';
+        if (imageEl) imageEl.src = '';
+    }
+
+    if (btnShare) {
+        const newBtn = btnShare.cloneNode(true);
+        btnShare.parentNode.replaceChild(newBtn, btnShare);
+        newBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            handleShare(data);
+        });
+    }
+
+    if (cardEl) {
+        cardEl.onclick = (e) => {
+            if (e.target.closest('#btn-close-popup-modal')) return;
+            handleShare(data);
+        };
+    }
+
+    if (window.lucide) window.lucide.createIcons();
+    overlay.classList.add('active');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const container = document.getElementById('dynamic-links-container');
     if (!container) return;
 
     // ----- CRÔNOMETRO DE INTERVALO EM TEMPO REAL -----
     let intervalTicker = null;
-    let isIntervalActive = false; // Estado compartilhado com o listener de links
+    let isIntervalActive = false;
     const intervalRef = doc(db, 'config', 'intervalo');
 
     onSnapshot(intervalRef, (docSnap) => {
@@ -94,9 +275,6 @@ document.addEventListener('DOMContentLoaded', () => {
                         numbersElem.textContent = `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
                     }
 
-                    // Estados de alerta no cronômetro:
-                    // ≤ 1 min (60s): Vermelho pulsante (.urgent)
-                    // ≤ 5 min (300s): Amarelo pulsante (.warning)
                     if (totalSec <= 60) {
                         card.classList.add('urgent');
                         card.classList.remove('warning');
@@ -112,7 +290,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateCountdown();
                 intervalTicker = setInterval(updateCountdown, 1000);
 
-                // Ocultar botões temporários durante o intervalo
                 isIntervalActive = true;
                 container.querySelectorAll('.btn-dynamic-link').forEach(el => {
                     el.style.display = 'none';
@@ -123,7 +300,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
 
-        // Inativo ou encerrado: limpa o ticker, remove o card e reexibe os links
         isIntervalActive = false;
         if (intervalTicker) { clearInterval(intervalTicker); intervalTicker = null; }
         if (existingCard) existingCard.remove();
@@ -137,7 +313,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const q = query(linksRef, orderBy('createdAt', 'asc'));
 
     onSnapshot(q, (snapshot) => {
-        // Preservar o card do cronômetro ao redraw dos links
         const activeIntervalCard = document.getElementById('musician-countdown-card');
         container.innerHTML = '';
         if (activeIntervalCard) container.appendChild(activeIntervalCard);
@@ -151,27 +326,49 @@ document.addEventListener('DOMContentLoaded', () => {
         snapshot.forEach((docSnap) => {
             const data = docSnap.data();
             
-            // Renderizar apenas se estiver ativo no Admin
             if (data.active !== true) return;
             
             let isFuture = false;
 
-            // Validar janela de tempo se definida
             if (data.availableFrom) {
                 const fromDate = data.availableFrom.toDate ? data.availableFrom.toDate() : new Date(data.availableFrom);
                 if (!isNaN(fromDate.getTime()) && now < fromDate) {
-                    isFuture = true; // Ainda não liberado -> Exibir esmaecido/desabilitado
+                    isFuture = true;
                 }
             }
             if (data.availableUntil) {
                 const untilDate = data.availableUntil.toDate ? data.availableUntil.toDate() : new Date(data.availableUntil);
                 if (!isNaN(untilDate.getTime()) && now > untilDate) {
-                    return; // Já expirado -> Ocultar
+                    return;
                 }
             }
-            
-            const linkElement = document.createElement('a');
+
             const iconName = data.icon || 'link';
+
+            // Se for do tipo POP-UP e estiver ativo/liberado:
+            if (data.isPopup === true && !isFuture) {
+                openPopupModal(data);
+
+                const linkElement = document.createElement('a');
+                linkElement.href = 'javascript:void(0)';
+                linkElement.className = 'btn-form btn-dynamic-link btn-popup-link';
+                linkElement.title = data.name;
+                linkElement.innerHTML = `
+                    <span class="btn-form-icon" style="background: rgba(138, 43, 226, 0.2); color: #ba68c8;">
+                        <i data-lucide="${iconName}"></i>
+                    </span>
+                    <span class="btn-form-label">${data.name}</span>
+                `;
+                linkElement.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    openPopupModal(data);
+                });
+                container.appendChild(linkElement);
+                return;
+            }
+            
+            // Botão tradicional
+            const linkElement = document.createElement('a');
 
             if (isFuture) {
                 linkElement.className = 'btn-form btn-dynamic-link btn-dynamic-link-disabled'; 
@@ -221,12 +418,10 @@ document.addEventListener('DOMContentLoaded', () => {
             container.appendChild(linkElement);
         });
 
-        // Inicializa ícones Lucide nos novos elementos
         if (window.lucide) {
             window.lucide.createIcons();
         }
 
-        // Se o intervalo estiver ativo, oculta os botões recém-renderizados
         if (isIntervalActive) {
             container.querySelectorAll('.btn-dynamic-link').forEach(el => {
                 el.style.display = 'none';

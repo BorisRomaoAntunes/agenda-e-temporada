@@ -145,7 +145,6 @@ onAuthStateChanged(auth, (user) => {
         initIntervalTimerControls(); // Inicia o controle do cronômetro de intervalo
         initMusiciansManagement(); // Inicia o gerenciamento de músicos (importação e busca reativa)
         initSecuritySection(); // Inicia a seção de segurança da conta
-        initBiometrics(user); // Inicializa biometria (logado)
     } else {
         // Não logado
         dashboardContainer.classList.remove('active');
@@ -162,7 +161,6 @@ onAuthStateChanged(auth, (user) => {
             window.engagementChartInstance.destroy();
             window.engagementChartInstance = null;
         }
-        initBiometrics(null); // Inicializa biometria (não logado)
     }
 });
 
@@ -2073,31 +2071,51 @@ function initEngagementChart() {
     if (unsubscribeEngagement) unsubscribeEngagement();
 
     const engagementRef = collection(db, 'engagement');
-    const q = query(engagementRef, orderBy('timestamp', 'desc'), limit(currentEngagementDays));
+
+    // Gera a lista dos últimos N dias primeiro (baseado em data, não em timestamp)
+    const lastDays = [];
+    const allDateStrs = [];
+    for (let i = currentEngagementDays - 1; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
+
+        // Exibição dd/mm e dia da semana
+        const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+        const diaSemanaStr = diasSemana[d.getDay()];
+        const displayStr = `${day}/${month} (${diaSemanaStr})`;
+
+        allDateStrs.push(dateStr);
+        lastDays.push({
+            dateStr: dateStr,
+            displayStr: displayStr,
+            uniqueVisitors: 0,
+            uniqueAccesses: 0, // retrocompatibilidade
+            totalPageviews: 0,
+            notificationAccesses: 0
+        });
+    }
+
+    // Busca os documentos pelo ID (data) — garante contiguidade mesmo em dias sem acesso
+    const startDate = allDateStrs[0];
+    const endDate = allDateStrs[allDateStrs.length - 1];
+    const q = query(
+        engagementRef,
+        where('date', '>=', startDate),
+        where('date', '<=', endDate)
+    );
 
     unsubscribeEngagement = onSnapshot(q, (snapshot) => {
-        // Gera a lista dos últimos N dias na ordem cronológica correta
-        const lastDays = [];
-        for (let i = currentEngagementDays - 1; i >= 0; i--) {
-            const d = new Date();
-            d.setDate(d.getDate() - i);
-            const year = d.getFullYear();
-            const month = String(d.getMonth() + 1).padStart(2, '0');
-            const day = String(d.getDate()).padStart(2, '0');
-            const dateStr = `${year}-${month}-${day}`;
-            
-            // Exibição dd/mm e dia da semana conforme solicitado
-            const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-            const diaSemanaStr = diasSemana[d.getDay()];
-            const displayStr = `${day}/${month} (${diaSemanaStr})`;
-            
-            lastDays.push({
-                dateStr: dateStr,
-                displayStr: displayStr,
-                uniqueAccesses: 0,
-                notificationAccesses: 0
-            });
-        }
+        // Reinicia os valores para evitar acúmulo em re-renders
+        lastDays.forEach(d => {
+            d.uniqueVisitors = 0;
+            d.uniqueAccesses = 0;
+            d.totalPageviews = 0;
+            d.notificationAccesses = 0;
+        });
 
         // Preenche com os dados reais retornados pelo Firestore
         snapshot.forEach((docSnap) => {
@@ -2105,50 +2123,75 @@ function initEngagementChart() {
             const dateStr = docSnap.id; // YYYY-MM-DD
             const dayObj = lastDays.find(d => d.dateStr === dateStr);
             if (dayObj) {
+                // Prioriza uniqueVisitors (novo), cai de volta para uniqueAccesses (legado)
+                dayObj.uniqueVisitors = data.uniqueVisitors || data.uniqueAccesses || 0;
                 dayObj.uniqueAccesses = data.uniqueAccesses || 0;
+                dayObj.totalPageviews = data.totalPageviews || 0;
                 dayObj.notificationAccesses = data.notificationAccesses || 0;
             }
         });
 
         const labels = lastDays.map(d => d.displayStr);
-        const uniqueData = lastDays.map(d => d.uniqueAccesses);
+        const uniqueData = lastDays.map(d => d.uniqueVisitors);
+        const pageviewData = lastDays.map(d => d.totalPageviews);
         const notifData = lastDays.map(d => d.notificationAccesses);
 
-        renderChart(canvas, labels, uniqueData, notifData);
+        renderChart(canvas, labels, uniqueData, pageviewData, notifData);
     }, (err) => {
         console.error('[Admin] Erro ao monitorar dados de engajamento:', err);
     });
 }
 
-function renderChart(canvas, labels, uniqueData, notifData, notifEnabled = isNotificationsEnabled) {
+function renderChart(canvas, labels, uniqueData, pageviewData, notifData, notifEnabled = isNotificationsEnabled) {
     if (window.engagementChartInstance) {
         window.engagementChartInstance.destroy();
         window.engagementChartInstance = null;
     }
 
     const ctx = canvas.getContext('2d');
-    
-    // Configura o visual com gradientes suaves sob as linhas
+
+    // Gradiente vermelho — Visitantes Únicos
     const gradientUnique = ctx.createLinearGradient(0, 0, 0, 200);
-    gradientUnique.addColorStop(0, 'rgba(139, 0, 0, 0.25)'); // Vinho da OER (#8B0000)
+    gradientUnique.addColorStop(0, 'rgba(139, 0, 0, 0.22)');
     gradientUnique.addColorStop(1, 'rgba(139, 0, 0, 0.00)');
 
+    // Gradiente azul — Pageviews Totais
+    const gradientPageviews = ctx.createLinearGradient(0, 0, 0, 200);
+    gradientPageviews.addColorStop(0, 'rgba(59, 130, 246, 0.18)');
+    gradientPageviews.addColorStop(1, 'rgba(59, 130, 246, 0.00)');
+
+    // Gradiente verde — Notificações
     const gradientNotif = ctx.createLinearGradient(0, 0, 0, 200);
-    gradientNotif.addColorStop(0, 'rgba(16, 185, 129, 0.25)'); // Verde Esmeralda (#10B981)
+    gradientNotif.addColorStop(0, 'rgba(16, 185, 129, 0.22)');
     gradientNotif.addColorStop(1, 'rgba(16, 185, 129, 0.00)');
 
     const datasets = [
         {
-            label: 'Acessos Únicos',
+            label: 'Visitantes Únicos',
             data: uniqueData,
-            borderColor: '#8B0000', // Vinho
+            borderColor: '#8B0000', // Vinho OER
             backgroundColor: gradientUnique,
             fill: true,
             tension: 0.35,
             borderWidth: 2.5,
             pointBackgroundColor: '#8B0000',
             pointHoverRadius: 6,
-            pointRadius: 4
+            pointRadius: 4,
+            order: 2
+        },
+        {
+            label: 'Pageviews Totais',
+            data: pageviewData,
+            borderColor: '#3B82F6', // Azul
+            backgroundColor: gradientPageviews,
+            fill: true,
+            tension: 0.35,
+            borderWidth: 2,
+            borderDash: [5, 3],
+            pointBackgroundColor: '#3B82F6',
+            pointHoverRadius: 5,
+            pointRadius: 3,
+            order: 1
         }
     ];
 
@@ -2163,7 +2206,8 @@ function renderChart(canvas, labels, uniqueData, notifData, notifEnabled = isNot
             borderWidth: 2.5,
             pointBackgroundColor: '#10B981',
             pointHoverRadius: 6,
-            pointRadius: 4
+            pointRadius: 4,
+            order: 3
         });
     }
 
@@ -3057,10 +3101,181 @@ document.addEventListener('keydown', (e) => {
 // ================= LINKS TEMPORÁRIOS =================
 
 let selectedIcon = 'link'; // Mantém o ícone selecionado para o link temporário (escopo do módulo)
+let selectedLinkFormat = 'button'; // 'button' | 'popup'
 
 function setupLinks() {
     const btnCreate = document.getElementById('btn-create-link');
     if (!btnCreate) return;
+
+    const popupConfigContainer = document.getElementById('popup-config-container');
+    const formatBtnOption = document.getElementById('format-option-button');
+    const formatPopupOption = document.getElementById('format-option-popup');
+    const linkImageUrlInput = document.getElementById('link-image-url');
+    const linkImageFileInput = document.getElementById('link-image-file-input');
+    const btnExtractImage = document.getElementById('btn-extract-link-image');
+    const extractImageStatus = document.getElementById('extract-image-status');
+    const linkImagePreviewWrapper = document.getElementById('link-image-preview-wrapper');
+    const linkImagePreview = document.getElementById('link-image-preview');
+    const btnRemoveLinkImage = document.getElementById('btn-remove-link-image');
+    const urlInput = document.getElementById('link-url');
+
+    // Alternar Formato (Botão vs Pop-up)
+    const updateFormatUI = (format) => {
+        selectedLinkFormat = format;
+        if (format === 'popup') {
+            if (formatPopupOption) {
+                formatPopupOption.classList.add('active');
+                formatPopupOption.style.background = 'rgba(138, 43, 226, 0.15)';
+                formatPopupOption.style.borderColor = '#8A2BE2';
+                formatPopupOption.style.color = '#fff';
+            }
+            if (formatBtnOption) {
+                formatBtnOption.classList.remove('active');
+                formatBtnOption.style.background = 'rgba(255, 255, 255, 0.03)';
+                formatBtnOption.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                formatBtnOption.style.color = 'var(--text-secondary)';
+            }
+            if (popupConfigContainer) popupConfigContainer.style.display = 'block';
+        } else {
+            if (formatBtnOption) {
+                formatBtnOption.classList.add('active');
+                formatBtnOption.style.background = 'rgba(138, 43, 226, 0.15)';
+                formatBtnOption.style.borderColor = '#8A2BE2';
+                formatBtnOption.style.color = '#fff';
+            }
+            if (formatPopupOption) {
+                formatPopupOption.classList.remove('active');
+                formatPopupOption.style.background = 'rgba(255, 255, 255, 0.03)';
+                formatPopupOption.style.borderColor = 'rgba(255, 255, 255, 0.08)';
+                formatPopupOption.style.color = 'var(--text-secondary)';
+            }
+            if (popupConfigContainer) popupConfigContainer.style.display = 'none';
+        }
+    };
+
+    if (formatBtnOption) {
+        formatBtnOption.addEventListener('click', () => updateFormatUI('button'));
+    }
+    if (formatPopupOption) {
+        formatPopupOption.addEventListener('click', () => updateFormatUI('popup'));
+    }
+
+    const updateImagePreview = (url) => {
+        if (url && linkImagePreview && linkImagePreviewWrapper) {
+            linkImagePreview.src = url;
+            linkImagePreviewWrapper.style.display = 'block';
+        } else if (linkImagePreviewWrapper) {
+            linkImagePreviewWrapper.style.display = 'none';
+            if (linkImagePreview) linkImagePreview.src = '';
+        }
+    };
+
+    if (linkImageUrlInput) {
+        linkImageUrlInput.addEventListener('input', (e) => {
+            updateImagePreview(e.target.value.trim());
+        });
+    }
+
+    if (btnRemoveLinkImage) {
+        btnRemoveLinkImage.addEventListener('click', () => {
+            if (linkImageUrlInput) linkImageUrlInput.value = '';
+            updateImagePreview('');
+        });
+    }
+
+    const handleExtractImage = async (silent = false) => {
+        const targetUrl = urlInput ? urlInput.value.trim() : '';
+        if (!targetUrl) {
+            if (!silent) showNotification('Insira uma URL de destino primeiro.', 'error');
+            return;
+        }
+
+        try {
+            if (extractImageStatus) {
+                extractImageStatus.style.display = 'block';
+                extractImageStatus.style.color = 'var(--text-secondary)';
+                extractImageStatus.innerHTML = '<i data-lucide="loader-2" class="spin" style="width: 14px; height: 14px; vertical-align: middle;"></i> Extraindo imagem da URL...';
+                if (window.lucide) lucide.createIcons();
+            }
+
+            const extractFn = httpsCallable(functions, 'extractLinkMetadata');
+            const result = await extractFn({ url: targetUrl });
+
+            if (result.data && result.data.success && result.data.imageUrl) {
+                if (linkImageUrlInput) linkImageUrlInput.value = result.data.imageUrl;
+                updateImagePreview(result.data.imageUrl);
+                if (extractImageStatus) {
+                    extractImageStatus.style.color = '#2E8B57';
+                    extractImageStatus.textContent = '✓ Imagem extraída com sucesso!';
+                }
+                if (!silent) showNotification('Imagem extraída com sucesso!', 'success');
+            } else {
+                if (extractImageStatus) {
+                    extractImageStatus.style.color = '#ffaa00';
+                    extractImageStatus.textContent = 'Não foi possível extrair a imagem automaticamente. Você pode enviar uma imagem personalizada.';
+                }
+                if (!silent) showNotification('Não foi possível extrair a imagem automaticamente. Faça o upload manual da imagem.', 'warning');
+            }
+        } catch (err) {
+            console.error('Erro na extração de imagem:', err);
+            if (extractImageStatus) {
+                extractImageStatus.style.color = '#ff4444';
+                extractImageStatus.textContent = 'Erro no serviço de extração de imagem.';
+            }
+        }
+    };
+
+    if (btnExtractImage) {
+        btnExtractImage.addEventListener('click', (e) => {
+            e.preventDefault();
+            handleExtractImage(false);
+        });
+    }
+
+    if (urlInput) {
+        urlInput.addEventListener('blur', () => {
+            if (selectedLinkFormat === 'popup' && (!linkImageUrlInput || !linkImageUrlInput.value.trim())) {
+                handleExtractImage(true);
+            }
+        });
+    }
+
+    if (linkImageFileInput) {
+        linkImageFileInput.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            try {
+                if (extractImageStatus) {
+                    extractImageStatus.style.display = 'block';
+                    extractImageStatus.style.color = 'var(--text-secondary)';
+                    extractImageStatus.innerHTML = '<i data-lucide="loader-2" class="spin" style="width: 14px; height: 14px; vertical-align: middle;"></i> Enviando imagem...';
+                    if (window.lucide) lucide.createIcons();
+                }
+
+                const fileName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9.-]/g, '_')}`;
+                const storageRefPath = ref(storage, `link_popups/${fileName}`);
+                const uploadTask = await uploadBytesResumable(storageRefPath, file);
+                const downloadUrl = await getDownloadURL(uploadTask.ref);
+
+                if (linkImageUrlInput) linkImageUrlInput.value = downloadUrl;
+                updateImagePreview(downloadUrl);
+
+                if (extractImageStatus) {
+                    extractImageStatus.style.color = '#2E8B57';
+                    extractImageStatus.textContent = '✓ Imagem enviada com sucesso!';
+                }
+                showNotification('Imagem enviada com sucesso!', 'success');
+            } catch (err) {
+                console.error('Erro no upload de imagem:', err);
+                if (extractImageStatus) {
+                    extractImageStatus.style.color = '#ff4444';
+                    extractImageStatus.textContent = 'Erro ao enviar a imagem.';
+                }
+                showNotification('Erro ao enviar imagem.', 'error');
+            }
+        });
+    }
 
     // Lógica do Seletor de Ícones
     const btnIconPicker = document.getElementById('btn-icon-picker');
@@ -3136,6 +3351,9 @@ function setupLinks() {
         const availableFrom = fromVal ? Timestamp.fromDate(new Date(fromVal)) : null;
         const availableUntil = untilVal ? Timestamp.fromDate(new Date(untilVal)) : null;
 
+        const isPopup = (selectedLinkFormat === 'popup');
+        const imageUrl = isPopup && linkImageUrlInput ? linkImageUrlInput.value.trim() : null;
+
         if (!name || !url) {
             showNotification('Preencha o nome e a URL do link.', 'error');
             return;
@@ -3157,6 +3375,8 @@ function setupLinks() {
                     name: name,
                     url: url,
                     icon: selectedIcon,
+                    isPopup: isPopup,
+                    imageUrl: imageUrl || null,
                     availableFrom: availableFrom,
                     availableUntil: availableUntil
                 });
@@ -3173,6 +3393,8 @@ function setupLinks() {
                     name: name,
                     url: url,
                     icon: selectedIcon,
+                    isPopup: isPopup,
+                    imageUrl: imageUrl || null,
                     active: true,
                     createdAt: serverTimestamp(),
                     availableFrom: availableFrom,
@@ -3188,20 +3410,7 @@ function setupLinks() {
                     counterSpan.style.color = 'var(--text-secondary)';
                 }
 
-                // Reseta ícone para o padrão
-                selectedIcon = 'link';
-                const resetPreview = document.getElementById('selected-icon-preview');
-                if (resetPreview) {
-                    const newIcon = document.createElement('i');
-                    newIcon.id = 'selected-icon-preview';
-                    newIcon.setAttribute('data-lucide', 'link');
-                    resetPreview.parentNode.replaceChild(newIcon, resetPreview);
-                    lucide.createIcons();
-                }
-                iconOptions.forEach(o => {
-                    o.classList.remove('active');
-                    if (o.getAttribute('data-icon') === 'link') o.classList.add('active');
-                });
+                window.resetLinkForm();
                 showNotification('Link criado com sucesso!', 'success');
                 await saveLog('link-criado', `Link temporário criado: "${name}"`, url, `O administrador criou um novo link temporário.`);
             }
@@ -3244,7 +3453,7 @@ function formatDateTimeLocal(timestamp) {
 
 
 // Funções para controle de Edição de Links
-window.startEditLink = function(id, name, url, icon, availableFrom, availableUntil) {
+window.startEditLink = function(id, name, url, icon, availableFrom, availableUntil, isPopup = false, imageUrl = '') {
     const idInput = document.getElementById('link-id');
     const nameInput = document.getElementById('link-name');
     const urlInput = document.getElementById('link-url');
@@ -3258,7 +3467,6 @@ window.startEditLink = function(id, name, url, icon, availableFrom, availableUnt
     if (idInput) idInput.value = id;
     if (nameInput) {
         nameInput.value = name;
-        // atualiza contador de caracteres
         const counterSpan = document.getElementById('link-name-counter');
         if (counterSpan) {
             counterSpan.textContent = `${name.length}/30`;
@@ -3268,6 +3476,29 @@ window.startEditLink = function(id, name, url, icon, availableFrom, availableUnt
     if (urlInput) urlInput.value = url;
     if (fromInput) fromInput.value = availableFrom || '';
     if (untilInput) untilInput.value = availableUntil || '';
+
+    // Ajusta Formato (Botão vs Pop-up)
+    const isPopupBool = (isPopup === true || isPopup === 'true');
+    const formatBtnOption = document.getElementById('format-option-button');
+    const formatPopupOption = document.getElementById('format-option-popup');
+    
+    if (isPopupBool && formatPopupOption) {
+        formatPopupOption.click();
+    } else if (formatBtnOption) {
+        formatBtnOption.click();
+    }
+
+    const linkImageUrlInput = document.getElementById('link-image-url');
+    const linkImagePreviewWrapper = document.getElementById('link-image-preview-wrapper');
+    const linkImagePreview = document.getElementById('link-image-preview');
+
+    if (linkImageUrlInput) linkImageUrlInput.value = imageUrl || '';
+    if (imageUrl && linkImagePreview && linkImagePreviewWrapper) {
+        linkImagePreview.src = imageUrl;
+        linkImagePreviewWrapper.style.display = 'block';
+    } else if (linkImagePreviewWrapper) {
+        linkImagePreviewWrapper.style.display = 'none';
+    }
     
     // Atualiza ícone selecionado
     selectedIcon = icon || 'link';
@@ -3317,6 +3548,16 @@ window.resetLinkForm = function() {
     if (urlInput) urlInput.value = '';
     if (fromInput) fromInput.value = '';
     if (untilInput) untilInput.value = '';
+
+    const formatBtnOption = document.getElementById('format-option-button');
+    if (formatBtnOption) formatBtnOption.click();
+
+    const linkImageUrlInput = document.getElementById('link-image-url');
+    const linkImagePreviewWrapper = document.getElementById('link-image-preview-wrapper');
+    const extractImageStatus = document.getElementById('extract-image-status');
+    if (linkImageUrlInput) linkImageUrlInput.value = '';
+    if (linkImagePreviewWrapper) linkImagePreviewWrapper.style.display = 'none';
+    if (extractImageStatus) extractImageStatus.style.display = 'none';
     
     const counterSpan = document.getElementById('link-name-counter');
     if (counterSpan) {
@@ -3392,24 +3633,37 @@ function loadAdminLinks() {
                 }
             }
 
+            const isPopup = data.isPopup === true;
+            const imageUrl = data.imageUrl || '';
+
+            const isPopupBadge = isPopup 
+                ? `<span style="background: rgba(138, 43, 226, 0.2); color: #ba68c8; font-size: 0.72rem; padding: 2px 8px; border-radius: 12px; border: 1px solid rgba(138, 43, 226, 0.4); display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="maximize-2" style="width: 10px; height: 10px;"></i> Pop-up Modal</span>`
+                : `<span style="background: rgba(255, 255, 255, 0.08); color: var(--text-secondary); font-size: 0.72rem; padding: 2px 8px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.1); display: inline-flex; align-items: center; gap: 4px;"><i data-lucide="mouse-pointer-click" style="width: 10px; height: 10px;"></i> Botão</span>`;
+
+            const imgThumbHtml = imageUrl 
+                ? `<div style="width: 48px; height: 48px; border-radius: 8px; overflow: hidden; background: #000; flex-shrink: 0; border: 1px solid rgba(255,255,255,0.1); margin-right: 0.75rem;"><img src="${imageUrl}" style="width: 100%; height: 100%; object-fit: cover;"></div>`
+                : '';
+
             const item = document.createElement('div');
             item.className = 'admin-notif-item';
             
-            // Checkbox value
             const isChecked = data.active ? 'checked' : '';
-            
             const iconName = data.icon || 'link';
             
             item.innerHTML = `
-                <div class="admin-notif-content">
-                    <h4 class="admin-notif-title" style="display: flex; align-items: center; gap: 0.5rem;">
-                        <i data-lucide="${iconName}" style="width: 18px; height: 18px; color: #8A2BE2;"></i>
-                        ${data.name}
-                    </h4>
-                    <p class="admin-notif-message"><a href="${data.url}" target="_blank" style="color: #2E8B57; text-decoration: none;">${data.url}</a></p>
-                    <div class="admin-notif-meta">
-                        <i data-lucide="clock" style="width: 12px; height: 12px;"></i> Criado em ${formattedDate}
-                        ${availabilityText ? `<br><i data-lucide="calendar" style="width: 12px; height: 12px; margin-top: 4px;"></i> <strong>${availabilityText}</strong>` : ''}
+                <div style="display: flex; align-items: center; flex: 1; min-width: 0;">
+                    ${imgThumbHtml}
+                    <div class="admin-notif-content" style="flex: 1; min-width: 0;">
+                        <h4 class="admin-notif-title" style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                            <i data-lucide="${iconName}" style="width: 18px; height: 18px; color: #8A2BE2;"></i>
+                            ${data.name}
+                            ${isPopupBadge}
+                        </h4>
+                        <p class="admin-notif-message"><a href="${data.url}" target="_blank" style="color: #2E8B57; text-decoration: none;">${data.url}</a></p>
+                        <div class="admin-notif-meta">
+                            <i data-lucide="clock" style="width: 12px; height: 12px;"></i> Criado em ${formattedDate}
+                            ${availabilityText ? `<br><i data-lucide="calendar" style="width: 12px; height: 12px; margin-top: 4px;"></i> <strong>${availabilityText}</strong>` : ''}
+                        </div>
                     </div>
                 </div>
                 <div style="display: flex; align-items: center; gap: 1rem;">
@@ -3417,7 +3671,7 @@ function loadAdminLinks() {
                         <input type="checkbox" class="toggle-link-status" data-id="${id}" data-name="${data.name}" data-url="${data.url}" ${isChecked}>
                         <span class="toggle-slider"></span>
                     </label>
-                    <button class="btn-edit-notif" title="Editar Link" data-id="${id}" data-name="${data.name}" data-url="${data.url}" data-icon="${iconName}" data-from="${formatDateTimeLocal(data.availableFrom)}" data-until="${formatDateTimeLocal(data.availableUntil)}">
+                    <button class="btn-edit-notif" title="Editar Link" data-id="${id}" data-name="${data.name}" data-url="${data.url}" data-icon="${iconName}" data-from="${formatDateTimeLocal(data.availableFrom)}" data-until="${formatDateTimeLocal(data.availableUntil)}" data-popup="${isPopup}" data-image="${imageUrl}">
                         <i data-lucide="edit-2"></i>
                     </button>
                     <button class="btn-delete-notif" title="Apagar Link" data-id="${id}" data-name="${data.name}" data-url="${data.url}">
@@ -3459,8 +3713,10 @@ function loadAdminLinks() {
                 const icon = btn.getAttribute('data-icon');
                 const availableFrom = btn.getAttribute('data-from');
                 const availableUntil = btn.getAttribute('data-until');
+                const isPopup = btn.getAttribute('data-popup');
+                const imageUrl = btn.getAttribute('data-image');
                 
-                window.startEditLink(docId, name, url, icon, availableFrom, availableUntil);
+                window.startEditLink(docId, name, url, icon, availableFrom, availableUntil, isPopup, imageUrl);
             });
         });
 
@@ -3486,6 +3742,7 @@ function loadAdminLinks() {
         lucide.createIcons();
     });
 }
+
 
 
 // ================= CONVERSÃO DE VÍRGULA PARA PONTO ================
@@ -8464,292 +8721,4 @@ function initCopyableFields() {
     }
 }
 
-// ================= LOGIN BIOMÉTRICO (WEBAUTHN / PASSKEYS) =================
 
-// Helpers de conversão Base64URL <-> ArrayBuffer
-function base64urlToArrayBuffer(base64url) {
-    const padding = '='.repeat((4 - base64url.length % 4) % 4);
-    const base64 = (base64url + padding).replace(/-/g, '+').replace(/_/g, '/');
-    const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-    for (let i = 0; i < rawData.length; ++i) {
-        outputArray[i] = rawData.charCodeAt(i);
-    }
-    return outputArray.buffer;
-}
-
-function arrayBufferToBase64url(buffer) {
-    const bytes = new Uint8Array(buffer);
-    let binary = '';
-    for (let i = 0; i < bytes.byteLength; i++) {
-        binary += String.fromCharCode(bytes[i]);
-    }
-    const base64 = window.btoa(binary);
-    return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-
-async function initBiometrics(user) {
-    const btnBiometricLogin = document.getElementById('btn-biometric-login');
-    const btnRegisterBiometry = document.getElementById('btn-register-biometry');
-    const biometricStatusDesc = document.getElementById('biometric-status-desc');
-    const biometryError = document.getElementById('biometry-error');
-    const biometrySuccess = document.getElementById('biometry-success');
-    
-    // Elementos do Modal de Prompt/Incentivo
-    const biometricPromptModal = document.getElementById('biometric-prompt-modal');
-    const btnBiometricPromptCancel = document.getElementById('btn-biometric-prompt-cancel');
-    const btnBiometricPromptActivate = document.getElementById('btn-biometric-prompt-activate');
-
-    // Verificar suporte do navegador a autenticadores locais (biometria)
-    const isBiometrySupported = window.PublicKeyCredential && 
-        (typeof PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable === 'function') &&
-        await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
-
-    if (!isBiometrySupported) {
-        console.log('[Biometria] Dispositivo/Navegador não suporta biometria local.');
-        if (btnBiometricLogin) btnBiometricLogin.classList.add('hidden');
-        if (biometricStatusDesc) biometricStatusDesc.textContent = 'Este dispositivo ou navegador não suporta login biométrico.';
-        if (btnRegisterBiometry) btnRegisterBiometry.disabled = true;
-        return;
-    }
-
-    if (user) {
-        // --- USUÁRIO LOGADO ---
-        if (btnBiometricLogin) btnBiometricLogin.classList.add('hidden'); // Ocultar botão de login
-
-        // Configurar botão de Registro no Modal de Ajustes
-        const userEmail = user.email;
-        const registeredEmail = localStorage.getItem('biometrics_email');
-        const isRegistered = localStorage.getItem('biometrics_registered') === 'true' && registeredEmail === userEmail;
-
-        if (isRegistered) {
-            if (biometricStatusDesc) biometricStatusDesc.textContent = `Biometria ativa neste dispositivo para o e-mail: ${userEmail}`;
-            if (btnRegisterBiometry) {
-                btnRegisterBiometry.innerHTML = '<i data-lucide="refresh-cw"></i> Recadastrar';
-                btnRegisterBiometry.className = 'btn-outline';
-            }
-        } else {
-            if (biometricStatusDesc) biometricStatusDesc.textContent = 'Faça o cadastro da biometria deste dispositivo para fazer login rápido.';
-            if (btnRegisterBiometry) {
-                btnRegisterBiometry.innerHTML = '<i data-lucide="plus-circle"></i> Cadastrar';
-                btnRegisterBiometry.className = 'btn-primary';
-                btnRegisterBiometry.style.padding = '0.5rem 1rem';
-                btnRegisterBiometry.style.fontSize = '0.85rem';
-            }
-
-            // Banner/Prompt de incentivo pós-login (apenas se ainda não recusado nesta sessão do navegador)
-            const promptDismissed = sessionStorage.getItem('biometrics_prompt_dismissed') === 'true';
-            if (!promptDismissed && biometricPromptModal) {
-                setTimeout(() => {
-                    biometricPromptModal.style.display = 'flex';
-                    if (typeof lucide !== 'undefined') lucide.createIcons();
-                }, 1500);
-            }
-        }
-
-        // Listener de Registro (Ajustes)
-        if (btnRegisterBiometry && !btnRegisterBiometry._hasListener) {
-            btnRegisterBiometry._hasListener = true;
-            btnRegisterBiometry.addEventListener('click', () => registerFlow(userEmail));
-        }
-
-        // Listener do Prompt de Incentivo
-        if (btnBiometricPromptCancel && !btnBiometricPromptCancel._hasListener) {
-            btnBiometricPromptCancel._hasListener = true;
-            btnBiometricPromptCancel.addEventListener('click', () => {
-                biometricPromptModal.style.display = 'none';
-                sessionStorage.setItem('biometrics_prompt_dismissed', 'true');
-            });
-        }
-
-        if (btnBiometricPromptActivate && !btnBiometricPromptActivate._hasListener) {
-            btnBiometricPromptActivate._hasListener = true;
-            btnBiometricPromptActivate.addEventListener('click', async () => {
-                biometricPromptModal.style.display = 'none';
-                await registerFlow(userEmail);
-            });
-        }
-
-    } else {
-        // --- USUÁRIO DESLOGADO ---
-        const registeredEmail = localStorage.getItem('biometrics_email');
-        const isRegistered = localStorage.getItem('biometrics_registered') === 'true' && registeredEmail;
-
-        if (isRegistered && btnBiometricLogin) {
-            btnBiometricLogin.classList.remove('hidden');
-            btnBiometricLogin.innerHTML = `<i data-lucide="fingerprint"></i> Entrar como ${registeredEmail}`;
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-            
-            // Listener de Login Biométrico
-            if (!btnBiometricLogin._hasListener) {
-                btnBiometricLogin._hasListener = true;
-                btnBiometricLogin.addEventListener('click', () => loginBiometricFlow(registeredEmail));
-            }
-        } else {
-            if (btnBiometricLogin) btnBiometricLogin.classList.add('hidden');
-        }
-    }
-
-    // --- FUNÇÃO DO FLUXO DE REGISTRO ---
-    async function registerFlow(email) {
-        if (biometryError) biometryError.textContent = '';
-        if (biometrySuccess) biometrySuccess.textContent = '';
-        if (btnRegisterBiometry) btnRegisterBiometry.disabled = true;
-
-        try {
-            const generateOptionsFn = httpsCallable(functions, 'generateRegistrationOptions');
-            const verifyRegistrationFn = httpsCallable(functions, 'verifyRegistration');
-
-            // 1. Obter opções do backend
-            const optionsResponse = await generateOptionsFn();
-            const options = optionsResponse.data;
-
-            // 2. Ajustar dados binários vindos do JSON (Base64URL) para ArrayBuffer
-            options.challenge = base64urlToArrayBuffer(options.challenge);
-            options.user.id = base64urlToArrayBuffer(options.user.id);
-            if (options.excludeCredentials) {
-                options.excludeCredentials = options.excludeCredentials.map(cred => ({
-                    ...cred,
-                    id: base64urlToArrayBuffer(cred.id)
-                }));
-            }
-
-            // 3. Chamar a API nativa do navegador
-            const credential = await navigator.credentials.create({
-                publicKey: options
-            });
-
-            if (!credential) {
-                throw new Error('O navegador não retornou a credencial biométrica.');
-            }
-
-            // 4. Preparar payload para o backend (converter buffers para Base64URL)
-            const response = credential.response;
-            const registrationResponsePayload = {
-                id: credential.id,
-                rawId: arrayBufferToBase64url(credential.rawId),
-                type: credential.type,
-                response: {
-                    attestationObject: arrayBufferToBase64url(response.attestationObject),
-                    clientDataJSON: arrayBufferToBase64url(response.clientDataJSON),
-                    transports: typeof response.getTransports === 'function' ? response.getTransports() : []
-                }
-            };
-
-            // 5. Enviar para verificação
-            const verifyResponse = await verifyRegistrationFn({
-                registrationResponse: registrationResponsePayload
-            });
-
-            if (verifyResponse.data && verifyResponse.data.verified) {
-                localStorage.setItem('biometrics_registered', 'true');
-                localStorage.setItem('biometrics_email', email);
-                
-                if (biometrySuccess) biometrySuccess.textContent = 'Biometria cadastrada com sucesso!';
-                if (biometricStatusDesc) biometricStatusDesc.textContent = `Biometria ativa neste dispositivo para o e-mail: ${email}`;
-                if (btnRegisterBiometry) {
-                    btnRegisterBiometry.innerHTML = '<i data-lucide="refresh-cw"></i> Recadastrar';
-                    btnRegisterBiometry.className = 'btn-outline';
-                }
-                sessionStorage.setItem('biometrics_prompt_dismissed', 'true');
-            } else {
-                throw new Error('O servidor não pôde verificar a biometria.');
-            }
-
-        } catch (err) {
-            console.error('[Biometria] Erro no registro:', err);
-            let msg = 'Erro ao cadastrar biometria.';
-            if (err.name === 'NotAllowedError') {
-                msg = 'O cadastro foi cancelado ou negado pelo usuário.';
-            } else if (err.message) {
-                msg = err.message;
-            }
-            if (biometryError) biometryError.textContent = msg;
-        } finally {
-            if (btnRegisterBiometry) btnRegisterBiometry.disabled = false;
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-        }
-    }
-
-    // --- FUNÇÃO DO FLUXO DE LOGIN ---
-    async function loginBiometricFlow(email) {
-        const errorMsg = document.getElementById('login-error');
-        if (errorMsg) errorMsg.textContent = '';
-        if (btnBiometricLogin) {
-            btnBiometricLogin.disabled = true;
-            btnBiometricLogin.innerHTML = '<i data-lucide="loader-2" style="width: 14px; height: 14px;" class="animate-spin"></i> Conectando...';
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-        }
-
-        try {
-            const generateAuthOptionsFn = httpsCallable(functions, 'generateAuthenticationOptions');
-            const verifyAuthenticationFn = httpsCallable(functions, 'verifyAuthentication');
-
-            // 1. Obter opções de autenticação
-            const optionsResponse = await generateAuthOptionsFn({ email });
-            const options = optionsResponse.data;
-
-            // 2. Converter chaves binárias (Base64URL) para ArrayBuffer
-            options.challenge = base64urlToArrayBuffer(options.challenge);
-            if (options.allowCredentials) {
-                options.allowCredentials = options.allowCredentials.map(cred => ({
-                    ...cred,
-                    id: base64urlToArrayBuffer(cred.id)
-                }));
-            }
-
-            // 3. Solicitar biometria no dispositivo
-            const assertion = await navigator.credentials.get({
-                publicKey: options
-            });
-
-            if (!assertion) {
-                throw new Error('Falha ao ler dados da biometria.');
-            }
-
-            // 4. Preparar payload de asserção para o backend
-            const response = assertion.response;
-            const assertionResponsePayload = {
-                id: assertion.id,
-                rawId: arrayBufferToBase64url(assertion.rawId),
-                type: assertion.type,
-                response: {
-                    authenticatorData: arrayBufferToBase64url(response.authenticatorData),
-                    clientDataJSON: arrayBufferToBase64url(response.clientDataJSON),
-                    signature: arrayBufferToBase64url(response.signature),
-                    userHandle: response.userHandle ? arrayBufferToBase64url(response.userHandle) : null
-                }
-            };
-
-            // 5. Enviar para verificação no backend e receber o Custom Token
-            const verifyResponse = await verifyAuthenticationFn({
-                email,
-                authenticationResponse: assertionResponsePayload
-            });
-
-            if (verifyResponse.data && verifyResponse.data.verified && verifyResponse.data.customToken) {
-                // 6. Logar no Firebase usando o Custom Token
-                await signInWithCustomToken(auth, verifyResponse.data.customToken);
-            } else {
-                throw new Error('Falha na autenticação do servidor.');
-            }
-
-        } catch (err) {
-            console.error('[Biometria] Erro no login:', err);
-            let msg = 'Erro ao autenticar com biometria.';
-            if (err.name === 'NotAllowedError') {
-                msg = 'Login biométrico cancelado pelo usuário.';
-            } else if (err.message) {
-                msg = err.message;
-            }
-            if (errorMsg) errorMsg.textContent = msg;
-            triggerShake();
-        } finally {
-            if (btnBiometricLogin) {
-                btnBiometricLogin.disabled = false;
-                btnBiometricLogin.innerHTML = `<i data-lucide="fingerprint"></i> Entrar com biometria`;
-            }
-            if (typeof lucide !== 'undefined') lucide.createIcons();
-        }
-    }
-}
