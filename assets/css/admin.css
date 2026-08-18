@@ -4712,6 +4712,11 @@ input:checked + .slider:before {
     gap: 1.2rem;
     margin-top: 1rem;
     margin-bottom: 0.5rem;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 800px;
+    width: 100%;
+    box-sizing: border-box;
     flex-wrap: wrap;
     align-items: center;
 }
@@ -4845,6 +4850,11 @@ input:checked + .slider:before {
     border-radius: 16px;
     padding: 1.5rem;
     margin-top: 1rem;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 800px;
+    width: 100%;
+    box-sizing: border-box;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.01);
     position: relative;
     transition: all 0.3s ease;
