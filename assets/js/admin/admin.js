@@ -709,18 +709,49 @@ async function createPdfUpdateNotice(type, displayVersion, pdfUrl = null) {
             }
         }
 
+        const now = new Date();
+        const expiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
+
+        // Obtém o aviso atual para guardar como fallback quando o temporário expirar
+        let previousNotice = null;
+        try {
+            const currentLatestSnap = await getDoc(doc(db, 'config', 'latestNotice'));
+            if (currentLatestSnap.exists()) {
+                const currentData = currentLatestSnap.data();
+                // Se o aviso atual já for temporário, mantemos o previousNotice original (se houver)
+                if (currentData.isTemporary && currentData.previousNotice) {
+                    previousNotice = currentData.previousNotice;
+                } else if (!currentData.isTemporary) {
+                    previousNotice = currentData;
+                }
+            }
+        } catch (errPrev) {
+            console.warn("Erro ao buscar previousNotice:", errPrev);
+        }
+
         const notifData = {
             title: `Atualização de ${label}`,
             message: `Foi realizada uma atualização na ${label.toLowerCase()} (Versão ${displayVersion}).`,
-            isSystemNotice: true,
-            showInTicker: false,
+            isTemporary: true,
+            expiresAt: expiresAt,
             pdfType: type,
             version: displayVersion,
             ...(finalPdfUrl ? { pdfUrl: finalPdfUrl, linkUrl: finalPdfUrl } : {}),
-            createdAt: new Date().toISOString()
+            createdAt: now.toISOString(),
+            sentBy: auth.currentUser ? auth.currentUser.email : 'sistema'
         };
+
+        // Salva no histórico de avisos (disparará a notificação push via Cloud Function)
         await addDoc(collection(db, 'adminNotifications'), notifData);
-        console.log(`[Histórico] Aviso de atualização de ${type} v${displayVersion} registrado com PDF.`);
+
+        // Atualiza o letreiro ativo com a flag de temporário e referência ao aviso anterior
+        const tickerData = {
+            ...notifData,
+            ...(previousNotice ? { previousNotice } : {})
+        };
+        await setDoc(doc(db, 'config', 'latestNotice'), tickerData);
+
+        console.log(`[Histórico] Aviso de atualização de ${type} v${displayVersion} registrado com PDF e ativado no letreiro por 24h.`);
     } catch (err) {
         console.error("Erro ao criar aviso de histórico para PDF:", err);
     }
@@ -2506,18 +2537,40 @@ async function deleteNotification(docId, title, collectionName = 'adminNotificat
  */
 async function syncTickerWithLatest() {
     try {
-        const qLatest = query(collection(db, 'adminNotifications'), orderBy('createdAt', 'desc'), limit(10));
+        const qLatest = query(collection(db, 'adminNotifications'), orderBy('createdAt', 'desc'), limit(15));
         const latestSnap = await getDocs(qLatest);
         const latestNoticeRef = doc(db, 'config', 'latestNotice');
 
         if (!latestSnap.empty) {
-            const validDoc = latestSnap.docs.find(d => {
-                const data = d.data();
-                return !data.isSystemNotice && data.showInTicker !== false;
-            });
+            const now = Date.now();
+            let targetDoc = null;
+            let fallbackManualDoc = null;
 
-            if (validDoc) {
-                await setDoc(latestNoticeRef, validDoc.data());
+            for (const d of latestSnap.docs) {
+                const data = d.data();
+                if (data.isSystemNotice || data.showInTicker === false) continue;
+
+                if (data.isTemporary) {
+                    const isStillValid = data.expiresAt && new Date(data.expiresAt).getTime() > now;
+                    if (isStillValid && !targetDoc) {
+                        targetDoc = data;
+                    }
+                } else {
+                    if (!targetDoc) {
+                        targetDoc = data;
+                    }
+                    if (!fallbackManualDoc) {
+                        fallbackManualDoc = data;
+                    }
+                }
+            }
+
+            if (targetDoc) {
+                const finalData = { ...targetDoc };
+                if (finalData.isTemporary && !finalData.previousNotice && fallbackManualDoc) {
+                    finalData.previousNotice = fallbackManualDoc;
+                }
+                await setDoc(latestNoticeRef, finalData);
             } else {
                 await deleteDoc(latestNoticeRef);
             }

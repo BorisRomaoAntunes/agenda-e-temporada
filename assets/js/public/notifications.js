@@ -76,25 +76,25 @@ onSnapshot(settingsRef, (snap) => {
     }
 });
 
-// ====== LETREIRO (OUVINTE OTIMIZADO) ======
+// ====== LETREIRO (OUVINTE OTIMIZADO COM SUPORTE A TEMPORÁRIOS 24H) ======
 const latestNoticeRef = doc(db, 'config', 'latestNotice');
+let temporaryTickerTimeout = null;
 
-onSnapshot(latestNoticeRef, (snap) => {
+function renderTickerNotice(noticeData) {
     const tickerText = document.getElementById('tickerText');
     const tickerTextClone = document.getElementById('tickerTextClone');
     if (!tickerText) return;
 
-    if (!snap.exists()) {
+    if (!noticeData || !noticeData.title) {
         const emptyMsg = "Nenhum comunicado no momento.";
         tickerText.textContent = emptyMsg;
         if (tickerTextClone) tickerTextClone.textContent = emptyMsg;
         return;
     }
 
-    const latest = snap.data();
-    const shortMessage = latest.message ? (latest.message.length > 80 ? latest.message.substring(0, 80) + "..." : latest.message) : "";
+    const shortMessage = noticeData.message ? (noticeData.message.length > 80 ? noticeData.message.substring(0, 80) + "..." : noticeData.message) : "";
     
-    const imageIconHtml = latest.imageUrl ? `
+    const imageIconHtml = noticeData.imageUrl ? `
         <span class="ticker-image-icon" title="Contém imagem">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect>
@@ -104,7 +104,7 @@ onSnapshot(latestNoticeRef, (snap) => {
         </span>
     ` : '';
 
-    const linkIconHtml = latest.linkUrl ? `
+    const linkIconHtml = (noticeData.linkUrl || noticeData.pdfUrl) ? `
         <span class="ticker-link-icon" title="Contém link">
             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
@@ -113,10 +113,75 @@ onSnapshot(latestNoticeRef, (snap) => {
         </span>
     ` : '';
 
-    const tickerHtml = `<strong>${latest.title}</strong>${shortMessage ? ': ' + shortMessage : ''}${imageIconHtml}${linkIconHtml}`;
+    const tickerHtml = `<strong>${noticeData.title}</strong>${shortMessage ? ': ' + shortMessage : ''}${imageIconHtml}${linkIconHtml}`;
     
     tickerText.innerHTML = tickerHtml;
     if (tickerTextClone) tickerTextClone.innerHTML = tickerHtml;
+}
+
+async function resolveExpiredTickerNotice(expiredNotice) {
+    if (expiredNotice && expiredNotice.previousNotice) {
+        renderTickerNotice(expiredNotice.previousNotice);
+        return;
+    }
+    
+    // Fallback: busca o último aviso manual no histórico
+    try {
+        const notificationsRef = collection(db, 'adminNotifications');
+        const q = query(notificationsRef, orderBy('createdAt', 'desc'), limit(10));
+        const snapshot = await getDocs(q);
+        const validDoc = snapshot.docs.find(d => {
+            const data = d.data();
+            return !data.isTemporary && !data.isSystemNotice && data.showInTicker !== false;
+        });
+
+        if (validDoc) {
+            renderTickerNotice(validDoc.data());
+        } else {
+            renderTickerNotice(null);
+        }
+    } catch (e) {
+        console.warn("[Ticker] Erro ao resolver aviso expirado:", e);
+        renderTickerNotice(null);
+    }
+}
+
+onSnapshot(latestNoticeRef, (snap) => {
+    if (temporaryTickerTimeout) {
+        clearTimeout(temporaryTickerTimeout);
+        temporaryTickerTimeout = null;
+    }
+
+    if (!snap.exists()) {
+        renderTickerNotice(null);
+        return;
+    }
+
+    const latest = snap.data();
+
+    // Se for um aviso temporário (ex: 24h)
+    if (latest.isTemporary && latest.expiresAt) {
+        const expireTime = new Date(latest.expiresAt).getTime();
+        const now = Date.now();
+        const remainingMs = expireTime - now;
+
+        if (remainingMs > 0) {
+            // Válido dentro da janela de 24h
+            renderTickerNotice(latest);
+
+            // Agenda a reversão suave caso o usuário esteja com a página aberta
+            temporaryTickerTimeout = setTimeout(() => {
+                console.log("[Ticker] Aviso temporário de 24h expirou. Restaurando comunicado anterior...");
+                resolveExpiredTickerNotice(latest);
+            }, remainingMs);
+        } else {
+            // Prazo já venceu
+            resolveExpiredTickerNotice(latest);
+        }
+    } else {
+        // Comunicado normal / permanente
+        renderTickerNotice(latest);
+    }
 });
 
 // ====== HISTÓRICO DE NOTIFICAÇÕES (CARREGAMENTO SOB DEMANDA / PAGINAÇÃO) ======
