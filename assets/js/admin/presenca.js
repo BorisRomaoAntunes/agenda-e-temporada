@@ -272,17 +272,6 @@ function getLocalTodayString() {
     return `${year}-${month}-${day}`;
 }
 
-const normalizarNaipe = (naipeStr) => {
-    if (!naipeStr) return '';
-    let s = naipeStr.toLowerCase().trim()
-        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-        .replace(/s$/, ''); // singularizar
-    if (s.includes('contrabaisco') || s.includes('contrabaixo')) {
-        return 'contrabaixo';
-    }
-    return s;
-};
-
 const ordemNaipes = [
     "Primeiros Violinos",
     "Segundos Violinos",
@@ -301,6 +290,83 @@ const ordemNaipes = [
     "Harpa",
     "Percussão"
 ];
+
+const familyToNaipes = {
+    "cordas": ["Primeiros Violinos", "Segundos Violinos", "Violas", "Violoncelos", "Contrabaixos"],
+    "madeiras": ["Flauta", "Oboé", "Clarinete", "Fagote"],
+    "metais": ["Trompa", "Trompete", "Trombone", "Tuba"],
+    "percussao": ["Percussão"],
+    "percussão": ["Percussão"],
+    "violinos": ["Primeiros Violinos", "Segundos Violinos"]
+};
+
+function getCanonicalNaipe(instStr) {
+    if (!instStr) return "Outros";
+    const s = instStr.toLowerCase().trim()
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+    if (s.includes("1") || s.includes("primeir") || s.includes("1o") || s.includes("1º") || s.includes("spalla") || s.includes("violino i")) {
+        if (s.includes("viol")) return "Primeiros Violinos";
+    }
+    if (s.includes("2") || s.includes("segund") || s.includes("2o") || s.includes("2º") || s.includes("violino ii")) {
+        if (s.includes("viol")) return "Segundos Violinos";
+    }
+    if (s.includes("viola")) return "Violas";
+    if (s.includes("cello") || s.includes("violoncel")) return "Violoncelos";
+    if (s.includes("baixo") || s.includes("contraba")) return "Contrabaixos";
+    if (s.includes("flaut") || s.includes("piccolo") || s.includes("flautim")) return "Flauta";
+    if (s.includes("oboe") || s.includes("corne")) return "Oboé";
+    if (s.includes("clari") || s.includes("requinta") || s.includes("clarone")) return "Clarinete";
+    if (s.includes("fagot") || s.includes("contrafagot")) return "Fagote";
+    if (s.includes("trompa")) return "Trompa";
+    if (s.includes("trompete") || s.includes("pistao") || s.includes("tromp")) return "Trompete";
+    if (s.includes("trombone")) return "Trombone";
+    if (s.includes("tuba") || s.includes("eufonio") || s.includes("bombardino")) return "Tuba";
+    if (s.includes("piano") || s.includes("teclado") || s.includes("celesta") || s.includes("cravo")) return "Piano";
+    if (s.includes("harpa")) return "Harpa";
+    if (s.includes("percuss") || s.includes("timpan") || s.includes("bateria")) return "Percussão";
+
+    if (s.includes("violino")) return "Primeiros Violinos";
+
+    return instStr;
+}
+
+function getCallCanonicalNaipes(callNaipe) {
+    if (!callNaipe) return [];
+    const arr = Array.isArray(callNaipe) ? callNaipe : [callNaipe];
+    const canonicalSet = new Set();
+
+    arr.forEach(rawItem => {
+        if (!rawItem) return;
+        const normItem = rawItem.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        
+        if (familyToNaipes[normItem]) {
+            familyToNaipes[normItem].forEach(n => canonicalSet.add(n));
+        } else {
+            const canon = getCanonicalNaipe(rawItem);
+            canonicalSet.add(canon);
+        }
+    });
+
+    return Array.from(canonicalSet);
+}
+
+function isMusicianEscalatedInCall(musician, call) {
+    if (!call || call.tipo !== "ensaio_naipe" || !call.naipe) {
+        return true;
+    }
+    const callNaipes = getCallCanonicalNaipes(call.naipe);
+    const musicianCanon = getCanonicalNaipe(musician.Instrumento || "");
+    return callNaipes.includes(musicianCanon);
+}
+
+function getActiveMusiciansForCurrentCall() {
+    const call = dailyEventsCalls.find(c => c.id === activeCallId) || dailyEventsCalls[0];
+    if (!call || call.tipo !== "ensaio_naipe") {
+        return allMusicians;
+    }
+    return allMusicians.filter(m => isMusicianEscalatedInCall(m, call));
+}
 
 // Carregar Lista Completa de Músicos do Firestore
 async function loadMusicians() {
@@ -636,7 +702,7 @@ function setActiveCall(callId) {
         if (call.tipo === "ensaio_naipe") {
             const naipesStr = Array.isArray(call.naipe) ? call.naipe.join(" + ") : (call.naipe || "Naipe");
             const horaStr = call.horarioInicio ? ` (${call.horarioInicio}${call.horarioFim ? ' às ' + call.horarioFim : ''})` : "";
-            instructionsText.innerHTML = `Chamada Sob Demanda para o <strong>Naipe: ${naipesStr}</strong>${horaStr}. Apenas músicos convocados deste naipe respondem por chamada. Outros ficam como <em>Não Escalado</em>.`;
+            instructionsText.innerHTML = `Chamada Sob Demanda para o <strong>Naipe: ${naipesStr}</strong>${horaStr}. Apenas músicos convocados deste naipe respondem por chamada.`;
         } else {
             const horaStr = call.horarioInicio ? ` (${call.horarioInicio}${call.horarioFim ? ' às ' + call.horarioFim : ''})` : "";
             instructionsText.innerHTML = `Chamada do <strong>Ensaio Tutti</strong>${horaStr}. Todos os músicos da orquestra estão convocados.`;
@@ -648,23 +714,18 @@ function setActiveCall(callId) {
 
     // Ajustar status para músicos convocados vs não escalados no ensaio de naipe
     if (call.tipo === "ensaio_naipe" && call.naipe) {
-        const naipesEscalados = (Array.isArray(call.naipe) ? call.naipe : [call.naipe])
-            .map(n => normalizarNaipe(n))
-            .filter(Boolean);
-
         allMusicians.forEach(m => {
-            const musicoNaipeNorm = normalizarNaipe(m.Instrumento || '');
-            const estaEscalado = naipesEscalados.some(ne => ne === musicoNaipeNorm || ne.includes(musicoNaipeNorm) || musicoNaipeNorm.includes(ne));
+            const estaEscalado = isMusicianEscalatedInCall(m, call);
 
             if (!estaEscalado) {
                 attendanceData[m.id] = { status: "nao_escalado", minutes: 0 };
-            } else if (!attendanceData[m.id]) {
+            } else if (!attendanceData[m.id] || attendanceData[m.id].status === "nao_escalado") {
                 attendanceData[m.id] = { status: "none", minutes: 0 };
             }
         });
     } else {
         allMusicians.forEach(m => {
-            if (!attendanceData[m.id]) {
+            if (!attendanceData[m.id] || attendanceData[m.id].status === "nao_escalado") {
                 attendanceData[m.id] = { status: "none", minutes: 0 };
             }
         });
@@ -690,41 +751,41 @@ function setActiveCall(callId) {
                 }
             });
             renderEventsTabs();
-            // Filtro automático: ao selecionar aba de naipe, ocultar não-escalados
-            applyAutoNaipeFilter(call);
+            applyCallFilterUI(call);
             renderMusicians();
         }).catch(err => {
             renderEventsTabs();
-            applyAutoNaipeFilter(call);
+            applyCallFilterUI(call);
             renderMusicians();
         });
     } catch (dispErr) {
         renderEventsTabs();
-        applyAutoNaipeFilter(call);
+        applyCallFilterUI(call);
         renderMusicians();
     }
 }
 
-// Aplicar filtro automático ao mudar de chamada (naipe oculta não-escalados automaticamente)
-function applyAutoNaipeFilter(call) {
+// Aplicar ajustes de UI de filtros de acordo com o tipo de chamada
+function applyCallFilterUI(call) {
+    const naoEscaladoPill = document.querySelector('.filter-pill[data-filter="nao-escalado"]');
     if (call && call.tipo === 'ensaio_naipe') {
-        // Filtro especial: oculta quem está como não-escalado (apenas convocados aparecem)
-        activeFilter = 'somente-naipe';
-        // Acende visualmente o pill de Não Escalados para indicar que o filtro está ativo
-        document.querySelectorAll('.filter-pill').forEach(p => {
-            if (p.dataset.filter === 'nao-escalado') {
-                p.classList.add('active');
-            } else {
-                p.classList.remove('active');
-            }
-        });
+        if (naoEscaladoPill) naoEscaladoPill.style.display = 'none';
+        if (activeFilter === 'nao-escalado' || activeFilter === 'somente-naipe') {
+            activeFilter = null;
+        }
     } else {
-        // Ao voltar para Tutti, limpar o filtro automático se for o de naipe
+        if (naoEscaladoPill) naoEscaladoPill.style.display = '';
         if (activeFilter === 'somente-naipe') {
             activeFilter = null;
-            document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
         }
     }
+    filterPills.forEach(p => {
+        if (activeFilter && p.dataset.filter === activeFilter) {
+            p.classList.add('active');
+        } else {
+            p.classList.remove('active');
+        }
+    });
 }
 
 // Tratar Mudança de Data no DatePicker
@@ -743,15 +804,17 @@ function formatDateDisplay(dateStr) {
 
 // Renderizar Tabela de Músicos
 function renderMusicians() {
-    const query = searchInput.value.toLowerCase().trim();
+    const query = searchInput ? searchInput.value.toLowerCase().trim() : "";
     musiciansList.innerHTML = "";
+
+    const activeCallMusicians = getActiveMusiciansForCurrentCall();
 
     // Agrupar músicos por Instrumento/Naipe normalizado
     const groups = {};
-    allMusicians.forEach(m => {
+    activeCallMusicians.forEach(m => {
         // Filtro por texto (busca)
-        const matchName = m.Nome.toLowerCase().includes(query);
-        const matchInst = m.Instrumento.toLowerCase().includes(query);
+        const matchName = (m.Nome || "").toLowerCase().includes(query);
+        const matchInst = (m.Instrumento || "").toLowerCase().includes(query);
         const matchText = query === "" || matchName || matchInst;
 
         // Filtro por pílulas de status
@@ -760,9 +823,6 @@ function renderMusicians() {
             const statusInfo = attendanceData[m.id] || { status: "none", minutes: 0 };
             if (activeFilter === "nao-escalado") {
                 matchFilter = statusInfo.status === "nao_escalado";
-            } else if (activeFilter === "somente-naipe") {
-                // Filtro automático de ensaio de naipe: oculta não-escalados, mostra todos os convocados
-                matchFilter = statusInfo.status !== "nao_escalado";
             } else if (activeFilter === "faltas-atrasos") {
                 matchFilter = statusInfo.status === "falta" || statusInfo.status === "atraso";
             } else if (activeFilter === "pendente") {
@@ -771,15 +831,7 @@ function renderMusicians() {
         }
         
         if (matchText && matchFilter) {
-            // Normalização do naipe para agrupamento correto
-            const instNormalizado = normalizarNaipe(m.Instrumento);
-            let naipeEncontrado = ordemNaipes.find(n => normalizarNaipe(n) === instNormalizado);
-            
-            if (!naipeEncontrado) {
-                naipeEncontrado = ordemNaipes.find(n => normalizarNaipe(n).includes(instNormalizado) || instNormalizado.includes(normalizarNaipe(n)));
-            }
-            
-            const grupoFinal = naipeEncontrado || m.Instrumento;
+            const grupoFinal = getCanonicalNaipe(m.Instrumento);
 
             if (!groups[grupoFinal]) {
                 groups[grupoFinal] = [];
@@ -789,7 +841,8 @@ function renderMusicians() {
     });
 
     if (Object.keys(groups).length === 0) {
-        musiciansList.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 3rem 1rem;">Nenhum músico ou naipe encontrado.</div>`;
+        musiciansList.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 3rem 1rem;">Nenhum músico encontrado.</div>`;
+        updateCounters();
         return;
     }
 
@@ -851,7 +904,6 @@ function renderMusicians() {
 
             const isMonitor = m.Status === "Monitor";
             const roleText = isMonitor ? '<span class="role-label monitor">(Monitor)</span>' : '<span class="role-label bolsista">(Bolsista)</span>';
-            const isPresence = statusInfo.status === "presenca";
 
             card.innerHTML = `
                 <div class="musician-info">
@@ -913,7 +965,9 @@ function renderMusicians() {
 // Atualizar Contadores de Presença no Header (mobile + inline desktop)
 function updateCounters() {
     let presence = 0, delay = 0, absence = 0, pending = 0;
-    allMusicians.forEach(m => {
+    const currentMusicians = getActiveMusiciansForCurrentCall();
+
+    currentMusicians.forEach(m => {
         const st = (attendanceData[m.id] || { status: 'none' }).status;
         if (st === 'presenca') presence++;
         else if (st === 'atraso') delay++;
@@ -1353,11 +1407,23 @@ async function saveOfficialData() {
         }
     });
 
-    const totalMusicos = allMusicians.length;
-    const registrados = Object.values(attendanceData).filter(x => x.status !== 'none');
+    // Garantir que todos os não escalados do ensaio de naipe fiquem salvos com status "nao_escalado"
+    if (activeCall.tipo === "ensaio_naipe") {
+        allMusicians.forEach(m => {
+            if (!isMusicianEscalatedInCall(m, activeCall)) {
+                attendanceData[m.id] = { status: "nao_escalado", minutes: 0 };
+            }
+        });
+    }
+
+    const currentMusicians = getActiveMusiciansForCurrentCall();
+    const totalMusicos = currentMusicians.length;
+    const pendentesCount = currentMusicians.filter(m => (attendanceData[m.id]?.status || 'none') === 'none').length;
+    const preenchidosCount = totalMusicos - pendentesCount;
     
-    if (registrados.length < totalMusicos) {
-        const confirmSave = confirm(`Atenção: Há músicos com status Pendente (${registrados.length} de ${totalMusicos} preenchidos).\n\nDeseja salvar mesmo assim?`);
+    if (pendentesCount > 0) {
+        const msgNaipe = activeCall.tipo === "ensaio_naipe" ? `nesta chamada de naipe` : `nesta chamada`;
+        const confirmSave = confirm(`Atenção: Há músicos com status Pendente ${msgNaipe} (${preenchidosCount} de ${totalMusicos} preenchidos).\n\nDeseja salvar mesmo assim?`);
         if (!confirmSave) return;
     }
 
