@@ -719,13 +719,13 @@ function setActiveCall(callId) {
 
             if (!estaEscalado) {
                 attendanceData[m.id] = { status: "nao_escalado", minutes: 0 };
-            } else if (!attendanceData[m.id] || attendanceData[m.id].status === "nao_escalado") {
+            } else if (!attendanceData[m.id]) {
                 attendanceData[m.id] = { status: "none", minutes: 0 };
             }
         });
     } else {
         allMusicians.forEach(m => {
-            if (!attendanceData[m.id] || attendanceData[m.id].status === "nao_escalado") {
+            if (!attendanceData[m.id]) {
                 attendanceData[m.id] = { status: "none", minutes: 0 };
             }
         });
@@ -1452,7 +1452,8 @@ async function saveOfficialData() {
 
         // 2. Contabilizar totais para detalhes do Log
         let presencas = 0, faltas = 0, atestados = 0, dispensas = 0, atrasos = 0, naoEscalados = 0, justificados = 0;
-        registrados.forEach(r => {
+        const listaRegistros = Object.values(attendanceData);
+        listaRegistros.forEach(r => {
             if (r.status === 'presenca') presencas++;
             else if (r.status === 'falta') faltas++;
             else if (r.status === 'atestado') atestados++;
