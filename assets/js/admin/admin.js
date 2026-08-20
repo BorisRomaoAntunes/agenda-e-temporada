@@ -4209,19 +4209,43 @@ function initAtestadosManagement() {
                 btn.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Processando...';
                 if (window.lucide) lucide.createIcons();
 
-                // 1. Atualizar Listas de Presença no Firestore
-                // - Se a lista do dia existir: atualiza o status do músico
-                // - Se for data futura sem lista: cria o documento com o atestado
-                console.log("📅 [Atestados] Integrando com o sistema de presenças...");
+                // 1. Salvar na coleção de atestados homologados para persistência e consulta dinâmica
+                console.log("💾 [Atestados] Salvando homologação no banco...");
+                await addDoc(collection(db, "medicalCertificates_approved"), {
+                    musicianId: musicianId,
+                    nomeMusico: selectedMusicoText,
+                    cid: cid || '',
+                    dias: parseInt(dias) || 0,
+                    dataInicio: inicio,
+                    dataFim: fim,
+                    resumo: resumo || '',
+                    createdAt: new Date().toISOString(),
+                    criadoPor: auth.currentUser.email || 'admin'
+                });
+
+                // 2. Atualizar Listas de Presença já existentes no Firestore (Tutti e Naipes)
+                console.log("📅 [Atestados] Atualizando chamadas existentes no período...");
                 const dates = getDatesInRange(inicio, fim);
                 let updatedDates = [];
-                const today = new Date().toISOString().split('T')[0];
 
                 for (const date of dates) {
-                    const presenceDocRef = doc(db, "presencas", date);
-                    const presenceSnap = await getDoc(presenceDocRef);
-                    if (presenceSnap.exists()) {
-                        const presenceData = presenceSnap.data();
+                    const presencasRef = collection(db, "presencas");
+                    const qPres = query(presencasRef, where("data", "==", date));
+                    const snapPres = await getDocs(qPres);
+                    const docsToUpdate = [];
+                    snapPres.forEach(dSnap => docsToUpdate.push(dSnap));
+
+                    // Fallback para documento com ID direto caso não tenha campo "data"
+                    if (docsToUpdate.length === 0) {
+                        const directDocRef = doc(db, "presencas", date);
+                        const directSnap = await getDoc(directDocRef);
+                        if (directSnap.exists()) {
+                            docsToUpdate.push(directSnap);
+                        }
+                    }
+
+                    for (const dSnap of docsToUpdate) {
+                        const presenceData = dSnap.data();
                         const registros = presenceData.registros || {};
                         const currentStatus = registros[musicianId] ? registros[musicianId].status : 'none';
                         
@@ -4229,45 +4253,17 @@ function initAtestadosManagement() {
                         if (currentStatus === 'falta' || currentStatus === 'none' || !registros[musicianId]) {
                             registros[musicianId] = {
                                 status: 'atestado',
-                                minutes: 0
+                                minutes: 0,
+                                justificativa: cid ? `Atestado CID: ${cid}` : (resumo || 'Atestado')
                             };
-                            await updateDoc(presenceDocRef, {
+                            await updateDoc(doc(db, "presencas", dSnap.id), {
                                 registros: registros,
                                 ultimaAtualizacao: new Date().toISOString(),
                                 usuarioResponsavel: auth.currentUser.email || 'admin'
                             });
-                            updatedDates.push(date);
+                            if (!updatedDates.includes(date)) updatedDates.push(date);
                         }
-                    } else if (date >= today) {
-                        // Data futura ainda sem lista iniciada: cria o documento com o atestado
-                        console.log(`📋 [Atestados] Criando registro futuro para ${date}...`);
-                        const registros = {};
-                        registros[musicianId] = { status: 'atestado', minutes: 0 };
-                        await setDoc(presenceDocRef, {
-                            registros: registros,
-                            ultimaAtualizacao: new Date().toISOString(),
-                            usuarioResponsavel: auth.currentUser.email || 'admin',
-                            criadoPorAtestado: true
-                        });
-                        updatedDates.push(date);
                     }
-                }
-
-                // 1.5. Salvar na coleção de homologados para futura referência/listas futuras
-                console.log("💾 [Atestados] Salvando homologação no banco...");
-                try {
-                    await addDoc(collection(db, "medicalCertificates_approved"), {
-                        musicianId: musicianId,
-                        nomeMusico: selectedMusicoText,
-                        cid: cid || '',
-                        dias: parseInt(dias) || 0,
-                        dataInicio: inicio,
-                        dataFim: fim,
-                        resumo: resumo || '',
-                        createdAt: new Date().toISOString()
-                    });
-                } catch (dbErr) {
-                    console.error("⚠️ [Atestados] Erro ao salvar atestado homologado:", dbErr);
                 }
 
                 // 2. Criar Log de Auditoria
@@ -7994,11 +7990,16 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
         }
     }
 
-    const getMusicianStatusForDate = (musico, docsDoDia, dispensasMapRef, dataStr) => {
+    const getMusicianStatusForDate = (musico, docsDoDia, dispensasMapRef, atestadosMapRef, dataStr) => {
+        const isDispensadoNoDia = dispensasMapRef && dispensasMapRef[musico.id] && dispensasMapRef[musico.id].has(dataStr);
+        const isAtestadoNoDia = atestadosMapRef && atestadosMapRef[musico.id] && atestadosMapRef[musico.id].has(dataStr);
+
         if (!docsDoDia || docsDoDia.length === 0) {
-            const isDispensadoNoDia = dispensasMapRef && dispensasMapRef[musico.id] && dispensasMapRef[musico.id].has(dataStr);
             if (isDispensadoNoDia) {
                 return { cellText: 'D', cellClass: 'status-dispensa', incP: 0, incF: 0, excelText: 'D' };
+            }
+            if (isAtestadoNoDia) {
+                return { cellText: 'A', cellClass: 'status-atestado', incP: 0, incF: 0, excelText: 'A' };
             }
             return { cellText: '', cellClass: 'status-sem-registro', incP: 0, incF: 0, excelText: '' };
         }
@@ -8008,7 +8009,8 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
             return { cellText: 'CL', cellClass: 'status-cancelado', incP: 0, incF: 0, excelText: 'CL' };
         }
 
-        const isDispensadoGlobal = dispensasMapRef && dispensasMapRef[musico.id] && dispensasMapRef[musico.id].has(dataStr);
+        const isDispensadoGlobal = isDispensadoNoDia;
+        const isAtestadoGlobal = isAtestadoNoDia;
         const musicoInstNorm = normalizarNaipe(musico.INSTRUMENTOS || musico.Instrumento || '');
         
         const relevantDocs = docsDoDia.filter(docData => {
@@ -8025,19 +8027,32 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
             if (isDispensadoGlobal) {
                 return { cellText: 'D', cellClass: 'status-dispensa', incP: 0, incF: 0, excelText: 'D' };
             }
+            if (isAtestadoGlobal) {
+                return { cellText: 'A', cellClass: 'status-atestado', incP: 0, incF: 0, excelText: 'A' };
+            }
             return { cellText: '-', cellClass: 'status-nao-escalado', incP: 0, incF: 0, excelText: '-' };
         }
 
         const getSymbol = (reg) => {
-            if (!reg) return { symbol: '-', status: 'none', incP: 0, incF: 0, excelSym: '-' };
+            if (!reg) {
+                if (isDispensadoGlobal) return { symbol: 'D', status: 'dispensa', incP: 0, incF: 0, excelSym: 'D' };
+                if (isAtestadoGlobal) return { symbol: 'A', status: 'atestado', incP: 0, incF: 0, excelSym: 'A' };
+                return { symbol: '-', status: 'none', incP: 0, incF: 0, excelSym: '-' };
+            }
             const st = reg.status;
             if (st === 'presenca') return { symbol: '✓', status: 'presenca', incP: 1, incF: 0, excelSym: 'P' };
-            if (st === 'falta') return { symbol: 'F', status: 'falta', incP: 0, incF: 1, excelSym: 'F' };
+            if (st === 'falta') {
+                if (isDispensadoGlobal) return { symbol: 'D', status: 'dispensa', incP: 0, incF: 0, excelSym: 'D' };
+                if (isAtestadoGlobal) return { symbol: 'A', status: 'atestado', incP: 0, incF: 0, excelSym: 'A' };
+                return { symbol: 'F', status: 'falta', incP: 0, incF: 1, excelSym: 'F' };
+            }
             if (st === 'atestado') return { symbol: 'A', status: 'atestado', incP: 0, incF: 0, excelSym: 'A' };
             if (st === 'dispensa') return { symbol: 'D', status: 'dispensa', incP: 0, incF: 0, excelSym: 'D' };
             if (st === 'justificado') return { symbol: 'J', status: 'justificado', incP: 0, incF: 0, excelSym: 'J' };
             if (st === 'atraso') return { symbol: reg.minutes ? `${reg.minutes}m` : 'At', status: 'atraso', incP: 1, incF: 0, excelSym: 'P' };
             if (st === 'nao_escalado') return { symbol: '-', status: 'nao_escalado', incP: 0, incF: 0, excelSym: '-' };
+            if (isDispensadoGlobal) return { symbol: 'D', status: 'dispensa', incP: 0, incF: 0, excelSym: 'D' };
+            if (isAtestadoGlobal) return { symbol: 'A', status: 'atestado', incP: 0, incF: 0, excelSym: 'A' };
             return { symbol: '-', status: 'none', incP: 0, incF: 0, excelSym: '-' };
         };
 
@@ -8046,6 +8061,9 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
             const reg = docSingle.registros ? docSingle.registros[musico.id] : null;
             if (isDispensadoGlobal || (reg && reg.status === 'dispensa')) {
                 return { cellText: 'D', cellClass: 'status-dispensa', incP: 0, incF: 0, excelText: 'D' };
+            }
+            if (isAtestadoGlobal || (reg && reg.status === 'atestado')) {
+                return { cellText: 'A', cellClass: 'status-atestado', incP: 0, incF: 0, excelText: 'A' };
             }
             const sym = getSymbol(reg);
             let cClass = 'status-sem-registro';
@@ -8065,6 +8083,13 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
 
         const regNaipe = (naipeDoc && naipeDoc.registros) ? naipeDoc.registros[musico.id] : null;
         const regTutti = (tuttiDoc && tuttiDoc.registros) ? tuttiDoc.registros[musico.id] : null;
+
+        if (isDispensadoGlobal) {
+            return { cellText: 'D', cellClass: 'status-dispensa', incP: 0, incF: 0, excelText: 'D' };
+        }
+        if (isAtestadoGlobal) {
+            return { cellText: 'A', cellClass: 'status-atestado', incP: 0, incF: 0, excelText: 'A' };
+        }
 
         const symNaipe = getSymbol(regNaipe);
         const symTutti = getSymbol(regTutti);
@@ -8121,9 +8146,12 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                     presencasPorData[dateKey].push({ id: docSnap.id, ...dData });
                 });
 
-                // Buscar dispensas no Firestore para o período
-                const dispensasQuery = query(collection(db, "dispensas"));
-                const dispensasSnapshot = await getDocs(dispensasQuery);
+                // Buscar dispensas e atestados no Firestore para o período
+                const [dispensasSnapshot, atestadosSnapshot] = await Promise.all([
+                    getDocs(query(collection(db, "dispensas"))),
+                    getDocs(query(collection(db, "medicalCertificates_approved")))
+                ]);
+
                 const dispensasMap = {};
                 dispensasSnapshot.forEach(docSnap => {
                     const dData = docSnap.data();
@@ -8133,6 +8161,20 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                         const end = new Date(dData.dataFim + 'T00:00:00');
                         while (cur <= end) {
                             dispensasMap[dData.musicianId].add(cur.toISOString().split('T')[0]);
+                            cur.setDate(cur.getDate() + 1);
+                        }
+                    }
+                });
+
+                const atestadosMap = {};
+                atestadosSnapshot.forEach(docSnap => {
+                    const aData = docSnap.data();
+                    if (aData.musicianId && aData.dataInicio && aData.dataFim) {
+                        if (!atestadosMap[aData.musicianId]) atestadosMap[aData.musicianId] = new Set();
+                        let cur = new Date(aData.dataInicio + 'T00:00:00');
+                        const end = new Date(aData.dataFim + 'T00:00:00');
+                        while (cur <= end) {
+                            atestadosMap[aData.musicianId].add(cur.toISOString().split('T')[0]);
                             cur.setDate(cur.getDate() + 1);
                         }
                     }
@@ -8291,7 +8333,7 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                             const dataStr = `${ano}-${mesStr}-${String(dia).padStart(2, '0')}`;
                             const docsDoDia = presencasPorData[dataStr] || [];
                             
-                            const statusRes = getMusicianStatusForDate(musico, docsDoDia, dispensasMap, dataStr);
+                            const statusRes = getMusicianStatusForDate(musico, docsDoDia, dispensasMap, atestadosMap, dataStr);
                             totalP += statusRes.incP;
                             totalF += statusRes.incF;
                             
@@ -8485,9 +8527,12 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                     presencasPorData[dateKey].push({ id: docSnap.id, ...dData });
                 });
 
-                // Buscar dispensas no Firestore para o período
-                const dispensasQuery = query(collection(db, "dispensas"));
-                const dispensasSnapshot = await getDocs(dispensasQuery);
+                // Buscar dispensas e atestados no Firestore para o período
+                const [dispensasSnapshot, atestadosSnapshot] = await Promise.all([
+                    getDocs(query(collection(db, "dispensas"))),
+                    getDocs(query(collection(db, "medicalCertificates_approved")))
+                ]);
+
                 const dispensasMap = {};
                 dispensasSnapshot.forEach(docSnap => {
                     const dData = docSnap.data();
@@ -8497,6 +8542,20 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                         const end = new Date(dData.dataFim + 'T00:00:00');
                         while (cur <= end) {
                             dispensasMap[dData.musicianId].add(cur.toISOString().split('T')[0]);
+                            cur.setDate(cur.getDate() + 1);
+                        }
+                    }
+                });
+
+                const atestadosMap = {};
+                atestadosSnapshot.forEach(docSnap => {
+                    const aData = docSnap.data();
+                    if (aData.musicianId && aData.dataInicio && aData.dataFim) {
+                        if (!atestadosMap[aData.musicianId]) atestadosMap[aData.musicianId] = new Set();
+                        let cur = new Date(aData.dataInicio + 'T00:00:00');
+                        const end = new Date(aData.dataFim + 'T00:00:00');
+                        while (cur <= end) {
+                            atestadosMap[aData.musicianId].add(cur.toISOString().split('T')[0]);
                             cur.setDate(cur.getDate() + 1);
                         }
                     }
@@ -8654,13 +8713,17 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                             const dataStr = `${ano}-${mesStr}-${String(dia).padStart(2, '0')}`;
                             const docsDoDia = presencasPorData[dataStr] || [];
 
-                            const statusRes = getMusicianStatusForDate(musico, docsDoDia, dispensasMap, dataStr);
+                            const statusRes = getMusicianStatusForDate(musico, docsDoDia, dispensasMap, atestadosMap, dataStr);
                             const cellText = statusRes.excelText || statusRes.cellText;
 
                             if (statusRes.cellClass === 'status-dispensa') {
                                 const colLetter = getColLetter(dia);
                                 const cellRef = `${colLetter}${currentExcelRowIndex}`;
                                 cellCommentsMap[cellRef] = "Bolsista Dispensado";
+                            } else if (statusRes.cellClass === 'status-atestado') {
+                                const colLetter = getColLetter(dia);
+                                const cellRef = `${colLetter}${currentExcelRowIndex}`;
+                                cellCommentsMap[cellRef] = "Atestado Médico Homologado";
                             }
                             rowMusico.push(cellText);
                         }
@@ -8832,6 +8895,40 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                 presencasPorData[dateKey].push({ id: docSnap.id, ...dData });
             });
             
+            // Buscar dispensas e atestados no Firestore para o período
+            const [dispensasSnapshot, atestadosSnapshot] = await Promise.all([
+                getDocs(query(collection(db, "dispensas"))),
+                getDocs(query(collection(db, "medicalCertificates_approved")))
+            ]);
+
+            const dispensasMap = {};
+            dispensasSnapshot.forEach(docSnap => {
+                const dData = docSnap.data();
+                if (dData.musicianId && dData.dataInicio && dData.dataFim) {
+                    if (!dispensasMap[dData.musicianId]) dispensasMap[dData.musicianId] = new Set();
+                    let cur = new Date(dData.dataInicio + 'T00:00:00');
+                    const end = new Date(dData.dataFim + 'T00:00:00');
+                    while (cur <= end) {
+                        dispensasMap[dData.musicianId].add(cur.toISOString().split('T')[0]);
+                        cur.setDate(cur.getDate() + 1);
+                    }
+                }
+            });
+
+            const atestadosMap = {};
+            atestadosSnapshot.forEach(docSnap => {
+                const aData = docSnap.data();
+                if (aData.musicianId && aData.dataInicio && aData.dataFim) {
+                    if (!atestadosMap[aData.musicianId]) atestadosMap[aData.musicianId] = new Set();
+                    let cur = new Date(aData.dataInicio + 'T00:00:00');
+                    const end = new Date(aData.dataFim + 'T00:00:00');
+                    while (cur <= end) {
+                        atestadosMap[aData.musicianId].add(cur.toISOString().split('T')[0]);
+                        cur.setDate(cur.getDate() + 1);
+                    }
+                }
+            });
+
             // Filtrar apenas bolsistas ativos
             const bolsistas = allMusicians.filter(m => {
                 if (m.statusFirebase === 'desligado' || m.statusFirebase === 'inativo') return false;
@@ -8875,7 +8972,11 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                                     if (!isRelevant) return; // Músico não faz parte deste naipe
                                 }
 
-                                if (registro.status === 'falta') {
+                                // Se possui dispensa ou atestado para esta data, não registrar falta
+                                const isDispensado = dispensasMap[musicoId] && dispensasMap[musicoId].has(dataStr);
+                                const isAtestado = atestadosMap[musicoId] && atestadosMap[musicoId].has(dataStr);
+
+                                if (registro.status === 'falta' && !isDispensado && !isAtestado) {
                                     const labelNaipe = pres.tipo === 'ensaio_naipe' && pres.naipe 
                                         ? ` (Ensaio de Naipe - ${Array.isArray(pres.naipe) ? pres.naipe.join(' + ') : pres.naipe})`
                                         : '';

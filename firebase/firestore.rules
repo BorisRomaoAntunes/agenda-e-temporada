@@ -57,6 +57,11 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // Coleção "medicalCertificates_approved" — atestados homologados para presença (dados sensíveis)
+    match /medicalCertificates_approved/{document} {
+      allow read, write: if isAdmin();
+    }
+
     // Coleção "dispensas" — módulo de dispensas de bolsistas
     match /dispensas/{document} {
       allow read, write: if isAdmin();

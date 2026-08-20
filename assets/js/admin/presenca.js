@@ -6,6 +6,7 @@ import {
     doc, 
     setDoc, 
     getDoc,
+    updateDoc,
     collection,
     addDoc,
     getDocs,
@@ -144,6 +145,9 @@ async function initApp() {
 
         // Inicializar eventos do modal de chamada de naipe sob demanda
         initNaipeModal();
+
+        // Inicializar eventos do modal de alteração de horário
+        initEditHorarioModal();
 
         // Restaurar a posição de rolagem salva
         setTimeout(() => {
@@ -475,8 +479,8 @@ async function loadDateData(dateStr) {
                         tipo: d.tipo || "ensaio_tutti",
                         label: d.tipo === "ensaio_naipe" ? `Naipe: ${labelNaipe}` : "Ensaio Tutti",
                         naipe: d.naipe || null,
-                        horarioInicio: d.horarioInicio || (d.tipo === "ensaio_naipe" ? "14:00" : "18:00"),
-                        horarioFim: d.horarioFim || (d.tipo === "ensaio_naipe" ? "16:00" : "21:00"),
+                        horarioInicio: d.horarioInicio || (d.tipo === "ensaio_naipe" ? "14:00" : "17:00"),
+                        horarioFim: d.horarioFim || (d.tipo === "ensaio_naipe" ? "16:00" : "20:00"),
                         anotacoes: d.anotacoes || "",
                         registros: d.registros || {},
                         oficial: d.oficial !== undefined ? d.oficial : true
@@ -496,8 +500,8 @@ async function loadDateData(dateStr) {
                             tipo: "ensaio_tutti",
                             label: "Ensaio Tutti",
                             naipe: null,
-                            horarioInicio: "18:00",
-                            horarioFim: "21:00",
+                            horarioInicio: "17:00",
+                            horarioFim: "20:00",
                             anotacoes: parsed.notes || "",
                             registros: parsed.attendance || {},
                             oficial: false
@@ -505,17 +509,8 @@ async function loadDateData(dateStr) {
                     }
                 } else {
                     // Consulta de eventos cadastrados no calendário
-                    dailyEventsCalls.push({
-                        id: dateStr,
-                        tipo: "ensaio_tutti",
-                        label: "Ensaio Tutti",
-                        naipe: null,
-                        horarioInicio: "18:00",
-                        horarioFim: "21:00",
-                        anotacoes: "",
-                        registros: {},
-                        oficial: false
-                    });
+                    let defaultTuttiInicio = "17:00";
+                    let defaultTuttiFim = "20:00";
 
                     try {
                         const eventosRef = collection(db, "eventos");
@@ -540,11 +535,26 @@ async function loadDateData(dateStr) {
                                         oficial: false
                                     });
                                 }
+                            } else if (evt.tipo === "ensaio_tutti" || evt.tipo === "ensaio" || evt.tipo === "concerto") {
+                                if (evt.horarioInicio) defaultTuttiInicio = evt.horarioInicio;
+                                if (evt.horarioFim) defaultTuttiFim = evt.horarioFim;
                             }
                         });
                     } catch (evErr) {
                         console.warn("Aviso ao carregar eventos:", evErr);
                     }
+
+                    dailyEventsCalls.unshift({
+                        id: dateStr,
+                        tipo: "ensaio_tutti",
+                        label: "Ensaio Tutti",
+                        naipe: null,
+                        horarioInicio: defaultTuttiInicio,
+                        horarioFim: defaultTuttiFim,
+                        anotacoes: "",
+                        registros: {},
+                        oficial: false
+                    });
                 }
             }
         } catch (fsErr) {
@@ -554,12 +564,30 @@ async function loadDateData(dateStr) {
                 tipo: "ensaio_tutti",
                 label: "Ensaio Tutti",
                 naipe: null,
-                horarioInicio: "18:00",
-                horarioFim: "21:00",
+                horarioInicio: "17:00",
+                horarioFim: "20:00",
                 anotacoes: "",
                 registros: {},
                 oficial: false
             }];
+        }
+
+        // Garantir que sempre exista uma chamada Tutti na lista
+        // (o ensaio de naipe pode ser criado pelo usuário a qualquer momento,
+        //  mas o Tutti deve estar sempre disponível como base)
+        const hasTutti = dailyEventsCalls.some(c => c.tipo === "ensaio_tutti");
+        if (!hasTutti) {
+            dailyEventsCalls.unshift({
+                id: dateStr,
+                tipo: "ensaio_tutti",
+                label: "Ensaio Tutti",
+                naipe: null,
+                horarioInicio: "17:00",
+                horarioFim: "20:00",
+                anotacoes: "",
+                registros: {},
+                oficial: false
+            });
         }
 
         // Renderizar abas de ensaios e selecionar a chamada ativa
@@ -577,11 +605,7 @@ function renderEventsTabs() {
     const container = document.getElementById("eventsTabsContainer");
     if (!container) return;
 
-    if (dailyEventsCalls.length <= 1 && (!dailyEventsCalls[0] || dailyEventsCalls[0].tipo === "ensaio_tutti")) {
-        container.style.display = "none";
-        return;
-    }
-
+    // As abas ficam sempre visíveis permitindo visualizar e ajustar horários
     container.style.display = "flex";
     container.innerHTML = "";
 
@@ -591,7 +615,9 @@ function renderEventsTabs() {
         tab.className = `event-tab-item ${call.id === activeCallId ? 'active' : ''} ${isNaipe ? 'naipe-tab' : ''}`;
         
         const iconName = isNaipe ? 'music' : 'users';
-        const timeText = call.horarioInicio ? call.horarioInicio : (isNaipe ? '14:00' : '18:00');
+        const timeInicio = call.horarioInicio ? call.horarioInicio : (isNaipe ? '14:00' : '17:00');
+        const timeFim = call.horarioFim ? call.horarioFim : (isNaipe ? '16:00' : '20:00');
+        const timeChipTitle = `Horário: ${timeInicio} às ${timeFim}. Toque para alterar.`;
 
         // Botão × só aparece em abas de naipe (não no Tutti)
         const deleteBtnHtml = isNaipe
@@ -603,16 +629,27 @@ function renderEventsTabs() {
         tab.innerHTML = `
             <i data-lucide="${iconName}" style="width: 14px; height: 14px;"></i>
             <span>${call.label}</span>
-            <span class="event-time-chip">${timeText}</span>
+            <span class="event-time-chip" title="${timeChipTitle}" data-call-id="${call.id}">
+                ${timeInicio} <i data-lucide="edit-3" style="width: 10px; height: 10px; opacity: 0.8; margin-left: 2px;"></i>
+            </span>
             ${deleteBtnHtml}
         `;
 
         // Clique na aba seleciona a chamada
         tab.addEventListener("click", (e) => {
-            // Não ativar a aba se clicar no botão × ou no ícone dentro dele
-            if (e.target.closest('.tab-delete-btn')) return;
+            // Não ativar a aba se clicar no botão × ou no chip de horário
+            if (e.target.closest('.tab-delete-btn') || e.target.closest('.event-time-chip')) return;
             setActiveCall(call.id);
         });
+
+        // Clique no chip de horário abre modal de edição
+        const timeChip = tab.querySelector('.event-time-chip');
+        if (timeChip) {
+            timeChip.addEventListener("click", (e) => {
+                e.stopPropagation();
+                openEditHorarioModal(call);
+            });
+        }
 
         // Botão × — apagar chamada de naipe
         const deleteBtn = tab.querySelector('.tab-delete-btn');
@@ -634,6 +671,159 @@ function renderEventsTabs() {
             activeTab.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
         }
     }, 50);
+}
+
+// Modal de Edição de Horário do Ensaio
+let editingCallForTime = null;
+
+function initEditHorarioModal() {
+    const modal = document.getElementById("modalEditHorarioOverlay");
+    const btnClose = document.getElementById("btnCloseEditHorarioModal");
+    const btnCancel = document.getElementById("btnCancelEditHorarioModal");
+    const btnConfirm = document.getElementById("btnConfirmSaveEditHorario");
+
+    if (btnClose) btnClose.addEventListener("click", closeEditHorarioModal);
+    if (btnCancel) btnCancel.addEventListener("click", closeEditHorarioModal);
+    if (modal) {
+        modal.addEventListener("click", (e) => {
+            if (e.target === modal) closeEditHorarioModal();
+        });
+    }
+
+    if (btnConfirm) {
+        btnConfirm.addEventListener("click", async () => {
+            if (!editingCallForTime) return;
+
+            const inputInicio = document.getElementById("inputEditHoraInicio");
+            const inputFim = document.getElementById("inputEditHoraFim");
+            const horaInicio = inputInicio ? inputInicio.value : "";
+            const horaFim = inputFim ? inputFim.value : "";
+
+            if (!horaInicio) {
+                alert("Por favor, informe o horário de início.");
+                return;
+            }
+
+            btnConfirm.disabled = true;
+            btnConfirm.innerHTML = `Salvando...`;
+
+            try {
+                await saveRehearsalTime(editingCallForTime, horaInicio, horaFim);
+                closeEditHorarioModal();
+                showToast(`Horário atualizado: ${horaInicio}${horaFim ? ' às ' + horaFim : ''}`);
+            } catch (err) {
+                console.error("Erro ao salvar horário:", err);
+                showToast("Erro ao salvar horário.");
+            } finally {
+                btnConfirm.disabled = false;
+                btnConfirm.innerHTML = "Salvar Horário";
+                if (window.lucide) window.lucide.createIcons();
+            }
+        });
+    }
+}
+
+function openEditHorarioModal(call) {
+    editingCallForTime = call;
+    const modal = document.getElementById("modalEditHorarioOverlay");
+    const titleEl = document.getElementById("modalEditHorarioTitle");
+    const descEl = document.getElementById("modalEditHorarioDesc");
+    const inputInicio = document.getElementById("inputEditHoraInicio");
+    const inputFim = document.getElementById("inputEditHoraFim");
+
+    if (!modal) return;
+
+    const isNaipe = call.tipo === "ensaio_naipe";
+    if (titleEl) {
+        titleEl.innerText = `Alterar Horário - ${call.label || (isNaipe ? 'Ensaio de Naipe' : 'Ensaio Tutti')}`;
+    }
+    if (descEl) {
+        descEl.innerText = `Ajuste o horário de início e término para ${call.label}:`;
+    }
+
+    const defaultInicio = isNaipe ? "14:00" : "17:00";
+    const defaultFim = isNaipe ? "16:00" : "20:00";
+
+    if (inputInicio) inputInicio.value = call.horarioInicio || defaultInicio;
+    if (inputFim) inputFim.value = call.horarioFim || defaultFim;
+
+    modal.classList.add("open");
+    if (window.lucide) window.lucide.createIcons();
+}
+
+function closeEditHorarioModal() {
+    const modal = document.getElementById("modalEditHorarioOverlay");
+    if (modal) modal.classList.remove("open");
+    editingCallForTime = null;
+}
+
+async function saveRehearsalTime(call, horaInicio, horaFim) {
+    call.horarioInicio = horaInicio;
+    call.horarioFim = horaFim;
+
+    // Atualizar no array dailyEventsCalls
+    const target = dailyEventsCalls.find(c => c.id === call.id);
+    if (target) {
+        target.horarioInicio = horaInicio;
+        target.horarioFim = horaFim;
+    }
+
+    // Salvar no rascunho local
+    saveDraft();
+
+    // 1. Sincronizar na coleção presencas
+    try {
+        const presencaDocRef = doc(db, "presencas", call.id);
+        await setDoc(presencaDocRef, {
+            data: selectedDate,
+            tipo: call.tipo || "ensaio_tutti",
+            naipe: call.naipe || null,
+            horarioInicio: horaInicio,
+            horarioFim: horaFim,
+            anotacoes: call.anotacoes || "",
+            oficial: call.oficial !== undefined ? call.oficial : true,
+            registros: call.registros || {},
+            ultimaAtualizacao: new Date().toISOString(),
+            usuarioResponsavel: currentUserEmail || "Admin"
+        }, { merge: true });
+    } catch (presErr) {
+        console.warn("Aviso ao sincronizar horário na coleção presencas:", presErr);
+    }
+
+    // 2. Sincronizar na coleção eventos do Calendário se houver evento cadastrado nessa data
+    try {
+        const eventosRef = collection(db, "eventos");
+        const qEvt = query(eventosRef, where("date", "==", selectedDate), where("status", "==", "Confirmado"));
+        const snapEvt = await getDocs(qEvt);
+        for (const dSnap of snapEvt.docs) {
+            const evt = dSnap.data();
+            let isMatch = false;
+            if (call.tipo === "ensaio_naipe" && evt.tipo === "ensaio_naipe") {
+                const evtNaipe = Array.isArray(evt.naipe) ? evt.naipe.join(" + ") : (evt.naipe || "");
+                const callNaipe = Array.isArray(call.naipe) ? call.naipe.join(" + ") : (call.naipe || "");
+                if (evtNaipe === callNaipe || !call.naipe) isMatch = true;
+            } else if (call.tipo === "ensaio_tutti" && (evt.tipo === "ensaio_tutti" || evt.tipo === "ensaio" || evt.tipo === "concerto")) {
+                isMatch = true;
+            }
+
+            if (isMatch) {
+                const evtDocRef = doc(db, "eventos", dSnap.id);
+                await updateDoc(evtDocRef, {
+                    horarioInicio: horaInicio,
+                    horarioFim: horaFim,
+                    updatedAt: new Date().toISOString()
+                });
+            }
+        }
+    } catch (evtSyncErr) {
+        console.warn("Aviso ao sincronizar horário no Calendário (eventos):", evtSyncErr);
+    }
+
+    // Re-renderizar abas e atualizar a chamada ativa
+    renderEventsTabs();
+    if (activeCallId === call.id) {
+        setActiveCall(call.id);
+    }
 }
 
 // Apagar Chamada de Naipe
@@ -731,38 +921,64 @@ function setActiveCall(callId) {
         });
     }
 
-    // Verificar se existem dispensas ativas para a data selecionada
-    try {
-        const dispensasRef = collection(db, "dispensas");
-        const qDisp = query(dispensasRef, where("dataInicio", "<=", selectedDate));
-        getDocs(qDisp).then(snapDisp => {
-            snapDisp.forEach(dDoc => {
-                const disp = dDoc.data();
-                if (disp.dataFim >= selectedDate && disp.musicianId) {
-                    const mId = disp.musicianId;
-                    const currentStatus = attendanceData[mId] ? attendanceData[mId].status : 'none';
-                    if (currentStatus === 'none' || currentStatus === 'falta' || !attendanceData[mId]) {
-                        attendanceData[mId] = {
-                            status: 'dispensa',
-                            minutes: 0,
-                            justificativa: disp.descricao || ''
-                        };
+    // Verificar se existem dispensas e atestados homologados ativos para a data selecionada
+    const checkDispensasEAtestados = async () => {
+        try {
+            const dispensasRef = collection(db, "dispensas");
+            const qDisp = query(dispensasRef, where("dataInicio", "<=", selectedDate));
+
+            const atestadosRef = collection(db, "medicalCertificates_approved");
+            const qAtestados = query(atestadosRef, where("dataInicio", "<=", selectedDate));
+
+            const [dispRes, atestRes] = await Promise.allSettled([
+                getDocs(qDisp),
+                getDocs(qAtestados)
+            ]);
+
+            if (dispRes.status === 'fulfilled' && dispRes.value) {
+                dispRes.value.forEach(dDoc => {
+                    const disp = dDoc.data();
+                    if (disp.dataFim >= selectedDate && disp.musicianId) {
+                        const mId = disp.musicianId;
+                        const currentStatus = attendanceData[mId] ? attendanceData[mId].status : 'none';
+                        if (currentStatus === 'none' || currentStatus === 'falta' || !attendanceData[mId]) {
+                            attendanceData[mId] = {
+                                status: 'dispensa',
+                                minutes: 0,
+                                justificativa: disp.descricao || ''
+                            };
+                        }
                     }
-                }
-            });
+                });
+            }
+
+            if (atestRes.status === 'fulfilled' && atestRes.value) {
+                atestRes.value.forEach(aDoc => {
+                    const atest = aDoc.data();
+                    if (atest.dataFim >= selectedDate && atest.musicianId) {
+                        const mId = atest.musicianId;
+                        const currentStatus = attendanceData[mId] ? attendanceData[mId].status : 'none';
+                        if (currentStatus === 'none' || currentStatus === 'falta' || !attendanceData[mId]) {
+                            const justText = atest.cid ? `Atestado CID: ${atest.cid}${atest.dias ? ` (${atest.dias} dias)` : ''}` : (atest.resumo || 'Atestado Médico');
+                            attendanceData[mId] = {
+                                status: 'atestado',
+                                minutes: 0,
+                                justificativa: justText
+                            };
+                        }
+                    }
+                });
+            }
+        } catch (err) {
+            console.warn("Aviso ao carregar dispensas/atestados para presença:", err);
+        } finally {
             renderEventsTabs();
             applyCallFilterUI(call);
             renderMusicians();
-        }).catch(err => {
-            renderEventsTabs();
-            applyCallFilterUI(call);
-            renderMusicians();
-        });
-    } catch (dispErr) {
-        renderEventsTabs();
-        applyCallFilterUI(call);
-        renderMusicians();
-    }
+        }
+    };
+
+    checkDispensasEAtestados();
 }
 
 // Aplicar ajustes de UI de filtros de acordo com o tipo de chamada

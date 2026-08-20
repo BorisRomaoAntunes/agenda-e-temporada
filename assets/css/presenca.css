@@ -337,15 +337,31 @@ body {
 
 .event-time-chip {
     background: rgba(255,255,255,0.2);
-    padding: 0.1rem 0.35rem;
+    padding: 0.15rem 0.45rem;
     border-radius: 8px;
     font-size: 0.7rem;
     font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    transition: all 0.15s ease;
+}
+
+.event-time-chip:hover {
+    background: rgba(255,255,255,0.35);
+    transform: scale(1.04);
 }
 
 .event-tab-item:not(.active) .event-time-chip {
     background: #e2e8f0;
     color: var(--text-secondary);
+}
+
+.event-tab-item:not(.active) .event-time-chip:hover {
+    background: #cbd5e1;
+    color: #0f172a;
+    transform: scale(1.04);
 }
 
 /* Botão × para apagar chamada de naipe */
