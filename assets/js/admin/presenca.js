@@ -474,13 +474,19 @@ async function loadDateData(dateStr) {
                 existedInFirestore = true;
                 docsPres.forEach(d => {
                     const labelNaipe = Array.isArray(d.naipe) ? d.naipe.join(" + ") : (d.naipe || "Naipe");
+                    let callLabel = "Ensaio Tutti";
+                    if (d.tipo === "ensaio_naipe") {
+                        callLabel = `Naipe: ${labelNaipe}`;
+                    } else if (d.tipo === "concerto") {
+                        callLabel = "Concerto";
+                    }
                     dailyEventsCalls.push({
                         id: d.id,
                         tipo: d.tipo || "ensaio_tutti",
-                        label: d.tipo === "ensaio_naipe" ? `Naipe: ${labelNaipe}` : "Ensaio Tutti",
+                        label: callLabel,
                         naipe: d.naipe || null,
-                        horarioInicio: d.horarioInicio || (d.tipo === "ensaio_naipe" ? "14:00" : "17:00"),
-                        horarioFim: d.horarioFim || (d.tipo === "ensaio_naipe" ? "16:00" : "20:00"),
+                        horarioInicio: d.horarioInicio || (d.tipo === "ensaio_naipe" ? "14:00" : (d.tipo === "concerto" ? "19:00" : "17:00")),
+                        horarioFim: d.horarioFim || (d.tipo === "ensaio_naipe" ? "16:00" : (d.tipo === "concerto" ? "22:00" : "20:00")),
                         anotacoes: d.anotacoes || "",
                         registros: d.registros || {},
                         oficial: d.oficial !== undefined ? d.oficial : true
@@ -509,6 +515,8 @@ async function loadDateData(dateStr) {
                     }
                 } else {
                     // Consulta de eventos cadastrados no calendário
+                    let defaultTuttiTipo = "ensaio_tutti";
+                    let defaultTuttiLabel = "Ensaio Tutti";
                     let defaultTuttiInicio = "17:00";
                     let defaultTuttiFim = "20:00";
 
@@ -535,7 +543,12 @@ async function loadDateData(dateStr) {
                                         oficial: false
                                     });
                                 }
-                            } else if (evt.tipo === "ensaio_tutti" || evt.tipo === "ensaio" || evt.tipo === "concerto") {
+                            } else if (evt.tipo === "concerto") {
+                                defaultTuttiTipo = "concerto";
+                                defaultTuttiLabel = "Concerto";
+                                if (evt.horarioInicio) defaultTuttiInicio = evt.horarioInicio;
+                                if (evt.horarioFim) defaultTuttiFim = evt.horarioFim;
+                            } else if (evt.tipo === "ensaio_tutti" || evt.tipo === "ensaio") {
                                 if (evt.horarioInicio) defaultTuttiInicio = evt.horarioInicio;
                                 if (evt.horarioFim) defaultTuttiFim = evt.horarioFim;
                             }
@@ -546,8 +559,8 @@ async function loadDateData(dateStr) {
 
                     dailyEventsCalls.unshift({
                         id: dateStr,
-                        tipo: "ensaio_tutti",
-                        label: "Ensaio Tutti",
+                        tipo: defaultTuttiTipo,
+                        label: defaultTuttiLabel,
                         naipe: null,
                         horarioInicio: defaultTuttiInicio,
                         horarioFim: defaultTuttiFim,
@@ -572,11 +585,11 @@ async function loadDateData(dateStr) {
             }];
         }
 
-        // Garantir que sempre exista uma chamada Tutti na lista
+        // Garantir que sempre exista uma chamada Tutti ou Concerto na lista
         // (o ensaio de naipe pode ser criado pelo usuário a qualquer momento,
-        //  mas o Tutti deve estar sempre disponível como base)
-        const hasTutti = dailyEventsCalls.some(c => c.tipo === "ensaio_tutti");
-        if (!hasTutti) {
+        //  mas a chamada principal deve estar sempre disponível como base)
+        const hasMainCall = dailyEventsCalls.some(c => c.tipo === "ensaio_tutti" || c.tipo === "concerto");
+        if (!hasMainCall) {
             dailyEventsCalls.unshift({
                 id: dateStr,
                 tipo: "ensaio_tutti",
@@ -612,14 +625,18 @@ function renderEventsTabs() {
     dailyEventsCalls.forEach(call => {
         const tab = document.createElement("div");
         const isNaipe = call.tipo === "ensaio_naipe";
-        tab.className = `event-tab-item ${call.id === activeCallId ? 'active' : ''} ${isNaipe ? 'naipe-tab' : ''}`;
+        const isConcerto = call.tipo === "concerto";
+        tab.className = `event-tab-item ${call.id === activeCallId ? 'active' : ''} ${isNaipe ? 'naipe-tab' : ''} ${isConcerto ? 'concerto-tab' : ''}`;
         
-        const iconName = isNaipe ? 'music' : 'users';
-        const timeInicio = call.horarioInicio ? call.horarioInicio : (isNaipe ? '14:00' : '17:00');
-        const timeFim = call.horarioFim ? call.horarioFim : (isNaipe ? '16:00' : '20:00');
+        let iconName = 'users';
+        if (isNaipe) iconName = 'music';
+        if (isConcerto) iconName = 'award';
+
+        const timeInicio = call.horarioInicio ? call.horarioInicio : (isNaipe ? '14:00' : (isConcerto ? '19:00' : '17:00'));
+        const timeFim = call.horarioFim ? call.horarioFim : (isNaipe ? '16:00' : (isConcerto ? '22:00' : '20:00'));
         const timeChipTitle = `Horário: ${timeInicio} às ${timeFim}. Toque para alterar.`;
 
-        // Botão × só aparece em abas de naipe (não no Tutti)
+        // Botão × só aparece em abas de naipe (não no Tutti/Concerto)
         const deleteBtnHtml = isNaipe
             ? `<button class="tab-delete-btn" title="Apagar chamada de naipe" data-call-id="${call.id}">
                    <i data-lucide="x" style="width: 12px; height: 12px;"></i>
@@ -673,7 +690,7 @@ function renderEventsTabs() {
     }, 50);
 }
 
-// Modal de Edição de Horário do Ensaio
+// Modal de Edição de Horário e Tipo do Ensaio / Concerto
 let editingCallForTime = null;
 
 function initEditHorarioModal() {
@@ -696,8 +713,12 @@ function initEditHorarioModal() {
 
             const inputInicio = document.getElementById("inputEditHoraInicio");
             const inputFim = document.getElementById("inputEditHoraFim");
+            const selectTipo = document.getElementById("selectEditTipoChamada");
             const horaInicio = inputInicio ? inputInicio.value : "";
             const horaFim = inputFim ? inputFim.value : "";
+            const novoTipo = editingCallForTime.tipo === "ensaio_naipe"
+                ? "ensaio_naipe"
+                : (selectTipo ? selectTipo.value : "ensaio_tutti");
 
             if (!horaInicio) {
                 alert("Por favor, informe o horário de início.");
@@ -708,12 +729,13 @@ function initEditHorarioModal() {
             btnConfirm.innerHTML = `Salvando...`;
 
             try {
-                await saveRehearsalTime(editingCallForTime, horaInicio, horaFim);
+                await saveRehearsalTime(editingCallForTime, horaInicio, horaFim, novoTipo);
                 closeEditHorarioModal();
-                showToast(`Horário atualizado: ${horaInicio}${horaFim ? ' às ' + horaFim : ''}`);
+                const tipoNome = novoTipo === "concerto" ? "Concerto" : (novoTipo === "ensaio_naipe" ? "Ensaio de Naipe" : "Ensaio Tutti");
+                showToast(`${tipoNome} atualizado: ${horaInicio}${horaFim ? ' às ' + horaFim : ''}`);
             } catch (err) {
-                console.error("Erro ao salvar horário:", err);
-                showToast("Erro ao salvar horário.");
+                console.error("Erro ao salvar chamada:", err);
+                showToast("Erro ao salvar alterações.");
             } finally {
                 btnConfirm.disabled = false;
                 btnConfirm.innerHTML = "Salvar Horário";
@@ -730,19 +752,32 @@ function openEditHorarioModal(call) {
     const descEl = document.getElementById("modalEditHorarioDesc");
     const inputInicio = document.getElementById("inputEditHoraInicio");
     const inputFim = document.getElementById("inputEditHoraFim");
+    const groupTipo = document.getElementById("groupEditTipoChamada");
+    const selectTipo = document.getElementById("selectEditTipoChamada");
 
     if (!modal) return;
 
     const isNaipe = call.tipo === "ensaio_naipe";
-    if (titleEl) {
-        titleEl.innerText = `Alterar Horário - ${call.label || (isNaipe ? 'Ensaio de Naipe' : 'Ensaio Tutti')}`;
+    if (groupTipo) {
+        groupTipo.style.display = isNaipe ? "none" : "block";
     }
-    if (descEl) {
-        descEl.innerText = `Ajuste o horário de início e término para ${call.label}:`;
+    if (selectTipo && !isNaipe) {
+        selectTipo.value = call.tipo === "concerto" ? "concerto" : "ensaio_tutti";
     }
 
-    const defaultInicio = isNaipe ? "14:00" : "17:00";
-    const defaultFim = isNaipe ? "16:00" : "20:00";
+    if (titleEl) {
+        titleEl.innerText = isNaipe 
+            ? `Alterar Horário - ${call.label || 'Ensaio de Naipe'}` 
+            : `Ajustar Chamada - ${call.label || 'Ensaio Tutti'}`;
+    }
+    if (descEl) {
+        descEl.innerText = isNaipe
+            ? `Ajuste o horário de início e término para ${call.label}:`
+            : `Ajuste o tipo de evento e os horários de início e término:`;
+    }
+
+    const defaultInicio = isNaipe ? "14:00" : (call.tipo === "concerto" ? "19:00" : "17:00");
+    const defaultFim = isNaipe ? "16:00" : (call.tipo === "concerto" ? "22:00" : "20:00");
 
     if (inputInicio) inputInicio.value = call.horarioInicio || defaultInicio;
     if (inputFim) inputFim.value = call.horarioFim || defaultFim;
@@ -757,15 +792,27 @@ function closeEditHorarioModal() {
     editingCallForTime = null;
 }
 
-async function saveRehearsalTime(call, horaInicio, horaFim) {
+async function saveRehearsalTime(call, horaInicio, horaFim, novoTipo) {
     call.horarioInicio = horaInicio;
     call.horarioFim = horaFim;
+    if (novoTipo) {
+        call.tipo = novoTipo;
+        if (novoTipo === "concerto") {
+            call.label = "Concerto";
+        } else if (novoTipo === "ensaio_tutti") {
+            call.label = "Ensaio Tutti";
+        }
+    }
 
     // Atualizar no array dailyEventsCalls
     const target = dailyEventsCalls.find(c => c.id === call.id);
     if (target) {
         target.horarioInicio = horaInicio;
         target.horarioFim = horaFim;
+        if (novoTipo) {
+            target.tipo = call.tipo;
+            target.label = call.label;
+        }
     }
 
     // Salvar no rascunho local
@@ -787,7 +834,7 @@ async function saveRehearsalTime(call, horaInicio, horaFim) {
             usuarioResponsavel: currentUserEmail || "Admin"
         }, { merge: true });
     } catch (presErr) {
-        console.warn("Aviso ao sincronizar horário na coleção presencas:", presErr);
+        console.warn("Aviso ao sincronizar chamada na coleção presencas:", presErr);
     }
 
     // 2. Sincronizar na coleção eventos do Calendário se houver evento cadastrado nessa data
@@ -802,21 +849,25 @@ async function saveRehearsalTime(call, horaInicio, horaFim) {
                 const evtNaipe = Array.isArray(evt.naipe) ? evt.naipe.join(" + ") : (evt.naipe || "");
                 const callNaipe = Array.isArray(call.naipe) ? call.naipe.join(" + ") : (call.naipe || "");
                 if (evtNaipe === callNaipe || !call.naipe) isMatch = true;
-            } else if (call.tipo === "ensaio_tutti" && (evt.tipo === "ensaio_tutti" || evt.tipo === "ensaio" || evt.tipo === "concerto")) {
+            } else if ((call.tipo === "ensaio_tutti" || call.tipo === "concerto") && (evt.tipo === "ensaio_tutti" || evt.tipo === "ensaio" || evt.tipo === "concerto")) {
                 isMatch = true;
             }
 
             if (isMatch) {
                 const evtDocRef = doc(db, "eventos", dSnap.id);
-                await updateDoc(evtDocRef, {
+                const updates = {
                     horarioInicio: horaInicio,
                     horarioFim: horaFim,
                     updatedAt: new Date().toISOString()
-                });
+                };
+                if (call.tipo === "concerto" || call.tipo === "ensaio_tutti") {
+                    updates.tipo = call.tipo;
+                }
+                await updateDoc(evtDocRef, updates);
             }
         }
     } catch (evtSyncErr) {
-        console.warn("Aviso ao sincronizar horário no Calendário (eventos):", evtSyncErr);
+        console.warn("Aviso ao sincronizar chamada no Calendário (eventos):", evtSyncErr);
     }
 
     // Re-renderizar abas e atualizar a chamada ativa

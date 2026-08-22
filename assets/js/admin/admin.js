@@ -8305,7 +8305,13 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
 
                 let diasHeadersHtml = '';
                 for (let dia = 1; dia <= totalDias; dia++) {
-                    const isConcerto = diasDeConcerto.has(dia);
+                    const dataStr = `${ano}-${mesStr}-${String(dia).padStart(2, '0')}`;
+                    const presDoc = presencasPorData[dataStr];
+                    const hasConcertoPres = presDoc && (
+                        presDoc.tipo === 'concerto' || 
+                        (Array.isArray(presDoc) && presDoc.some(p => p.tipo === 'concerto'))
+                    );
+                    const isConcerto = diasDeConcerto.has(dia) || hasConcertoPres;
                     const headerClass = isConcerto ? 'col-day day-concerto' : 'col-day';
                     const diaFormatado = String(dia).padStart(2, '0');
                     diasHeadersHtml += `<th class="${headerClass}">${diaFormatado}/${mesStr}</th>`;
@@ -8895,11 +8901,28 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                 presencasPorData[dateKey].push({ id: docSnap.id, ...dData });
             });
             
-            // Buscar dispensas e atestados no Firestore para o período
-            const [dispensasSnapshot, atestadosSnapshot] = await Promise.all([
+            // Buscar dispensas, atestados e eventos no Firestore para o período
+            const [dispensasSnapshot, atestadosSnapshot, eventosSnapshot] = await Promise.all([
                 getDocs(query(collection(db, "dispensas"))),
-                getDocs(query(collection(db, "medicalCertificates_approved")))
+                getDocs(query(collection(db, "medicalCertificates_approved"))),
+                getDocs(query(
+                    collection(db, "eventos"),
+                    where("date", ">=", startOfMonth),
+                    where("date", "<=", endOfMonth)
+                ))
             ]);
+
+            const diasDeConcerto = new Set();
+            eventosSnapshot.forEach(docSnap => {
+                const evt = docSnap.data();
+                const tipoLower = (evt.tipo || '').toLowerCase();
+                const concertoNome = evt.concertoNome || '';
+                const descricaoEnsaio = evt.descricaoEnsaio || '';
+                const txtCompletoLower = `${concertoNome} ${descricaoEnsaio}`.toLowerCase();
+                if (tipoLower === 'concerto' || txtCompletoLower.includes('concerto')) {
+                    if (evt.date) diasDeConcerto.add(evt.date);
+                }
+            });
 
             const dispensasMap = {};
             dispensasSnapshot.forEach(docSnap => {
@@ -8958,6 +8981,7 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                 
                 docsDoDia.forEach(pres => {
                     if (pres && pres.registros) {
+                        const isConcertoPres = pres.tipo === 'concerto' || diasDeConcerto.has(dataStr);
                         Object.entries(pres.registros).forEach(([musicoId, registro]) => {
                             if (dadosBolsistas[musicoId]) {
                                 const bInfo = dadosBolsistas[musicoId];
@@ -8977,10 +9001,13 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                                 const isAtestado = atestadosMap[musicoId] && atestadosMap[musicoId].has(dataStr);
 
                                 if (registro.status === 'falta' && !isDispensado && !isAtestado) {
-                                    const labelNaipe = pres.tipo === 'ensaio_naipe' && pres.naipe 
-                                        ? ` (Ensaio de Naipe - ${Array.isArray(pres.naipe) ? pres.naipe.join(' + ') : pres.naipe})`
-                                        : '';
-                                    bInfo.faltas.push({ dia, obs: labelNaipe });
+                                    let labelObs = '';
+                                    if (pres.tipo === 'ensaio_naipe' && pres.naipe) {
+                                        labelObs = ` (Ensaio de Naipe - ${Array.isArray(pres.naipe) ? pres.naipe.join(' + ') : pres.naipe})`;
+                                    } else if (isConcertoPres) {
+                                        labelObs = ` (Concerto)`;
+                                    }
+                                    bInfo.faltas.push({ dia, obs: labelObs });
                                 } else if (registro.status === 'atraso') {
                                     const min = parseInt(registro.minutes) || 0;
                                     bInfo.atrasosMin += min;

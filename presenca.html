@@ -336,8 +336,17 @@
             </div>
             <div class="modal-body">
                 <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;" id="modalEditHorarioDesc">
-                    Ajuste o horário de início e término para a chamada selecionada:
+                    Ajuste o tipo e os horários de início e término para a chamada selecionada:
                 </p>
+                <div class="form-group" id="groupEditTipoChamada" style="margin-bottom: 1rem;">
+                    <label class="form-label" style="display: flex; align-items: center; gap: 0.35rem;">
+                        <i data-lucide="tag" style="width: 14px; height: 14px;"></i> Tipo de Evento:
+                    </label>
+                    <select id="selectEditTipoChamada" class="form-input" style="font-weight: 600; padding: 0.6rem 0.8rem; border-radius: 8px;">
+                        <option value="ensaio_tutti">🎵 Ensaio Tutti</option>
+                        <option value="concerto">🌟 Concerto</option>
+                    </select>
+                </div>
                 <div class="form-row-2">
                     <div class="form-group">
                         <label class="form-label">Horário de Início:</label>
@@ -357,7 +366,7 @@
     </div>
 
     <!-- Firebase SDK & Custom Logics -->
-    <script type="module" src="assets/js/admin/presenca.js?v=20260820_02"></script>
+    <script type="module" src="assets/js/admin/presenca.js?v=20260822_01"></script>
 
     <!-- Sistema de Rastreamento de Engajamento/Analytics -->
     <script type="module" src="assets/js/public/analytics.js"></script>
