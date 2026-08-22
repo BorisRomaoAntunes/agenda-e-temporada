@@ -330,18 +330,6 @@ body {
     box-shadow: 0 2px 8px rgba(109, 40, 217, 0.3);
 }
 
-.event-tab-item.concerto-tab.active {
-    background: linear-gradient(135deg, #b91c1c, #991b1b);
-    border-color: #b91c1c;
-    box-shadow: 0 2px 8px rgba(185, 28, 28, 0.35);
-}
-
-.event-tab-item.concerto-tab:not(.active) {
-    background: #fef2f2;
-    border-color: #fecaca;
-    color: #991b1b;
-}
-
 .event-tab-item:hover:not(.active) {
     background: #f1f5f9;
     border-color: #cbd5e1;
