@@ -65,7 +65,7 @@ exports.sendPushNotification = onDocumentCreated({
                 ? `${data.linkUrl}${data.linkUrl.includes('?') ? '&' : '?'}source=notification`
                 : "https://oer-agenda.web.app/?source=notification";
 
-            const payload = {
+            const basePayload = {
                 notification: {
                     title: title || "Novo aviso",
                     body: message || "",
@@ -83,39 +83,81 @@ exports.sendPushNotification = onDocumentCreated({
                     fcmOptions: {
                         link: targetLink
                     }
-                },
-                tokens: tokens,
+                }
             };
 
-            try {
-                const response = await admin.messaging().sendEachForMulticast(payload);
-                console.log(`${response.successCount} mensagens enviadas com sucesso, ${response.failureCount} falharam.`);
-                
-                // Limpar tokens antigos/revogados (opcional, mas recomendado)
-                if (response.failureCount > 0) {
-                    const failedTokens = [];
-                    response.responses.forEach((resp, idx) => {
-                        if (!resp.success) {
-                            // Erros comuns: messaging/invalid-registration-token ou messaging/registration-token-not-registered
-                            if (resp.error.code === 'messaging/invalid-registration-token' ||
-                                resp.error.code === 'messaging/registration-token-not-registered') {
-                                failedTokens.push(tokens[idx]);
-                            }
-                        }
-                    });
+            const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+            let totalSuccess = 0;
+            let totalFailure = 0;
+            const allFailedTokens = [];
 
-                    // Apaga os tokens inválidos do Firestore usando um batch (operação em lote)
-                    if (failedTokens.length > 0) {
+            try {
+                const chunkSize = 500;
+                for (let i = 0; i < tokens.length; i += chunkSize) {
+                    let chunkTokens = tokens.slice(i, i + chunkSize);
+                    let retryCount = 0;
+                    
+                    while (chunkTokens.length > 0 && retryCount <= 2) {
+                        const payload = { ...basePayload, tokens: chunkTokens };
+                        const response = await admin.messaging().sendEachForMulticast(payload);
+                        
+                        const nextRetryTokens = [];
+                        response.responses.forEach((resp, idx) => {
+                            if (resp.success) {
+                                totalSuccess++;
+                            } else {
+                                if (resp.error.code === 'messaging/invalid-registration-token' ||
+                                    resp.error.code === 'messaging/registration-token-not-registered') {
+                                    allFailedTokens.push(chunkTokens[idx]);
+                                    totalFailure++;
+                                } else {
+                                    // Erros transitórios (5xx / 429) - Retry logic
+                                    if (retryCount < 2) {
+                                        nextRetryTokens.push(chunkTokens[idx]);
+                                    } else {
+                                        totalFailure++;
+                                    }
+                                }
+                            }
+                        });
+                        
+                        chunkTokens = nextRetryTokens;
+                        if (chunkTokens.length > 0) {
+                            retryCount++;
+                            await sleep(retryCount * 1000); // Delay progressivo: 1s, 2s
+                        } else {
+                            break;
+                        }
+                    }
+                }
+
+                console.log(`${totalSuccess} mensagens enviadas com sucesso, ${totalFailure} falharam.`);
+                
+                // Apaga os tokens inválidos do Firestore usando um batch (operação em lote)
+                if (allFailedTokens.length > 0) {
+                    for (let i = 0; i < allFailedTokens.length; i += 500) {
                         const batch = admin.firestore().batch();
-                        failedTokens.forEach(badToken => {
+                        const failedChunk = allFailedTokens.slice(i, i + 500);
+                        failedChunk.forEach(badToken => {
                             // O ID do documento é o próprio token
                             const docRef = admin.firestore().collection("fcmTokens").doc(badToken);
                             batch.delete(docRef);
                         });
                         await batch.commit();
-                        console.log(`Apagados ${failedTokens.length} tokens inválidos do banco de dados.`);
                     }
+                    console.log(`Apagados ${allFailedTokens.length} tokens inválidos do banco de dados.`);
                 }
+
+                // Salvar resultado do envio no documento de notificação
+                await event.data.ref.update({
+                    sendResult: {
+                        successCount: totalSuccess,
+                        failureCount: totalFailure,
+                        cleanedTokens: allFailedTokens.length,
+                        totalRecipients: tokens.length,
+                        sentAt: admin.firestore.FieldValue.serverTimestamp()
+                    }
+                });
             } catch (error) {
                 console.error("Erro crítico ao enviar mensagens multicast:", error);
             }
@@ -2027,5 +2069,91 @@ exports.extractLinkMetadata = onCall({
     }
 });
 
+/**
+ * Verificação semanal de tokens inválidos (dryRun).
+ * Roda aos domingos às 3h.
+ */
+exports.weeklyTokenCleanup = onSchedule({
+    schedule: "0 3 * * 0",
+    timeZone: "America/Sao_Paulo",
+    memory: "256MiB"
+}, async (event) => {
+    console.log("Iniciando limpeza semanal de tokens (dryRun)...");
+    const db = admin.firestore();
+    const tokensSnapshot = await db.collection("fcmTokens").get();
+    
+    const tokens = [];
+    tokensSnapshot.forEach(doc => {
+        const data = doc.data();
+        if (data && data.token) {
+            tokens.push(data.token);
+        }
+    });
 
+    if (tokens.length === 0) {
+        console.log("Nenhum token para verificar.");
+        return;
+    }
 
+    let allFailedTokens = [];
+    const chunkSize = 500;
+    
+    // Payload dummy para o dryRun
+    const payload = {
+        notification: { title: "dryRun", body: "dryRun" }
+    };
+
+    for (let i = 0; i < tokens.length; i += chunkSize) {
+        const chunkTokens = tokens.slice(i, i + chunkSize);
+        const chunkPayload = { ...payload, tokens: chunkTokens };
+        
+        try {
+            // sendEachForMulticast com dryRun = true
+            const response = await admin.messaging().sendEachForMulticast(chunkPayload, true);
+            response.responses.forEach((resp, idx) => {
+                if (!resp.success) {
+                    if (resp.error.code === 'messaging/invalid-registration-token' ||
+                        resp.error.code === 'messaging/registration-token-not-registered') {
+                        allFailedTokens.push(chunkTokens[idx]);
+                    }
+                }
+            });
+        } catch (err) {
+            console.error("Erro no chunk do dryRun:", err);
+        }
+    }
+
+    if (allFailedTokens.length > 0) {
+        // Limpar tokens inválidos
+        for (let i = 0; i < allFailedTokens.length; i += 500) {
+            const batch = db.batch();
+            const failedChunk = allFailedTokens.slice(i, i + 500);
+            failedChunk.forEach(badToken => {
+                const docRef = db.collection("fcmTokens").doc(badToken);
+                batch.delete(docRef);
+            });
+            await batch.commit();
+        }
+        console.log(`Limpeza concluída. ${allFailedTokens.length} tokens inválidos removidos.`);
+        
+        // Recalcular config/stats.subscriberCount
+        const countSnap = await db.collection("fcmTokens").count().get();
+        const currentCount = countSnap.data().count;
+        
+        await db.collection("config").doc("stats").set({
+            subscriberCount: currentCount,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        }, { merge: true });
+
+        // Logar resultado em adminLogs
+        await db.collection("adminLogs").add({
+            type: "sistema",
+            message: "Limpeza semanal de tokens concluída.",
+            details: `Foram identificados e removidos ${allFailedTokens.length} tokens inválidos/revogados. O contador de inscritos foi atualizado para ${currentCount}.`,
+            user: "Sistema",
+            createdAt: new Date().toISOString()
+        });
+    } else {
+        console.log("Limpeza concluída. Nenhum token inválido encontrado.");
+    }
+});
