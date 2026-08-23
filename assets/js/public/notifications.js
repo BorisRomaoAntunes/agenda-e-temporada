@@ -22,6 +22,7 @@ try {
 }
 const db = getFirestore(app);
 
+const notifContainer = document.querySelector('.notification-container');
 const settingsRef = doc(db, 'config', 'settings');
 
 // ====== NOVAS FUNÇÕES: NOTIFICAÇÃO IN-APP, PLATAFORMA E RENOVAÇÃO DE TOKEN ======
@@ -166,56 +167,42 @@ let lastAdminSettings = {};
 
 // Função centralizada para verificar o estado e visibilidade
 window.updateNotificationBellState = () => {
-    const container = document.querySelector('.notification-container');
     const trigger = document.getElementById('btnNotificationTrigger');
     const badge = document.getElementById('notificationBadge');
-    const panel = document.getElementById('notificationPanel');
-    const step1 = document.getElementById('notif-step-1');
-    const stepSubscribed = document.getElementById('notif-step-subscribed');
-    const stepDenied = document.getElementById('notif-step-denied');
-    const stepIos = document.getElementById('notif-ios-guide');
-
-    if (!container || !trigger) return;
+    if (!notifContainer || !trigger) return;
 
     const adminEnabled = lastAdminSettings.notificationsEnabled === true;
-    if (!adminEnabled) {
-        container.setAttribute('hidden', '');
-        container.style.display = 'none';
-        if (panel) panel.classList.remove('show');
-        return;
-    }
-
-    // Se o admin habilitou, o botão SEMPRE fica visível na tela
-    container.removeAttribute('hidden');
-    container.style.display = 'block';
-
     const hasNotificationApi = "Notification" in window;
-    const isGranted = hasNotificationApi && Notification.permission === "granted";
-    const isDenied = hasNotificationApi && Notification.permission === "denied";
+    const userGranted = hasNotificationApi && Notification.permission === "granted";
+    const userDenied = hasNotificationApi && Notification.permission === "denied";
 
-    // Ajusta os passos do painel com base no status do usuário
-    if (step1) step1.style.display = (!isGranted && !isDenied) ? 'block' : 'none';
-    if (stepSubscribed) stepSubscribed.style.display = isGranted ? 'block' : 'none';
-    if (stepDenied) stepDenied.style.display = isDenied ? 'block' : 'none';
-    if (stepIos) stepIos.style.display = 'none';
+    // O botão (container) só deve aparecer se o admin habilitou E o usuário NÃO habilitou ainda e não bloqueou
+    if (adminEnabled && !userGranted && !userDenied) {
+        notifContainer.removeAttribute('hidden');
+        notifContainer.style.display = 'block';
 
-    if (isGranted) {
-        // Já inscrito: Sino calmo/estático e sem badge vermelha de alerta
-        trigger.classList.add('no-anim');
-        trigger.classList.remove('shake');
-        if (badge) badge.style.display = 'none';
-    } else if (isDenied) {
-        // Bloqueado pelo navegador: Sino estático sem animação
-        trigger.classList.add('no-anim');
-        trigger.classList.remove('shake');
-        if (badge) badge.style.display = 'none';
-    } else {
-        // Não inscrito / Anônimo: Balançando para chamar atenção + badge 1
+        // Garante que as animações e badge estejam ativos (conforme pedido: balançando e widget +1)
         trigger.classList.remove('no-anim');
         trigger.classList.add('shake');
         if (badge) {
             badge.style.display = 'flex';
             badge.textContent = '1';
+        }
+    } else {
+        // Se o admin desligou OU o usuário já habilitou, escondemos tudo
+        notifContainer.setAttribute('hidden', '');
+        notifContainer.style.display = 'none';
+
+        if (adminEnabled && userDenied && !sessionStorage.getItem('oer_notif_denied_banner_shown')) {
+            const banner = document.createElement('div');
+            banner.style.cssText = 'position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(51, 51, 51, 0.95); color: #fff; padding: 12px 20px; border-radius: 8px; z-index: 9999; display: flex; gap: 10px; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-size: 14px; max-width: 90%; text-align: left;';
+            banner.innerHTML = `
+                <span>Você desativou as notificações. Para receber os comunicados, ative nas configurações do navegador.</span>
+                <button style="background: none; border: none; color: white; cursor: pointer; font-size: 20px; line-height: 1; padding: 0 5px;">&times;</button>
+            `;
+            banner.querySelector('button').onclick = () => banner.remove();
+            document.body.appendChild(banner);
+            sessionStorage.setItem('oer_notif_denied_banner_shown', 'true');
         }
     }
 };
@@ -971,22 +958,6 @@ document.addEventListener('DOMContentLoaded', () => {
         btnCloseIos.addEventListener('click', () => {
             panel.classList.remove('show');
             trigger.classList.remove('shake');
-        });
-    }
-
-    // Botão de Fechar do painel de Já Inscrito
-    const btnCloseSubscribed = document.getElementById('btnNotifCloseSubscribed');
-    if (btnCloseSubscribed) {
-        btnCloseSubscribed.addEventListener('click', () => {
-            panel.classList.remove('show');
-        });
-    }
-
-    // Botão de Entendi do painel de Bloqueado
-    const btnCloseDenied = document.getElementById('btnNotifCloseDenied');
-    if (btnCloseDenied) {
-        btnCloseDenied.addEventListener('click', () => {
-            panel.classList.remove('show');
         });
     }
 
