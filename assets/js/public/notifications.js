@@ -12,7 +12,7 @@
 
 import { app, VAPID_KEY } from "../firebase-config.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging.js";
-import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection, query, orderBy, limit, getDocs, startAfter } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getFirestore, doc, setDoc, onSnapshot, collection, query, orderBy, limit, getDocs, startAfter } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 let messaging = null;
 try {
@@ -25,142 +25,7 @@ const db = getFirestore(app);
 const notifContainer = document.querySelector('.notification-container');
 const settingsRef = doc(db, 'config', 'settings');
 
-// ====== NOVAS FUNÇÕES: NOTIFICAÇÃO IN-APP, PLATAFORMA E RENOVAÇÃO DE TOKEN ======
-const style = document.createElement('style');
-style.textContent = `
-    .in-app-notification {
-        position: fixed;
-        top: -100px;
-        left: 50%;
-        transform: translateX(-50%);
-        background-color: darkred;
-        color: white;
-        padding: 16px 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-        z-index: 9999;
-        transition: top 0.4s ease-in-out;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        max-width: 90%;
-        width: 400px;
-        cursor: pointer;
-    }
-    .in-app-notification.show {
-        top: 20px;
-    }
-    .in-app-notification-content {
-        flex-grow: 1;
-    }
-    .in-app-notification-title {
-        font-weight: bold;
-        margin-bottom: 4px;
-        font-size: 15px;
-    }
-    .in-app-notification-body {
-        font-size: 13px;
-        opacity: 0.9;
-    }
-    .in-app-notification-close {
-        background: none;
-        border: none;
-        color: white;
-        font-size: 20px;
-        cursor: pointer;
-        padding: 0 4px;
-        line-height: 1;
-    }
-`;
-document.head.appendChild(style);
 
-function showInAppNotification(title, body, linkUrl) {
-    const div = document.createElement('div');
-    div.className = 'in-app-notification';
-    
-    const content = document.createElement('div');
-    content.className = 'in-app-notification-content';
-    content.innerHTML = \`<div class="in-app-notification-title">\${title}</div><div class="in-app-notification-body">\${body}</div>\`;
-    
-    if (linkUrl) {
-        div.addEventListener('click', () => window.open(linkUrl, '_blank'));
-    }
-    
-    const closeBtn = document.createElement('button');
-    closeBtn.className = 'in-app-notification-close';
-    closeBtn.innerHTML = '&times;';
-    closeBtn.onclick = (e) => {
-        e.stopPropagation();
-        div.classList.remove('show');
-        setTimeout(() => div.remove(), 400);
-    };
-    
-    div.appendChild(content);
-    div.appendChild(closeBtn);
-    document.body.appendChild(div);
-    
-    setTimeout(() => div.classList.add('show'), 100);
-    
-    setTimeout(() => {
-        if (document.body.contains(div)) {
-            div.classList.remove('show');
-            setTimeout(() => div.remove(), 400);
-        }
-    }, 8000);
-}
-
-function detectPlatform() {
-    const ua = navigator.userAgent;
-    if (/iPad|iPhone|iPod/.test(ua) || (ua.includes("Mac") && "ontouchend" in document)) return 'iOS';
-    if (/android/i.test(ua)) return 'Android';
-    if (/Mac OS X/.test(ua)) return 'macOS';
-    if (/Windows/.test(ua)) return 'Windows';
-    if (/Linux/.test(ua)) return 'Linux';
-    return 'Unknown';
-}
-
-function detectBrowser() {
-    const ua = navigator.userAgent;
-    if (ua.includes('Edg/')) return 'Edge';
-    if (ua.includes('Chrome/')) return 'Chrome';
-    if (ua.includes('Firefox/')) return 'Firefox';
-    if (ua.includes('Safari/') && !ua.includes('Chrome/')) return 'Safari';
-    return 'Unknown';
-}
-
-async function refreshTokenIfNeeded() {
-    if (!messaging) return;
-    if (!("Notification" in window) || Notification.permission !== 'granted') return;
-    
-    try {
-        const registration = await navigator.serviceWorker.ready;
-        const currentToken = await getToken(messaging, { vapidKey: VAPID_KEY, serviceWorkerRegistration: registration });
-        if (!currentToken) return;
-
-        const oldToken = localStorage.getItem('oer_fcm_token');
-        if (oldToken && oldToken !== currentToken) {
-            try {
-                await deleteDoc(doc(db, "fcmTokens", oldToken));
-            } catch (e) {
-                console.error('Erro ao deletar token antigo', e);
-            }
-        }
-
-        await setDoc(doc(db, "fcmTokens", currentToken), {
-            token: currentToken,
-            updatedAt: new Date().toISOString(),
-            lastActive: new Date().toISOString(),
-            platform: detectPlatform(),
-            browser: detectBrowser()
-        }, { merge: true });
-
-        localStorage.setItem('oer_fcm_token', currentToken);
-    } catch (e) {
-        console.error("Erro ao renovar token no carregamento", e);
-    }
-}
-
-refreshTokenIfNeeded();
 
 // Variável para rastrear o estado global do admin
 let lastAdminSettings = {};
@@ -174,10 +39,9 @@ window.updateNotificationBellState = () => {
     const adminEnabled = lastAdminSettings.notificationsEnabled === true;
     const hasNotificationApi = "Notification" in window;
     const userGranted = hasNotificationApi && Notification.permission === "granted";
-    const userDenied = hasNotificationApi && Notification.permission === "denied";
 
-    // O botão (container) só deve aparecer se o admin habilitou E o usuário NÃO habilitou ainda e não bloqueou
-    if (adminEnabled && !userGranted && !userDenied) {
+    // O botão (container) só deve aparecer se o admin habilitou E o usuário NÃO habilitou ainda
+    if (adminEnabled && !userGranted) {
         notifContainer.removeAttribute('hidden');
         notifContainer.style.display = 'block';
 
@@ -192,18 +56,6 @@ window.updateNotificationBellState = () => {
         // Se o admin desligou OU o usuário já habilitou, escondemos tudo
         notifContainer.setAttribute('hidden', '');
         notifContainer.style.display = 'none';
-
-        if (adminEnabled && userDenied && !sessionStorage.getItem('oer_notif_denied_banner_shown')) {
-            const banner = document.createElement('div');
-            banner.style.cssText = 'position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(51, 51, 51, 0.95); color: #fff; padding: 12px 20px; border-radius: 8px; z-index: 9999; display: flex; gap: 10px; align-items: center; box-shadow: 0 4px 12px rgba(0,0,0,0.3); font-size: 14px; max-width: 90%; text-align: left;';
-            banner.innerHTML = `
-                <span>Você desativou as notificações. Para receber os comunicados, ative nas configurações do navegador.</span>
-                <button style="background: none; border: none; color: white; cursor: pointer; font-size: 20px; line-height: 1; padding: 0 5px;">&times;</button>
-            `;
-            banner.querySelector('button').onclick = () => banner.remove();
-            document.body.appendChild(banner);
-            sessionStorage.setItem('oer_notif_denied_banner_shown', 'true');
-        }
     }
 };
 
@@ -786,11 +638,7 @@ window.requestFirebaseNotificationPermission = async () => {
                 try {
                     await setDoc(doc(db, "fcmTokens", currentToken), {
                         token: currentToken,
-                        updatedAt: new Date().toISOString(),
-                        createdAt: new Date().toISOString(),
-                        lastActive: new Date().toISOString(),
-                        platform: detectPlatform(),
-                        browser: detectBrowser()
+                        updatedAt: new Date().toISOString()
                     }, { merge: true });
                     console.log('[Firebase] Token salvo com sucesso no banco de dados.');
                 } catch (dbError) {
@@ -801,7 +649,6 @@ window.requestFirebaseNotificationPermission = async () => {
                 
                 // Grava no localStorage que o usuário já aceitou, para esconder o painel
                 localStorage.setItem("oer_notification_responded", "true");
-                localStorage.setItem('oer_fcm_token', currentToken);
 
                 // Faz o botão desaparecer imediatamente
                 if (window.updateNotificationBellState) window.updateNotificationBellState();
@@ -830,11 +677,8 @@ if (messaging) {
             return;
         }
         console.log('[Firebase] Mensagem recebida com o site aberto: ', payload);
-        const title = payload.notification?.title || payload.data?.title || 'Novo Aviso';
-        const body = payload.notification?.body || payload.data?.body || '';
-        const linkUrl = payload.data?.linkUrl || payload.data?.click_action || '';
-        
-        showInAppNotification(title, body, linkUrl);
+        // Como o site está aberto, podemos mostrar um alerta com o título da atualização
+        alert(`Novo Aviso: ${payload.notification.title}\n\n${payload.notification.body}`);
     });
 }
 
