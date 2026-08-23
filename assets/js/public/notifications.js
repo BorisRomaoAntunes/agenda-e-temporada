@@ -14,7 +14,12 @@ import { app, VAPID_KEY } from "../firebase-config.js";
 import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-messaging.js";
 import { getFirestore, doc, setDoc, deleteDoc, onSnapshot, collection, query, orderBy, limit, getDocs, startAfter } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
-const messaging = getMessaging(app);
+let messaging = null;
+try {
+    messaging = getMessaging(app);
+} catch (e) {
+    console.warn('[Notifications] Firebase Messaging não suportado neste navegador:', e.message);
+}
 const db = getFirestore(app);
 
 const settingsRef = doc(db, 'config', 'settings');
@@ -123,6 +128,7 @@ function detectBrowser() {
 }
 
 async function refreshTokenIfNeeded() {
+    if (!messaging) return;
     if (!("Notification" in window) || Notification.permission !== 'granted') return;
     
     try {
@@ -754,6 +760,11 @@ function isStandalone() {
 // Função global para ser chamada pelo botão "Sim"
 window.requestFirebaseNotificationPermission = async () => {
     try {
+        if (!messaging) {
+            alert("⚠️ Seu navegador não suporta notificações push. Adicione o site à Tela de Início para ativar.");
+            return false;
+        }
+
         if (lastAdminSettings.notificationsEnabled !== true) {
             alert("⚠️ As notificações push estão temporariamente desativadas pela administração.");
             return false;
@@ -825,18 +836,20 @@ window.requestFirebaseNotificationPermission = async () => {
 }
 
 // Receptor para caso a notificação chegue E o site esteja aberto na tela
-onMessage(messaging, (payload) => {
-    if (lastAdminSettings.notificationsEnabled !== true) {
-        console.log('[Firebase] Ignorando notificação recebida com o site aberto (notificações desativadas globalmente).');
-        return;
-    }
-    console.log('[Firebase] Mensagem recebida com o site aberto: ', payload);
-    const title = payload.notification?.title || payload.data?.title || 'Novo Aviso';
-    const body = payload.notification?.body || payload.data?.body || '';
-    const linkUrl = payload.data?.linkUrl || payload.data?.click_action || '';
-    
-    showInAppNotification(title, body, linkUrl);
-});
+if (messaging) {
+    onMessage(messaging, (payload) => {
+        if (lastAdminSettings.notificationsEnabled !== true) {
+            console.log('[Firebase] Ignorando notificação recebida com o site aberto (notificações desativadas globalmente).');
+            return;
+        }
+        console.log('[Firebase] Mensagem recebida com o site aberto: ', payload);
+        const title = payload.notification?.title || payload.data?.title || 'Novo Aviso';
+        const body = payload.notification?.body || payload.data?.body || '';
+        const linkUrl = payload.data?.linkUrl || payload.data?.click_action || '';
+        
+        showInAppNotification(title, body, linkUrl);
+    });
+}
 
 // ====== UI DO SINO DE NOTIFICAÇÕES ======
 
