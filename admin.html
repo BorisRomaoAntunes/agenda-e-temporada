@@ -1038,6 +1038,79 @@ Intervalo
                         </div>
                     </div>
 
+                    <!-- Área de Atestados Médicos Homologados -->
+                    <div class="musicos-atestados-container" style="margin-top: 1.5rem;">
+                        <!-- Header da seção -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
+                            <div style="display: flex; align-items: center; gap: 0.65rem;">
+                                <div style="width: 36px; height: 36px; background: linear-gradient(135deg, #2563eb, #1d4ed8); border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 4px 10px rgba(37,99,235,0.25);">
+                                    <i data-lucide="file-badge" style="color: white; width: 18px; height: 18px;"></i>
+                                </div>
+                                <div>
+                                    <h4 style="margin: 0; font-size: 1rem; font-weight: 700; color: #0f172a; line-height: 1.2;">Atestados Homologados</h4>
+                                    <p style="margin: 0; font-size: 0.78rem; color: #2563eb; font-weight: 500;" id="atestados-homologados-subtitle">Bolsistas com atestado no período</p>
+                                </div>
+                            </div>
+
+                            <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                                <!-- Campo de Busca -->
+                                <div style="position: relative; width: 260px;">
+                                    <i data-lucide="search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 15px; height: 15px; color: #9ca3af; pointer-events: none;"></i>
+                                    <input type="text" id="atestado-homologado-search-input" autocomplete="off" placeholder="Buscar bolsista, CID ou motivo..." style="
+                                        width: 100%;
+                                        padding: 0.5rem 0.75rem 0.5rem 2.1rem;
+                                        font-size: 0.825rem;
+                                        border: 1.5px solid #bfdbfe;
+                                        border-radius: 10px;
+                                        outline: none;
+                                        background: #f8fafc;
+                                        color: #0f172a;
+                                        transition: all 0.2s ease;
+                                    "
+                                    onfocus="this.style.borderColor='#2563eb'; this.style.background='white'; this.style.boxShadow='0 0 0 3px rgba(37,99,235,0.12)';"
+                                    onblur="this.style.borderColor='#bfdbfe'; this.style.background='#f8fafc'; this.style.boxShadow='none';">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Barra de Chips de Filtro Rápido -->
+                        <div style="display: flex; gap: 0.4rem; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap;">
+                            <span style="font-size: 0.75rem; font-weight: 600; color: #6b7280; margin-right: 0.25rem;">Filtrar:</span>
+                            <button class="chip-atestado-filter active" data-filter="todas" style="padding: 0.25rem 0.7rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; border: 1px solid #2563eb; background: #2563eb; color: white; cursor: pointer; transition: all 0.15s ease;">Todas</button>
+                            <button class="chip-atestado-filter" data-filter="ativa" style="padding: 0.25rem 0.7rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; border: 1px solid #bfdbfe; background: white; color: #1e40af; cursor: pointer; transition: all 0.15s ease;">Ativas</button>
+                            <button class="chip-atestado-filter" data-filter="futura" style="padding: 0.25rem 0.7rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; border: 1px solid #bfdbfe; background: white; color: #1e40af; cursor: pointer; transition: all 0.15s ease;">Futuras</button>
+                            <button class="chip-atestado-filter" data-filter="encerrada" style="padding: 0.25rem 0.7rem; border-radius: 20px; font-size: 0.75rem; font-weight: 600; border: 1px solid #bfdbfe; background: white; color: #1e40af; cursor: pointer; transition: all 0.15s ease;">Encerradas</button>
+                        </div>
+
+                        <!-- Tabela de Atestados com Max-Height e Scroll -->
+                        <div style="background: white; border-radius: 14px; border: 1px solid #dbeafe; overflow: hidden; box-shadow: 0 2px 8px rgba(37,99,235,0.06);">
+                            <div id="atestados-homologados-list-wrapper" style="max-height: 320px; overflow-y: auto; overflow-x: auto; position: relative;">
+                                <table class="atestados-table" style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.875rem;">
+                                    <thead style="position: sticky; top: 0; z-index: 5; background: #f0f7ff;">
+                                        <tr style="background: linear-gradient(135deg, #f0f7ff, #e0f2fe); border-bottom: 1px solid #dbeafe;">
+                                            <th style="padding: 0.9rem 1.1rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #2563eb;">Músico</th>
+                                            <th style="padding: 0.9rem 1.1rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #2563eb;">Período</th>
+                                            <th style="padding: 0.9rem 1.1rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #2563eb;">Status</th>
+                                            <th style="padding: 0.9rem 1.1rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #2563eb;">CID / Resumo Médico</th>
+                                            <th style="padding: 0.9rem 1.1rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #2563eb;">Homologado Em</th>
+                                            <th style="padding: 0.9rem 1.1rem; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #2563eb; text-align: right;">Ações</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="atestados-homologados-table-body">
+                                        <tr>
+                                            <td colspan="6" style="text-align: center; padding: 2.5rem 1rem; color: #60a5fa;">
+                                                <div style="display: flex; flex-direction: column; align-items: center; gap: 0.6rem;">
+                                                    <i data-lucide="loader-2" style="width: 24px; height: 24px; animation: spin 1s linear infinite;"></i>
+                                                    <span style="font-size: 0.875rem; color: #9ca3af;">Carregando atestados homologados...</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
                     <div class="logs-wrapper" style="margin-top: 1.5rem;">
                         <div class="logs-header" style="border-bottom: none; margin-bottom: 0; padding-bottom: 0;">
                             <div class="search-box" style="width: 100%; max-width: 100%;">
@@ -1661,13 +1734,74 @@ Intervalo
         </div>
     </div>
 
+    <!-- Modal Detalhe do Atestado Homologado -->
+    <div id="atestado-detalhe-modal" class="modal-overlay" style="display: none;">
+        <div class="settings-modal-card" style="max-width: 520px; width: 95%;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #f0f7ff, #e0f2fe); border-bottom: 1px solid #dbeafe;">
+                <div class="modal-header-info">
+                    <h3 style="color: #1d4ed8; display: flex; align-items: center; gap: 0.5rem;"><i data-lucide="file-badge"></i> Detalhes do Atestado</h3>
+                    <p style="color: #2563eb;">Informações do atestado médico homologado</p>
+                </div>
+                <button class="btn-close-modal" id="btn-close-atestado-detalhe-modal">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem;">
+                <div style="background: #f0f7ff; padding: 1rem; border-radius: 10px; border: 1px solid #dbeafe; display: flex; align-items: center; gap: 0.8rem;">
+                    <div style="width: 42px; height: 42px; background: linear-gradient(135deg, #2563eb, #1d4ed8); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1.1rem; flex-shrink: 0;" id="atestado-detalhe-avatar">
+                        M
+                    </div>
+                    <div>
+                        <div style="font-size: 1.05rem; font-weight: 700; color: #0f172a;" id="atestado-detalhe-musico">Nome do Bolsista</div>
+                        <span style="font-size: 0.78rem; color: #2563eb; font-weight: 600;" id="atestado-detalhe-status-tag">Atestado Homologado</span>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div style="background: #f8fafc; padding: 0.85rem; border-radius: 8px; border: 1px solid #f1f5f9;">
+                        <span style="display: block; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #64748b; margin-bottom: 0.2rem;">Período do Atestado</span>
+                        <span style="font-size: 0.95rem; font-weight: 700; color: #1d4ed8;" id="atestado-detalhe-periodo">00/00/0000 → 00/00/0000</span>
+                    </div>
+                    <div style="background: #f8fafc; padding: 0.85rem; border-radius: 8px; border: 1px solid #f1f5f9;">
+                        <span style="display: block; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #64748b; margin-bottom: 0.2rem;">Duração Total</span>
+                        <span style="font-size: 0.95rem; font-weight: 700; color: #0f172a;" id="atestado-detalhe-duracao">0 dias</span>
+                    </div>
+                </div>
+
+                <div style="background: #f8fafc; padding: 0.85rem; border-radius: 8px; border: 1px solid #f1f5f9;">
+                    <span style="display: block; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #64748b; margin-bottom: 0.2rem;">Código CID</span>
+                    <span style="font-size: 0.95rem; font-weight: 700; color: #0284c7;" id="atestado-detalhe-cid">—</span>
+                </div>
+
+                <div style="background: #f8fafc; padding: 0.85rem; border-radius: 8px; border: 1px solid #f1f5f9;">
+                    <span style="display: block; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #64748b; margin-bottom: 0.3rem;">Parecer / Resumo Médico</span>
+                    <p style="margin: 0; font-size: 0.9rem; color: #334155; line-height: 1.5; white-space: pre-wrap;" id="atestado-detalhe-resumo">-</p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.8rem; color: #64748b; border-top: 1px solid #f1f5f9; padding-top: 0.8rem;">
+                    <div><strong>Homologado em:</strong> <span id="atestado-detalhe-criadoem">-</span></div>
+                    <div><strong>Homologado por:</strong> <span id="atestado-detalhe-criadopor">-</span></div>
+                </div>
+
+                <div style="display: flex; gap: 0.75rem; margin-top: 0.5rem;">
+                    <button type="button" class="btn-outline-cancel" id="btn-close-atestado-detalhe-footer" style="flex: 1; height: 42px; justify-content: center;">
+                        Fechar
+                    </button>
+                    <button type="button" id="btn-copy-atestado-detalhe" style="flex: 1; height: 42px; justify-content: center; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; border: none; font-weight: 600; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; box-shadow: 0 4px 10px rgba(37,99,235,0.25);">
+                        <i data-lucide="copy" style="width: 16px; height: 16px;"></i> Copiar Resumo
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
 
     <!-- Firebase SDKs (Compat / v8 style for simplicity or Modular v9) -->
     <!-- Vamos usar a API Modular V9, que é mais rápida e moderna -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Biblioteca SheetJS (XLSX) CDN para ler planilhas Excel no navegador -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script type="module" src="assets/js/admin/admin.js?v=18"></script>
+    <script type="module" src="assets/js/admin/admin.js?v=19"></script>
     <script>
         // Registro do Service Worker
         if ('serviceWorker' in navigator) {

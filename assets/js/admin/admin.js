@@ -141,6 +141,11 @@ onAuthStateChanged(auth, (user) => {
         } catch (dispErr) {
             console.error("⚠️ [Admin] Erro ao inicializar módulo de dispensas:", dispErr);
         }
+        try {
+            initAtestadosHomologadosModule(); // Inicia o módulo de atestados homologados
+        } catch (atestErr) {
+            console.error("⚠️ [Admin] Erro ao inicializar módulo de atestados homologados:", atestErr);
+        }
         initCalendarManagement(); // Inicia o módulo de calendário interativo
         initIntervalTimerControls(); // Inicia o controle do cronômetro de intervalo
         initMusiciansManagement(); // Inicia o gerenciamento de músicos (importação e busca reativa)
@@ -4295,6 +4300,9 @@ function initAtestadosManagement() {
                 // 5. Fechar Interface Imediatamente
                 closeAtestadoModal();
                 showNotification(`Homologado com sucesso! ${updatedDates.length} dia(s) atualizados.`, 'success');
+                if (typeof reloadAtestadosHomologadosTable === 'function') {
+                    reloadAtestadosHomologadosTable();
+                }
 
                 // 6. Disparar o Download/Preview (Último passo)
                 if (blob) {
@@ -4920,6 +4928,330 @@ Cadastrado por: ${currentDetalheData.criadoPor || 'admin'}`;
     }
 
     loadDispensasTable();
+}
+
+// ================= MÓDULO DE ATESTADOS HOMOLOGADOS =================
+let reloadAtestadosHomologadosTable = null;
+
+function initAtestadosHomologadosModule() {
+    const tableBody = document.getElementById('atestados-homologados-table-body');
+    const searchInput = document.getElementById('atestado-homologado-search-input');
+    const chipFilters = document.querySelectorAll('.chip-atestado-filter');
+    const subtitleEl = document.getElementById('atestados-homologados-subtitle');
+
+    const modalDetalhe = document.getElementById('atestado-detalhe-modal');
+    const btnCloseDetalhe = document.getElementById('btn-close-atestado-detalhe-modal');
+    const btnCloseDetalheFooter = document.getElementById('btn-close-atestado-detalhe-footer');
+    const btnCopyDetalhe = document.getElementById('btn-copy-atestado-detalhe');
+
+    let rawAtestadosData = [];
+    let currentAtestadoFilter = 'todas';
+    let currentAtestadoDetalheData = null;
+
+    if (!tableBody) return;
+
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            renderFilteredAtestados();
+        });
+    }
+
+    if (chipFilters && chipFilters.length > 0) {
+        chipFilters.forEach(chip => {
+            chip.addEventListener('click', () => {
+                chipFilters.forEach(c => {
+                    c.classList.remove('active');
+                    c.style.background = 'white';
+                    c.style.color = '#1e40af';
+                    c.style.borderColor = '#bfdbfe';
+                });
+                chip.classList.add('active');
+                chip.style.background = '#2563eb';
+                chip.style.color = 'white';
+                chip.style.borderColor = '#2563eb';
+
+                currentAtestadoFilter = chip.getAttribute('data-filter') || 'todas';
+                renderFilteredAtestados();
+            });
+        });
+    }
+
+    // Carregar Tabela de Atestados Homologados do Firestore
+    async function loadAtestadosHomologadosTable() {
+        if (!tableBody) return;
+        try {
+            tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 1.5rem; color: #60a5fa;"><i data-lucide="loader-2" class="spin"></i> Carregando atestados homologados...</td></tr>';
+            if (window.lucide) lucide.createIcons();
+
+            const snapshot = await getDocs(collection(db, "medicalCertificates_approved"));
+
+            rawAtestadosData = [];
+            snapshot.forEach(docSnap => {
+                rawAtestadosData.push({
+                    id: docSnap.id,
+                    ...docSnap.data()
+                });
+            });
+
+            renderFilteredAtestados();
+
+        } catch (err) {
+            console.error("Erro ao carregar tabela de atestados homologados:", err);
+            tableBody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 1rem; color: #dc2626;">Erro ao carregar atestados homologados.</td></tr>';
+        }
+    }
+
+    reloadAtestadosHomologadosTable = loadAtestadosHomologadosTable;
+
+    // Renderizar Tabela com Filtros, Busca e Ordenação por Status
+    function renderFilteredAtestados() {
+        if (!tableBody) return;
+
+        const hojeStr = new Date().toISOString().split('T')[0];
+        const searchVal = (searchInput ? searchInput.value : '').toLowerCase().trim();
+
+        // 1. Processar status e prioridade de cada atestado
+        const processedList = rawAtestadosData.map(item => {
+            const inicio = item.dataInicio || '';
+            const fim = item.dataFim || '';
+
+            let statusKey = 'ativa';
+            let statusLabel = 'Ativo';
+            let priority = 1;
+
+            if (fim && fim < hojeStr) {
+                statusKey = 'encerrada';
+                statusLabel = 'Encerrado';
+                priority = 3;
+            } else if (inicio && inicio > hojeStr) {
+                statusKey = 'futura';
+                statusLabel = 'Futuro';
+                priority = 2;
+            } else {
+                statusKey = 'ativa';
+                statusLabel = 'Ativo';
+                priority = 1;
+            }
+
+            return {
+                ...item,
+                _statusKey: statusKey,
+                _statusLabel: statusLabel,
+                _priority: priority
+            };
+        });
+
+        // 2. Filtrar por Busca (nome do músico, CID ou resumo)
+        let filtered = processedList.filter(item => {
+            if (!searchVal) return true;
+            const nome = (item.nomeMusico || '').toLowerCase();
+            const cid = (item.cid || '').toLowerCase();
+            const resumo = (item.resumo || '').toLowerCase();
+            return nome.includes(searchVal) || cid.includes(searchVal) || resumo.includes(searchVal);
+        });
+
+        // 3. Filtrar por Chip de Status
+        if (currentAtestadoFilter !== 'todas') {
+            filtered = filtered.filter(item => item._statusKey === currentAtestadoFilter);
+        }
+
+        // 4. Ordenar: Ativos (1) -> Futuros (2) -> Encerrados (3)
+        // Dentro do mesmo status: por dataInicio decrescente ou createdAt decrescente
+        filtered.sort((a, b) => {
+            if (a._priority !== b._priority) {
+                return a._priority - b._priority;
+            }
+            const dateA = a.dataInicio || a.createdAt || '';
+            const dateB = b.dataInicio || b.createdAt || '';
+            return dateB.localeCompare(dateA);
+        });
+
+        // Atualizar subtítulo com estatísticas
+        const ativosHojeCount = processedList.filter(i => i._statusKey === 'ativa').length;
+        if (subtitleEl) {
+            subtitleEl.textContent = `${ativosHojeCount} atestado(s) ativo(s) hoje • Total de ${processedList.length} registro(s)`;
+        }
+
+        // 5. Se estiver vazio
+        if (filtered.length === 0) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 2.5rem 1rem;">
+                        <div style="display: flex; flex-direction: column; align-items: center; gap: 0.75rem;">
+                            <div style="width: 48px; height: 48px; background: #f0f7ff; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                <i data-lucide="file-question" style="width: 22px; height: 22px; color: #60a5fa;"></i>
+                            </div>
+                            <p style="margin: 0; font-size: 0.9rem; font-weight: 600; color: #64748b;">Nenhum atestado homologado encontrado</p>
+                            <p style="margin: 0; font-size: 0.78rem; color: #94a3b8;">${searchVal ? 'Tente alterar os termos da busca ou o filtro de status.' : 'Os atestados homologados aparecerão aqui após revisão no painel.'}</p>
+                        </div>
+                    </td>
+                </tr>`;
+            if (window.lucide) lucide.createIcons();
+            return;
+        }
+
+        // 6. Renderizar linhas
+        tableBody.innerHTML = '';
+        const formatBR = (iso) => iso ? iso.split('-').reverse().join('/') : '---';
+
+        filtered.forEach(data => {
+            const id = data.id;
+            const isEncerrada = data._statusKey === 'encerrada';
+            const isAtiva = data._statusKey === 'ativa';
+            const isFutura = data._statusKey === 'futura';
+
+            const tr = document.createElement('tr');
+
+            if (isEncerrada) {
+                tr.style.cssText = 'background: #f8fafc; border-bottom: 1px solid #e2e8f0; opacity: 0.78; transition: background 0.15s ease, opacity 0.15s ease; cursor: pointer;';
+                tr.addEventListener('mouseenter', () => { tr.style.background = '#f1f5f9'; tr.style.opacity = '1'; });
+                tr.addEventListener('mouseleave', () => { tr.style.background = '#f8fafc'; tr.style.opacity = '0.78'; });
+            } else {
+                tr.style.cssText = 'background: white; border-bottom: 1px solid #dbeafe; transition: background 0.15s ease; cursor: pointer;';
+                tr.addEventListener('mouseenter', () => tr.style.background = '#f0f7ff');
+                tr.addEventListener('mouseleave', () => tr.style.background = 'white');
+            }
+
+            const dataInicioFmt = formatBR(data.dataInicio);
+            const dataFimFmt = formatBR(data.dataFim);
+            const dataCriacaoFmt = data.createdAt ? new Date(data.createdAt).toLocaleDateString('pt-BR') : '---';
+
+            // Badge de Status
+            let statusBadgeHtml = '';
+            if (isAtiva) {
+                statusBadgeHtml = `<span style="background: #ecfdf5; color: #047857; border: 1px solid #a7f3d0; padding: 0.25rem 0.65rem; border-radius: 12px; font-weight: 600; font-size: 0.75rem; white-space: nowrap; display: inline-flex; align-items: center; gap: 0.3rem;"><i data-lucide="check-circle-2" style="width: 12px; height: 12px;"></i> Ativo</span>`;
+            } else if (isFutura) {
+                statusBadgeHtml = `<span style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; padding: 0.25rem 0.65rem; border-radius: 12px; font-weight: 600; font-size: 0.75rem; white-space: nowrap; display: inline-flex; align-items: center; gap: 0.3rem;"><i data-lucide="calendar" style="width: 12px; height: 12px;"></i> Futuro</span>`;
+            } else {
+                statusBadgeHtml = `<span style="background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; padding: 0.25rem 0.65rem; border-radius: 12px; font-weight: 600; font-size: 0.75rem; white-space: nowrap; display: inline-flex; align-items: center; gap: 0.3rem;"><i data-lucide="clock" style="width: 12px; height: 12px;"></i> Encerrado</span>`;
+            }
+
+            // Estilos do Avatar e Nome
+            const avatarBg = isEncerrada ? '#cbd5e1' : 'linear-gradient(135deg, #dbeafe, #bfdbfe)';
+            const avatarColor = isEncerrada ? '#475569' : '#1d4ed8';
+            const nomeColor = isEncerrada ? '#64748b' : '#1d4ed8';
+
+            // Estilos da Badge Período
+            const periodoBg = isEncerrada ? '#e2e8f0' : '#eff6ff';
+            const periodoColor = isEncerrada ? '#475569' : '#1d4ed8';
+
+            // Texto Resumo / CID
+            const cidText = data.cid ? `<strong>${data.cid}</strong>` : '';
+            const resumoText = data.resumo || '';
+            const combinedText = cidText && resumoText ? `${cidText} • ${resumoText}` : (cidText || resumoText || '—');
+
+            tr.innerHTML = `
+                <td style="padding: 0.85rem 1.1rem;">
+                    <div style="display: flex; align-items: center; gap: 0.6rem;">
+                        <div style="width: 32px; height: 32px; background: ${avatarBg}; border-radius: 50%; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 0.75rem; font-weight: 700; color: ${avatarColor};">${(data.nomeMusico || 'M').charAt(0).toUpperCase()}</div>
+                        <span class="btn-view-atestado-detail" data-id="${id}" style="font-weight: 600; color: ${nomeColor}; font-size: 0.875rem; text-decoration: underline; text-underline-offset: 2px;" title="Clique para ver os detalhes do atestado">${data.nomeMusico || 'Músico'}</span>
+                    </div>
+                </td>
+                <td style="padding: 0.85rem 1.1rem;">
+                    <span style="background: ${periodoBg}; color: ${periodoColor}; padding: 0.3rem 0.75rem; border-radius: 20px; font-weight: 600; font-size: 0.78rem; white-space: nowrap; border: 1px solid ${isEncerrada ? '#cbd5e1' : '#bfdbfe'};">
+                        ${dataInicioFmt} → ${dataFimFmt} <span style="font-size: 0.7rem; opacity: 0.85;">(${data.dias || 1}d)</span>
+                    </span>
+                </td>
+                <td style="padding: 0.85rem 1.1rem;">
+                    ${statusBadgeHtml}
+                </td>
+                <td style="padding: 0.85rem 1.1rem; color: ${isEncerrada ? '#64748b' : '#334155'}; max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${data.cid ? 'CID: ' + data.cid + ' - ' : ''}${data.resumo || ''}">${combinedText}</td>
+                <td style="padding: 0.85rem 1.1rem; color: #94a3b8; font-size: 0.82rem; white-space: nowrap;">${dataCriacaoFmt}</td>
+                <td style="padding: 0.85rem 1.1rem; text-align: right;">
+                    <button class="btn-view-atestado-detail-btn" data-id="${id}" 
+                        style="background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; cursor: pointer; padding: 0.35rem 0.75rem; border-radius: 8px; font-size: 0.78rem; font-weight: 600; display: inline-flex; align-items: center; gap: 0.35rem; transition: all 0.15s ease;"
+                        onmouseover="this.style.background='#dbeafe'; this.style.borderColor='#93c5fd';"
+                        onmouseout="this.style.background='#eff6ff'; this.style.borderColor='#bfdbfe';"
+                        title="Ver Detalhes do Atestado">
+                        <i data-lucide="eye" style="width: 13px; height: 13px;"></i> Ver Detalhes
+                    </button>
+                </td>
+            `;
+            tr._atestadoData = data;
+            tr._atestadoId = id;
+            tableBody.appendChild(tr);
+        });
+
+        if (window.lucide) lucide.createIcons();
+
+        // Event listeners para abrir modal de detalhe
+        tableBody.querySelectorAll('tr').forEach(tr => {
+            tr.addEventListener('click', () => {
+                if (tr._atestadoData) {
+                    openAtestadoDetalheModal(tr._atestadoData);
+                }
+            });
+        });
+    }
+
+    // Modal de Detalhe do Atestado
+    function openAtestadoDetalheModal(data) {
+        if (!modalDetalhe) return;
+        currentAtestadoDetalheData = data;
+
+        const formatBR = (iso) => iso ? iso.split('-').reverse().join('/') : '---';
+        const dias = data.dias || 1;
+
+        const elemAvatar = document.getElementById('atestado-detalhe-avatar');
+        const elemMusico = document.getElementById('atestado-detalhe-musico');
+        const elemPeriodo = document.getElementById('atestado-detalhe-periodo');
+        const elemDuracao = document.getElementById('atestado-detalhe-duracao');
+        const elemCid = document.getElementById('atestado-detalhe-cid');
+        const elemResumo = document.getElementById('atestado-detalhe-resumo');
+        const elemCriadoEm = document.getElementById('atestado-detalhe-criadoem');
+        const elemCriadoPor = document.getElementById('atestado-detalhe-criadopor');
+
+        if (elemAvatar) elemAvatar.textContent = (data.nomeMusico || 'M').charAt(0).toUpperCase();
+        if (elemMusico) elemMusico.textContent = data.nomeMusico || 'Músico';
+        if (elemPeriodo) elemPeriodo.textContent = `${formatBR(data.dataInicio)} → ${formatBR(data.dataFim)}`;
+        if (elemDuracao) elemDuracao.textContent = `${dias} dia${dias !== 1 ? 's' : ''}`;
+        if (elemCid) elemCid.textContent = data.cid || 'Não informado';
+        if (elemResumo) elemResumo.textContent = data.resumo || 'Nenhum parecer médico informado.';
+        if (elemCriadoEm) elemCriadoEm.textContent = data.createdAt ? new Date(data.createdAt).toLocaleDateString('pt-BR') + ' às ' + new Date(data.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '---';
+        if (elemCriadoPor) elemCriadoPor.textContent = data.criadoPor || 'admin';
+
+        modalDetalhe.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        if (window.lucide) lucide.createIcons();
+    }
+
+    function closeAtestadoDetalheModal() {
+        if (modalDetalhe) {
+            modalDetalhe.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+    }
+
+    if (btnCloseDetalhe) btnCloseDetalhe.addEventListener('click', closeAtestadoDetalheModal);
+    if (btnCloseDetalheFooter) btnCloseDetalheFooter.addEventListener('click', closeAtestadoDetalheModal);
+    if (modalDetalhe) {
+        modalDetalhe.addEventListener('click', (e) => {
+            if (e.target === modalDetalhe) closeAtestadoDetalheModal();
+        });
+    }
+
+    if (btnCopyDetalhe) {
+        btnCopyDetalhe.addEventListener('click', () => {
+            if (!currentAtestadoDetalheData) return;
+            const formatBR = (iso) => iso ? iso.split('-').reverse().join('/') : '---';
+            const dias = currentAtestadoDetalheData.dias || 1;
+
+            const texto = `ATESTADO MÉDICO HOMOLOGADO — OER
+Músico: ${currentAtestadoDetalheData.nomeMusico || 'Músico'}
+Período: ${formatBR(currentAtestadoDetalheData.dataInicio)} até ${formatBR(currentAtestadoDetalheData.dataFim)} (${dias} dia${dias !== 1 ? 's' : ''})
+Código CID: ${currentAtestadoDetalheData.cid || 'Não informado'}
+Parecer / Resumo: ${currentAtestadoDetalheData.resumo || '-'}
+Homologado por: ${currentAtestadoDetalheData.criadoPor || 'admin'}`;
+
+            navigator.clipboard.writeText(texto).then(() => {
+                showNotification('Resumo do atestado copiado com sucesso!', 'success');
+            }).catch(() => {
+                showNotification('Erro ao copiar resumo.', 'error');
+            });
+        });
+    }
+
+    loadAtestadosHomologadosTable();
 }
 
 // ================= CRONÔMETRO DO INTERVALO =================
