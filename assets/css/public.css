@@ -1222,15 +1222,39 @@ iframe {
     padding: 0.4rem;
 }
 
-.btn-calendar .btn-form-icon {
+.btn-form.btn-calendar .btn-form-icon {
     background-color: #4285F4;
+    color: #ffffff;
     box-shadow: 0 4px 15px rgba(66, 133, 244, 0.4);
+    border: 2px solid transparent;
 }
 
-.btn-form.btn-calendar:hover .btn-form-icon {
-    background-color: #3367D6;
-    box-shadow: 0 6px 20px rgba(66, 133, 244, 0.6);
-    transform: scale(1.08);
+.btn-form.btn-calendar .btn-form-icon svg {
+    color: #ffffff;
+    stroke: #ffffff;
+}
+
+.btn-form.btn-calendar:hover .btn-form-icon,
+.btn-form.btn-calendar:focus .btn-form-icon,
+.btn-form.btn-calendar:active .btn-form-icon {
+    transform: scale(1.15) rotate(5deg);
+    background-color: #1a73e8;
+    color: #ffffff;
+    border-color: #4285F4;
+    box-shadow: 0 8px 25px rgba(66, 133, 244, 0.6);
+}
+
+.btn-form.btn-calendar:hover .btn-form-icon svg,
+.btn-form.btn-calendar:focus .btn-form-icon svg,
+.btn-form.btn-calendar:active .btn-form-icon svg {
+    color: #ffffff;
+    stroke: #ffffff;
+}
+
+.btn-form.btn-calendar:hover .btn-form-label,
+.btn-form.btn-calendar:focus .btn-form-label,
+.btn-form.btn-calendar:active .btn-form-label {
+    color: #1a73e8;
 }
 
 /* Ícone circular (design original mantido) */
