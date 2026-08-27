@@ -81,6 +81,8 @@ const toggleAtestadosBtn = document.getElementById('toggle-atestados');
 const toggleAtestadosStatusText = document.getElementById('atestados-status-text');
 const toggleNewCalendarBtn = document.getElementById('toggle-new-calendar');
 const toggleNewCalendarStatusText = document.getElementById('toggle-calendar-status-text');
+const toggleGoogleCalendarBtn = document.getElementById('toggle-google-calendar-btn');
+const toggleGoogleCalendarStatusText = document.getElementById('toggle-google-calendar-status-text');
 
 let selectedNotifImage = null;
 let undoState = null;
@@ -103,6 +105,7 @@ let countdownInterval = null;
 
 let unsubscribeToggle = null; // Guarda o listener do toggle para poder cancelar no logout
 let unsubscribeAppToggle = null; // Guarda o listener do config/app para poder cancelar no logout
+let unsubscribeGoogleCalendarToggle = null; // Guarda o listener do config/googleCalendar para cancelar no logout
 let unsubscribeSubscribers = null; // Guarda o listener de assinantes
 let unsubscribeLinks = null; // Guarda o listener de links temporários
 let unsubscribeEngagement = null; // Guarda o listener do gráfico de engajamento
@@ -156,6 +159,7 @@ onAuthStateChanged(auth, (user) => {
         loginContainer.classList.add('active');
         if (unsubscribeToggle) { unsubscribeToggle(); unsubscribeToggle = null; }
         if (unsubscribeAppToggle) { unsubscribeAppToggle(); unsubscribeAppToggle = null; }
+        if (unsubscribeGoogleCalendarToggle) { unsubscribeGoogleCalendarToggle(); unsubscribeGoogleCalendarToggle = null; }
         if (unsubscribeSubscribers) { unsubscribeSubscribers(); unsubscribeSubscribers = null; }
         if (unsubscribeLinks) { unsubscribeLinks(); unsubscribeLinks = null; }
         if (unsubscribeEngagement) { unsubscribeEngagement(); unsubscribeEngagement = null; }
@@ -2002,6 +2006,47 @@ function initToggleListener() {
                 // Liberamos o botão e o listener
                 toggleNewCalendarBtn.disabled = false;
                 delete toggleNewCalendarBtn.dataset.isUpdating;
+            }
+        });
+    }
+
+    // Escuta em tempo real o estado do botão Seguir Calendário no Google
+    const googleCalendarConfigRef = doc(db, 'config', 'googleCalendar');
+    if (unsubscribeGoogleCalendarToggle) unsubscribeGoogleCalendarToggle();
+    unsubscribeGoogleCalendarToggle = onSnapshot(googleCalendarConfigRef, (snap) => {
+        const data = snap.exists() ? snap.data() : {};
+        const showButton = data.showButton === true;
+
+        if (toggleGoogleCalendarBtn) toggleGoogleCalendarBtn.checked = showButton;
+        if (toggleGoogleCalendarStatusText) {
+            toggleGoogleCalendarStatusText.textContent = showButton
+                ? '✅ Botão "Seguir Calendário" EXIBIDO no site público.'
+                : '🔕 Botão "Seguir Calendário" OCULTO no site público.';
+            toggleGoogleCalendarStatusText.style.color = showButton ? '#2E8B57' : '#888';
+        }
+    }, (err) => {
+        console.error('[Toggle] Erro ao ouvir config/googleCalendar:', err);
+        if (toggleGoogleCalendarStatusText) toggleGoogleCalendarStatusText.textContent = '⚠️ Erro ao carregar estado.';
+    });
+
+    // Evento para o Toggle de Seguir Calendário no Google
+    if (toggleGoogleCalendarBtn && !toggleGoogleCalendarBtn._listenerAdded) {
+        toggleGoogleCalendarBtn._listenerAdded = true;
+        toggleGoogleCalendarBtn.addEventListener('change', async () => {
+            const newState = toggleGoogleCalendarBtn.checked;
+            toggleGoogleCalendarBtn.disabled = true;
+            try {
+                await setDoc(googleCalendarConfigRef, {
+                    showButton: newState,
+                    updatedAt: new Date().toISOString()
+                }, { merge: true });
+                showNotification(`Botão Seguir Calendário ${newState ? 'ATIVADO' : 'DESATIVADO'} com sucesso.`, 'success');
+            } catch (err) {
+                console.error('[Toggle] Erro ao atualizar botão de calendário:', err);
+                showNotification('Erro ao salvar configuração: ' + err.message, 'error');
+                toggleGoogleCalendarBtn.checked = !newState;
+            } finally {
+                toggleGoogleCalendarBtn.disabled = false;
             }
         });
     }

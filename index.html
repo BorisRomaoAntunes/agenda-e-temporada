@@ -153,6 +153,15 @@
                     </span>
                     <span class="btn-form-label">Envio Atestado Médico</span>
                 </button>
+
+                <!-- NOVO: Seguir Calendário de Concertos OER (Visibilidade controlada via Admin) -->
+                <a id="btnGoogleCalendarPublic" href="#" target="_blank" rel="noopener"
+                    class="btn-form btn-calendar" style="display: none;" title="Seguir Calendário de Concertos OER no Google">
+                    <span class="btn-form-icon">
+                        <i data-lucide="calendar-plus"></i>
+                    </span>
+                    <span class="btn-form-label">Seguir Calendário de Concertos</span>
+                </a>
             </div>
         </div>
 
@@ -293,6 +302,9 @@
 
     <!-- Sistema de Rastreamento de Engajamento/Analytics -->
     <script type="module" src="assets/js/public/analytics.js"></script>
+
+    <!-- Botão Seguir Calendário no Google (visibilidade controlada via Firestore pelo admin) -->
+    <script type="module" src="assets/js/public/google-calendar-button.js"></script>
 
     <!-- Botão de Notificações (visibilidade controlada via Firestore pelo admin) -->
     <div class="notification-container" hidden>

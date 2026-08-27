@@ -1214,6 +1214,25 @@ iframe {
     box-shadow: 0 4px 15px rgba(46, 139, 87, 0.4);
 }
 
+/* Estilos específicos para o botão de seguir calendário no Google */
+.btn-calendar {
+    background: none;
+    border: none;
+    font-family: inherit;
+    padding: 0.4rem;
+}
+
+.btn-calendar .btn-form-icon {
+    background-color: #4285F4;
+    box-shadow: 0 4px 15px rgba(66, 133, 244, 0.4);
+}
+
+.btn-form.btn-calendar:hover .btn-form-icon {
+    background-color: #3367D6;
+    box-shadow: 0 6px 20px rgba(66, 133, 244, 0.6);
+    transform: scale(1.08);
+}
+
 /* Ícone circular (design original mantido) */
 .btn-form-icon {
     display: flex;

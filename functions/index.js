@@ -8,12 +8,14 @@ const { FieldValue } = require("firebase-admin/firestore");
 const admin = require("firebase-admin");
 const { GoogleGenAI } = require("@google/genai");
 const { PDFDocument } = require("pdf-lib");
+const { google } = require("googleapis");
 const path = require("path");
 const os = require("os");
 const fs = require("fs");
 
-// Secret Manager: chave da API Gemini (configurar com: firebase functions:secrets:set GEMINI_API_KEY)
+// Secret Manager: chave da API Gemini e Google Calendar Service Account
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
+const googleCalendarSaKey = defineSecret("GOOGLE_CALENDAR_SA_KEY");
 
 admin.initializeApp();
 
@@ -1717,7 +1719,292 @@ Texto do e-mail: Veja o documento PDF anexo.`;
         console.log(`[processAndSyncSchedule] Salvos ${avisosSemana.length} avisos da semana na coleção avisos_semana.`);
     }
 
-    return { added: addedCount, updated: updatedCount, deleted: deletedCount, minDate, maxDate };
+    // Sincronizar concertos com o Google Calendar Público (seguro / não-bloqueante)
+    let gCalResult = null;
+    try {
+        gCalResult = await syncConcertosToGoogleCalendar(eventosNovos, eventosExistentes, minDate, maxDate);
+    } catch (gErr) {
+        console.warn("[processAndSyncSchedule] Falha silenciosa ao sincronizar com Google Calendar:", gErr.message);
+    }
+
+    return { 
+        added: addedCount, 
+        updated: updatedCount, 
+        deleted: deletedCount, 
+        minDate, 
+        maxDate,
+        googleCalendar: gCalResult 
+    };
+}
+
+/**
+ * Retorna o cliente da Google Calendar API autenticado via Service Account.
+ */
+function getCalendarClient() {
+    let rawKey = null;
+    try {
+        if (googleCalendarSaKey && typeof googleCalendarSaKey.value === "function") {
+            rawKey = googleCalendarSaKey.value();
+        }
+    } catch (e) {
+        // Ignora erro de binding se fora de execução de função
+    }
+    if (!rawKey) {
+        rawKey = process.env.GOOGLE_CALENDAR_SA_KEY;
+    }
+    if (!rawKey) {
+        throw new Error("GOOGLE_CALENDAR_SA_KEY não configurada no Secret Manager ou variáveis de ambiente.");
+    }
+
+    let credentials;
+    if (typeof rawKey === "string") {
+        try {
+            credentials = JSON.parse(rawKey);
+        } catch (err) {
+            const decoded = Buffer.from(rawKey, "base64").toString("utf8");
+            credentials = JSON.parse(decoded);
+        }
+    } else {
+        credentials = rawKey;
+    }
+
+    const auth = new google.auth.JWT({
+        email: credentials.client_email,
+        key: credentials.private_key,
+        scopes: [
+            "https://www.googleapis.com/auth/calendar",
+            "https://www.googleapis.com/auth/calendar.events"
+        ]
+    });
+
+    return google.calendar({ version: "v3", auth });
+}
+
+/**
+ * Cria ou recupera o calendário público do Google para a OER.
+ */
+async function getOrCreatePublicCalendar(calendarClient) {
+    const db = admin.firestore();
+    const configRef = db.collection("config").doc("googleCalendar");
+    const docSnap = await configRef.get();
+
+    if (docSnap.exists) {
+        const data = docSnap.data();
+        if (data && data.calendarId) {
+            return {
+                calendarId: data.calendarId,
+                publicUrl: data.publicUrl,
+                subscribeUrl: data.subscribeUrl
+            };
+        }
+    }
+
+    console.log("[getOrCreatePublicCalendar] Criando novo calendário público para os concertos da OER...");
+    const res = await calendarClient.calendars.insert({
+        requestBody: {
+            summary: "OER - Calendário de Concertos",
+            description: "Calendário público com a programação oficial de concertos da Orquestra Experimental de Repertório (OER). Acesse: https://oer-agenda.web.app/",
+            timeZone: "America/Sao_Paulo"
+        }
+    });
+
+    const calendarId = res.data.id;
+    console.log(`[getOrCreatePublicCalendar] Calendário criado com ID: ${calendarId}`);
+
+    // Tornar público (regra ACL de leitura para qualquer pessoa)
+    try {
+        await calendarClient.acl.insert({
+            calendarId: calendarId,
+            requestBody: {
+                role: "reader",
+                scope: {
+                    type: "default"
+                }
+            }
+        });
+        console.log("[getOrCreatePublicCalendar] Permissão pública (ACL) adicionada com sucesso.");
+    } catch (aclErr) {
+        console.warn("[getOrCreatePublicCalendar] Aviso ao definir ACL pública:", aclErr.message);
+    }
+
+    const encodedId = encodeURIComponent(calendarId);
+    const publicUrl = `https://calendar.google.com/calendar/embed?src=${encodedId}&ctz=America%2FSao_Paulo`;
+    const subscribeUrl = `https://calendar.google.com/calendar/render?cid=${encodedId}`;
+
+    const calendarData = {
+        calendarId: calendarId,
+        calendarName: "OER - Calendário de Concertos",
+        publicUrl: publicUrl,
+        subscribeUrl: subscribeUrl,
+        showButton: docSnap.exists ? (docSnap.data().showButton || false) : false,
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp()
+    };
+
+    await configRef.set(calendarData, { merge: true });
+    return calendarData;
+}
+
+/**
+ * Formata o texto de descrição/nota do evento com aviso chamativo e link oficial.
+ */
+function formatCalendarEventDescription(evento) {
+    let desc = `⚠️ ATENÇÃO — CONFIRME SEMPRE NO SITE OFICIAL:\n`;
+    desc += `As informações e horários deste calendário podem sofrer alterações sem aviso prévio.\n`;
+    desc += `Para conferir a programação oficial atualizada em tempo real, acesse sempre:\n`;
+    desc += `👉 https://oer-agenda.web.app/\n\n`;
+    desc += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+    desc += `🎼 CONCERTO OER\n`;
+    desc += `• Programa: ${evento.concertoNome || evento.descricaoEnsaio || "Concerto OER"}\n`;
+    desc += `• Horário: ${evento.horarioInicio || "11:00"} às ${evento.horarioFim || "13:00"}\n`;
+
+    const localFull = [evento.local, evento.localComplemento ? `(${evento.localComplemento})` : null].filter(Boolean).join(" ");
+    if (localFull) {
+        desc += `• Local: ${localFull}\n`;
+    }
+    if (evento.localMapsUrl) {
+        desc += `• Localização no Mapa: ${evento.localMapsUrl}\n`;
+    }
+
+    if (evento.repertorio && Array.isArray(evento.repertorio) && evento.repertorio.length > 0) {
+        desc += `\n📋 REPERTÓRIO:\n`;
+        evento.repertorio.forEach(obra => {
+            desc += `• ${obra}\n`;
+        });
+    }
+
+    if (evento.avisos && Array.isArray(evento.avisos) && evento.avisos.length > 0) {
+        desc += `\n📢 OBSERVAÇÕES / AVISOS:\n`;
+        evento.avisos.forEach(aviso => {
+            desc += `• ${aviso}\n`;
+        });
+    }
+
+    desc += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+    return desc;
+}
+
+/**
+ * Sincroniza apenas os eventos do tipo "concerto" com o Google Calendar.
+ */
+async function syncConcertosToGoogleCalendar(eventosNovos, eventosExistentes, minDate, maxDate) {
+    try {
+        const calendar = getCalendarClient();
+        const calInfo = await getOrCreatePublicCalendar(calendar);
+        const calendarId = calInfo.calendarId;
+        const db = admin.firestore();
+
+        console.log(`[syncConcertosToGoogleCalendar] Iniciando sincronização no calendário: ${calendarId}`);
+
+        const concertosNovos = (eventosNovos || []).filter(e => e.tipo === "concerto" && e.date);
+        const concertosExistentes = (eventosExistentes || []).filter(e => e.tipo === "concerto" && e.date);
+
+        let gAdded = 0;
+        let gUpdated = 0;
+        let gDeleted = 0;
+
+        for (const novo of concertosNovos) {
+            const match = concertosExistentes.find(ext => ext.date === novo.date);
+            const titulo = `OER - ${novo.concertoNome || novo.descricaoEnsaio || "Concerto"}`;
+            const descricao = formatCalendarEventDescription(novo);
+            const localStr = [novo.local, novo.localComplemento ? `(${novo.localComplemento})` : null].filter(Boolean).join(" ");
+
+            const hInicio = (novo.horarioInicio && novo.horarioInicio.includes(":")) ? novo.horarioInicio : "11:00";
+            const hFim = (novo.horarioFim && novo.horarioFim.includes(":")) ? novo.horarioFim : "13:00";
+
+            const startDateTime = `${novo.date}T${hInicio}:00-03:00`;
+            const endDateTime = `${novo.date}T${hFim}:00-03:00`;
+
+            const eventBody = {
+                summary: titulo,
+                description: descricao,
+                location: localStr,
+                start: {
+                    dateTime: startDateTime,
+                    timeZone: "America/Sao_Paulo"
+                },
+                end: {
+                    dateTime: endDateTime,
+                    timeZone: "America/Sao_Paulo"
+                },
+                status: (novo.status === "Cancelado") ? "cancelled" : "confirmed"
+            };
+
+            let gEventId = match ? match.googleCalendarEventId : null;
+
+            if (gEventId) {
+                try {
+                    await calendar.events.update({
+                        calendarId: calendarId,
+                        eventId: gEventId,
+                        requestBody: eventBody
+                    });
+                    gUpdated++;
+                    console.log(`[syncConcertosToGoogleCalendar] Concerto atualizado no Google Calendar: ${novo.date} (${gEventId})`);
+                } catch (errUpdate) {
+                    if (errUpdate.code === 404 || errUpdate.status === 404) {
+                        const created = await calendar.events.insert({
+                            calendarId: calendarId,
+                            requestBody: eventBody
+                        });
+                        gEventId = created.data.id;
+                        gAdded++;
+                        console.log(`[syncConcertosToGoogleCalendar] Concerto recriado no Google Calendar: ${novo.date} (${gEventId})`);
+                    } else {
+                        throw errUpdate;
+                    }
+                }
+            } else {
+                const created = await calendar.events.insert({
+                    calendarId: calendarId,
+                    requestBody: eventBody
+                });
+                gEventId = created.data.id;
+                gAdded++;
+                console.log(`[syncConcertosToGoogleCalendar] Concerto criado no Google Calendar: ${novo.date} (${gEventId})`);
+            }
+
+            // Atualiza doc no Firestore com googleCalendarEventId
+            if (gEventId) {
+                const snap = await db.collection("eventos")
+                    .where("date", "==", novo.date)
+                    .where("tipo", "==", "concerto")
+                    .limit(1)
+                    .get();
+                if (!snap.empty) {
+                    await snap.docs[0].ref.update({ googleCalendarEventId: gEventId });
+                }
+            }
+        }
+
+        // Concertos excluídos da temporada
+        for (const ext of concertosExistentes) {
+            const match = concertosNovos.find(novo => novo.date === ext.date);
+            if (!match && ext.googleCalendarEventId) {
+                try {
+                    await calendar.events.delete({
+                        calendarId: calendarId,
+                        eventId: ext.googleCalendarEventId
+                    });
+                    gDeleted++;
+                    console.log(`[syncConcertosToGoogleCalendar] Concerto excluído do Google Calendar: ${ext.date} (${ext.googleCalendarEventId})`);
+                } catch (errDel) {
+                    if (errDel.code !== 404 && errDel.status !== 404) {
+                        console.warn(`[syncConcertosToGoogleCalendar] Erro ao excluir evento do Calendar: ${ext.googleCalendarEventId}`, errDel.message);
+                    }
+                }
+            }
+        }
+
+        await db.collection("config").doc("googleCalendar").set({
+            lastSyncAt: new Date().toISOString()
+        }, { merge: true });
+
+        return { success: true, added: gAdded, updated: gUpdated, deleted: gDeleted };
+    } catch (err) {
+        console.error("[syncConcertosToGoogleCalendar] Erro ao sincronizar Google Calendar:", err);
+        return { success: false, error: err.message };
+    }
 }
 
 /**
@@ -1726,7 +2013,7 @@ Texto do e-mail: Veja o documento PDF anexo.`;
  */
 exports.syncScheduleOnPDFUpload = onDocumentWritten({
     document: "config/pdfs",
-    secrets: [geminiApiKey],
+    secrets: [geminiApiKey, googleCalendarSaKey],
     timeoutSeconds: 300,
     memory: "512MiB"
 }, async (event) => {
@@ -1754,11 +2041,15 @@ exports.syncScheduleOnPDFUpload = onDocumentWritten({
                     afterPdf.displayVersion
                 );
 
+                const gCalDetails = syncResult.googleCalendar && syncResult.googleCalendar.success 
+                    ? `\n- Google Calendar: ${syncResult.googleCalendar.added} concertos criados, ${syncResult.googleCalendar.updated} atualizados, ${syncResult.googleCalendar.deleted} excluídos.`
+                    : "";
+
                 // Gravar log de sucesso com tipo bot
                 await admin.firestore().collection("adminLogs").add({
                     type: "bot",
                     message: `🤖 [Robô OER] Sincronização automática concluída para ${type.toUpperCase()}.`,
-                    details: `Arquivo: ${afterPdf.arquivo} (v${afterPdf.displayVersion})\n- Faixa: ${syncResult.minDate} até ${syncResult.maxDate}\n- Adicionados: ${syncResult.added} novos eventos\n- Atualizados: ${syncResult.updated} eventos\n- Excluídos: ${syncResult.deleted} eventos antigos.`,
+                    details: `Arquivo: ${afterPdf.arquivo} (v${afterPdf.displayVersion})\n- Faixa: ${syncResult.minDate} até ${syncResult.maxDate}\n- Adicionados: ${syncResult.added} novos eventos\n- Atualizados: ${syncResult.updated} eventos\n- Excluídos: ${syncResult.deleted} eventos antigos.${gCalDetails}`,
                     user: "sistema",
                     link: afterPdf.url,
                     createdAt: new Date().toISOString()
@@ -1793,7 +2084,7 @@ exports.reprocessSchedulePDF = onCall({
     region: "us-central1",
     timeoutSeconds: 300,
     memory: "512MiB",
-    secrets: [geminiApiKey]
+    secrets: [geminiApiKey, googleCalendarSaKey]
 }, async (request) => {
     if (!request.auth) {
         throw new HttpsError("unauthenticated", "Autenticação obrigatória.");
@@ -1832,11 +2123,15 @@ exports.reprocessSchedulePDF = onCall({
             logData.fileVersion || "1.0"
         );
 
+        const gCalDetails = syncResult.googleCalendar && syncResult.googleCalendar.success 
+            ? `\n- Google Calendar: ${syncResult.googleCalendar.added} concertos criados, ${syncResult.googleCalendar.updated} atualizados, ${syncResult.googleCalendar.deleted} excluídos.`
+            : "";
+
         // Gravar log de sucesso do Robô OER
         await db.collection("adminLogs").add({
             type: "bot",
             message: `🤖 [Robô OER] Sincronização automática concluída via reprocessamento para ${logData.fileType.toUpperCase()}.`,
-            details: `Reprocessamento bem-sucedido após erro anterior.\n- Faixa: ${syncResult.minDate} até ${syncResult.maxDate}\n- Adicionados: ${syncResult.added} novos eventos\n- Atualizados: ${syncResult.updated} eventos\n- Excluídos: ${syncResult.deleted} eventos antigos.`,
+            details: `Reprocessamento bem-sucedido após erro anterior.\n- Faixa: ${syncResult.minDate} até ${syncResult.maxDate}\n- Adicionados: ${syncResult.added} novos eventos\n- Atualizados: ${syncResult.updated} eventos\n- Excluídos: ${syncResult.deleted} eventos antigos.${gCalDetails}`,
             user: request.auth.token.email || "sistema",
             link: logData.link,
             createdAt: new Date().toISOString()
@@ -1865,7 +2160,7 @@ exports.forceSyncCalendar = onCall({
     region: "us-central1",
     timeoutSeconds: 300,
     memory: "512MiB",
-    secrets: [geminiApiKey]
+    secrets: [geminiApiKey, googleCalendarSaKey]
 }, async (request) => {
     if (!request.auth) {
         throw new HttpsError("unauthenticated", "Autenticação obrigatória.");
