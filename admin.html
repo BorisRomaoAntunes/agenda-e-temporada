@@ -175,21 +175,43 @@
 
             <!-- Seção 0: Histórico de Logs -->
             <section id="section-logs" class="tab-content active">
-                 <!-- Contador de Assinantes em Tempo Real -->
-                 <div class="subscriber-count-card" id="subscriber-count-card" title="Clique para iniciar varredura e calibrar assinantes com o Robô OER" role="button" tabindex="0">
-                     <div class="subscriber-info">
-                         <div class="subscriber-icon-bg">
-                             <i data-lucide="users"></i>
+                 <!-- Container de Cards de Métricas e Assinantes em Tempo Real -->
+                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+                     <!-- Card 1: Músicos Inscritos em Notificações Push -->
+                     <div class="subscriber-count-card" id="subscriber-count-card" title="Clique para iniciar varredura e calibrar assinantes com o Robô OER" role="button" tabindex="0" style="margin-top: 0;">
+                         <div class="subscriber-info">
+                             <div class="subscriber-icon-bg">
+                                 <i data-lucide="users"></i>
+                             </div>
+                             <div>
+                                 <p class="subscriber-count-label">Músicos Inscritos (Push)</p>
+                                 <h4 class="subscriber-count-value" id="subscriber-count-value">... <span>assinantes</span></h4>
+                             </div>
                          </div>
-                         <div>
-                             <p class="subscriber-count-label">Musicos Inscritos</p>
-                             <h4 class="subscriber-count-value" id="subscriber-count-value">... <span>assinantes</span>
-                             </h4>
+                         <div class="live-indicator">
+                             <span class="live-dot"></span>
+                             <span class="live-text">AO VIVO</span>
                          </div>
                      </div>
-                     <div class="live-indicator">
-                         <span class="live-dot"></span>
-                         <span class="live-text">AO VIVO</span>
+
+                     <!-- Card 2: Adesão ao Calendário de Concertos -->
+                     <div class="subscriber-count-card" id="calendar-stats-card" title="Total de cliques e inscrições no Calendário de Concertos" style="margin-top: 0; cursor: default;">
+                         <div class="subscriber-info">
+                             <div class="subscriber-icon-bg" style="background: rgba(66, 133, 244, 0.12); color: #4285F4;">
+                                 <i data-lucide="calendar-check"></i>
+                             </div>
+                             <div>
+                                 <p class="subscriber-count-label">Adesão ao Calendário</p>
+                                 <h4 class="subscriber-count-value" id="calendar-stats-total" style="color: #1a73e8;">0 <span>adesões</span></h4>
+                                 <p id="calendar-stats-breakdown" style="font-size: 0.76rem; color: #777; margin: 2px 0 0 0; font-weight: 500;">
+                                     🍏 0 Apple · 🌐 0 Google
+                                 </p>
+                             </div>
+                         </div>
+                         <div class="live-indicator" style="background: rgba(66, 133, 244, 0.1); color: #4285F4;">
+                             <span class="live-dot" style="background: #4285F4;"></span>
+                             <span class="live-text" style="color: #4285F4;">CONCERTOS</span>
+                         </div>
                      </div>
                  </div>
 

@@ -5,9 +5,46 @@
  */
 
 import { app } from "../firebase-config.js";
-import { getFirestore, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { getFirestore, doc, onSnapshot, setDoc, increment, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 const db = getFirestore(app);
+
+/**
+ * Registra o clique para seguir o calendário no Firestore (métricas de adesão).
+ */
+async function trackCalendarClick() {
+    try {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        const todayStr = `${year}-${month}-${day}`;
+
+        const isApple = isAppleDevice();
+        const platformKey = isApple ? 'calendarClicks_apple' : 'calendarClicks_google';
+
+        // 1. Atualizar métricas diárias na coleção engagement
+        const engagementDocRef = doc(db, "engagement", todayStr);
+        await setDoc(engagementDocRef, {
+            date: todayStr,
+            timestamp: serverTimestamp(),
+            calendarClicks: increment(1),
+            [platformKey]: increment(1)
+        }, { merge: true });
+
+        // 2. Atualizar estatísticas acumuladas em config/stats
+        const statsDocRef = doc(db, "config", "stats");
+        await setDoc(statsDocRef, {
+            totalCalendarClicks: increment(1),
+            [platformKey]: increment(1),
+            lastCalendarClickAt: new Date().toISOString()
+        }, { merge: true });
+
+        console.log(`[GoogleCalendarButton] Clique registrado com sucesso! Plataforma: ${isApple ? 'Apple' : 'Google'}`);
+    } catch (err) {
+        console.warn("[GoogleCalendarButton] Erro ao registrar métrica de clique:", err);
+    }
+}
 
 /**
  * Detecta se o dispositivo do usuário é do ecossistema Apple (iOS, iPadOS ou macOS).
@@ -39,6 +76,14 @@ function getDeviceSpecificCalendarUrl(data) {
 function initGoogleCalendarPublicButton() {
     const btnCalendar = document.getElementById("btnGoogleCalendarPublic");
     if (!btnCalendar) return;
+
+    // Adiciona listener de clique para métricas (uma única vez)
+    if (!btnCalendar._hasClickTracker) {
+        btnCalendar._hasClickTracker = true;
+        btnCalendar.addEventListener("click", () => {
+            trackCalendarClick();
+        });
+    }
 
     const calendarConfigRef = doc(db, "config", "googleCalendar");
 

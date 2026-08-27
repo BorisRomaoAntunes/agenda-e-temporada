@@ -107,6 +107,7 @@ let unsubscribeToggle = null; // Guarda o listener do toggle para poder cancelar
 let unsubscribeAppToggle = null; // Guarda o listener do config/app para poder cancelar no logout
 let unsubscribeGoogleCalendarToggle = null; // Guarda o listener do config/googleCalendar para cancelar no logout
 let unsubscribeSubscribers = null; // Guarda o listener de assinantes
+let unsubscribeCalendarStats = null; // Guarda o listener de estatísticas do calendário
 let unsubscribeLinks = null; // Guarda o listener de links temporários
 let unsubscribeEngagement = null; // Guarda o listener do gráfico de engajamento
 let unsubscribeMusicians = null; // Guarda o listener da coleção de músicos
@@ -124,6 +125,7 @@ onAuthStateChanged(auth, (user) => {
         document.getElementById('user-email').textContent = user.email;
         initToggleListener(); // Inicia o toggle só após autenticação
         initSubscriberCounter(); // Inicia o contador de assinantes
+        initCalendarStats(); // Inicia o monitoramento de adesão ao calendário
         setupChartFilters(); // Configura os filtros do gráfico de engajamento
         initEngagementChart(); // Inicia o gráfico de engajamento com a quantidade padrão
         loadLogs(); // Carrega o histórico de logs ao logar
@@ -161,6 +163,7 @@ onAuthStateChanged(auth, (user) => {
         if (unsubscribeAppToggle) { unsubscribeAppToggle(); unsubscribeAppToggle = null; }
         if (unsubscribeGoogleCalendarToggle) { unsubscribeGoogleCalendarToggle(); unsubscribeGoogleCalendarToggle = null; }
         if (unsubscribeSubscribers) { unsubscribeSubscribers(); unsubscribeSubscribers = null; }
+        if (unsubscribeCalendarStats) { unsubscribeCalendarStats(); unsubscribeCalendarStats = null; }
         if (unsubscribeLinks) { unsubscribeLinks(); unsubscribeLinks = null; }
         if (unsubscribeEngagement) { unsubscribeEngagement(); unsubscribeEngagement = null; }
         if (unsubscribeMusicians) { unsubscribeMusicians(); unsubscribeMusicians = null; }
@@ -2143,6 +2146,32 @@ function initSubscriberCounter() {
 }
 
 
+// ================= MÉTRICAS DO CALENDÁRIO (REAL-TIME) =================
+
+function initCalendarStats() {
+    const totalEl = document.getElementById('calendar-stats-total');
+    const breakdownEl = document.getElementById('calendar-stats-breakdown');
+    if (!totalEl) return;
+
+    if (unsubscribeCalendarStats) unsubscribeCalendarStats();
+
+    const statsRef = doc(db, 'config', 'stats');
+    unsubscribeCalendarStats = onSnapshot(statsRef, (snapshot) => {
+        const data = snapshot.exists() ? snapshot.data() : {};
+        const totalClicks = data.totalCalendarClicks || 0;
+        const appleClicks = data.calendarClicks_apple || 0;
+        const googleClicks = data.calendarClicks_google || 0;
+
+        totalEl.innerHTML = `${totalClicks} <span>adesões</span>`;
+        if (breakdownEl) {
+            breakdownEl.textContent = `🍏 ${appleClicks} Apple · 🌐 ${googleClicks} Google`;
+        }
+        console.log(`[Admin] Métricas do Calendário: Total=${totalClicks}, Apple=${appleClicks}, Google=${googleClicks}`);
+    }, (err) => {
+        console.error('[Admin] Erro ao monitorar métricas do calendário:', err);
+    });
+}
+
 // ================= GRÁFICO DE ENGAJAMENTO (REAL-TIME) =================
 
 function initEngagementChart() {
@@ -2176,7 +2205,8 @@ function initEngagementChart() {
             uniqueVisitors: 0,
             uniqueAccesses: 0, // retrocompatibilidade
             totalPageviews: 0,
-            notificationAccesses: 0
+            notificationAccesses: 0,
+            calendarClicks: 0
         });
     }
 
@@ -2196,6 +2226,7 @@ function initEngagementChart() {
             d.uniqueAccesses = 0;
             d.totalPageviews = 0;
             d.notificationAccesses = 0;
+            d.calendarClicks = 0;
         });
 
         // Preenche com os dados reais retornados pelo Firestore
@@ -2209,6 +2240,7 @@ function initEngagementChart() {
                 dayObj.uniqueAccesses = data.uniqueAccesses || 0;
                 dayObj.totalPageviews = data.totalPageviews || 0;
                 dayObj.notificationAccesses = data.notificationAccesses || 0;
+                dayObj.calendarClicks = data.calendarClicks || 0;
             }
         });
 
@@ -2216,14 +2248,15 @@ function initEngagementChart() {
         const uniqueData = lastDays.map(d => d.uniqueVisitors);
         const pageviewData = lastDays.map(d => d.totalPageviews);
         const notifData = lastDays.map(d => d.notificationAccesses);
+        const calendarData = lastDays.map(d => d.calendarClicks);
 
-        renderChart(canvas, labels, uniqueData, pageviewData, notifData);
+        renderChart(canvas, labels, uniqueData, pageviewData, notifData, calendarData);
     }, (err) => {
         console.error('[Admin] Erro ao monitorar dados de engajamento:', err);
     });
 }
 
-function renderChart(canvas, labels, uniqueData, pageviewData, notifData, notifEnabled = isNotificationsEnabled) {
+function renderChart(canvas, labels, uniqueData, pageviewData, notifData, calendarData = [], notifEnabled = isNotificationsEnabled) {
     if (window.engagementChartInstance) {
         window.engagementChartInstance.destroy();
         window.engagementChartInstance = null;
@@ -2245,6 +2278,11 @@ function renderChart(canvas, labels, uniqueData, pageviewData, notifData, notifE
     const gradientNotif = ctx.createLinearGradient(0, 0, 0, 200);
     gradientNotif.addColorStop(0, 'rgba(16, 185, 129, 0.22)');
     gradientNotif.addColorStop(1, 'rgba(16, 185, 129, 0.00)');
+
+    // Gradiente roxo/índigo — Adesões ao Calendário
+    const gradientCalendar = ctx.createLinearGradient(0, 0, 0, 200);
+    gradientCalendar.addColorStop(0, 'rgba(99, 102, 241, 0.22)');
+    gradientCalendar.addColorStop(1, 'rgba(99, 102, 241, 0.00)');
 
     const datasets = [
         {
@@ -2291,6 +2329,21 @@ function renderChart(canvas, labels, uniqueData, pageviewData, notifData, notifE
             order: 3
         });
     }
+
+    // Dataset para Adesões ao Calendário
+    datasets.push({
+        label: 'Adesões Calendário',
+        data: calendarData,
+        borderColor: '#6366F1', // Índigo / Roxo moderno
+        backgroundColor: gradientCalendar,
+        fill: true,
+        tension: 0.35,
+        borderWidth: 2.5,
+        pointBackgroundColor: '#6366F1',
+        pointHoverRadius: 6,
+        pointRadius: 4,
+        order: 4
+    });
 
     window.engagementChartInstance = new Chart(ctx, {
         type: 'line',
