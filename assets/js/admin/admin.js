@@ -4001,17 +4001,40 @@ function initAtestadosManagement() {
                     const nomeArtistico = (data.NOMEARTISTICO || '').trim();
                     const nomeCompleto = (data['NOME REGISTRO'] || '').trim();
                     const nome = nomeArtistico || nomeCompleto || "Sem Nome";
+                    const inst = (data.INSTRUMENTOS || data.Instrumento || data.instrumento || '').trim();
                     
                     musiciansList.push({
                         id: docSnap.id,
                         nome: nome,
                         nomeRegistro: nomeCompleto,
-                        nomeArtistico: nomeArtistico
+                        nomeArtistico: nomeArtistico,
+                        instrumento: inst
                     });
                 }
             });
             
             musiciansList.sort((a, b) => a.nome.localeCompare(b.nome));
+
+            // Helper global para obter instrumento de um músico
+            window.getMusicianInstrumentInfo = function(musicianId, nomeMusico) {
+                if (musiciansList && musiciansList.length > 0) {
+                    if (musicianId) {
+                        const m = musiciansList.find(item => item.id === musicianId);
+                        if (m && m.instrumento) return m.instrumento;
+                    }
+                    if (nomeMusico) {
+                        const target = nomeMusico.toLowerCase().trim();
+                        const m = musiciansList.find(item => {
+                            const n = (item.nome || '').toLowerCase().trim();
+                            const reg = (item.nomeRegistro || '').toLowerCase().trim();
+                            const art = (item.nomeArtistico || '').toLowerCase().trim();
+                            return n === target || reg === target || art === target || target.includes(art) || art.includes(target);
+                        });
+                        if (m && m.instrumento) return m.instrumento;
+                    }
+                }
+                return '';
+            };
 
             if (selectMusico) {
                 selectMusico.innerHTML = '<option value="">-- Selecione o Músico --</option>';
@@ -4019,6 +4042,7 @@ function initAtestadosManagement() {
                     const option = document.createElement('option');
                     option.value = m.id;
                     option.textContent = m.nome;
+                    if (m.instrumento) option.setAttribute('data-instrumento', m.instrumento);
                     selectMusico.appendChild(option);
                 });
             }
@@ -4030,6 +4054,7 @@ function initAtestadosManagement() {
                     const option = document.createElement('option');
                     option.value = m.id;
                     option.textContent = m.nome;
+                    if (m.instrumento) option.setAttribute('data-instrumento', m.instrumento);
                     dispensaSelectMusico.appendChild(option);
                 });
             }
@@ -4216,9 +4241,11 @@ function initAtestadosManagement() {
 
                 // 1. Salvar na coleção de atestados homologados para persistência e consulta dinâmica
                 console.log("💾 [Atestados] Salvando homologação no banco...");
+                const instAprovado = (typeof window.getMusicianInstrumentInfo === 'function' ? window.getMusicianInstrumentInfo(musicianId, selectedMusicoText) : '') || '';
                 await addDoc(collection(db, "medicalCertificates_approved"), {
                     musicianId: musicianId,
                     nomeMusico: selectedMusicoText,
+                    instrumento: instAprovado,
                     cid: cid || '',
                     dias: parseInt(dias) || 0,
                     dataInicio: inicio,
@@ -4427,9 +4454,11 @@ function initDispensasModule() {
                 if (isBolsistaOrMonitor) {
                     const nomeArtistico = (data.NOMEARTISTICO || '').trim();
                     const nomeCompleto = (data['NOME REGISTRO'] || '').trim();
+                    const inst = (data.INSTRUMENTOS || data.Instrumento || data.instrumento || '').trim();
                     lista.push({
                         id: docSnap.id,
-                        nome: nomeArtistico || nomeCompleto || "Sem Nome"
+                        nome: nomeArtistico || nomeCompleto || "Sem Nome",
+                        instrumento: inst
                     });
                 }
             });
@@ -4439,6 +4468,7 @@ function initDispensasModule() {
                 const opt = document.createElement('option');
                 opt.value = m.id;
                 opt.textContent = m.nome;
+                if (m.instrumento) opt.setAttribute('data-instrumento', m.instrumento);
                 selectMusico.appendChild(opt);
             });
         } catch (err) {
@@ -4502,6 +4532,7 @@ function initDispensasModule() {
 
             const selectedOption = selectMusico.options[selectMusico.selectedIndex];
             const nomeMusico = selectedOption ? selectedOption.text : 'Músico';
+            const selectedInstrumento = selectedOption ? (selectedOption.getAttribute('data-instrumento') || (typeof window.getMusicianInstrumentInfo === 'function' ? window.getMusicianInstrumentInfo(musicianId, nomeMusico) : '')) : '';
 
             try {
                 if (btnSave) {
@@ -4514,6 +4545,7 @@ function initDispensasModule() {
                 await addDoc(collection(db, "dispensas"), {
                     musicianId: musicianId,
                     nomeMusico: nomeMusico,
+                    instrumento: selectedInstrumento || '',
                     dataInicio: dataInicio,
                     dataFim: dataFim,
                     descricao: descricao,
@@ -4847,16 +4879,32 @@ function initDispensasModule() {
         });
     }
 
-    // Modal de Detalhe da Dispensa
+    // Modal de Detalhe e Edição da Dispensa
     const modalDetalhe = document.getElementById('dispensa-detalhe-modal');
     const btnCloseDetalhe = document.getElementById('btn-close-dispensa-detalhe-modal');
     const btnCloseDetalheFooter = document.getElementById('btn-close-dispensa-detalhe-footer');
     const btnCopyDetalhe = document.getElementById('btn-copy-dispensa-detalhe');
+    const btnEditDetalhe = document.getElementById('btn-edit-dispensa-detalhe');
+    const btnCancelEditDispensa = document.getElementById('btn-cancel-edit-dispensa');
+    const btnSaveEditDispensa = document.getElementById('btn-save-edit-dispensa');
+
+    const viewModeDiv = document.getElementById('dispensa-detalhe-view-mode');
+    const editModeDiv = document.getElementById('dispensa-detalhe-edit-mode');
+    const viewActionsDiv = document.getElementById('dispensa-detalhe-view-actions');
+    const editActionsDiv = document.getElementById('dispensa-detalhe-edit-actions');
+
+    const inputEditInicio = document.getElementById('edit-dispensa-input-inicio');
+    const inputEditFim = document.getElementById('edit-dispensa-input-fim');
+    const inputEditDescricao = document.getElementById('edit-dispensa-input-descricao');
+
     let currentDetalheData = null;
 
     function openDispensaDetalheModal(data) {
         if (!modalDetalhe) return;
         currentDetalheData = data;
+
+        // Reset para Modo Visualização
+        switchDispensaModalMode('view');
 
         const formatBR = (iso) => iso ? iso.split('-').reverse().join('/') : '---';
         const dInicio = data.dataInicio ? new Date(data.dataInicio + 'T00:00:00') : null;
@@ -4868,14 +4916,18 @@ function initDispensasModule() {
 
         const elemAvatar = document.getElementById('dispensa-detalhe-avatar');
         const elemMusico = document.getElementById('dispensa-detalhe-musico');
+        const elemInstrumento = document.getElementById('dispensa-detalhe-instrumento');
         const elemPeriodo = document.getElementById('dispensa-detalhe-periodo');
         const elemDuracao = document.getElementById('dispensa-detalhe-duracao');
         const elemDescricao = document.getElementById('dispensa-detalhe-descricao');
         const elemCriadoEm = document.getElementById('dispensa-detalhe-criadoem');
         const elemCriadoPor = document.getElementById('dispensa-detalhe-criadopor');
 
+        const instrumento = data.instrumento || (typeof window.getMusicianInstrumentInfo === 'function' ? window.getMusicianInstrumentInfo(data.musicianId, data.nomeMusico) : '') || '—';
+
         if (elemAvatar) elemAvatar.textContent = (data.nomeMusico || 'M').charAt(0).toUpperCase();
         if (elemMusico) elemMusico.textContent = data.nomeMusico || 'Músico';
+        if (elemInstrumento) elemInstrumento.textContent = instrumento;
         if (elemPeriodo) elemPeriodo.textContent = `${formatBR(data.dataInicio)} → ${formatBR(data.dataFim)}`;
         if (elemDuracao) elemDuracao.textContent = `${dias} dia${dias !== 1 ? 's' : ''}`;
         if (elemDescricao) elemDescricao.textContent = data.descricao || 'Nenhuma observação informada.';
@@ -4885,6 +4937,20 @@ function initDispensasModule() {
         modalDetalhe.style.display = 'flex';
         document.body.style.overflow = 'hidden';
         if (window.lucide) lucide.createIcons();
+    }
+
+    function switchDispensaModalMode(mode) {
+        if (mode === 'edit') {
+            if (viewModeDiv) viewModeDiv.style.display = 'none';
+            if (editModeDiv) editModeDiv.style.display = 'flex';
+            if (viewActionsDiv) viewActionsDiv.style.display = 'none';
+            if (editActionsDiv) editActionsDiv.style.display = 'flex';
+        } else {
+            if (viewModeDiv) viewModeDiv.style.display = 'flex';
+            if (editModeDiv) editModeDiv.style.display = 'none';
+            if (viewActionsDiv) viewActionsDiv.style.display = 'flex';
+            if (editActionsDiv) editActionsDiv.style.display = 'none';
+        }
     }
 
     function closeDispensaDetalheModal() {
@@ -4902,6 +4968,146 @@ function initDispensasModule() {
         });
     }
 
+    if (btnEditDetalhe) {
+        btnEditDetalhe.addEventListener('click', () => {
+            if (!currentDetalheData) return;
+            const musicoHeader = document.getElementById('edit-dispensa-musico-nome');
+            if (musicoHeader) musicoHeader.textContent = `Editar Dispensa de ${currentDetalheData.nomeMusico || 'Músico'}`;
+
+            if (inputEditInicio) inputEditInicio.value = currentDetalheData.dataInicio || '';
+            if (inputEditFim) inputEditFim.value = currentDetalheData.dataFim || '';
+            if (inputEditDescricao) inputEditDescricao.value = currentDetalheData.descricao || '';
+
+            switchDispensaModalMode('edit');
+            if (window.lucide) lucide.createIcons();
+        });
+    }
+
+    if (btnCancelEditDispensa) {
+        btnCancelEditDispensa.addEventListener('click', () => {
+            switchDispensaModalMode('view');
+        });
+    }
+
+    // Helper local para obter array de datas ISO YYYY-MM-DD
+    function getDateRangeArray(start, end) {
+        const result = [];
+        if (!start || !end) return result;
+        let cur = new Date(start + 'T00:00:00');
+        const endDate = new Date(end + 'T00:00:00');
+        while (cur <= endDate) {
+            result.push(cur.toISOString().split('T')[0]);
+            cur.setDate(cur.getDate() + 1);
+        }
+        return result;
+    }
+
+    // Salvar Edição da Dispensa
+    if (btnSaveEditDispensa) {
+        btnSaveEditDispensa.addEventListener('click', async () => {
+            if (!currentDetalheData || !currentDetalheData.id) return;
+
+            const newInicio = inputEditInicio ? inputEditInicio.value : '';
+            const newFim = inputEditFim ? inputEditFim.value : '';
+            const newDesc = inputEditDescricao ? inputEditDescricao.value.trim() : '';
+
+            if (!newInicio || !newFim) {
+                showNotification('Por favor, informe as Datas Inicial e Final.', 'error');
+                return;
+            }
+            if (newInicio > newFim) {
+                showNotification('A Data Inicial não pode ser maior que a Data Final.', 'error');
+                return;
+            }
+            if (!newDesc) {
+                showNotification('Por favor, informe o motivo da dispensa.', 'error');
+                return;
+            }
+
+            const dispensaId = currentDetalheData.id;
+            const musicianId = currentDetalheData.musicianId;
+
+            try {
+                btnSaveEditDispensa.disabled = true;
+                btnSaveEditDispensa.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Salvando...';
+                if (window.lucide) lucide.createIcons();
+
+                const oldDates = getDateRangeArray(currentDetalheData.dataInicio, currentDetalheData.dataFim);
+                const newDates = getDateRangeArray(newInicio, newFim);
+
+                const removedDates = oldDates.filter(d => !newDates.includes(d));
+
+                // 1. Remover dispensa das datas desmarcadas na presencas
+                for (const date of removedDates) {
+                    const presenceRef = doc(db, "presencas", date);
+                    const snap = await getDoc(presenceRef);
+                    if (snap.exists()) {
+                        const data = snap.data();
+                        const registros = data.registros || {};
+                        if (registros[musicianId] && registros[musicianId].status === 'dispensa') {
+                            delete registros[musicianId];
+                            await updateDoc(presenceRef, {
+                                registros: registros,
+                                ultimaAtualizacao: new Date().toISOString(),
+                                usuarioResponsavel: auth.currentUser.email || 'admin'
+                            });
+                        }
+                    }
+                }
+
+                // 2. Atualizar ou criar dispensa nas novas datas
+                for (const date of newDates) {
+                    const presenceRef = doc(db, "presencas", date);
+                    const snap = await getDoc(presenceRef);
+                    if (snap.exists()) {
+                        const data = snap.data();
+                        const registros = data.registros || {};
+                        registros[musicianId] = {
+                            status: 'dispensa',
+                            minutes: 0,
+                            justificativa: newDesc
+                        };
+                        await updateDoc(presenceRef, {
+                            registros: registros,
+                            ultimaAtualizacao: new Date().toISOString(),
+                            usuarioResponsavel: auth.currentUser.email || 'admin'
+                        });
+                    }
+                }
+
+                // 3. Atualizar o documento da dispensa no Firestore
+                const updatedFields = {
+                    dataInicio: newInicio,
+                    dataFim: newFim,
+                    descricao: newDesc,
+                    editadoEm: new Date().toISOString(),
+                    editadoPor: auth.currentUser.email || 'admin'
+                };
+
+                await updateDoc(doc(db, "dispensas", dispensaId), updatedFields);
+
+                // 4. Registrar Log de Auditoria
+                try {
+                    const formatBR = (iso) => iso ? iso.split('-').reverse().join('/') : '---';
+                    const details = `Músico: ${currentDetalheData.nomeMusico}\nPeríodo Anterior: ${formatBR(currentDetalheData.dataInicio)} a ${formatBR(currentDetalheData.dataFim)}\nNovo Período: ${formatBR(newInicio)} a ${formatBR(newFim)}\nMotivo: ${newDesc}`;
+                    await saveLog("dispensa", `Dispensa editada: ${currentDetalheData.nomeMusico}`, null, details);
+                } catch(lErr) {}
+
+                showNotification('Dispensa editada com sucesso e presenças atualizadas!', 'success');
+                closeDispensaDetalheModal();
+                loadDispensasTable();
+
+            } catch (err) {
+                console.error("Erro ao salvar edição da dispensa:", err);
+                showNotification(`Erro ao salvar alteração: ${err.message}`, 'error');
+            } finally {
+                btnSaveEditDispensa.disabled = false;
+                btnSaveEditDispensa.innerHTML = '<i data-lucide="check"></i> Salvar Alterações';
+                if (window.lucide) lucide.createIcons();
+            }
+        });
+    }
+
     if (btnCopyDetalhe) {
         btnCopyDetalhe.addEventListener('click', () => {
             if (!currentDetalheData) return;
@@ -4913,8 +5119,11 @@ function initDispensasModule() {
                 dias = Math.round((dFim - dInicio) / (1000 * 60 * 60 * 24)) + 1;
             }
 
+            const instrumento = currentDetalheData.instrumento || (typeof window.getMusicianInstrumentInfo === 'function' ? window.getMusicianInstrumentInfo(currentDetalheData.musicianId, currentDetalheData.nomeMusico) : '') || '—';
+
             const texto = `DISPENSA DE BOLSISTA — OER
 Músico: ${currentDetalheData.nomeMusico || 'Músico'}
+Instrumento: ${instrumento}
 Período: ${formatBR(currentDetalheData.dataInicio)} até ${formatBR(currentDetalheData.dataFim)} (${dias} dia${dias !== 1 ? 's' : ''})
 Motivo / Justificativa: ${currentDetalheData.descricao || '-'}
 Cadastrado por: ${currentDetalheData.criadoPor || 'admin'}`;
@@ -4943,6 +5152,20 @@ function initAtestadosHomologadosModule() {
     const btnCloseDetalhe = document.getElementById('btn-close-atestado-detalhe-modal');
     const btnCloseDetalheFooter = document.getElementById('btn-close-atestado-detalhe-footer');
     const btnCopyDetalhe = document.getElementById('btn-copy-atestado-detalhe');
+    const btnEditDetalhe = document.getElementById('btn-edit-atestado-detalhe');
+    const btnDeleteDetalhe = document.getElementById('btn-delete-atestado-detalhe');
+    const btnCancelEditAtestado = document.getElementById('btn-cancel-edit-atestado');
+    const btnSaveEditAtestado = document.getElementById('btn-save-edit-atestado');
+
+    const viewModeDiv = document.getElementById('atestado-detalhe-view-mode');
+    const editModeDiv = document.getElementById('atestado-detalhe-edit-mode');
+    const viewActionsDiv = document.getElementById('atestado-detalhe-view-actions');
+    const editActionsDiv = document.getElementById('atestado-detalhe-edit-actions');
+
+    const inputEditInicio = document.getElementById('edit-atestado-input-inicio');
+    const inputEditDias = document.getElementById('edit-atestado-input-dias');
+    const inputEditCid = document.getElementById('edit-atestado-input-cid');
+    const inputEditResumo = document.getElementById('edit-atestado-input-resumo');
 
     let rawAtestadosData = [];
     let currentAtestadoFilter = 'todas';
@@ -5078,11 +5301,11 @@ function initAtestadosHomologadosModule() {
                 <tr>
                     <td colspan="6" style="text-align: center; padding: 2.5rem 1rem;">
                         <div style="display: flex; flex-direction: column; align-items: center; gap: 0.75rem;">
-                            <div style="width: 48px; height: 48px; background: #f0f7ff; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
-                                <i data-lucide="file-question" style="width: 22px; height: 22px; color: #60a5fa;"></i>
+                            <div style="width: 48px; height: 48px; background: #eff6ff; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                                <i data-lucide="file-search" style="width: 22px; height: 22px; color: #3b82f6;"></i>
                             </div>
-                            <p style="margin: 0; font-size: 0.9rem; font-weight: 600; color: #64748b;">Nenhum atestado homologado encontrado</p>
-                            <p style="margin: 0; font-size: 0.78rem; color: #94a3b8;">${searchVal ? 'Tente alterar os termos da busca ou o filtro de status.' : 'Os atestados homologados aparecerão aqui após revisão no painel.'}</p>
+                            <p style="margin: 0; font-size: 0.9rem; font-weight: 600; color: #475569;">Nenhum atestado homologado encontrado</p>
+                            <p style="margin: 0; font-size: 0.78rem; color: #94a3b8;">${searchVal ? 'Tente alterar os termos da busca ou o filtro de status.' : 'Nenhum atestado homologado cadastrado até o momento.'}</p>
                         </div>
                     </td>
                 </tr>`;
@@ -5184,16 +5407,20 @@ function initAtestadosHomologadosModule() {
         });
     }
 
-    // Modal de Detalhe do Atestado
+    // Modal de Detalhe e Edição do Atestado
     function openAtestadoDetalheModal(data) {
         if (!modalDetalhe) return;
         currentAtestadoDetalheData = data;
+
+        // Reset para Modo Visualização
+        switchAtestadoModalMode('view');
 
         const formatBR = (iso) => iso ? iso.split('-').reverse().join('/') : '---';
         const dias = data.dias || 1;
 
         const elemAvatar = document.getElementById('atestado-detalhe-avatar');
         const elemMusico = document.getElementById('atestado-detalhe-musico');
+        const elemInstrumento = document.getElementById('atestado-detalhe-instrumento');
         const elemPeriodo = document.getElementById('atestado-detalhe-periodo');
         const elemDuracao = document.getElementById('atestado-detalhe-duracao');
         const elemCid = document.getElementById('atestado-detalhe-cid');
@@ -5201,8 +5428,11 @@ function initAtestadosHomologadosModule() {
         const elemCriadoEm = document.getElementById('atestado-detalhe-criadoem');
         const elemCriadoPor = document.getElementById('atestado-detalhe-criadopor');
 
+        const instrumento = data.instrumento || (typeof window.getMusicianInstrumentInfo === 'function' ? window.getMusicianInstrumentInfo(data.musicianId, data.nomeMusico) : '') || '—';
+
         if (elemAvatar) elemAvatar.textContent = (data.nomeMusico || 'M').charAt(0).toUpperCase();
         if (elemMusico) elemMusico.textContent = data.nomeMusico || 'Músico';
+        if (elemInstrumento) elemInstrumento.textContent = instrumento;
         if (elemPeriodo) elemPeriodo.textContent = `${formatBR(data.dataInicio)} → ${formatBR(data.dataFim)}`;
         if (elemDuracao) elemDuracao.textContent = `${dias} dia${dias !== 1 ? 's' : ''}`;
         if (elemCid) elemCid.textContent = data.cid || 'Não informado';
@@ -5213,6 +5443,20 @@ function initAtestadosHomologadosModule() {
         modalDetalhe.style.display = 'flex';
         document.body.style.overflow = 'hidden';
         if (window.lucide) lucide.createIcons();
+    }
+
+    function switchAtestadoModalMode(mode) {
+        if (mode === 'edit') {
+            if (viewModeDiv) viewModeDiv.style.display = 'none';
+            if (editModeDiv) editModeDiv.style.display = 'flex';
+            if (viewActionsDiv) viewActionsDiv.style.display = 'none';
+            if (editActionsDiv) editActionsDiv.style.display = 'flex';
+        } else {
+            if (viewModeDiv) viewModeDiv.style.display = 'flex';
+            if (editModeDiv) editModeDiv.style.display = 'none';
+            if (viewActionsDiv) viewActionsDiv.style.display = 'flex';
+            if (editActionsDiv) editActionsDiv.style.display = 'none';
+        }
     }
 
     function closeAtestadoDetalheModal() {
@@ -5230,14 +5474,225 @@ function initAtestadosHomologadosModule() {
         });
     }
 
+    if (btnEditDetalhe) {
+        btnEditDetalhe.addEventListener('click', () => {
+            if (!currentAtestadoDetalheData) return;
+            const musicoHeader = document.getElementById('edit-atestado-musico-nome');
+            if (musicoHeader) musicoHeader.textContent = `Editar Atestado de ${currentAtestadoDetalheData.nomeMusico || 'Músico'}`;
+
+            if (inputEditInicio) inputEditInicio.value = currentAtestadoDetalheData.dataInicio || '';
+            if (inputEditDias) inputEditDias.value = currentAtestadoDetalheData.dias || 1;
+            if (inputEditCid) inputEditCid.value = currentAtestadoDetalheData.cid || '';
+            if (inputEditResumo) inputEditResumo.value = currentAtestadoDetalheData.resumo || '';
+
+            switchAtestadoModalMode('edit');
+            if (window.lucide) lucide.createIcons();
+        });
+    }
+
+    if (btnCancelEditAtestado) {
+        btnCancelEditAtestado.addEventListener('click', () => {
+            switchAtestadoModalMode('view');
+        });
+    }
+
+    // Helper local para obter array de datas ISO YYYY-MM-DD
+    function getDateRangeArray(start, end) {
+        const result = [];
+        if (!start || !end) return result;
+        let cur = new Date(start + 'T00:00:00');
+        const endDate = new Date(end + 'T00:00:00');
+        while (cur <= endDate) {
+            result.push(cur.toISOString().split('T')[0]);
+            cur.setDate(cur.getDate() + 1);
+        }
+        return result;
+    }
+
+    // Helper para calcular data final com base na data inicio e dias
+    function calcEndDateISO(startISO, daysCount) {
+        if (!startISO || !daysCount) return startISO;
+        const d = new Date(startISO + 'T00:00:00');
+        d.setDate(d.getDate() + (parseInt(daysCount) - 1));
+        return d.toISOString().split('T')[0];
+    }
+
+    // Salvar Edição do Atestado Homologado
+    if (btnSaveEditAtestado) {
+        btnSaveEditAtestado.addEventListener('click', async () => {
+            if (!currentAtestadoDetalheData || !currentAtestadoDetalheData.id) return;
+
+            const newInicio = inputEditInicio ? inputEditInicio.value : '';
+            const newDias = inputEditDias ? parseInt(inputEditDias.value) : 0;
+            const newCid = inputEditCid ? inputEditCid.value.trim() : '';
+            const newResumo = inputEditResumo ? inputEditResumo.value.trim() : '';
+
+            if (!newInicio) {
+                showNotification('Por favor, informe a Data Inicial.', 'error');
+                return;
+            }
+            if (!newDias || newDias < 1) {
+                showNotification('Por favor, informe uma quantidade válida de dias (mínimo 1).', 'error');
+                return;
+            }
+
+            const atestadoId = currentAtestadoDetalheData.id;
+            const musicianId = currentAtestadoDetalheData.musicianId;
+            const newEnd = calcEndDateISO(newInicio, newDias);
+
+            try {
+                btnSaveEditAtestado.disabled = true;
+                btnSaveEditAtestado.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Salvando...';
+                if (window.lucide) lucide.createIcons();
+
+                const oldDates = getDateRangeArray(currentAtestadoDetalheData.dataInicio, currentAtestadoDetalheData.dataFim);
+                const newDates = getDateRangeArray(newInicio, newEnd);
+
+                const removedDates = oldDates.filter(d => !newDates.includes(d));
+
+                // 1. Remover atestado das datas desmarcadas na presencas
+                for (const date of removedDates) {
+                    const presenceRef = doc(db, "presencas", date);
+                    const snap = await getDoc(presenceRef);
+                    if (snap.exists()) {
+                        const data = snap.data();
+                        const registros = data.registros || {};
+                        if (registros[musicianId] && registros[musicianId].status === 'atestado') {
+                            delete registros[musicianId];
+                            await updateDoc(presenceRef, {
+                                registros: registros,
+                                ultimaAtualizacao: new Date().toISOString(),
+                                usuarioResponsavel: auth.currentUser.email || 'admin'
+                            });
+                        }
+                    }
+                }
+
+                // 2. Atualizar ou criar atestado nas novas datas
+                for (const date of newDates) {
+                    const presenceRef = doc(db, "presencas", date);
+                    const snap = await getDoc(presenceRef);
+                    if (snap.exists()) {
+                        const data = snap.data();
+                        const registros = data.registros || {};
+                        registros[musicianId] = {
+                            status: 'atestado',
+                            minutes: 0
+                        };
+                        await updateDoc(presenceRef, {
+                            registros: registros,
+                            ultimaAtualizacao: new Date().toISOString(),
+                            usuarioResponsavel: auth.currentUser.email || 'admin'
+                        });
+                    }
+                }
+
+                // 3. Atualizar o documento no Firestore
+                const updatedFields = {
+                    dataInicio: newInicio,
+                    dias: newDias,
+                    dataFim: newEnd,
+                    cid: newCid,
+                    resumo: newResumo,
+                    editadoEm: new Date().toISOString(),
+                    editadoPor: auth.currentUser.email || 'admin'
+                };
+
+                await updateDoc(doc(db, "medicalCertificates_approved", atestadoId), updatedFields);
+
+                // 4. Registrar Log de Auditoria
+                try {
+                    const formatBR = (iso) => iso ? iso.split('-').reverse().join('/') : '---';
+                    const details = `Músico: ${currentAtestadoDetalheData.nomeMusico}\nPeríodo Anterior: ${formatBR(currentAtestadoDetalheData.dataInicio)} a ${formatBR(currentAtestadoDetalheData.dataFim)} (${currentAtestadoDetalheData.dias} dias)\nNovo Período: ${formatBR(newInicio)} a ${formatBR(newEnd)} (${newDias} dias)\nCID: ${newCid}\nResumo: ${newResumo}`;
+                    await saveLog("atestado", `Atestado homologado editado: ${currentAtestadoDetalheData.nomeMusico}`, null, details);
+                } catch(lErr) {}
+
+                showNotification('Atestado editado com sucesso e presenças atualizadas!', 'success');
+                closeAtestadoDetalheModal();
+                loadAtestadosHomologadosTable();
+
+            } catch (err) {
+                console.error("Erro ao salvar edição do atestado:", err);
+                showNotification(`Erro ao salvar alteração: ${err.message}`, 'error');
+            } finally {
+                btnSaveEditAtestado.disabled = false;
+                btnSaveEditAtestado.innerHTML = '<i data-lucide="check"></i> Salvar Alterações';
+                if (window.lucide) lucide.createIcons();
+            }
+        });
+    }
+
+    // Excluir Atestado Homologado
+    if (btnDeleteDetalhe) {
+        btnDeleteDetalhe.addEventListener('click', async () => {
+            if (!currentAtestadoDetalheData || !currentAtestadoDetalheData.id) return;
+
+            const nomeMusico = currentAtestadoDetalheData.nomeMusico || 'Músico';
+            if (!confirm(`Deseja realmente cancelar/excluir o atestado homologado de "${nomeMusico}"?\n\nEsta ação removerá a marcação de atestado da lista de presença do período.`)) {
+                return;
+            }
+
+            const atestadoId = currentAtestadoDetalheData.id;
+            const musicianId = currentAtestadoDetalheData.musicianId;
+
+            try {
+                btnDeleteDetalhe.disabled = true;
+                btnDeleteDetalhe.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Excluindo...';
+                if (window.lucide) lucide.createIcons();
+
+                // 1. Remover marcação de atestado das presencas do período
+                const dates = getDateRangeArray(currentAtestadoDetalheData.dataInicio, currentAtestadoDetalheData.dataFim);
+                for (const date of dates) {
+                    const presenceRef = doc(db, "presencas", date);
+                    const snap = await getDoc(presenceRef);
+                    if (snap.exists()) {
+                        const data = snap.data();
+                        const registros = data.registros || {};
+                        if (registros[musicianId] && registros[musicianId].status === 'atestado') {
+                            delete registros[musicianId];
+                            await updateDoc(presenceRef, {
+                                registros: registros,
+                                ultimaAtualizacao: new Date().toISOString(),
+                                usuarioResponsavel: auth.currentUser.email || 'admin'
+                            });
+                        }
+                    }
+                }
+
+                // 2. Apagar documento de medicalCertificates_approved
+                await deleteDoc(doc(db, "medicalCertificates_approved", atestadoId));
+
+                // 3. Log de Auditoria
+                try {
+                    await saveLog("atestado", `Atestado homologado excluído/cancelado: ${nomeMusico}`, null, `ID: ${atestadoId}`);
+                } catch(lErr) {}
+
+                showNotification('Atestado homologado excluído com sucesso.', 'info');
+                closeAtestadoDetalheModal();
+                loadAtestadosHomologadosTable();
+
+            } catch (err) {
+                console.error("Erro ao excluir atestado homologado:", err);
+                showNotification(`Erro ao excluir atestado: ${err.message}`, 'error');
+            } finally {
+                btnDeleteDetalhe.disabled = false;
+                btnDeleteDetalhe.innerHTML = '<i data-lucide="trash-2"></i> Excluir';
+                if (window.lucide) lucide.createIcons();
+            }
+        });
+    }
+
     if (btnCopyDetalhe) {
         btnCopyDetalhe.addEventListener('click', () => {
             if (!currentAtestadoDetalheData) return;
             const formatBR = (iso) => iso ? iso.split('-').reverse().join('/') : '---';
             const dias = currentAtestadoDetalheData.dias || 1;
 
+            const instrumento = currentAtestadoDetalheData.instrumento || (typeof window.getMusicianInstrumentInfo === 'function' ? window.getMusicianInstrumentInfo(currentAtestadoDetalheData.musicianId, currentAtestadoDetalheData.nomeMusico) : '') || '—';
+
             const texto = `ATESTADO MÉDICO HOMOLOGADO — OER
 Músico: ${currentAtestadoDetalheData.nomeMusico || 'Músico'}
+Instrumento: ${instrumento}
 Período: ${formatBR(currentAtestadoDetalheData.dataInicio)} até ${formatBR(currentAtestadoDetalheData.dataFim)} (${dias} dia${dias !== 1 ? 's' : ''})
 Código CID: ${currentAtestadoDetalheData.cid || 'Não informado'}
 Parecer / Resumo: ${currentAtestadoDetalheData.resumo || '-'}

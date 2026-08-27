@@ -1680,7 +1680,7 @@ Intervalo
 
     <!-- Modal Detalhe da Dispensa -->
     <div id="dispensa-detalhe-modal" class="modal-overlay" style="display: none;">
-        <div class="settings-modal-card" style="max-width: 520px; width: 95%;">
+        <div class="settings-modal-card" style="max-width: 540px; width: 95%;">
             <div class="modal-header" style="background: linear-gradient(135deg, #faf5ff, #f3e8ff); border-bottom: 1px solid #ede9fe;">
                 <div class="modal-header-info">
                     <h3 style="color: #6b21a8; display: flex; align-items: center; gap: 0.5rem;"><i data-lucide="shield-check"></i> Detalhes da Dispensa</h3>
@@ -1691,44 +1691,90 @@ Intervalo
                 </button>
             </div>
             <div class="modal-body" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem;">
-                <div style="background: #faf5ff; padding: 1rem; border-radius: 10px; border: 1px solid #ede9fe; display: flex; align-items: center; gap: 0.8rem;">
-                    <div style="width: 42px; height: 42px; background: linear-gradient(135deg, #7c3aed, #6b21a8); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1.1rem; flex-shrink: 0;" id="dispensa-detalhe-avatar">
-                        M
+                <!-- Modo Visualização -->
+                <div id="dispensa-detalhe-view-mode" style="display: flex; flex-direction: column; gap: 1.25rem;">
+                    <div style="background: #faf5ff; padding: 1rem; border-radius: 10px; border: 1px solid #ede9fe; display: flex; align-items: center; gap: 0.8rem;">
+                        <div style="width: 42px; height: 42px; background: linear-gradient(135deg, #7c3aed, #6b21a8); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1.1rem; flex-shrink: 0;" id="dispensa-detalhe-avatar">
+                            M
+                        </div>
+                        <div>
+                            <div style="font-size: 1.05rem; font-weight: 700; color: #1e1b4b;" id="dispensa-detalhe-musico">Nome do Bolsista</div>
+                            <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.2rem;">
+                                <span style="font-size: 0.78rem; color: #7c3aed; font-weight: 600;" id="dispensa-detalhe-status-tag">Bolsista em Dispensa</span>
+                                <span style="font-size: 0.75rem; color: #a78bfa; font-weight: 600;">•</span>
+                                <span style="font-size: 0.78rem; color: #6b21a8; font-weight: 700; background: #ede9fe; padding: 0.15rem 0.55rem; border-radius: 6px; border: 1px solid #ddd6fe;" id="dispensa-detalhe-instrumento">—</span>
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <div style="font-size: 1.05rem; font-weight: 700; color: #1e1b4b;" id="dispensa-detalhe-musico">Nome do Bolsista</div>
-                        <span style="font-size: 0.78rem; color: #7c3aed; font-weight: 600;" id="dispensa-detalhe-status-tag">Bolsista em Dispensa</span>
-                    </div>
-                </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div style="background: #f9fafb; padding: 0.85rem; border-radius: 8px; border: 1px solid #f3f4f6;">
+                            <span style="display: block; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #6b7280; margin-bottom: 0.2rem;">Período da Dispensa</span>
+                            <span style="font-size: 0.95rem; font-weight: 700; color: #6b21a8;" id="dispensa-detalhe-periodo">00/00/0000 → 00/00/0000</span>
+                        </div>
+                        <div style="background: #f9fafb; padding: 0.85rem; border-radius: 8px; border: 1px solid #f3f4f6;">
+                            <span style="display: block; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #6b7280; margin-bottom: 0.2rem;">Duração Total</span>
+                            <span style="font-size: 0.95rem; font-weight: 700; color: #1e1b4b;" id="dispensa-detalhe-duracao">0 dias</span>
+                        </div>
+                    </div>
+
                     <div style="background: #f9fafb; padding: 0.85rem; border-radius: 8px; border: 1px solid #f3f4f6;">
-                        <span style="display: block; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #6b7280; margin-bottom: 0.2rem;">Período da Dispensa</span>
-                        <span style="font-size: 0.95rem; font-weight: 700; color: #6b21a8;" id="dispensa-detalhe-periodo">00/00/0000 → 00/00/0000</span>
+                        <span style="display: block; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #6b7280; margin-bottom: 0.3rem;">Descrição / Motivo</span>
+                        <p style="margin: 0; font-size: 0.9rem; color: #374151; line-height: 1.5; white-space: pre-wrap;" id="dispensa-detalhe-descricao">-</p>
                     </div>
-                    <div style="background: #f9fafb; padding: 0.85rem; border-radius: 8px; border: 1px solid #f3f4f6;">
-                        <span style="display: block; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #6b7280; margin-bottom: 0.2rem;">Duração Total</span>
-                        <span style="font-size: 0.95rem; font-weight: 700; color: #1e1b4b;" id="dispensa-detalhe-duracao">0 dias</span>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.8rem; color: #6b7280; border-top: 1px solid #f3f4f6; padding-top: 0.8rem;">
+                        <div><strong>Cadastrado em:</strong> <span id="dispensa-detalhe-criadoem">-</span></div>
+                        <div><strong>Cadastrado por:</strong> <span id="dispensa-detalhe-criadopor">-</span></div>
                     </div>
                 </div>
 
-                <div style="background: #f9fafb; padding: 0.85rem; border-radius: 8px; border: 1px solid #f3f4f6;">
-                    <span style="display: block; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #6b7280; margin-bottom: 0.3rem;">Descrição / Motivo</span>
-                    <p style="margin: 0; font-size: 0.9rem; color: #374151; line-height: 1.5; white-space: pre-wrap;" id="dispensa-detalhe-descricao">-</p>
+                <!-- Modo Edição -->
+                <div id="dispensa-detalhe-edit-mode" style="display: none; flex-direction: column; gap: 1rem;">
+                    <div style="background: #fcfaff; padding: 0.85rem; border-radius: 10px; border: 1px solid #ddd6fe;">
+                        <h4 style="margin: 0 0 0.5rem 0; color: #6b21a8; font-size: 0.95rem; font-weight: 700;" id="edit-dispensa-musico-nome">Editar Dispensa de [Nome]</h4>
+                        <p style="margin: 0; font-size: 0.8rem; color: #7c3aed;">Altere as datas ou o motivo da dispensa. Isso atualizará as listas de presença do período.</p>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group" style="margin: 0;">
+                            <label style="font-size: 0.8rem; font-weight: 600; color: #4c1d95;">Data Inicial *</label>
+                            <input type="date" id="edit-dispensa-input-inicio" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd6fe; border-radius: 8px; font-size: 0.85rem; outline: none;">
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label style="font-size: 0.8rem; font-weight: 600; color: #4c1d95;">Data Final *</label>
+                            <input type="date" id="edit-dispensa-input-fim" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd6fe; border-radius: 8px; font-size: 0.85rem; outline: none;">
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin: 0;">
+                        <label style="font-size: 0.8rem; font-weight: 600; color: #4c1d95;">Descrição / Motivo *</label>
+                        <textarea id="edit-dispensa-input-descricao" rows="3" style="width: 100%; padding: 0.5rem; border: 1px solid #ddd6fe; border-radius: 8px; font-size: 0.85rem; outline: none; resize: vertical;" placeholder="Informe a justificativa..."></textarea>
+                    </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.8rem; color: #6b7280; border-top: 1px solid #f3f4f6; padding-top: 0.8rem;">
-                    <div><strong>Cadastrado em:</strong> <span id="dispensa-detalhe-criadoem">-</span></div>
-                    <div><strong>Cadastrado por:</strong> <span id="dispensa-detalhe-criadopor">-</span></div>
-                </div>
+                <!-- Footer Botões -->
+                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem; flex-wrap: wrap;">
+                    <div id="dispensa-detalhe-view-actions" style="display: flex; gap: 0.5rem; width: 100%;">
+                        <button type="button" class="btn-outline-cancel" id="btn-close-dispensa-detalhe-footer" style="flex: 1; height: 42px; justify-content: center;">
+                            Fechar
+                        </button>
+                        <button type="button" id="btn-edit-dispensa-detalhe" style="flex: 1; height: 42px; justify-content: center; background: white; color: #6b21a8; border: 1.5px solid #7c3aed; font-weight: 600; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 0.4rem; font-size: 0.875rem;">
+                            <i data-lucide="edit-3" style="width: 15px; height: 15px;"></i> Editar
+                        </button>
+                        <button type="button" id="btn-copy-dispensa-detalhe" style="flex: 1.2; height: 42px; justify-content: center; background: linear-gradient(135deg, #7c3aed, #6b21a8); color: white; border: none; font-weight: 600; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 0.4rem; font-size: 0.875rem; box-shadow: 0 4px 10px rgba(107,33,168,0.25);">
+                            <i data-lucide="copy" style="width: 15px; height: 15px;"></i> Copiar
+                        </button>
+                    </div>
 
-                <div style="display: flex; gap: 0.75rem; margin-top: 0.5rem;">
-                    <button type="button" class="btn-outline-cancel" id="btn-close-dispensa-detalhe-footer" style="flex: 1; height: 42px; justify-content: center;">
-                        Fechar
-                    </button>
-                    <button type="button" id="btn-copy-dispensa-detalhe" style="flex: 1; height: 42px; justify-content: center; background: linear-gradient(135deg, #7c3aed, #6b21a8); color: white; border: none; font-weight: 600; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; box-shadow: 0 4px 10px rgba(107,33,168,0.25);">
-                        <i data-lucide="copy" style="width: 16px; height: 16px;"></i> Copiar Resumo
-                    </button>
+                    <div id="dispensa-detalhe-edit-actions" style="display: none; gap: 0.5rem; width: 100%;">
+                        <button type="button" class="btn-outline-cancel" id="btn-cancel-edit-dispensa" style="flex: 1; height: 42px; justify-content: center;">
+                            Cancelar
+                        </button>
+                        <button type="button" id="btn-save-edit-dispensa" style="flex: 1.5; height: 42px; justify-content: center; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; font-weight: 600; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 0.4rem; font-size: 0.875rem; box-shadow: 0 4px 10px rgba(16,185,129,0.25);">
+                            <i data-lucide="check" style="width: 16px; height: 16px;"></i> Salvar Alterações
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1736,7 +1782,7 @@ Intervalo
 
     <!-- Modal Detalhe do Atestado Homologado -->
     <div id="atestado-detalhe-modal" class="modal-overlay" style="display: none;">
-        <div class="settings-modal-card" style="max-width: 520px; width: 95%;">
+        <div class="settings-modal-card" style="max-width: 540px; width: 95%;">
             <div class="modal-header" style="background: linear-gradient(135deg, #f0f7ff, #e0f2fe); border-bottom: 1px solid #dbeafe;">
                 <div class="modal-header-info">
                     <h3 style="color: #1d4ed8; display: flex; align-items: center; gap: 0.5rem;"><i data-lucide="file-badge"></i> Detalhes do Atestado</h3>
@@ -1747,49 +1793,103 @@ Intervalo
                 </button>
             </div>
             <div class="modal-body" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem;">
-                <div style="background: #f0f7ff; padding: 1rem; border-radius: 10px; border: 1px solid #dbeafe; display: flex; align-items: center; gap: 0.8rem;">
-                    <div style="width: 42px; height: 42px; background: linear-gradient(135deg, #2563eb, #1d4ed8); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1.1rem; flex-shrink: 0;" id="atestado-detalhe-avatar">
-                        M
+                <!-- Modo Visualização -->
+                <div id="atestado-detalhe-view-mode" style="display: flex; flex-direction: column; gap: 1.25rem;">
+                    <div style="background: #f0f7ff; padding: 1rem; border-radius: 10px; border: 1px solid #dbeafe; display: flex; align-items: center; gap: 0.8rem;">
+                        <div style="width: 42px; height: 42px; background: linear-gradient(135deg, #2563eb, #1d4ed8); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1.1rem; flex-shrink: 0;" id="atestado-detalhe-avatar">
+                            M
+                        </div>
+                        <div>
+                            <div style="font-size: 1.05rem; font-weight: 700; color: #0f172a;" id="atestado-detalhe-musico">Nome do Bolsista</div>
+                            <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.2rem;">
+                                <span style="font-size: 0.78rem; color: #2563eb; font-weight: 600;" id="atestado-detalhe-status-tag">Atestado Homologado</span>
+                                <span style="font-size: 0.75rem; color: #93c5fd; font-weight: 600;">•</span>
+                                <span style="font-size: 0.78rem; color: #1d4ed8; font-weight: 700; background: #dbeafe; padding: 0.15rem 0.55rem; border-radius: 6px; border: 1px solid #bfdbfe;" id="atestado-detalhe-instrumento">—</span>
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <div style="font-size: 1.05rem; font-weight: 700; color: #0f172a;" id="atestado-detalhe-musico">Nome do Bolsista</div>
-                        <span style="font-size: 0.78rem; color: #2563eb; font-weight: 600;" id="atestado-detalhe-status-tag">Atestado Homologado</span>
-                    </div>
-                </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div style="background: #f8fafc; padding: 0.85rem; border-radius: 8px; border: 1px solid #f1f5f9;">
+                            <span style="display: block; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #64748b; margin-bottom: 0.2rem;">Período do Atestado</span>
+                            <span style="font-size: 0.95rem; font-weight: 700; color: #1d4ed8;" id="atestado-detalhe-periodo">00/00/0000 → 00/00/0000</span>
+                        </div>
+                        <div style="background: #f8fafc; padding: 0.85rem; border-radius: 8px; border: 1px solid #f1f5f9;">
+                            <span style="display: block; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #64748b; margin-bottom: 0.2rem;">Duração Total</span>
+                            <span style="font-size: 0.95rem; font-weight: 700; color: #0f172a;" id="atestado-detalhe-duracao">0 dias</span>
+                        </div>
+                    </div>
+
                     <div style="background: #f8fafc; padding: 0.85rem; border-radius: 8px; border: 1px solid #f1f5f9;">
-                        <span style="display: block; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #64748b; margin-bottom: 0.2rem;">Período do Atestado</span>
-                        <span style="font-size: 0.95rem; font-weight: 700; color: #1d4ed8;" id="atestado-detalhe-periodo">00/00/0000 → 00/00/0000</span>
+                        <span style="display: block; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #64748b; margin-bottom: 0.2rem;">Código CID</span>
+                        <span style="font-size: 0.95rem; font-weight: 700; color: #0284c7;" id="atestado-detalhe-cid">—</span>
                     </div>
+
                     <div style="background: #f8fafc; padding: 0.85rem; border-radius: 8px; border: 1px solid #f1f5f9;">
-                        <span style="display: block; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #64748b; margin-bottom: 0.2rem;">Duração Total</span>
-                        <span style="font-size: 0.95rem; font-weight: 700; color: #0f172a;" id="atestado-detalhe-duracao">0 dias</span>
+                        <span style="display: block; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #64748b; margin-bottom: 0.3rem;">Parecer / Resumo Médico</span>
+                        <p style="margin: 0; font-size: 0.9rem; color: #334155; line-height: 1.5; white-space: pre-wrap;" id="atestado-detalhe-resumo">-</p>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.8rem; color: #64748b; border-top: 1px solid #f1f5f9; padding-top: 0.8rem;">
+                        <div><strong>Homologado em:</strong> <span id="atestado-detalhe-criadoem">-</span></div>
+                        <div><strong>Homologado por:</strong> <span id="atestado-detalhe-criadopor">-</span></div>
                     </div>
                 </div>
 
-                <div style="background: #f8fafc; padding: 0.85rem; border-radius: 8px; border: 1px solid #f1f5f9;">
-                    <span style="display: block; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #64748b; margin-bottom: 0.2rem;">Código CID</span>
-                    <span style="font-size: 0.95rem; font-weight: 700; color: #0284c7;" id="atestado-detalhe-cid">—</span>
+                <!-- Modo Edição -->
+                <div id="atestado-detalhe-edit-mode" style="display: none; flex-direction: column; gap: 1rem;">
+                    <div style="background: #f0f7ff; padding: 0.85rem; border-radius: 10px; border: 1px solid #bfdbfe;">
+                        <h4 style="margin: 0 0 0.5rem 0; color: #1d4ed8; font-size: 0.95rem; font-weight: 700;" id="edit-atestado-musico-nome">Editar Atestado de [Nome]</h4>
+                        <p style="margin: 0; font-size: 0.8rem; color: #2563eb;">Altere as datas, CID ou o resumo médico. As presenças do período serão atualizadas.</p>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <div class="form-group" style="margin: 0;">
+                            <label style="font-size: 0.8rem; font-weight: 600; color: #1e40af;">Data Inicial *</label>
+                            <input type="date" id="edit-atestado-input-inicio" style="width: 100%; padding: 0.5rem; border: 1px solid #bfdbfe; border-radius: 8px; font-size: 0.85rem; outline: none;">
+                        </div>
+                        <div class="form-group" style="margin: 0;">
+                            <label style="font-size: 0.8rem; font-weight: 600; color: #1e40af;">Dias de Afastamento *</label>
+                            <input type="number" id="edit-atestado-input-dias" min="1" style="width: 100%; padding: 0.5rem; border: 1px solid #bfdbfe; border-radius: 8px; font-size: 0.85rem; outline: none;">
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin: 0;">
+                        <label style="font-size: 0.8rem; font-weight: 600; color: #1e40af;">Código CID</label>
+                        <input type="text" id="edit-atestado-input-cid" style="width: 100%; padding: 0.5rem; border: 1px solid #bfdbfe; border-radius: 8px; font-size: 0.85rem; outline: none;" placeholder="Ex: Z00, H34.8...">
+                    </div>
+
+                    <div class="form-group" style="margin: 0;">
+                        <label style="font-size: 0.8rem; font-weight: 600; color: #1e40af;">Parecer / Resumo Médico</label>
+                        <textarea id="edit-atestado-input-resumo" rows="3" style="width: 100%; padding: 0.5rem; border: 1px solid #bfdbfe; border-radius: 8px; font-size: 0.85rem; outline: none; resize: vertical;" placeholder="Informe o resumo do atestado..."></textarea>
+                    </div>
                 </div>
 
-                <div style="background: #f8fafc; padding: 0.85rem; border-radius: 8px; border: 1px solid #f1f5f9;">
-                    <span style="display: block; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; color: #64748b; margin-bottom: 0.3rem;">Parecer / Resumo Médico</span>
-                    <p style="margin: 0; font-size: 0.9rem; color: #334155; line-height: 1.5; white-space: pre-wrap;" id="atestado-detalhe-resumo">-</p>
-                </div>
+                <!-- Footer Botões -->
+                <div style="display: flex; gap: 0.5rem; margin-top: 0.5rem; flex-wrap: wrap;">
+                    <div id="atestado-detalhe-view-actions" style="display: flex; gap: 0.4rem; width: 100%;">
+                        <button type="button" class="btn-outline-cancel" id="btn-close-atestado-detalhe-footer" style="flex: 1; height: 42px; justify-content: center;">
+                            Fechar
+                        </button>
+                        <button type="button" id="btn-delete-atestado-detalhe" style="flex: 1; height: 42px; justify-content: center; background: white; color: #ef4444; border: 1.5px solid #fca5a5; font-weight: 600; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 0.35rem; font-size: 0.825rem;" title="Cancelar / Excluir Atestado Homologado">
+                            <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i> Excluir
+                        </button>
+                        <button type="button" id="btn-edit-atestado-detalhe" style="flex: 1; height: 42px; justify-content: center; background: white; color: #1d4ed8; border: 1.5px solid #3b82f6; font-weight: 600; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 0.35rem; font-size: 0.825rem;">
+                            <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i> Editar
+                        </button>
+                        <button type="button" id="btn-copy-atestado-detalhe" style="flex: 1.2; height: 42px; justify-content: center; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; border: none; font-weight: 600; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 0.35rem; font-size: 0.825rem; box-shadow: 0 4px 10px rgba(37,99,235,0.25);">
+                            <i data-lucide="copy" style="width: 14px; height: 14px;"></i> Copiar
+                        </button>
+                    </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.8rem; color: #64748b; border-top: 1px solid #f1f5f9; padding-top: 0.8rem;">
-                    <div><strong>Homologado em:</strong> <span id="atestado-detalhe-criadoem">-</span></div>
-                    <div><strong>Homologado por:</strong> <span id="atestado-detalhe-criadopor">-</span></div>
-                </div>
-
-                <div style="display: flex; gap: 0.75rem; margin-top: 0.5rem;">
-                    <button type="button" class="btn-outline-cancel" id="btn-close-atestado-detalhe-footer" style="flex: 1; height: 42px; justify-content: center;">
-                        Fechar
-                    </button>
-                    <button type="button" id="btn-copy-atestado-detalhe" style="flex: 1; height: 42px; justify-content: center; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: white; border: none; font-weight: 600; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem; box-shadow: 0 4px 10px rgba(37,99,235,0.25);">
-                        <i data-lucide="copy" style="width: 16px; height: 16px;"></i> Copiar Resumo
-                    </button>
+                    <div id="atestado-detalhe-edit-actions" style="display: none; gap: 0.5rem; width: 100%;">
+                        <button type="button" class="btn-outline-cancel" id="btn-cancel-edit-atestado" style="flex: 1; height: 42px; justify-content: center;">
+                            Cancelar
+                        </button>
+                        <button type="button" id="btn-save-edit-atestado" style="flex: 1.5; height: 42px; justify-content: center; background: linear-gradient(135deg, #10b981, #059669); color: white; border: none; font-weight: 600; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 0.4rem; font-size: 0.875rem; box-shadow: 0 4px 10px rgba(16,185,129,0.25);">
+                            <i data-lucide="check" style="width: 16px; height: 16px;"></i> Salvar Alterações
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1801,7 +1901,7 @@ Intervalo
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Biblioteca SheetJS (XLSX) CDN para ler planilhas Excel no navegador -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script type="module" src="assets/js/admin/admin.js?v=19"></script>
+    <script type="module" src="assets/js/admin/admin.js?v=20"></script>
     <script>
         // Registro do Service Worker
         if ('serviceWorker' in navigator) {
