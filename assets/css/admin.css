@@ -676,6 +676,16 @@ button, a, [role="button"], input[type="submit"], input[type="button"], label {
     margin: 0;
 }
 
+.brand .admin-version-badge {
+    font-size: 0.65rem;
+    color: #888;
+    letter-spacing: 0.03em;
+    display: block;
+    margin-top: 2px;
+    cursor: default;
+    opacity: 0.8;
+}
+
 .btn-outline {
     background: transparent;
     border: 1px solid #ddd;
@@ -1208,7 +1218,8 @@ button, a, [role="button"], input[type="submit"], input[type="button"], label {
         font-size: 0.95rem;
     }
 
-    .brand p {
+    .brand p,
+    .brand .admin-version-badge {
         display: none;
     }
     
