@@ -9885,12 +9885,18 @@ _(obs.: Caso precise também da quantidade gênero considerando o total geral de
                                 const isDispensado = dispensasMap[musicoId] && dispensasMap[musicoId].has(dataStr);
                                 const isAtestado = atestadosMap[musicoId] && atestadosMap[musicoId].has(dataStr);
 
-                                if (registro.status === 'falta' && !isDispensado && !isAtestado) {
+                                const isPendente = registro.status === 'pendente' || registro.status === 'none';
+                                const isFalta = registro.status === 'falta';
+
+                                if ((isFalta || isPendente) && !isDispensado && !isAtestado) {
                                     let labelObs = '';
                                     if (pres.tipo === 'ensaio_naipe' && pres.naipe) {
-                                        labelObs = ` (Ensaio de Naipe - ${Array.isArray(pres.naipe) ? pres.naipe.join(' + ') : pres.naipe})`;
+                                        const naipeStr = Array.isArray(pres.naipe) ? pres.naipe.join(' + ') : pres.naipe;
+                                        labelObs = isPendente ? ` (Pendente - Ensaio de Naipe - ${naipeStr})` : ` (Ensaio de Naipe - ${naipeStr})`;
                                     } else if (isConcertoPres) {
-                                        labelObs = ` (Concerto)`;
+                                        labelObs = isPendente ? ` (Pendente - Concerto)` : ` (Concerto)`;
+                                    } else if (isPendente) {
+                                        labelObs = ` (Pendente)`;
                                     }
                                     bInfo.faltas.push({ dia, obs: labelObs });
                                 } else if (registro.status === 'atraso') {
