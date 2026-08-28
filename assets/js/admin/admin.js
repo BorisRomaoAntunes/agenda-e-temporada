@@ -7415,7 +7415,8 @@ function initMusiciansManagement() {
         // Calcular idade de forma inteligente
         const idadeCalculada = calcularIdade(musico['DATA DE NACIMENTO ']) || (typeof musico.IDADE === 'number' && musico.IDADE < 120 ? musico.IDADE : null);
         document.getElementById('drawer-val-idade').textContent = idadeCalculada ? `${idadeCalculada} anos` : '-';
-        document.getElementById('drawer-val-genero').textContent = formatValue(musico.GENERO || musico['GÊNERO']);
+        const rawGenero = musico.GENERO || musico['GÊNERO'] || musico.genero || musico['Gênero'] || musico.Genero || musico['Identidade de Gênero'] || musico['IDENTIDADE DE GÊNERO'] || '';
+        document.getElementById('drawer-val-genero').textContent = formatValue(rawGenero);
 
         // Dados Bancários
         document.getElementById('drawer-val-banco').textContent = formatValue(musico['Banco '] || musico['Banco']);
@@ -8549,11 +8550,32 @@ function initMusiciansManagement() {
     };
 
     const normalizarGenero = (generoVal) => {
-        if (!generoVal) return null;
+        if (!generoVal) return 'nao_informado';
         const s = generoVal.toString().toLowerCase().trim();
-        if (s.startsWith('masc') || s === 'm' || s === 'homem') return 'masculino';
-        if (s.startsWith('fem') || s === 'f' || s === 'mulher') return 'feminino';
-        return null;
+        if (!s) return 'nao_informado';
+
+        // 1. Pessoa não Binária
+        if (s.includes('não bin') || s.includes('nao bin') || s.includes('non-binary') || s === 'nb' || s.includes('binárie') || s.includes('binarie')) {
+            return 'nao_binario';
+        }
+
+        // 2. Prefiro não informar / Não informado
+        if (s.includes('informar') || s.includes('informado') || s.includes('declarad') || s.includes('responder') || s.includes('dizer') || s.includes('branco')) {
+            return 'nao_informado';
+        }
+
+        // 3. Mulher / Feminino
+        if (s.startsWith('fem') || s === 'f' || s.includes('mulher')) {
+            return 'mulher';
+        }
+
+        // 4. Homem / Masculino
+        if (s.startsWith('masc') || s === 'm' || s.includes('homem')) {
+            return 'homem';
+        }
+
+        // 5. Outra / Outro / Qualquer outro
+        return 'outra';
     };
 
     if (btnGenerateMetas) {
@@ -8646,22 +8668,94 @@ function initMusiciansManagement() {
             }
 
             // Gêneros (Apenas Bolsistas)
-            let bolsistasMasc = 0;
-            let bolsistasFem = 0;
+            const labelsGenero = {
+                mulher: "Mulher",
+                homem: "Homem",
+                nao_binario: "Pessoa não Binária",
+                nao_informado: "Prefiro não informar",
+                outra: "Outra"
+            };
+
+            const labelsGeneroPlural = {
+                mulher: "mulheres",
+                homem: "homens",
+                nao_binario: "pessoas não binárias",
+                nao_informado: "preferem não informar",
+                outra: "outras"
+            };
+
+            const ordemCategorias = ['mulher', 'homem', 'nao_binario', 'nao_informado', 'outra'];
+
+            const generosBolsistas = {
+                mulher: 0,
+                homem: 0,
+                nao_binario: 0,
+                nao_informado: 0,
+                outra: 0
+            };
+
             bolsistas.forEach(m => {
-                const gen = normalizarGenero(m.GENERO || m['GÊNERO']);
-                if (gen === 'masculino') bolsistasMasc++;
-                else if (gen === 'feminino') bolsistasFem++;
+                const rawGen = m.GENERO || m['GÊNERO'] || m.genero || m['Gênero'] || m.Genero || m['Identidade de Gênero'] || m['IDENTIDADE DE GÊNERO'] || '';
+                const gen = normalizarGenero(rawGen);
+                if (generosBolsistas[gen] !== undefined) {
+                    generosBolsistas[gen]++;
+                } else {
+                    generosBolsistas.outra++;
+                }
             });
 
             // Gêneros Geral (Bolsistas + Monitores)
-            let geralMasc = 0;
-            let geralFem = 0;
+            const generosGeral = {
+                mulher: 0,
+                homem: 0,
+                nao_binario: 0,
+                nao_informado: 0,
+                outra: 0
+            };
+
             ativos.forEach(m => {
-                const gen = normalizarGenero(m.GENERO || m['GÊNERO']);
-                if (gen === 'masculino') geralMasc++;
-                else if (gen === 'feminino') geralFem++;
+                const rawGen = m.GENERO || m['GÊNERO'] || m.genero || m['Gênero'] || m.Genero || m['Identidade de Gênero'] || m['IDENTIDADE DE GÊNERO'] || '';
+                const gen = normalizarGenero(rawGen);
+                if (generosGeral[gen] !== undefined) {
+                    generosGeral[gen]++;
+                } else {
+                    generosGeral.outra++;
+                }
             });
+
+            // Montar lista de Bolsistas (apenas categorias com contagem > 0)
+            const linhasGeneroBolsistas = [];
+            ordemCategorias.forEach(key => {
+                const qtd = generosBolsistas[key];
+                if (qtd > 0) {
+                    linhasGeneroBolsistas.push(`${labelsGenero[key]}: ${qtd}`);
+                }
+            });
+
+            const strGeneroBolsistas = linhasGeneroBolsistas.length > 0 
+                ? linhasGeneroBolsistas.join('\n') 
+                : 'Nenhum dado de gênero registrado.';
+
+            // Montar nota de rodapé Total Geral (Bolsistas + Monitores) (apenas > 0)
+            const partesGeral = [];
+            ordemCategorias.forEach(key => {
+                const qtd = generosGeral[key];
+                if (qtd > 0) {
+                    partesGeral.push(`${qtd} ${labelsGeneroPlural[key]}`);
+                }
+            });
+
+            let strGeralGeneroNota = "";
+            if (partesGeral.length > 0) {
+                let textoPartes = "";
+                if (partesGeral.length === 1) {
+                    textoPartes = partesGeral[0];
+                } else {
+                    const ult = partesGeral.pop();
+                    textoPartes = `${partesGeral.join(', ')} e ${ult}`;
+                }
+                strGeralGeneroNota = `\n\n_(obs.: Caso precise também da quantidade gênero considerando o total geral de monitores e bolsistas reunidos, os números atuais são: ${textoPartes})._`;
+            }
 
             // Data atual da solicitação
             const dataHoje = new Date();
@@ -8687,10 +8781,7 @@ Mais novo: ${maisNovo} anos
 Mais velho: ${maisVelho} anos
 
 *Gênero _(Apenas Bolsistas)_:*
-Masculino: ${bolsistasMasc}
-Feminino: ${bolsistasFem}
-
-_(obs.: Caso precise também da quantidade gênero considerando o total geral de monitores e bolsistas reunidos, os números atuais são ${geralMasc} homens e ${geralFem} mulheres)._`;
+${strGeneroBolsistas}${strGeralGeneroNota}`;
 
             // Preencher o modal
             if (resultMetasContainer) {
