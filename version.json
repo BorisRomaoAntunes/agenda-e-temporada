@@ -1,8 +1,14 @@
 {
-  "hash": "b04aac1",
-  "date": "01/09/2026 00:42",
-  "buildAt": "2026-09-01T03:43:11.239Z",
+  "hash": "5111c9f",
+  "date": "01/09/2026 00:43",
+  "buildAt": "2026-09-01T03:45:30.240Z",
   "history": [
+    {
+      "hash": "5111c9f",
+      "date": "01/09/2026 00:43",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json do build"
+    },
     {
       "hash": "b04aac1",
       "date": "01/09/2026 00:42",
@@ -116,12 +122,6 @@
       "date": "27/08/2026 13:08",
       "author": "Boris Romão Antunes",
       "subject": "style: ajuste de cores e hover no botao de seguir calendario"
-    },
-    {
-      "hash": "ae68820",
-      "date": "27/08/2026 12:59",
-      "author": "Boris Romão Antunes",
-      "subject": "feat: integracao Google Calendar publico de concertos com toggle no admin"
     }
   ]
 }
