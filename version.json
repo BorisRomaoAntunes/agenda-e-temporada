@@ -1,8 +1,32 @@
 {
-  "hash": "c41632d",
-  "date": "01/09/2026 01:33",
-  "buildAt": "2026-09-01T04:33:30.851Z",
+  "hash": "a86b5ae",
+  "date": "01/09/2026 01:48",
+  "buildAt": "2026-09-01T04:48:49.521Z",
   "history": [
+    {
+      "hash": "a86b5ae",
+      "date": "01/09/2026 01:48",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(admin): ocultar secoes vazias no relatorio de faltas, pendencias e atrasos"
+    },
+    {
+      "hash": "8bda312",
+      "date": "01/09/2026 01:45",
+      "author": "Boris Romão Antunes",
+      "subject": "fix: permitir múltiplos e-mails no formulário de edição e no extrator de contatos"
+    },
+    {
+      "hash": "612ed57",
+      "date": "01/09/2026 01:37",
+      "author": "Boris Romão Antunes",
+      "subject": "feat: suporte inteligente a data de inicio de contrato em chamadas e relatorios"
+    },
+    {
+      "hash": "a7052c9",
+      "date": "01/09/2026 01:33",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json do deploy em produção"
+    },
     {
       "hash": "c41632d",
       "date": "01/09/2026 01:33",
@@ -98,30 +122,6 @@
       "date": "31/08/2026 23:30",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualizar version.json do deploy"
-    },
-    {
-      "hash": "fb259f9",
-      "date": "31/08/2026 23:30",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(admin): adicionar extrator personalizado de dados de musicos"
-    },
-    {
-      "hash": "fb95b2b",
-      "date": "31/08/2026 23:30",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json do build"
-    },
-    {
-      "hash": "b058cc9",
-      "date": "31/08/2026 23:24",
-      "author": "Boris Romão Antunes",
-      "subject": "feat: adicionar indicativo de descoberta animado no letreiro"
-    },
-    {
-      "hash": "fd57bb7",
-      "date": "28/08/2026 18:39",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json do build"
     }
   ]
 }
