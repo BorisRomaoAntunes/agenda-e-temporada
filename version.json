@@ -1,8 +1,14 @@
 {
-  "hash": "f7542da",
+  "hash": "807b8e1",
   "date": "31/08/2026 23:50",
-  "buildAt": "2026-09-01T02:50:17.266Z",
+  "buildAt": "2026-09-01T02:51:21.117Z",
   "history": [
+    {
+      "hash": "807b8e1",
+      "date": "31/08/2026 23:50",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json do deploy"
+    },
     {
       "hash": "f7542da",
       "date": "31/08/2026 23:50",
@@ -116,12 +122,6 @@
       "date": "23/08/2026 00:56",
       "author": "Boris Romão Antunes",
       "subject": "Revert \"feat: melhorias no sistema de notificações push\""
-    },
-    {
-      "hash": "14e1431",
-      "date": "23/08/2026 00:54",
-      "author": "Boris Romão Antunes",
-      "subject": "Revert \"fix: visibilidade resiliente e estados do sino de notificacoes no site dos musicos\""
     }
   ]
 }
