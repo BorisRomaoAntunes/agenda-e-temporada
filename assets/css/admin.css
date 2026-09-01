@@ -677,13 +677,31 @@ button, a, [role="button"], input[type="submit"], input[type="button"], label {
 }
 
 .brand .admin-version-badge {
-    font-size: 0.65rem;
-    color: #888;
+    font-size: 0.68rem;
+    color: var(--text-secondary, #64748b);
     letter-spacing: 0.03em;
-    display: block;
-    margin-top: 2px;
-    cursor: default;
-    opacity: 0.8;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+    cursor: pointer;
+    opacity: 0.85;
+    padding: 2px 7px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    transition: all 0.2s ease;
+    user-select: none;
+    width: fit-content;
+}
+
+.brand .admin-version-badge:hover {
+    opacity: 1;
+    background: rgba(99, 102, 241, 0.08);
+    border-color: rgba(99, 102, 241, 0.25);
+    color: #4f46e5;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
 }
 
 .btn-outline {
@@ -5286,6 +5304,207 @@ input:checked + .slider:before {
 #extractor-preview-text:focus {
     border-color: #6366f1 !important;
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
+}
+
+/* ================= MODAL HISTÓRICO DE VERSÕES ================= */
+.version-history-card {
+    background: #ffffff;
+    width: 100%;
+    max-width: 580px;
+    max-height: 85vh;
+    max-height: 85dvh;
+    border-radius: 16px;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.18), 0 4px 10px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    animation: modalScaleIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    border: 1px solid #e2e8f0;
+    position: relative;
+}
+
+.version-history-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #f8fafc;
+}
+
+.version-history-header .title-area {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.version-history-header .title-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: rgba(99, 102, 241, 0.1);
+    color: #4f46e5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.version-history-header h3 {
+    margin: 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.version-history-header p {
+    margin: 2px 0 0;
+    font-size: 0.78rem;
+    color: #64748b;
+}
+
+.version-history-body {
+    padding: 1.25rem 1.5rem;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    flex: 1;
+}
+
+/* Timeline Vertical */
+.version-timeline {
+    position: relative;
+    padding-left: 20px;
+}
+
+.version-timeline::before {
+    content: '';
+    position: absolute;
+    top: 8px;
+    bottom: 8px;
+    left: 7px;
+    width: 2px;
+    background: #e2e8f0;
+}
+
+.version-timeline-item {
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.version-timeline-item:last-child {
+    margin-bottom: 0;
+}
+
+.version-timeline-item .timeline-node {
+    position: absolute;
+    left: -20px;
+    top: 6px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #ffffff;
+    border: 2.5px solid #94a3b8;
+    z-index: 1;
+    transition: all 0.2s ease;
+}
+
+.version-timeline-item.is-current .timeline-node {
+    border-color: #10b981;
+    background: #10b981;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+
+.version-timeline-content {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 0.75rem 0.9rem;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.version-timeline-content:hover {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.version-timeline-item.is-current .version-timeline-content {
+    background: rgba(16, 185, 129, 0.04);
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+.version-item-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.35rem;
+    flex-wrap: wrap;
+}
+
+.version-item-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.version-hash-tag {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #475569;
+    background: #e2e8f0;
+    padding: 1px 6px;
+    border-radius: 4px;
+}
+
+.version-timeline-item.is-current .version-hash-tag {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.version-current-badge {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #065f46;
+    background: #a7f3d0;
+    padding: 1px 6px;
+    border-radius: 4px;
+}
+
+.version-item-date {
+    font-size: 0.75rem;
+    color: #64748b;
+}
+
+.version-item-subject {
+    font-size: 0.85rem;
+    color: #1e293b;
+    line-height: 1.4;
+    word-break: break-word;
+    font-weight: 500;
+}
+
+.version-item-author {
+    font-size: 0.72rem;
+    color: #94a3b8;
+    margin-top: 0.3rem;
+}
+
+.version-history-footer {
+    padding: 0.85rem 1.5rem;
+    border-top: 1px solid #f1f5f9;
+    background: #f8fafc;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.version-history-footer-info {
+    font-size: 0.75rem;
+    color: #94a3b8;
 }
 
 

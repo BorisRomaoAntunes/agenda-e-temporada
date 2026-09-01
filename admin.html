@@ -135,7 +135,7 @@
                     <div>
                         <h1>Painel de Controle</h1>
                         <p id="user-email">admin@email.com</p>
-                        <span id="app-version-badge" class="admin-version-badge" title="Versão do sistema"></span>
+                        <span id="app-version-badge" class="admin-version-badge" title="Clique para ver o histórico de atualizações"></span>
                     </div>
                 </div>
                 <div class="header-actions">
@@ -2586,18 +2586,147 @@ Intervalo
         </div>
     </div>
 
+    <!-- Modal Histórico de Versões e Atualizações -->
+    <div id="modal-version-history" class="modal-overlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="version-history-title">
+        <div class="version-history-card">
+            <div class="version-history-header">
+                <div class="title-area">
+                    <div class="title-icon">
+                        <i data-lucide="history" style="width: 20px; height: 20px;"></i>
+                    </div>
+                    <div>
+                        <h3 id="version-history-title">Histórico de Atualizações</h3>
+                        <p>Últimas 20 alterações implantadas no sistema</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-icon" id="btn-close-version-history" aria-label="Fechar modal" style="background: none; border: none; cursor: pointer; color: #64748b; padding: 4px; border-radius: 6px; display: flex; align-items: center; justify-content: center;">
+                    <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                </button>
+            </div>
+
+            <div class="version-history-body">
+                <div class="version-timeline" id="version-timeline-container">
+                    <!-- Gerado via JS -->
+                </div>
+            </div>
+
+            <div class="version-history-footer">
+                <span class="version-history-footer-info" id="version-footer-build-info">OER Admin</span>
+                <button type="button" class="btn-outline" id="btn-close-version-history-footer" style="padding: 0.45rem 1rem; border-radius: 8px; font-weight: 500; cursor: pointer; border: 1px solid #cbd5e1; background: white; color: #475569; font-size: 0.82rem;">
+                    Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // Badge de versão do sistema
+        // Badge de versão do sistema e Modal de Histórico
+        let appVersionData = null;
+
+        function renderVersionHistory(data) {
+            const container = document.getElementById('version-timeline-container');
+            const footerInfo = document.getElementById('version-footer-build-info');
+            if (!container) return;
+
+            if (footerInfo && data.buildAt) {
+                try {
+                    const bDate = new Date(data.buildAt);
+                    footerInfo.textContent = `Build: ${bDate.toLocaleDateString('pt-BR')} ${bDate.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+                } catch(e) {
+                    footerInfo.textContent = `v${data.hash || ''}`;
+                }
+            }
+
+            const history = Array.isArray(data.history) && data.history.length > 0
+                ? data.history
+                : [{
+                    hash: data.hash || 'atual',
+                    date: data.date || '',
+                    author: '',
+                    subject: 'Versão atual em produção'
+                }];
+
+            container.innerHTML = history.map((item, index) => {
+                const isCurrent = index === 0;
+                const authorHtml = item.author ? `<div class="version-item-author">Por ${item.author}</div>` : '';
+                const currentBadgeHtml = isCurrent ? `<span class="version-current-badge">Atual</span>` : '';
+
+                return `
+                    <div class="version-timeline-item ${isCurrent ? 'is-current' : ''}">
+                        <div class="timeline-node"></div>
+                        <div class="version-timeline-content">
+                            <div class="version-item-header">
+                                <div class="version-item-meta">
+                                    <span class="version-hash-tag">#${item.hash}</span>
+                                    ${currentBadgeHtml}
+                                </div>
+                                <span class="version-item-date">${item.date || ''}</span>
+                            </div>
+                            <div class="version-item-subject">${item.subject || 'Atualização sem descrição'}</div>
+                            ${authorHtml}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openVersionModal() {
+            const modal = document.getElementById('modal-version-history');
+            if (!modal) return;
+            if (appVersionData) {
+                renderVersionHistory(appVersionData);
+            }
+            modal.style.display = 'flex';
+            if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
+                lucide.createIcons();
+            }
+        }
+
+        function closeVersionModal() {
+            const modal = document.getElementById('modal-version-history');
+            if (modal) modal.style.display = 'none';
+        }
+
+        // Fetch de versão e listeners
         fetch('/version.json?_=' + Date.now())
             .then(r => r.json())
             .then(v => {
+                appVersionData = v;
                 const el = document.getElementById('app-version-badge');
                 if (el) {
                     el.textContent = 'v' + v.hash + ' · ' + v.date;
-                    el.title = 'Versão implantada em: ' + v.date;
+                    el.title = 'Clique para ver o histórico das últimas 20 atualizações';
+                    
+                    el.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        openVersionModal();
+                    });
                 }
             })
             .catch(() => {});
+
+        // Listeners de fechamento do modal
+        document.addEventListener('DOMContentLoaded', () => {
+            const modal = document.getElementById('modal-version-history');
+            const btnClose = document.getElementById('btn-close-version-history');
+            const btnCloseFooter = document.getElementById('btn-close-version-history-footer');
+
+            if (btnClose) btnClose.addEventListener('click', closeVersionModal);
+            if (btnCloseFooter) btnCloseFooter.addEventListener('click', closeVersionModal);
+
+            if (modal) {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) closeVersionModal();
+                });
+            }
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && modal && modal.style.display === 'flex') {
+                    closeVersionModal();
+                }
+            });
+        });
     </script>
 
 </body>
