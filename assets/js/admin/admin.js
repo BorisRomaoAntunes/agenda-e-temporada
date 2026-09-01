@@ -8987,6 +8987,25 @@ function initMusiciansManagement() {
         "harpa": 1
     };
 
+    const metasBolsistasPorNaipe = {
+        "primeiro violino": 15,
+        "segundos violino": 15,
+        "viola": 9,
+        "violoncelo": 9,
+        "contrabaixo": 7,
+        "flauta": 3,
+        "oboe": 3,
+        "clarinete": 3,
+        "fagote": 3,
+        "trompa": 5,
+        "trompete": 3,
+        "trombone": 4,
+        "tuba": 0,
+        "percussao": 4,
+        "piano": 0,
+        "harpa": 0
+    };
+
     const nomesExibicaoNaipes = {
         "primeiro violino": "Primeiros Violinos",
         "segundos violino": "Segundos Violinos",
@@ -8997,8 +9016,8 @@ function initMusiciansManagement() {
         "oboe": "Oboés",
         "clarinete": "Clarinetes",
         "fagote": "Fagotes",
-        "trompa": "Trompa",
-        "trompete": "Trompete",
+        "trompa": "Trompas",
+        "trompete": "Trompetes",
         "trombone": "Trombones",
         "tuba": "Tuba",
         "percussao": "Percussão",
@@ -9041,7 +9060,7 @@ _(Atualizado: ${d.strDataAtualizado})_
 
 *BOLSISTAS*: ${d.numBolsistas} atuais ${d.strBolsistasMeta}
 *Monitores*: ${d.numMonitores} atuais ${d.strMonitoresMeta}
-*Total GERAL*: ${d.numGeral} atuais ${d.strGeralMeta}${d.strExcedenteNaipes}
+*Total GERAL*: ${d.numGeral} atuais ${d.strGeralMeta}${d.strExcedenteNaipes}${d.strVagasNaipes}
 
 *Perfil dos Bolsistas*
 *Idade:*
@@ -9062,6 +9081,9 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
         html += `<strong>Total GERAL:</strong> ${d.numGeral} atuais ${d.strGeralMeta}`;
         if (d.excedentesNaipes && d.excedentesNaipes.length > 0) {
             html += `<br><em>(Excedente: ${d.excedentesNaipes.join(', ')})</em>`;
+        }
+        if (d.vagasNaipes && d.vagasNaipes.length > 0) {
+            html += `<br><em>(Vagas em aberto: ${d.vagasNaipes.join(', ')})</em>`;
         }
         html += `<br><br><strong>Perfil dos Bolsistas</strong><br>`;
         html += `<strong>Idade:</strong><br>`;
@@ -9145,7 +9167,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
             const strMonitoresMeta = formatarMeta(numMonitores, metaMonitores);
             const strGeralMeta = formatarMeta(numGeral, metaGeral);
 
-            // Excedentes por Naipe
+            // Excedentes por Naipe (considerando total de ativos do naipe vs meta geral do naipe)
             const contagemNaipes = {};
             ativos.forEach(m => {
                 const naipeNormalizado = normalizarNaipe(m.INSTRUMENTOS);
@@ -9167,6 +9189,30 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
             let strExcedenteNaipes = "";
             if (excedentesNaipes.length > 0) {
                 strExcedenteNaipes = `\n_(Excedente: ${excedentesNaipes.join(', ')})_`;
+            }
+
+            // Vagas em aberto por Naipe (considerando bolsistas do naipe vs meta de bolsistas do naipe)
+            const contagemBolsistasNaipes = {};
+            bolsistas.forEach(m => {
+                const naipeNormalizado = normalizarNaipe(m.INSTRUMENTOS);
+                if (naipeNormalizado) {
+                    contagemBolsistasNaipes[naipeNormalizado] = (contagemBolsistasNaipes[naipeNormalizado] || 0) + 1;
+                }
+            });
+
+            const vagasNaipes = [];
+            Object.keys(metasBolsistasPorNaipe).forEach(naipeKey => {
+                const atualBolsistaNaipe = contagemBolsistasNaipes[naipeKey] || 0;
+                const metaBolsistaNaipe = metasBolsistasPorNaipe[naipeKey];
+                if (atualBolsistaNaipe < metaBolsistaNaipe) {
+                    const nomeNaipe = nomesExibicaoNaipes[naipeKey] || naipeKey;
+                    vagasNaipes.push(`${nomeNaipe}: ${metaBolsistaNaipe - atualBolsistaNaipe}`);
+                }
+            });
+
+            let strVagasNaipes = "";
+            if (vagasNaipes.length > 0) {
+                strVagasNaipes = `\n_(Vagas em aberto: ${vagasNaipes.join(', ')})_`;
             }
 
             // Perfil dos bolsistas (Idade)
@@ -9297,6 +9343,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                 numMonitores, strMonitoresMeta,
                 numGeral, strGeralMeta,
                 excedentesNaipes, strExcedenteNaipes,
+                vagasNaipes, strVagasNaipes,
                 mediaIdade, maisNovo, maisVelho,
                 linhasGeneroBolsistas,
                 strGeneroBolsistas,
