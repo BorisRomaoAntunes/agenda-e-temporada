@@ -739,7 +739,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        // Aguarda 1.2s após o carregamento para animação suave
+        // Aguarda 0.8s após o carregamento para animação suave
         setTimeout(() => {
             const isTickerVisible = window.getComputedStyle(newsTicker).display !== 'none';
             const isHistoryOpen = historyPanel && historyPanel.classList.contains('open');
@@ -748,12 +748,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 tickerCoachmark.style.display = 'block';
                 tickerCoachmark.setAttribute('aria-hidden', 'false');
                 
-                // Auto-dismiss após 5 segundos
+                // Auto-dismiss após 7.5 segundos
                 hintTimeout = setTimeout(() => {
                     dismissTickerHint(true);
-                }, 5000);
+                }, 7500);
             }
-        }, 1200);
+        }, 800);
     }
 
     if (tickerCoachmark) {
