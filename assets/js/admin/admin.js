@@ -7785,7 +7785,7 @@ function initMusiciansManagement() {
                     const musicoDocRef = doc(db, "musicos", docId);
                     await setDoc(musicoDocRef, updatedData, { merge: true });
 
-                    await addLog('sistema', `Cadastro do músico ${newNomeArtistico || newNomeRegistro} atualizado diretamente no painel.`);
+                    await saveLog('sistema', `Cadastro do músico ${newNomeArtistico || newNomeRegistro} atualizado diretamente no painel.`);
 
                     showNotification(`Músico ${newNomeArtistico || newNomeRegistro} atualizado com sucesso!`, "success");
                     closeEditMusicoDrawer();
@@ -10379,7 +10379,7 @@ ${strGeneroBolsistas}${strGeralGeneroNota}`;
                 return status.includes('bolsista');
             });
             
-            // Dicionário de controle: bolsistaId -> { nome, faltas: [ { dia, obs } ], atrasosMin: 0 }
+            // Dicionário de controle: bolsistaId -> { nome, faltas: [ { dia, obs } ], pendencias: [ { dia, obs } ], atrasosMin: 0 }
             const dadosBolsistas = {};
             
             bolsistas.forEach(b => {
@@ -10389,6 +10389,7 @@ ${strGeneroBolsistas}${strGeralGeneroNota}`;
                         nome: nomeExibido,
                         inst: (b.INSTRUMENTOS || b.Instrumento || ''),
                         faltas: [],
+                        pendencias: [],
                         atrasosMin: 0
                     };
                 }
@@ -10416,27 +10417,36 @@ ${strGeneroBolsistas}${strGeralGeneroNota}`;
                                     if (!isRelevant) return; // Músico não faz parte deste naipe
                                 }
 
-                                // Se possui dispensa ou atestado para esta data, não registrar falta
+                                // Se possui dispensa ou atestado para esta data, não registrar falta ou pendência
                                 const isDispensado = dispensasMap[musicoId] && dispensasMap[musicoId].has(dataStr);
                                 const isAtestado = atestadosMap[musicoId] && atestadosMap[musicoId].has(dataStr);
 
                                 const isPendente = registro.status === 'pendente' || registro.status === 'none';
                                 const isFalta = registro.status === 'falta';
 
-                                if ((isFalta || isPendente) && !isDispensado && !isAtestado) {
-                                    let labelObs = '';
-                                    if (pres.tipo === 'ensaio_naipe' && pres.naipe) {
-                                        const naipeStr = Array.isArray(pres.naipe) ? pres.naipe.join(' + ') : pres.naipe;
-                                        labelObs = isPendente ? ` (Pendente - Ensaio de Naipe - ${naipeStr})` : ` (Ensaio de Naipe - ${naipeStr})`;
-                                    } else if (isConcertoPres) {
-                                        labelObs = isPendente ? ` (Pendente - Concerto)` : ` (Concerto)`;
+                                if (!isDispensado && !isAtestado) {
+                                    if (isFalta) {
+                                        let labelObs = '';
+                                        if (pres.tipo === 'ensaio_naipe' && pres.naipe) {
+                                            const naipeStr = Array.isArray(pres.naipe) ? pres.naipe.join(' + ') : pres.naipe;
+                                            labelObs = ` (Ensaio de Naipe - ${naipeStr})`;
+                                        } else if (isConcertoPres) {
+                                            labelObs = ` (Concerto)`;
+                                        }
+                                        bInfo.faltas.push({ dia, obs: labelObs });
                                     } else if (isPendente) {
-                                        labelObs = ` (Pendente)`;
+                                        let labelObs = '';
+                                        if (pres.tipo === 'ensaio_naipe' && pres.naipe) {
+                                            const naipeStr = Array.isArray(pres.naipe) ? pres.naipe.join(' + ') : pres.naipe;
+                                            labelObs = ` (Ensaio de Naipe - ${naipeStr})`;
+                                        } else if (isConcertoPres) {
+                                            labelObs = ` (Concerto)`;
+                                        }
+                                        bInfo.pendencias.push({ dia, obs: labelObs });
+                                    } else if (registro.status === 'atraso') {
+                                        const min = parseInt(registro.minutes) || 0;
+                                        bInfo.atrasosMin += min;
                                     }
-                                    bInfo.faltas.push({ dia, obs: labelObs });
-                                } else if (registro.status === 'atraso') {
-                                    const min = parseInt(registro.minutes) || 0;
-                                    bInfo.atrasosMin += min;
                                 }
                             }
                         });
@@ -10456,8 +10466,17 @@ ${strGeneroBolsistas}${strGeralGeneroNota}`;
                     listaFaltantesLines.push(`\t• ${b.nome} - ${listDatasStr}`);
                 }
             });
+
+            // 2. Processar e formatar Pendências
+            const listaPendentesLines = [];
+            bolsistasOrdenadosPorNome.forEach(b => {
+                if (b.pendencias.length > 0) {
+                    const listDatasStr = b.pendencias.map(p => `${String(p.dia).padStart(2, '0')}/${mesStr}${p.obs}`).join(', ');
+                    listaPendentesLines.push(`\t• ${b.nome} - ${listDatasStr}`);
+                }
+            });
             
-            // 2. Processar e formatar Atrasos (do maior para o menor)
+            // 3. Processar e formatar Atrasos (do maior para o menor)
             const listaAtrasadosLines = [];
             const bolsistasComAtraso = Object.values(dadosBolsistas)
                 .filter(b => b.atrasosMin > 0)
@@ -10478,6 +10497,13 @@ ${strGeneroBolsistas}${strGeralGeneroNota}`;
                 relatorioText += listaFaltantesLines.join('\n');
             } else {
                 relatorioText += "\t• Nenhum bolsista faltou neste mês.";
+            }
+
+            relatorioText += `\n\n*Lista de Bolsistas Pendentes (Mês de ${mesNomeAno})*\n`;
+            if (listaPendentesLines.length > 0) {
+                relatorioText += listaPendentesLines.join('\n');
+            } else {
+                relatorioText += "\t• Nenhum bolsista possui pendência neste mês.";
             }
             
             relatorioText += `\n\n*Lista de Atrasos - Total Acumulado (Mês de ${mesNomeAno})*\n`;
