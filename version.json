@@ -1,8 +1,14 @@
 {
-  "hash": "93030ff",
-  "date": "01/09/2026 00:57",
-  "buildAt": "2026-09-01T03:58:18.603Z",
+  "hash": "9f5e26d",
+  "date": "01/09/2026 00:58",
+  "buildAt": "2026-09-01T04:06:25.982Z",
   "history": [
+    {
+      "hash": "9f5e26d",
+      "date": "01/09/2026 00:58",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json do build"
+    },
     {
       "hash": "93030ff",
       "date": "01/09/2026 00:57",
@@ -116,12 +122,6 @@
       "date": "28/08/2026 17:41",
       "author": "Boris Romão Antunes",
       "subject": "feat(admin): adiciona bolsistas pendentes no relatorio de faltas e atrasos"
-    },
-    {
-      "hash": "8ed30d0",
-      "date": "27/08/2026 18:59",
-      "author": "Boris Romão Antunes",
-      "subject": "feat: metricas e analytics de adesao ao calendario no admin e site publico"
     }
   ]
 }
