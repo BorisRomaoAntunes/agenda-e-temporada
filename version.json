@@ -1,5 +1,127 @@
 {
-  "hash": "b058cc9",
-  "date": "31/08/2026 23:24",
-  "buildAt": "2026-09-01T02:30:00Z"
+  "hash": "fb95b2b",
+  "date": "31/08/2026 23:30",
+  "buildAt": "2026-09-01T02:30:19.647Z",
+  "history": [
+    {
+      "hash": "fb95b2b",
+      "date": "31/08/2026 23:30",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json do build"
+    },
+    {
+      "hash": "b058cc9",
+      "date": "31/08/2026 23:24",
+      "author": "Boris Romão Antunes",
+      "subject": "feat: adicionar indicativo de descoberta animado no letreiro"
+    },
+    {
+      "hash": "fd57bb7",
+      "date": "28/08/2026 18:39",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json do build"
+    },
+    {
+      "hash": "76071e0",
+      "date": "28/08/2026 18:38",
+      "author": "Boris Romão Antunes",
+      "subject": "fix(admin): exibir versao abaixo do email no painel admin"
+    },
+    {
+      "hash": "f138271",
+      "date": "28/08/2026 18:28",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(admin): adiciona suporte as 5 categorias de genero no relatorio de metas e drawer"
+    },
+    {
+      "hash": "02b5898",
+      "date": "28/08/2026 17:41",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(admin): adiciona bolsistas pendentes no relatorio de faltas e atrasos"
+    },
+    {
+      "hash": "8ed30d0",
+      "date": "27/08/2026 18:59",
+      "author": "Boris Romão Antunes",
+      "subject": "feat: metricas e analytics de adesao ao calendario no admin e site publico"
+    },
+    {
+      "hash": "9a511a2",
+      "date": "27/08/2026 13:19",
+      "author": "Boris Romão Antunes",
+      "subject": "feat: deteccao automatica de dispositivo Apple/Android para abrir calendario nativo"
+    },
+    {
+      "hash": "4e8f302",
+      "date": "27/08/2026 13:08",
+      "author": "Boris Romão Antunes",
+      "subject": "style: ajuste de cores e hover no botao de seguir calendario"
+    },
+    {
+      "hash": "ae68820",
+      "date": "27/08/2026 12:59",
+      "author": "Boris Romão Antunes",
+      "subject": "feat: integracao Google Calendar publico de concertos com toggle no admin"
+    },
+    {
+      "hash": "ce364a4",
+      "date": "27/08/2026 09:48",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(admin): permite editar e excluir dispensas e atestados homologados com sincronizacao nas listas de presenca"
+    },
+    {
+      "hash": "afce400",
+      "date": "27/08/2026 09:47",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(admin): exibe instrumento do musico nos modais de dispensa e atestado"
+    },
+    {
+      "hash": "8eccbd5",
+      "date": "25/08/2026 12:12",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(admin): adiciona secao de atestados homologados abaixo de dispensas concedidas"
+    },
+    {
+      "hash": "069957b",
+      "date": "23/08/2026 00:58",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json do deploy"
+    },
+    {
+      "hash": "d409f8f",
+      "date": "23/08/2026 00:56",
+      "author": "Boris Romão Antunes",
+      "subject": "Revert \"feat: melhorias no sistema de notificações push\""
+    },
+    {
+      "hash": "14e1431",
+      "date": "23/08/2026 00:54",
+      "author": "Boris Romão Antunes",
+      "subject": "Revert \"fix: visibilidade resiliente e estados do sino de notificacoes no site dos musicos\""
+    },
+    {
+      "hash": "965c3f6",
+      "date": "23/08/2026 00:54",
+      "author": "Boris Romão Antunes",
+      "subject": "Revert \"style: atualiza cor do sino de notificações para dourado\""
+    },
+    {
+      "hash": "938a944",
+      "date": "23/08/2026 00:45",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json do deploy"
+    },
+    {
+      "hash": "4dfe941",
+      "date": "23/08/2026 00:42",
+      "author": "Boris Romão Antunes",
+      "subject": "fix: tornar getMessaging resiliente para não bloquear letreiro e histórico de avisos"
+    },
+    {
+      "hash": "dba01af",
+      "date": "22/08/2026 20:20",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json do deploy"
+    }
+  ]
 }

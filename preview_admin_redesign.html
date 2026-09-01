@@ -1,0 +1,2331 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Painel Admin OER 2026 — Modelo Mobile & Ficha 360°</title>
+
+    <!-- Fonte Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Ícones Lucide -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        :root {
+            /* Cores Primárias e Neutras */
+            --primary: #8b0000;
+            --primary-dark: #630000;
+            --primary-light: #ab1f1f;
+            --primary-glow: rgba(139, 0, 0, 0.15);
+            --primary-subtle: #fdf2f2;
+
+            --bg-body: #090d16;
+            --bg-canvas: #f1f5f9;
+            --bg-surface: #ffffff;
+            --bg-sidebar: #0f172a;
+            --bg-sidebar-hover: #1e293b;
+            --bg-sidebar-active: #273549;
+
+            --border: #e2e8f0;
+            --border-subtle: #f1f5f9;
+
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #94a3b8;
+            --text-sidebar: #cbd5e1;
+            --text-sidebar-bright: #ffffff;
+
+            /* Cores de Status */
+            --success: #10b981;
+            --success-bg: #ecfdf5;
+            --success-border: #a7f3d0;
+            --warning: #f59e0b;
+            --warning-bg: #fffbeb;
+            --warning-border: #fde68a;
+            --danger: #ef4444;
+            --danger-bg: #fef2f2;
+            --danger-border: #fecaca;
+            --info: #3b82f6;
+            --info-bg: #eff6ff;
+            --info-border: #bfdbfe;
+            --purple: #8b5cf6;
+            --purple-bg: #faf5ff;
+            --purple-border: #ddd6fe;
+
+            --radius-sm: 8px;
+            --radius-md: 12px;
+            --radius-lg: 16px;
+            --radius-xl: 22px;
+
+            --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+            --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.06);
+            --shadow-md: 0 8px 24px rgba(15, 23, 42, 0.08);
+            --shadow-lg: 0 16px 36px rgba(15, 23, 42, 0.12);
+            --shadow-modal: 0 25px 60px -15px rgba(0, 0, 0, 0.35);
+
+            --transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* ================= 1. BARRA DE CONTROLE DO SIMULADOR ================= */
+        .simulator-bar {
+            background: #111827;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            color: #ffffff;
+            padding: 0.5rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 3000;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+        }
+
+        .simulator-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #f8fafc;
+        }
+
+        .simulator-tag {
+            background: linear-gradient(135deg, #8b0000, #dc2626);
+            color: white;
+            padding: 0.15rem 0.5rem;
+            border-radius: 6px;
+            font-size: 0.68rem;
+            text-transform: uppercase;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+        }
+
+        .simulator-buttons {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: #1f2937;
+            padding: 0.25rem;
+            border-radius: 10px;
+            border: 1px solid #374151;
+        }
+
+        .sim-btn {
+            background: transparent;
+            border: none;
+            color: #9ca3af;
+            padding: 0.35rem 0.75rem;
+            border-radius: 7px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .sim-btn:hover {
+            color: #ffffff;
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .sim-btn.active {
+            background: #8b0000;
+            color: #ffffff;
+            font-weight: 700;
+            box-shadow: 0 2px 8px rgba(139, 0, 0, 0.4);
+        }
+
+        .sim-meta-info {
+            font-size: 0.72rem;
+            color: #9ca3af;
+            font-family: 'JetBrains Mono', monospace;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        /* ================= 2. ENVOLTÓRIO DO SIMULADOR (DEVICE FRAME) ================= */
+        .simulator-viewport-wrapper {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem 1rem;
+            min-height: calc(100vh - 50px);
+            background: radial-gradient(circle at center, #1e293b 0%, #090d16 100%);
+            transition: var(--transition);
+        }
+
+        /* Moldura do Dispositivo */
+        .device-frame {
+            width: 100%;
+            height: 100%;
+            background: var(--bg-canvas);
+            transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Modo iPhone 15 Pro */
+        .device-frame.mode-iphone {
+            width: 393px;
+            height: 852px;
+            max-height: 90vh;
+            border-radius: 48px;
+            box-shadow: 0 0 0 12px #1e293b, 0 0 0 14px #334155, 0 25px 60px rgba(0, 0, 0, 0.7);
+            border: 4px solid #0f172a;
+        }
+
+        /* Modo Android / Galaxy */
+        .device-frame.mode-android {
+            width: 360px;
+            height: 800px;
+            max-height: 90vh;
+            border-radius: 36px;
+            box-shadow: 0 0 0 10px #1e293b, 0 0 0 12px #334155, 0 25px 60px rgba(0, 0, 0, 0.7);
+            border: 3px solid #0f172a;
+        }
+
+        /* Modo Tablet iPad */
+        .device-frame.mode-tablet {
+            width: 768px;
+            height: 960px;
+            max-height: 90vh;
+            border-radius: 28px;
+            box-shadow: 0 0 0 12px #1e293b, 0 25px 60px rgba(0, 0, 0, 0.7);
+        }
+
+        /* Modo Desktop / Fullscreen */
+        .device-frame.mode-desktop {
+            width: 100%;
+            min-height: 100vh;
+            border-radius: 0;
+            box-shadow: none;
+            border: none;
+        }
+
+        /* Notch / Dynamic Island no Celular */
+        .phone-notch {
+            display: none;
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 115px;
+            height: 28px;
+            background: #000000;
+            border-radius: 20px;
+            z-index: 2500;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+        }
+
+        .mode-iphone .phone-notch {
+            display: block;
+        }
+
+        /* App Container Principal */
+        .app-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            overflow-y: auto;
+            position: relative;
+            background: var(--bg-canvas);
+        }
+
+        /* ================= 3. MOBILE HEADER & NAVIGATION ================= */
+        .mobile-header {
+            background: #ffffff;
+            border-bottom: 1px solid var(--border);
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 1200;
+            box-shadow: var(--shadow-xs);
+        }
+
+        .mode-iphone .mobile-header {
+            padding-top: 2.2rem; /* Espaço para o notch */
+        }
+
+        .mobile-header-left {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+        }
+
+        .btn-hamburger {
+            width: 38px;
+            height: 38px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: #ffffff;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-hamburger:hover {
+            background: #f1f5f9;
+        }
+
+        .mobile-brand {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .mobile-brand img {
+            height: 30px;
+            width: auto;
+        }
+
+        .mobile-brand-title {
+            font-size: 0.95rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            line-height: 1.1;
+        }
+
+        .mobile-brand-sub {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .mobile-header-actions {
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .btn-mobile-action {
+            width: 36px;
+            height: 36px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: #ffffff;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .btn-mobile-action:hover {
+            background: #f1f5f9;
+            color: var(--primary);
+        }
+
+        /* ================= 4. BUSCA OMNIBOX MOBILE & OVERLAY ================= */
+        .mobile-search-bar {
+            padding: 0.65rem 1rem;
+            background: #ffffff;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 57px;
+            z-index: 1190;
+        }
+
+        .mode-iphone .mobile-search-bar {
+            top: 78px;
+        }
+
+        .search-input-wrapper {
+            position: relative;
+            width: 100%;
+        }
+
+        .search-input {
+            width: 100%;
+            height: 38px;
+            background: #f8fafc;
+            border: 1.5px solid #e2e8f0;
+            border-radius: var(--radius-md);
+            padding: 0 2.2rem 0 2.3rem;
+            font-size: 0.82rem;
+            color: var(--text-primary);
+            outline: none;
+            transition: var(--transition);
+        }
+
+        .search-input:focus {
+            background: #ffffff;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+        }
+
+        .search-icon-inside {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            color: #94a3b8;
+            pointer-events: none;
+        }
+
+        .search-clear-btn {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            display: none;
+        }
+
+        /* Resultados da Busca Mobile */
+        .search-results-dropdown {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border);
+            max-height: 320px;
+            overflow-y: auto;
+            display: none;
+            z-index: 1500;
+            padding: 0.4rem;
+        }
+
+        .search-results-dropdown.active {
+            display: block;
+        }
+
+        .search-result-row {
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            padding: 0.6rem 0.75rem;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: var(--transition);
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .search-result-row:last-child {
+            border-bottom: none;
+        }
+
+        .search-result-row:hover, .search-result-row:active {
+            background: #f1f5f9;
+        }
+
+        /* ================= 5. DRAWER LATERAL MOBILE ================= */
+        .drawer-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(3px);
+            z-index: 2000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease;
+        }
+
+        .drawer-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .mobile-drawer {
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: -300px;
+            width: 280px;
+            max-width: 85%;
+            background: var(--bg-sidebar);
+            color: var(--text-sidebar);
+            z-index: 2001;
+            transition: left 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            flex-direction: column;
+            box-shadow: 10px 0 30px rgba(0, 0, 0, 0.4);
+        }
+
+        .mobile-drawer.active {
+            left: 0;
+        }
+
+        .drawer-header {
+            padding: 1.2rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .drawer-menu {
+            flex: 1;
+            padding: 1rem 0.8rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .drawer-nav-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.7rem 0.9rem;
+            border-radius: var(--radius-sm);
+            color: var(--text-sidebar);
+            text-decoration: none;
+            font-size: 0.86rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .drawer-nav-item:hover, .drawer-nav-item.active {
+            background: var(--bg-sidebar-active);
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .drawer-nav-item.active {
+            border-left: 3px solid #ef4444;
+        }
+
+        /* ================= 6. BOTTOM NAVIGATION BAR (FIXA NO MOBILE) ================= */
+        .bottom-nav {
+            position: sticky;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: #ffffff;
+            border-top: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            z-index: 1200;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .mode-iphone .bottom-nav {
+            height: 75px;
+            padding-bottom: 15px; /* Espaço do Home Indicator */
+        }
+
+        .bottom-nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.2rem;
+            color: #64748b;
+            font-size: 0.65rem;
+            font-weight: 600;
+            cursor: pointer;
+            padding: 0.4rem 0;
+            transition: var(--transition);
+            user-select: none;
+        }
+
+        .bottom-nav-item i {
+            width: 19px;
+            height: 19px;
+            transition: var(--transition);
+        }
+
+        .bottom-nav-item.active {
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        .bottom-nav-item.active i {
+            transform: scale(1.1);
+            color: var(--primary);
+        }
+
+        /* ================= 7. CONTEÚDO PRINCIPAL (MOBILE VIEWS) ================= */
+        .mobile-main-content {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+        }
+
+        .mobile-view {
+            display: none;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .mobile-view.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Banner de Alerta / Intervalo no Topo do Dashboard */
+        .mobile-interval-card {
+            background: linear-gradient(135deg, #fef2f2, #fee2e2);
+            border: 1px solid #fca5a5;
+            border-radius: var(--radius-md);
+            padding: 0.85rem 1rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .interval-pill {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: #991b1b;
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background: #ef4444;
+            border-radius: 50%;
+            box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+
+        /* Mobile Stats Grid */
+        .mobile-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .mobile-stat-card {
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 0.85rem;
+            box-shadow: var(--shadow-xs);
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .mobile-stat-card:active {
+            transform: scale(0.98);
+        }
+
+        .mobile-stat-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .mobile-stat-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mobile-stat-icon.blue { background: #dbeafe; color: #1e40af; }
+        .mobile-stat-icon.green { background: #dcfce7; color: #166534; }
+        .mobile-stat-icon.red { background: #fee2e2; color: #991b1b; }
+        .mobile-stat-icon.amber { background: #fef3c7; color: #92400e; }
+
+        .mobile-stat-value {
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            line-height: 1;
+            margin-top: 0.2rem;
+        }
+
+        .mobile-stat-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        /* Mobile Section Header */
+        .section-header-mobile {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+        }
+
+        .section-header-mobile h3 {
+            font-size: 0.92rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        /* ================= 8. CARTÕES DE MÚSICOS EM LISTA MOBILE ================= */
+        .musicians-card-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+        }
+
+        .musician-card {
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 0.9rem;
+            box-shadow: var(--shadow-xs);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.8rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .musician-card:active {
+            background: #f8fafc;
+            border-color: #cbd5e1;
+            transform: scale(0.99);
+        }
+
+        .musician-card-left {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .musician-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #f1f5f9;
+            color: #1e293b;
+            font-weight: 800;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            border: 1.5px solid #e2e8f0;
+        }
+
+        .musician-details {
+            overflow: hidden;
+        }
+
+        .musician-details strong {
+            display: block;
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .musician-details span {
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            display: block;
+        }
+
+        .musician-card-right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.3rem;
+            flex-shrink: 0;
+        }
+
+        /* Badges de Frequência */
+        .freq-chip {
+            padding: 0.2rem 0.5rem;
+            border-radius: 10px;
+            font-size: 0.72rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .freq-chip.regular { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+        .freq-chip.warning { background: #fffbeb; color: #d97706; border: 1px solid #fde68a; }
+        .freq-chip.danger { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+
+        /* ================= 9. RADAR DE NAIPES MOBILE ================= */
+        .naipes-mobile-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+        }
+
+        .naipe-mobile-item {
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 0.85rem;
+            box-shadow: var(--shadow-xs);
+        }
+
+        .naipe-item-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.4rem;
+        }
+
+        .naipe-name {
+            font-size: 0.86rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .naipe-bar-bg {
+            height: 6px;
+            background: #f1f5f9;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+        }
+
+        .naipe-bar-fill {
+            height: 100%;
+            border-radius: 10px;
+        }
+
+        .naipe-item-footer {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        /* ================= 10. FICHA 360° BOTTOM-SHEET / FULL-SCREEN ================= */
+        .bottom-sheet-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(15, 23, 42, 0.7);
+            backdrop-filter: blur(4px);
+            z-index: 2200;
+            display: none;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .bottom-sheet-overlay.active {
+            display: flex;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .bottom-sheet-container {
+            width: 100%;
+            height: 92%;
+            background: #ffffff;
+            border-radius: 24px 24px 0 0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: var(--shadow-modal);
+            animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+
+        .sheet-drag-handle {
+            width: 40px;
+            height: 4px;
+            background: #cbd5e1;
+            border-radius: 10px;
+            margin: 8px auto 4px auto;
+        }
+
+        .sheet-header {
+            background: linear-gradient(135deg, #1e1b4b, #0f172a);
+            color: white;
+            padding: 1rem 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .sheet-musician-info {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .sheet-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #8b0000, #dc2626);
+            color: white;
+            font-weight: 800;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            flex-shrink: 0;
+        }
+
+        .sheet-names h2 {
+            font-size: 1.1rem;
+            font-weight: 800;
+            line-height: 1.2;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sheet-names p {
+            font-size: 0.75rem;
+            color: #cbd5e1;
+        }
+
+        .btn-sheet-close {
+            background: rgba(255, 255, 255, 0.15);
+            border: none;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        /* Barra de Ações Rápidas Mobile da Ficha */
+        .sheet-quick-actions {
+            background: #f8fafc;
+            border-bottom: 1px solid var(--border);
+            padding: 0.6rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.4rem;
+        }
+
+        .sheet-action-btn {
+            flex: 1;
+            height: 36px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+            background: #ffffff;
+            color: var(--text-primary);
+            font-size: 0.72rem;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .sheet-action-btn.primary {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+        }
+
+        /* Abas com Scroll Horizontal na Ficha Mobile */
+        .sheet-tabs-bar {
+            display: flex;
+            background: #ffffff;
+            border-bottom: 1px solid var(--border);
+            overflow-x: auto;
+            white-space: nowrap;
+            padding: 0 0.5rem;
+            scrollbar-width: none;
+        }
+
+        .sheet-tabs-bar::-webkit-scrollbar {
+            display: none;
+        }
+
+        .sheet-tab-item {
+            padding: 0.75rem 0.9rem;
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            border: none;
+            background: none;
+            cursor: pointer;
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .sheet-tab-item.active {
+            color: var(--primary);
+            font-weight: 700;
+        }
+
+        .sheet-tab-item.active::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 2.5px;
+            background: var(--primary);
+            border-radius: 2px 2px 0 0;
+        }
+
+        .sheet-body {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+            background: #f8fafc;
+        }
+
+        .sheet-tab-pane {
+            display: none;
+        }
+
+        .sheet-tab-pane.active {
+            display: block;
+            animation: fadeIn 0.2s ease;
+        }
+
+        /* Timeline Items Mobile */
+        .sheet-timeline-card {
+            background: #ffffff;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 0.8rem;
+            margin-bottom: 0.6rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.6rem;
+        }
+
+        .timeline-card-left {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            overflow: hidden;
+        }
+
+        .timeline-dot-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .timeline-dot-icon.presente { background: #dcfce7; color: #166534; }
+        .timeline-dot-icon.falta { background: #fee2e2; color: #991b1b; }
+        .timeline-dot-icon.atraso { background: #fef3c7; color: #92400e; }
+        .timeline-dot-icon.dispensa { background: #f3e8ff; color: #6b21a8; }
+        .timeline-dot-icon.atestado { background: #dbeafe; color: #1e40af; }
+
+        .timeline-info strong {
+            display: block;
+            font-size: 0.82rem;
+            color: var(--text-primary);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .timeline-info span {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .btn-mini-adjust {
+            background: #f1f5f9;
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            padding: 0.3rem 0.55rem;
+            border-radius: 6px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            cursor: pointer;
+            flex-shrink: 0;
+        }
+
+        /* Formulários Mobile */
+        .mobile-form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            margin-bottom: 0.85rem;
+        }
+
+        .mobile-form-label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+        }
+
+        .mobile-form-control {
+            height: 38px;
+            border-radius: var(--radius-sm);
+            border: 1.5px solid var(--border);
+            padding: 0 0.75rem;
+            font-size: 0.84rem;
+            color: var(--text-primary);
+            background: #ffffff;
+            outline: none;
+        }
+
+        .mobile-form-control:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px var(--primary-glow);
+        }
+
+        /* Modais Secundários Mobile */
+        .submodal-mobile {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.75);
+            z-index: 2600;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+
+        .submodal-mobile.active {
+            display: flex;
+        }
+
+        .submodal-mobile-card {
+            background: #ffffff;
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 340px;
+            overflow: hidden;
+            box-shadow: var(--shadow-modal);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ================= 1. BARRA DO SIMULADOR DE DISPOSITIVO (TOPO) ================= -->
+    <div class="simulator-bar">
+        <div class="simulator-brand">
+            <span class="simulator-tag">Simulador Mobile</span>
+            <span>Painel Admin OER</span>
+        </div>
+
+        <div class="simulator-buttons">
+            <button class="sim-btn active" id="btn-mode-iphone" onclick="setDeviceMode('iphone')">
+                <i data-lucide="smartphone" style="width: 14px; height: 14px;"></i> iPhone (393px)
+            </button>
+            <button class="sim-btn" id="btn-mode-android" onclick="setDeviceMode('android')">
+                <i data-lucide="smartphone" style="width: 14px; height: 14px;"></i> Android (360px)
+            </button>
+            <button class="sim-btn" id="btn-mode-tablet" onclick="setDeviceMode('tablet')">
+                <i data-lucide="tablet" style="width: 14px; height: 14px;"></i> iPad (768px)
+            </button>
+            <button class="sim-btn" id="btn-mode-desktop" onclick="setDeviceMode('desktop')">
+                <i data-lucide="monitor" style="width: 14px; height: 14px;"></i> Tela Cheia
+            </button>
+        </div>
+
+        <div class="sim-meta-info">
+            <span id="sim-resolution-text">393 × 852 px</span>
+        </div>
+    </div>
+
+    <!-- ================= 2. VIEWPORT / MOLDURA DO DISPOSITIVO ================= -->
+    <div class="simulator-viewport-wrapper">
+        <div class="device-frame mode-iphone" id="device-frame">
+
+            <!-- Dynamic Island / Notch no iPhone -->
+            <div class="phone-notch"></div>
+
+            <!-- APP CONTAINER -->
+            <div class="app-container">
+
+                <!-- 3. HEADER MOBILE -->
+                <header class="mobile-header">
+                    <div class="mobile-header-left">
+                        <button class="btn-hamburger" id="btn-open-drawer" title="Menu Principal">
+                            <i data-lucide="menu" style="width: 18px; height: 18px;"></i>
+                        </button>
+                        <div class="mobile-brand">
+                            <img src="assets/img/logo_oer.png" alt="OER Logo">
+                            <div>
+                                <div class="mobile-brand-title">OER Admin</div>
+                                <div class="mobile-brand-sub">Temporada 2026</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mobile-header-actions">
+                        <button class="btn-mobile-action" id="btn-trigger-search" title="Buscar">
+                            <i data-lucide="search" style="width: 16px; height: 16px;"></i>
+                        </button>
+                        <button class="btn-mobile-action" onclick="openNovaDispensaModal()" title="Nova Dispensa">
+                            <i data-lucide="shield-check" style="width: 16px; height: 16px; color: var(--purple);"></i>
+                        </button>
+                    </div>
+                </header>
+
+                <!-- 4. BUSCA OMNIBOX MOBILE -->
+                <div class="mobile-search-bar" id="search-bar-container">
+                    <div class="search-input-wrapper">
+                        <i data-lucide="search" class="search-icon-inside"></i>
+                        <input type="text" id="mobile-search-input" class="search-input" placeholder="Buscar por Nome, Naipe, CPF..." autocomplete="off">
+                        
+                        <!-- Dropdown de Resultados -->
+                        <div class="search-results-dropdown" id="search-results-box"></div>
+                    </div>
+                </div>
+
+                <!-- 5. CONTEÚDO PRINCIPAL (VIEWS) -->
+                <main class="mobile-main-content">
+
+                    <!-- ================= VIEW 1: DASHBOARD ================= -->
+                    <section id="view-dashboard" class="mobile-view active">
+                        <!-- Banner do Intervalo -->
+                        <div class="mobile-interval-card">
+                            <div class="interval-pill">
+                                <span class="pulse-dot"></span>
+                                <span>Intervalo: <strong>14m restantes</strong></span>
+                            </div>
+                            <span style="font-size: 0.72rem; color: #991b1b; font-weight: 600;">Ao vivo no App</span>
+                        </div>
+
+                        <!-- Grid de Estatísticas Rápidas -->
+                        <div class="mobile-stats-grid">
+                            <div class="mobile-stat-card" onclick="switchMobileTab('músicos')">
+                                <div class="mobile-stat-header">
+                                    <span class="mobile-stat-label">Integrantes</span>
+                                    <div class="mobile-stat-icon blue"><i data-lucide="users" style="width: 16px; height: 16px;"></i></div>
+                                </div>
+                                <div class="mobile-stat-value">92</div>
+                                <span style="font-size: 0.65rem; color: var(--text-muted);">84 bolsistas • 8 monitores</span>
+                            </div>
+
+                            <div class="mobile-stat-card" onclick="switchMobileTab('naipes')">
+                                <div class="mobile-stat-header">
+                                    <span class="mobile-stat-label">Frequência</span>
+                                    <div class="mobile-stat-icon green"><i data-lucide="percent" style="width: 16px; height: 16px;"></i></div>
+                                </div>
+                                <div class="mobile-stat-value">91.8%</div>
+                                <span style="font-size: 0.65rem; color: var(--success); font-weight: 600;">↑ 2.1% no mês</span>
+                            </div>
+
+                            <div class="mobile-stat-card" onclick="filterRiskMusicos()">
+                                <div class="mobile-stat-header">
+                                    <span class="mobile-stat-label">Bolsistas em Risco</span>
+                                    <div class="mobile-stat-icon red"><i data-lucide="alert-triangle" style="width: 16px; height: 16px;"></i></div>
+                                </div>
+                                <div class="mobile-stat-value" style="color: var(--danger);">3</div>
+                                <span style="font-size: 0.65rem; color: var(--danger); font-weight: 600;">Faltas críticas</span>
+                            </div>
+
+                            <div class="mobile-stat-card" onclick="switchMobileTab('atestados')">
+                                <div class="mobile-stat-header">
+                                    <span class="mobile-stat-label">Atestados IA</span>
+                                    <div class="mobile-stat-icon amber"><i data-lucide="file-badge" style="width: 16px; height: 16px;"></i></div>
+                                </div>
+                                <div class="mobile-stat-value">2</div>
+                                <span style="font-size: 0.65rem; color: var(--warning); font-weight: 600;">Pendentes RH</span>
+                            </div>
+                        </div>
+
+                        <!-- Seção: Termômetro de Frequência / Atenção -->
+                        <div class="section-header-mobile">
+                            <h3><i data-lucide="shield-alert" style="color: var(--danger); width: 16px; height: 16px;"></i> Faltas em Monitoramento</h3>
+                        </div>
+
+                        <div class="musicians-card-list" id="dashboard-risk-list">
+                            <!-- Inserido dinamicamente -->
+                        </div>
+                    </section>
+
+                    <!-- ================= VIEW 2: MÚSICOS 360° ================= -->
+                    <section id="view-musicos" class="mobile-view">
+                        <div class="section-header-mobile">
+                            <h3><i data-lucide="users" style="color: var(--primary); width: 16px; height: 16px;"></i> Central de Integrantes</h3>
+                            <span id="musicos-total-badge" style="font-size: 0.72rem; color: var(--text-muted); font-weight: 600;">92 músicos</span>
+                        </div>
+
+                        <!-- Lista de Cartões de Músicos -->
+                        <div class="musicians-card-list" id="all-musicians-list">
+                            <!-- Inserido dinamicamente -->
+                        </div>
+                    </section>
+
+                    <!-- ================= VIEW 3: RADAR DE NAIPES ================= -->
+                    <section id="view-naipes" class="mobile-view">
+                        <div class="section-header-mobile">
+                            <h3><i data-lucide="activity" style="color: var(--primary); width: 16px; height: 16px;"></i> Radar de Naipes</h3>
+                        </div>
+
+                        <div class="naipes-mobile-list" id="naipes-mobile-container">
+                            <!-- Inserido dinamicamente -->
+                        </div>
+                    </section>
+
+                    <!-- ================= VIEW 4: ATESTADOS MÉDICOS ================= -->
+                    <section id="view-atestados" class="mobile-view">
+                        <div class="section-header-mobile">
+                            <h3><i data-lucide="file-badge" style="color: var(--primary); width: 16px; height: 16px;"></i> Atestados Médicos</h3>
+                        </div>
+
+                        <div class="musicians-card-list" id="atestados-card-list">
+                            <!-- Inserido dinamicamente -->
+                        </div>
+                    </section>
+
+                    <!-- ================= VIEW 5: DISPENSAS ================= -->
+                    <section id="view-dispensas" class="mobile-view">
+                        <div class="section-header-mobile">
+                            <h3><i data-lucide="shield-check" style="color: var(--purple); width: 16px; height: 16px;"></i> Dispensas Autorizadas</h3>
+                            <button class="btn-mini-adjust" style="background: var(--purple); color: white;" onclick="openNovaDispensaModal()">+ Conceder</button>
+                        </div>
+
+                        <div class="musicians-card-list" id="dispensas-card-list">
+                            <!-- Inserido dinamicamente -->
+                        </div>
+                    </section>
+
+                </main>
+
+                <!-- 6. BARRA DE NAVEGAÇÃO INFERIOR (BOTTOM BAR) -->
+                <nav class="bottom-nav">
+                    <div class="bottom-nav-item active" data-nav="dashboard" onclick="switchMobileTab('dashboard')">
+                        <i data-lucide="layout-dashboard"></i>
+                        <span>Início</span>
+                    </div>
+                    <div class="bottom-nav-item" data-nav="musicos" onclick="switchMobileTab('musicos')">
+                        <i data-lucide="users"></i>
+                        <span>Músicos 360°</span>
+                    </div>
+                    <div class="bottom-nav-item" data-nav="naipes" onclick="switchMobileTab('naipes')">
+                        <i data-lucide="activity"></i>
+                        <span>Naipes</span>
+                    </div>
+                    <div class="bottom-nav-item" data-nav="atestados" onclick="switchMobileTab('atestados')">
+                        <i data-lucide="file-badge"></i>
+                        <span>Atestados</span>
+                    </div>
+                    <div class="bottom-nav-item" onclick="openDrawerMenu()">
+                        <i data-lucide="menu"></i>
+                        <span>Menu</span>
+                    </div>
+                </nav>
+
+                <!-- ================= 7. FICHA 360° BOTTOM-SHEET ================= -->
+                <div class="bottom-sheet-overlay" id="mobile-dossier-sheet">
+                    <div class="bottom-sheet-container">
+                        <div class="sheet-drag-handle"></div>
+
+                        <!-- Header da Ficha -->
+                        <div class="sheet-header">
+                            <div class="sheet-musician-info">
+                                <div class="sheet-avatar" id="sheet-avatar">MS</div>
+                                <div class="sheet-names">
+                                    <h2 id="sheet-name">Maria Clara Silva</h2>
+                                    <p id="sheet-sub">Violoncelo • Bolsista</p>
+                                </div>
+                            </div>
+                            <button class="btn-sheet-close" onclick="closeDossierSheet()">
+                                <i data-lucide="x" style="width: 18px; height: 18px;"></i>
+                            </button>
+                        </div>
+
+                        <!-- Ações Rápidas Mobile -->
+                        <div class="sheet-quick-actions">
+                            <button class="sheet-action-btn primary" id="btn-sheet-whatsapp">
+                                <i data-lucide="message-circle" style="width: 14px; height: 14px;"></i> WhatsApp
+                            </button>
+                            <button class="sheet-action-btn" id="btn-sheet-dispensa">
+                                <i data-lucide="shield-check" style="width: 14px; height: 14px; color: var(--purple);"></i> Dispensa
+                            </button>
+                            <button class="sheet-action-btn" onclick="window.print()">
+                                <i data-lucide="printer" style="width: 14px; height: 14px;"></i> Dossiê PDF
+                            </button>
+                        </div>
+
+                        <!-- Abas da Ficha -->
+                        <div class="sheet-tabs-bar">
+                            <button class="sheet-tab-item active" data-tab-target="pane-frequencia">
+                                <i data-lucide="clock" style="width: 14px; height: 14px;"></i> Frequência
+                            </button>
+                            <button class="sheet-tab-item" data-tab-target="pane-atestados">
+                                <i data-lucide="file-badge" style="width: 14px; height: 14px;"></i> Atestados
+                            </button>
+                            <button class="sheet-tab-item" data-tab-target="pane-dispensas">
+                                <i data-lucide="shield-check" style="width: 14px; height: 14px;"></i> Dispensas
+                            </button>
+                            <button class="sheet-tab-item" data-tab-target="pane-cadastro">
+                                <i data-lucide="user-cog" style="width: 14px; height: 14px;"></i> Editar Cadastro
+                            </button>
+                        </div>
+
+                        <!-- Corpo da Ficha -->
+                        <div class="sheet-body">
+
+                            <!-- ABA 1: FREQUÊNCIA & TIMELINE -->
+                            <div class="sheet-tab-pane active" id="pane-frequencia">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
+                                    <span style="font-size: 0.78rem; font-weight: 700; color: #475569;">Assiduidade Geral:</span>
+                                    <span class="freq-chip regular" id="sheet-freq-badge">85% • Regular</span>
+                                </div>
+                                <div id="sheet-timeline-list"></div>
+                            </div>
+
+                            <!-- ABA 2: ATESTADOS -->
+                            <div class="sheet-tab-pane" id="pane-atestados">
+                                <div id="sheet-atestados-list"></div>
+                            </div>
+
+                            <!-- ABA 3: DISPENSAS -->
+                            <div class="sheet-tab-pane" id="pane-dispensas">
+                                <div id="sheet-dispensas-list"></div>
+                            </div>
+
+                            <!-- ABA 4: EDIÇÃO CADASTRO -->
+                            <div class="sheet-tab-pane" id="pane-cadastro">
+                                <form onsubmit="saveMobileMusicoChanges(event)">
+                                    <div class="mobile-form-group">
+                                        <label class="mobile-form-label">Nome Artístico</label>
+                                        <input type="text" id="m-edit-nome-artistico" class="mobile-form-control" required>
+                                    </div>
+                                    <div class="mobile-form-group">
+                                        <label class="mobile-form-label">Nome de Registro (Completo)</label>
+                                        <input type="text" id="m-edit-nome-registro" class="mobile-form-control" required>
+                                    </div>
+                                    <div class="mobile-form-group">
+                                        <label class="mobile-form-label">Instrumento</label>
+                                        <input type="text" id="m-edit-instrumento" class="mobile-form-control" required>
+                                    </div>
+                                    <div class="mobile-form-group">
+                                        <label class="mobile-form-label">Telefone / WhatsApp</label>
+                                        <input type="text" id="m-edit-telefone" class="mobile-form-control">
+                                    </div>
+                                    <div class="mobile-form-group">
+                                        <label class="mobile-form-label">E-mail</label>
+                                        <input type="email" id="m-edit-email" class="mobile-form-control">
+                                    </div>
+                                    <div class="mobile-form-group">
+                                        <label class="mobile-form-label">Restrição Alimentar</label>
+                                        <input type="text" id="m-edit-restricao" class="mobile-form-control">
+                                    </div>
+                                    <button type="submit" class="sheet-action-btn primary" style="width: 100%; height: 42px; font-size: 0.85rem; margin-top: 0.5rem;">
+                                        <i data-lucide="save"></i> Salvar Alterações
+                                    </button>
+                                </form>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ================= 8. DRAWER LATERAL MOBILE ================= -->
+                <div class="drawer-overlay" id="mobile-drawer-overlay" onclick="closeDrawerMenu()"></div>
+                <div class="mobile-drawer" id="mobile-drawer">
+                    <div class="drawer-header">
+                        <div class="mobile-brand">
+                            <img src="assets/img/logo_oer.png" alt="OER Logo">
+                            <div>
+                                <div class="mobile-brand-title" style="color: white;">OER Admin</div>
+                                <div class="mobile-brand-sub">Painel Geral</div>
+                            </div>
+                        </div>
+                        <button class="btn-sheet-close" onclick="closeDrawerMenu()">
+                            <i data-lucide="x" style="width: 18px; height: 18px;"></i>
+                        </button>
+                    </div>
+
+                    <div class="drawer-menu">
+                        <div class="drawer-nav-item active" onclick="switchMobileTab('dashboard'); closeDrawerMenu();">
+                            <i data-lucide="layout-dashboard"></i> Dashboard & Alertas
+                        </div>
+                        <div class="drawer-nav-item" onclick="switchMobileTab('musicos'); closeDrawerMenu();">
+                            <i data-lucide="users"></i> Central de Músicos 360°
+                        </div>
+                        <div class="drawer-nav-item" onclick="switchMobileTab('naipes'); closeDrawerMenu();">
+                            <i data-lucide="activity"></i> Radar de Naipes
+                        </div>
+                        <div class="drawer-nav-item" onclick="switchMobileTab('atestados'); closeDrawerMenu();">
+                            <i data-lucide="file-badge"></i> Atestados Médicos (IA)
+                        </div>
+                        <div class="drawer-nav-item" onclick="switchMobileTab('dispensas'); closeDrawerMenu();">
+                            <i data-lucide="shield-check"></i> Dispensas Concedidas
+                        </div>
+                        <a href="presenca.html" target="_blank" class="drawer-nav-item" style="color: #60a5fa;">
+                            <i data-lucide="user-check"></i> Abrir Diário Presença ↗
+                        </a>
+                    </div>
+                </div>
+
+                <!-- ================= 9. SUBMODAL: AJUSTE RETROATIVO MOBILE ================= -->
+                <div class="submodal-mobile" id="mobile-submodal-ajuste">
+                    <div class="submodal-mobile-card">
+                        <div style="padding: 1rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                            <h4 style="font-size: 0.9rem; font-weight: 700;">Ajustar Presença</h4>
+                            <button class="btn-sheet-close" style="color: #475569;" onclick="closeMobileAjusteModal()">
+                                <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+                            </button>
+                        </div>
+                        <div style="padding: 1rem;">
+                            <p id="m-ajuste-info" style="font-size: 0.78rem; color: #64748b; margin-bottom: 0.8rem;"></p>
+                            <div class="mobile-form-group">
+                                <label class="mobile-form-label">Novo Status</label>
+                                <select id="m-ajuste-status" class="mobile-form-control">
+                                    <option value="presente">Presente (Verde)</option>
+                                    <option value="falta">Falta Injustificada (Vermelho)</option>
+                                    <option value="atraso">Atraso (Amarelo)</option>
+                                    <option value="dispensa">Dispensa (Roxo)</option>
+                                    <option value="atestado">Atestado (Azul)</option>
+                                </select>
+                            </div>
+                            <div class="mobile-form-group">
+                                <label class="mobile-form-label">Observação / Justificativa</label>
+                                <input type="text" id="m-ajuste-obs" class="mobile-form-control" placeholder="Motivo do ajuste...">
+                            </div>
+                            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                                <button class="sheet-action-btn" onclick="closeMobileAjusteModal()">Cancelar</button>
+                                <button class="sheet-action-btn primary" onclick="confirmMobileAjuste()">Salvar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ================= 10. SUBMODAL: NOVA DISPENSA MOBILE ================= -->
+                <div class="submodal-mobile" id="mobile-submodal-dispensa">
+                    <div class="submodal-mobile-card">
+                        <div style="padding: 1rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                            <h4 style="font-size: 0.9rem; font-weight: 700;">Conceder Dispensa</h4>
+                            <button class="btn-sheet-close" style="color: #475569;" onclick="closeNovaDispensaModal()">
+                                <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+                            </button>
+                        </div>
+                        <div style="padding: 1rem;">
+                            <div class="mobile-form-group">
+                                <label class="mobile-form-label">Músico</label>
+                                <select id="m-dispensa-musico" class="mobile-form-control"></select>
+                            </div>
+                            <div class="mobile-form-group">
+                                <label class="mobile-form-label">Data Início</label>
+                                <input type="date" id="m-dispensa-data" class="mobile-form-control">
+                            </div>
+                            <div class="mobile-form-group">
+                                <label class="mobile-form-label">Motivo</label>
+                                <input type="text" id="m-dispensa-motivo" class="mobile-form-control" placeholder="Ex: Audição OSESP...">
+                            </div>
+                            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                                <button class="sheet-action-btn" onclick="closeNovaDispensaModal()">Cancelar</button>
+                                <button class="sheet-action-btn primary" onclick="saveMobileDispensa()">Conceder</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= 11. SCRIPT DE INTERAÇÃO & SIMULADOR ================= -->
+    <script>
+        // Dados Mock Realistas
+        let mockMusicos = [
+            {
+                id: "mus_001",
+                nomeArtistico: "Maria Clara Silva",
+                nomeRegistro: "Maria Clara dos Santos Silva",
+                instrumento: "Violoncelo",
+                naipe: "Violoncelo",
+                status: "Bolsista",
+                anosOer: "2º Ano",
+                email: "maria.silva@musica.com",
+                telefone: "(11) 98765-4321",
+                cpf: "123.456.789-01",
+                restricaoAlimentar: "Vegetariana",
+                presencas: 16,
+                faltas: 3,
+                atrasos: 1,
+                dispensas: 1,
+                atestados: 1,
+                history: [
+                    { id: "h1", date: "2026-03-20", title: "Ensaio Tutti - Mahler 1", status: "falta", obs: "Falta sem aviso" },
+                    { id: "h2", date: "2026-03-18", title: "Ensaio Naipe Cordas", status: "presente", obs: "" },
+                    { id: "h3", date: "2026-03-15", title: "Ensaio Geral TMSP", status: "atraso", minutos: 20, obs: "Trânsito" },
+                    { id: "h4", date: "2026-03-12", title: "Ensaio Tutti", status: "presente", obs: "" },
+                    { id: "h5", date: "2026-03-05", title: "Ensaio Geral", status: "atestado", obs: "CID J06.9" }
+                ],
+                atestadosList: [
+                    { id: "at1", dataInicio: "2026-03-05", dataFim: "2026-03-07", dias: 3, cid: "J06.9", status: "Aprovado", resumo: "Infecção de vias aéreas com repouso médico prescrito." }
+                ],
+                dispensasList: [
+                    { id: "dp1", dataInicio: "2026-03-01", dataFim: "2026-03-02", motivo: "Audição OSESP", autor: "Regente Titular" }
+                ]
+            },
+            {
+                id: "mus_002",
+                nomeArtistico: "Lucas Fagundes",
+                nomeRegistro: "Lucas Fagundes de Oliveira",
+                instrumento: "1º Violino",
+                naipe: "1º Violino",
+                status: "Monitor",
+                anosOer: "3º Ano",
+                email: "lucas.violino@email.com",
+                telefone: "(11) 97654-3210",
+                cpf: "234.567.890-12",
+                restricaoAlimentar: "Nenhuma",
+                presencas: 20,
+                faltas: 0,
+                atrasos: 0,
+                dispensas: 0,
+                atestados: 0,
+                history: [
+                    { id: "h21", date: "2026-03-20", title: "Ensaio Tutti", status: "presente", obs: "" },
+                    { id: "h22", date: "2026-03-18", title: "Ensaio Cordas", status: "presente", obs: "" }
+                ],
+                atestadosList: [],
+                dispensasList: []
+            },
+            {
+                id: "mus_003",
+                nomeArtistico: "Gabriel Trompete",
+                nomeRegistro: "Gabriel Santos Alcantara",
+                instrumento: "Trompete",
+                naipe: "Trompete",
+                status: "Bolsista",
+                anosOer: "1º Ano",
+                email: "gabriel.trompete@oer.com",
+                telefone: "(11) 91234-5678",
+                cpf: "345.678.901-23",
+                restricaoAlimentar: "Intolerância Lactose",
+                presencas: 13,
+                faltas: 4,
+                atrasos: 2,
+                dispensas: 0,
+                atestados: 1,
+                history: [
+                    { id: "h31", date: "2026-03-20", title: "Ensaio Tutti", status: "falta", obs: "Falta consecutiva" },
+                    { id: "h32", date: "2026-03-18", title: "Ensaio Metais", status: "falta", obs: "" }
+                ],
+                atestadosList: [
+                    { id: "at2", dataInicio: "2026-03-02", dataFim: "2026-03-04", dias: 2, cid: "K29.7", status: "Aprovado", resumo: "Gastrite aguda." }
+                ],
+                dispensasList: []
+            },
+            {
+                id: "mus_004",
+                nomeArtistico: "Beatriz Fagote",
+                nomeRegistro: "Beatriz Lima Medeiros",
+                instrumento: "Fagote",
+                naipe: "Fagote",
+                status: "Bolsista",
+                anosOer: "2º Ano",
+                email: "beatriz.fagote@gmail.com",
+                telefone: "(11) 98888-7777",
+                cpf: "456.789.012-34",
+                restricaoAlimentar: "Sem glúten",
+                presencas: 19,
+                faltas: 1,
+                atrasos: 0,
+                dispensas: 0,
+                atestados: 0,
+                history: [
+                    { id: "h41", date: "2026-03-20", title: "Ensaio Tutti", status: "presente", obs: "" }
+                ],
+                atestadosList: [],
+                dispensasList: []
+            },
+            {
+                id: "mus_005",
+                nomeArtistico: "Juliana Percussão",
+                nomeRegistro: "Juliana de Souza Ramos",
+                instrumento: "Percussão",
+                naipe: "Percussão",
+                status: "Monitor",
+                anosOer: "2º Ano",
+                email: "juliana.tímpanos@gmail.com",
+                telefone: "(11) 94444-3333",
+                cpf: "567.890.123-45",
+                restricaoAlimentar: "Nenhuma",
+                presencas: 18,
+                faltas: 0,
+                atrasos: 1,
+                dispensas: 1,
+                atestados: 0,
+                history: [
+                    { id: "h51", date: "2026-03-20", title: "Ensaio Tutti", status: "presente", obs: "" }
+                ],
+                atestadosList: [],
+                dispensasList: [
+                    { id: "dp2", dataInicio: "2026-03-10", dataFim: "2026-03-11", motivo: "Montagem de instrumentos", autor: "Regente Assistente" }
+                ]
+            }
+        ];
+
+        const naipesList = [
+            { nome: "1º Violino", total: 16, faltas: 2, freq: 96.5, icon: "music" },
+            { nome: "2º Violino", total: 14, faltas: 3, freq: 94.2, icon: "music" },
+            { nome: "Viola", total: 12, faltas: 4, freq: 91.8, icon: "music" },
+            { nome: "Violoncelo", total: 10, faltas: 5, freq: 88.5, icon: "music" },
+            { nome: "Contrabaixo", total: 8, faltas: 2, freq: 95.0, icon: "music" },
+            { nome: "Flauta", total: 4, faltas: 1, freq: 97.2, icon: "wind" },
+            { nome: "Oboé", total: 4, faltas: 2, freq: 93.0, icon: "wind" },
+            { nome: "Clarinete", total: 4, faltas: 1, freq: 96.0, icon: "wind" },
+            { nome: "Fagote", total: 4, faltas: 1, freq: 95.5, icon: "wind" },
+            { nome: "Trompa", total: 5, faltas: 4, freq: 89.0, icon: "volume-2" },
+            { nome: "Trompete", total: 4, faltas: 6, freq: 79.5, icon: "volume-2" },
+            { nome: "Trombone", total: 4, faltas: 2, freq: 93.8, icon: "volume-2" },
+            { nome: "Tuba", total: 1, faltas: 0, freq: 100.0, icon: "volume-2" },
+            { nome: "Percussão", total: 5, faltas: 1, freq: 97.5, icon: "disc" },
+            { nome: "Harpa / Piano", total: 2, faltas: 0, freq: 100.0, icon: "sparkles" }
+        ];
+
+        let activeMusico = null;
+        let editingHistoryId = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            renderMobileDashboard();
+            renderMobileMusicos(mockMusicos);
+            renderMobileNaipes();
+            renderMobileAtestados();
+            renderMobileDispensas();
+            setupMobileListeners();
+            populateMobileDispensaSelect();
+        });
+
+        // ================= CONTROLE DO SIMULADOR =================
+        function setDeviceMode(mode) {
+            const frame = document.getElementById('device-frame');
+            const resText = document.getElementById('sim-resolution-text');
+            
+            document.querySelectorAll('.sim-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(`btn-mode-${mode}`)?.classList.add('active');
+
+            frame.className = `device-frame mode-${mode}`;
+
+            switch(mode) {
+                case 'iphone': resText.innerText = '393 × 852 px (iPhone 15 Pro)'; break;
+                case 'android': resText.innerText = '360 × 800 px (Samsung Galaxy)'; break;
+                case 'tablet': resText.innerText = '768 × 960 px (iPad Tablet)'; break;
+                case 'desktop': resText.innerText = '100% Tela Cheia (Desktop View)'; break;
+            }
+        }
+
+        // ================= SETUP LISTENERS =================
+        function setupMobileListeners() {
+            // Busca Mobile
+            const searchInput = document.getElementById('mobile-search-input');
+            const resultsBox = document.getElementById('search-results-box');
+
+            searchInput.addEventListener('input', (e) => {
+                const term = e.target.value.trim().toLowerCase();
+                if (!term) {
+                    resultsBox.classList.remove('active');
+                    return;
+                }
+                renderMobileSearchResults(term);
+            });
+
+            document.getElementById('btn-trigger-search').addEventListener('click', () => {
+                searchInput.focus();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+
+            // Botão Drawer
+            document.getElementById('btn-open-drawer').addEventListener('click', openDrawerMenu);
+
+            // Abas da Ficha
+            document.querySelectorAll('.sheet-tab-item').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.sheet-tab-item').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.sheet-tab-pane').forEach(p => p.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.getElementById(tab.getAttribute('data-tab-target'))?.classList.add('active');
+                });
+            });
+
+            // WhatsApp e Dispensa na Ficha
+            document.getElementById('btn-sheet-whatsapp').addEventListener('click', () => {
+                if (activeMusico?.telefone) {
+                    const clean = activeMusico.telefone.replace(/\D/g, '');
+                    window.open(`https://wa.me/55${clean}?text=Ol%C3%A1%20${encodeURIComponent(activeMusico.nomeArtistico)}%2C%20administra%C3%A7%C3%A3o%20OER%3A`, '_blank');
+                }
+            });
+
+            document.getElementById('btn-sheet-dispensa').addEventListener('click', () => {
+                openNovaDispensaModal(activeMusico?.id);
+            });
+        }
+
+        // ================= NAVEGAÇÃO MOBILE (BOTTOM BAR) =================
+        function switchMobileTab(tabKey) {
+            document.querySelectorAll('.bottom-nav-item').forEach(i => i.classList.remove('active'));
+            document.querySelector(`.bottom-nav-item[data-nav="${tabKey}"]`)?.classList.add('active');
+
+            document.querySelectorAll('.mobile-view').forEach(v => v.classList.remove('active'));
+            document.getElementById(`view-${tabKey}`)?.classList.add('active');
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function openDrawerMenu() {
+            document.getElementById('mobile-drawer').classList.add('active');
+            document.getElementById('mobile-drawer-overlay').classList.add('active');
+        }
+
+        function closeDrawerMenu() {
+            document.getElementById('mobile-drawer').classList.remove('active');
+            document.getElementById('mobile-drawer-overlay').classList.remove('active');
+        }
+
+        // ================= RENDER DASHBOARD MOBILE =================
+        function renderMobileDashboard() {
+            const list = document.getElementById('dashboard-risk-list');
+            list.innerHTML = '';
+
+            const riskMusicos = mockMusicos.filter(m => {
+                const total = m.presencas + m.faltas;
+                const freq = total > 0 ? (m.presencas / total) * 100 : 100;
+                return freq < 85 || m.faltas >= 3;
+            });
+
+            riskMusicos.forEach(m => {
+                const total = m.presencas + m.faltas;
+                const freq = (m.presencas / total * 100).toFixed(0);
+                const isCritico = freq < 80 || m.faltas >= 3;
+
+                const card = document.createElement('div');
+                card.className = 'musician-card';
+                card.onclick = () => openMusicoDossier(m.id);
+                card.innerHTML = `
+                    <div class="musician-card-left">
+                        <div class="musician-avatar" style="background:#fee2e2; color:#991b1b;">${getInitials(m.nomeArtistico)}</div>
+                        <div class="musician-details">
+                            <strong>${m.nomeArtistico}</strong>
+                            <span>${m.instrumento} • ${m.status}</span>
+                        </div>
+                    </div>
+                    <div class="musician-card-right">
+                        <span class="freq-chip ${isCritico ? 'danger' : 'warning'}">${freq}% Freq</span>
+                        <span style="font-size:0.68rem; color:var(--danger); font-weight:700;">${m.faltas} faltas</span>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+
+        function filterRiskMusicos() {
+            switchMobileTab('dashboard');
+        }
+
+        // ================= RENDER LISTA DE MÚSICOS MOBILE =================
+        function renderMobileMusicos(list) {
+            const container = document.getElementById('all-musicians-list');
+            container.innerHTML = '';
+
+            list.forEach(m => {
+                const total = m.presencas + m.faltas;
+                const freq = total > 0 ? (m.presencas / total * 100).toFixed(0) : '100';
+                const chipClass = freq >= 90 ? 'regular' : (freq >= 80 ? 'warning' : 'danger');
+
+                const card = document.createElement('div');
+                card.className = 'musician-card';
+                card.onclick = () => openMusicoDossier(m.id);
+                card.innerHTML = `
+                    <div class="musician-card-left">
+                        <div class="musician-avatar">${getInitials(m.nomeArtistico)}</div>
+                        <div class="musician-details">
+                            <strong>${m.nomeArtistico}</strong>
+                            <span>${m.instrumento} (${m.naipe})</span>
+                        </div>
+                    </div>
+                    <div class="musician-card-right">
+                        <span class="freq-chip ${chipClass}">${freq}%</span>
+                        <span style="font-size:0.68rem; color:#64748b;">${m.status}</span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+            lucide.createIcons();
+        }
+
+        // ================= RENDER NAIPES MOBILE =================
+        function renderMobileNaipes() {
+            const container = document.getElementById('naipes-mobile-container');
+            container.innerHTML = '';
+
+            naipesList.forEach(n => {
+                const isCritico = n.freq < 85;
+                const color = isCritico ? 'var(--danger)' : (n.freq >= 93 ? 'var(--success)' : 'var(--warning)');
+
+                const item = document.createElement('div');
+                item.className = 'naipe-mobile-item';
+                item.innerHTML = `
+                    <div class="naipe-item-top">
+                        <div class="naipe-name">
+                            <i data-lucide="${n.icon || 'music'}" style="width: 15px; height: 15px; color: ${color};"></i>
+                            <span>${n.nome}</span>
+                        </div>
+                        <strong style="font-size:0.9rem; color: ${color};">${n.freq}%</strong>
+                    </div>
+                    <div class="naipe-bar-bg">
+                        <div class="naipe-bar-fill" style="width: ${n.freq}%; background: ${color};"></div>
+                    </div>
+                    <div class="naipe-item-footer">
+                        <span>${n.total} integrantes</span>
+                        <span style="color:${n.faltas > 3 ? 'var(--danger)' : 'inherit'}; font-weight:600;">${n.faltas} faltas</span>
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+            lucide.createIcons();
+        }
+
+        // ================= BUSCA RESULTADOS DROPDOWN =================
+        function renderMobileSearchResults(term) {
+            const box = document.getElementById('search-results-box');
+            box.innerHTML = '';
+
+            const filtered = mockMusicos.filter(m => 
+                m.nomeArtistico.toLowerCase().includes(term) ||
+                m.instrumento.toLowerCase().includes(term) ||
+                m.naipe.toLowerCase().includes(term) ||
+                m.cpf.includes(term)
+            );
+
+            if (filtered.length === 0) {
+                box.innerHTML = `<div style="padding:0.8rem; text-align:center; font-size:0.75rem; color:#94a3b8;">Nenhum integrante encontrado.</div>`;
+                box.classList.add('active');
+                return;
+            }
+
+            filtered.forEach(m => {
+                const row = document.createElement('div');
+                row.className = 'search-result-row';
+                row.onclick = () => {
+                    box.classList.remove('active');
+                    openMusicoDossier(m.id);
+                };
+                row.innerHTML = `
+                    <div class="musician-avatar" style="width:32px; height:32px; font-size:0.75rem;">${getInitials(m.nomeArtistico)}</div>
+                    <div style="flex:1; overflow:hidden;">
+                        <strong style="font-size:0.82rem; display:block;">${m.nomeArtistico}</strong>
+                        <span style="font-size:0.68rem; color:#64748b;">${m.instrumento} • ${m.status}</span>
+                    </div>
+                    <i data-lucide="chevron-right" style="width:14px; height:14px; color:#94a3b8;"></i>
+                `;
+                box.appendChild(row);
+            });
+
+            box.classList.add('active');
+            lucide.createIcons();
+        }
+
+        // ================= ABRIR FICHA BOTTOM-SHEET =================
+        function openMusicoDossier(id) {
+            const musico = mockMusicos.find(m => m.id === id);
+            if (!musico) return;
+
+            activeMusico = musico;
+
+            document.getElementById('sheet-avatar').innerText = getInitials(musico.nomeArtistico);
+            document.getElementById('sheet-name').innerText = musico.nomeArtistico;
+            document.getElementById('sheet-sub').innerText = `${musico.instrumento} • ${musico.status} (${musico.anosOer})`;
+
+            const total = musico.presencas + musico.faltas;
+            const freq = total > 0 ? (musico.presencas / total * 100).toFixed(0) : '100';
+            const badge = document.getElementById('sheet-freq-badge');
+            badge.innerText = `${freq}% Assiduidade`;
+            badge.className = `freq-chip ${freq >= 88 ? 'regular' : (freq >= 78 ? 'warning' : 'danger')}`;
+
+            renderSheetTimeline(musico.history);
+            renderSheetAtestados(musico.atestadosList);
+            renderSheetDispensas(musico.dispensasList);
+
+            // Preencher form de edição
+            document.getElementById('m-edit-nome-artistico').value = musico.nomeArtistico;
+            document.getElementById('m-edit-nome-registro').value = musico.nomeRegistro;
+            document.getElementById('m-edit-instrumento').value = musico.instrumento;
+            document.getElementById('m-edit-telefone').value = musico.telefone;
+            document.getElementById('m-edit-email').value = musico.email;
+            document.getElementById('m-edit-restricao').value = musico.restricaoAlimentar || '';
+
+            document.getElementById('mobile-dossier-sheet').classList.add('active');
+            lucide.createIcons();
+        }
+
+        function closeDossierSheet() {
+            document.getElementById('mobile-dossier-sheet').classList.remove('active');
+        }
+
+        // ================= RENDER TIMELINE DA FICHA =================
+        function renderSheetTimeline(history) {
+            const list = document.getElementById('sheet-timeline-list');
+            list.innerHTML = '';
+
+            if (!history || history.length === 0) {
+                list.innerHTML = `<p style="padding:1rem; text-align:center; font-size:0.75rem; color:#94a3b8;">Nenhum ensaio registrado.</p>`;
+                return;
+            }
+
+            history.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'sheet-timeline-card';
+                card.innerHTML = `
+                    <div class="timeline-card-left">
+                        <div class="timeline-dot-icon ${item.status}">
+                            <i data-lucide="${getStatusIcon(item.status)}" style="width: 15px; height: 15px;"></i>
+                        </div>
+                        <div class="timeline-info">
+                            <strong>${item.title}</strong>
+                            <span>${formatDateBR(item.date)} • ${getStatusLabel(item.status)} ${item.obs ? `(${item.obs})` : ''}</span>
+                        </div>
+                    </div>
+                    <button class="btn-mini-adjust" onclick="openMobileAjusteModal('${item.id}', '${item.title}', '${item.date}', '${item.status}', '${item.obs}')">
+                        Ajustar
+                    </button>
+                `;
+                list.appendChild(card);
+            });
+            lucide.createIcons();
+        }
+
+        // ================= MODAL AJUSTE RETROATIVO MOBILE =================
+        function openMobileAjusteModal(id, title, date, currentStatus, obs) {
+            editingHistoryId = id;
+            document.getElementById('m-ajuste-info').innerText = `${title} • ${formatDateBR(date)}`;
+            document.getElementById('m-ajuste-status').value = currentStatus;
+            document.getElementById('m-ajuste-obs').value = obs || '';
+            document.getElementById('mobile-submodal-ajuste').classList.add('active');
+        }
+
+        function closeMobileAjusteModal() {
+            document.getElementById('mobile-submodal-ajuste').classList.remove('active');
+        }
+
+        function confirmMobileAjuste() {
+            if (!activeMusico || !editingHistoryId) return;
+
+            const newStatus = document.getElementById('m-ajuste-status').value;
+            const newObs = document.getElementById('m-ajuste-obs').value;
+
+            const item = activeMusico.history.find(h => h.id === editingHistoryId);
+            if (item) {
+                const old = item.status;
+                item.status = newStatus;
+                item.obs = newObs;
+
+                if (old === 'falta' && newStatus === 'presente') {
+                    activeMusico.faltas = Math.max(0, activeMusico.faltas - 1);
+                    activeMusico.presencas += 1;
+                } else if (old === 'presente' && newStatus === 'falta') {
+                    activeMusico.presencas = Math.max(0, activeMusico.presencas - 1);
+                    activeMusico.faltas += 1;
+                }
+
+                openMusicoDossier(activeMusico.id);
+                renderMobileDashboard();
+                renderMobileMusicos(mockMusicos);
+                closeMobileAjusteModal();
+            }
+        }
+
+        // ================= NOVA DISPENSA MOBILE =================
+        function openNovaDispensaModal(preselectedId) {
+            if (preselectedId) {
+                document.getElementById('m-dispensa-musico').value = preselectedId;
+            }
+            document.getElementById('mobile-submodal-dispensa').classList.add('active');
+        }
+
+        function closeNovaDispensaModal() {
+            document.getElementById('mobile-submodal-dispensa').classList.remove('active');
+        }
+
+        function saveMobileDispensa() {
+            const musicoId = document.getElementById('m-dispensa-musico').value;
+            const data = document.getElementById('m-dispensa-data').value;
+            const motivo = document.getElementById('m-dispensa-motivo').value;
+
+            if (!data || !motivo) {
+                alert('Preencha a data e o motivo.');
+                return;
+            }
+
+            const mus = mockMusicos.find(m => m.id === musicoId);
+            if (mus) {
+                mus.dispensas += 1;
+                mus.dispensasList.unshift({
+                    id: 'dp_' + Date.now(),
+                    dataInicio: data,
+                    dataFim: data,
+                    motivo,
+                    autor: 'Administração OER'
+                });
+
+                mus.history.unshift({
+                    id: 'h_' + Date.now(),
+                    date: data,
+                    title: 'Dispensa Concedida',
+                    status: 'dispensa',
+                    obs: motivo
+                });
+
+                if (activeMusico?.id === musicoId) {
+                    openMusicoDossier(musicoId);
+                }
+
+                renderMobileDashboard();
+                renderMobileDispensas();
+                closeNovaDispensaModal();
+                alert(`Dispensa concedida para ${mus.nomeArtistico}!`);
+            }
+        }
+
+        // ================= SALVAR DADOS MOBILE =================
+        function saveMobileMusicoChanges(e) {
+            e.preventDefault();
+            if (!activeMusico) return;
+
+            activeMusico.nomeArtistico = document.getElementById('m-edit-nome-artistico').value;
+            activeMusico.nomeRegistro = document.getElementById('m-edit-nome-registro').value;
+            activeMusico.instrumento = document.getElementById('m-edit-instrumento').value;
+            activeMusico.telefone = document.getElementById('m-edit-telefone').value;
+            activeMusico.email = document.getElementById('m-edit-email').value;
+            activeMusico.restricaoAlimentar = document.getElementById('m-edit-restricao').value;
+
+            openMusicoDossier(activeMusico.id);
+            renderMobileMusicos(mockMusicos);
+            renderMobileDashboard();
+            alert('Cadastro atualizado com sucesso!');
+        }
+
+        // ================= RENDER ATESTADOS E DISPENSAS =================
+        function renderSheetAtestados(list) {
+            const box = document.getElementById('sheet-atestados-list');
+            box.innerHTML = '';
+            if (!list || list.length === 0) {
+                box.innerHTML = `<p style="padding:1rem; text-align:center; font-size:0.75rem; color:#94a3b8;">Nenhum atestado médico cadastrado.</p>`;
+                return;
+            }
+            list.forEach(at => {
+                const d = document.createElement('div');
+                d.className = 'sheet-timeline-card';
+                d.innerHTML = `
+                    <div style="flex:1;">
+                        <strong style="font-size:0.82rem;">${formatDateBR(at.dataInicio)} a ${formatDateBR(at.dataFim)} (${at.dias} dias)</strong>
+                        <span style="font-size:0.7rem; color:#64748b; display:block; margin-top:0.2rem;">CID: ${at.cid} • ${at.resumo}</span>
+                    </div>
+                    <span class="freq-chip regular">${at.status}</span>
+                `;
+                box.appendChild(d);
+            });
+        }
+
+        function renderSheetDispensas(list) {
+            const box = document.getElementById('sheet-dispensas-list');
+            box.innerHTML = '';
+            if (!list || list.length === 0) {
+                box.innerHTML = `<p style="padding:1rem; text-align:center; font-size:0.75rem; color:#94a3b8;">Nenhuma dispensa concedida.</p>`;
+                return;
+            }
+            list.forEach(dp => {
+                const d = document.createElement('div');
+                d.className = 'sheet-timeline-card';
+                d.innerHTML = `
+                    <div style="flex:1;">
+                        <strong style="font-size:0.82rem;">${formatDateBR(dp.dataInicio)} a ${formatDateBR(dp.dataFim)}</strong>
+                        <span style="font-size:0.7rem; color:#64748b; display:block; margin-top:0.2rem;">Motivo: ${dp.motivo}</span>
+                    </div>
+                    <span class="freq-chip" style="background:#faf5ff; color:#7c3aed; border:1px solid #ddd6fe;">Ativa</span>
+                `;
+                box.appendChild(d);
+            });
+        }
+
+        function renderMobileAtestados() {
+            const container = document.getElementById('atestados-card-list');
+            if (!container) return;
+            container.innerHTML = '';
+
+            mockMusicos.forEach(m => {
+                m.atestadosList.forEach(at => {
+                    const card = document.createElement('div');
+                    card.className = 'musician-card';
+                    card.onclick = () => openMusicoDossier(m.id);
+                    card.innerHTML = `
+                        <div class="musician-card-left">
+                            <div class="musician-avatar" style="background:#dbeafe; color:#1e40af;"><i data-lucide="file-badge" style="width:18px; height:18px;"></i></div>
+                            <div class="musician-details">
+                                <strong>${m.nomeArtistico}</strong>
+                                <span>${formatDateBR(at.dataInicio)} (${at.dias} dias) • CID: ${at.cid}</span>
+                            </div>
+                        </div>
+                        <span class="freq-chip regular">${at.status}</span>
+                    `;
+                    container.appendChild(card);
+                });
+            });
+            lucide.createIcons();
+        }
+
+        function renderMobileDispensas() {
+            const container = document.getElementById('dispensas-card-list');
+            if (!container) return;
+            container.innerHTML = '';
+
+            mockMusicos.forEach(m => {
+                m.dispensasList.forEach(dp => {
+                    const card = document.createElement('div');
+                    card.className = 'musician-card';
+                    card.onclick = () => openMusicoDossier(m.id);
+                    card.innerHTML = `
+                        <div class="musician-card-left">
+                            <div class="musician-avatar" style="background:#f3e8ff; color:#6b21a8;"><i data-lucide="shield-check" style="width:18px; height:18px;"></i></div>
+                            <div class="musician-details">
+                                <strong>${m.nomeArtistico}</strong>
+                                <span>${formatDateBR(dp.dataInicio)} • ${dp.motivo}</span>
+                            </div>
+                        </div>
+                        <span class="freq-chip" style="background:#faf5ff; color:#7c3aed; border:1px solid #ddd6fe;">Ativa</span>
+                    `;
+                    container.appendChild(card);
+                });
+            });
+            lucide.createIcons();
+        }
+
+        function populateMobileDispensaSelect() {
+            const select = document.getElementById('m-dispensa-musico');
+            if (!select) return;
+            select.innerHTML = '';
+            mockMusicos.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m.id;
+                opt.innerText = `${m.nomeArtistico} (${m.instrumento})`;
+                select.appendChild(opt);
+            });
+        }
+
+        // ================= HELPERS FORMATADORES =================
+        function getInitials(name) {
+            if (!name) return 'OER';
+            const parts = name.trim().split(' ');
+            if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+            return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+        }
+
+        function formatDateBR(dateStr) {
+            if (!dateStr) return '-';
+            const [y, m, d] = dateStr.split('-');
+            if (!d) return dateStr;
+            return `${d}/${m}/${y}`;
+        }
+
+        function getStatusIcon(status) {
+            switch(status) {
+                case 'presente': return 'check-circle';
+                case 'falta': return 'x-circle';
+                case 'atraso': return 'clock';
+                case 'dispensa': return 'shield-check';
+                case 'atestado': return 'file-badge';
+                default: return 'help-circle';
+            }
+        }
+
+        function getStatusLabel(status) {
+            switch(status) {
+                case 'presente': return 'Presente';
+                case 'falta': return 'Falta';
+                case 'atraso': return 'Atraso';
+                case 'dispensa': return 'Dispensa';
+                case 'atestado': return 'Atestado';
+                default: return status;
+            }
+        }
+    </script>
+</body>
+</html>
