@@ -6867,11 +6867,20 @@ function initMusiciansManagement() {
             return filtroFn(m);
         });
 
-        const emails = filtered
-            .map(m => (m.EMAIL || '').toString().trim())
-            .filter(email => email && email !== '' && email !== '-');
+        const rawEmails = [];
+        filtered.forEach(m => {
+            const raw = (m.EMAIL || '').toString().trim();
+            if (raw && raw !== '' && raw !== '-') {
+                raw.split(/[;,]/).forEach(e => {
+                    const trimmed = e.trim();
+                    if (trimmed && trimmed.includes('@')) {
+                        rawEmails.push(trimmed);
+                    }
+                });
+            }
+        });
 
-        const uniqueEmails = [...new Set(emails)];
+        const uniqueEmails = [...new Set(rawEmails)];
 
         if (uniqueEmails.length === 0) {
             showNotification(`Nenhum e-mail válido encontrado para ${tipoNome}.`, "warning");
