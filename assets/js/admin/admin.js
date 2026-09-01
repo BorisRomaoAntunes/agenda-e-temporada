@@ -6910,24 +6910,48 @@ function initMusiciansManagement() {
             return;
         }
 
-        // Ordenar alfabeticamente pelo nome completo civil
-        filtered.sort((a, b) => {
-            const nomeA = (a['NOME REGISTRO'] || a['NOME REGISTRO '] || a.NOME || a.Nome || a.NOMEARTISTICO || '').toString().trim();
-            const nomeB = (b['NOME REGISTRO'] || b['NOME REGISTRO '] || b.NOME || b.Nome || b.NOMEARTISTICO || '').toString().trim();
-            return nomeA.localeCompare(nomeB, 'pt-BR');
-        });
-
-        const lines = filtered.map(m => {
+        // Agrupar por restrição alimentar normalizada mantendo capitalização adequada
+        const grupos = {};
+        filtered.forEach(m => {
+            let r = (m['Restrição Alimentar'] || m['Restrição Alimentar '] || '').toString().trim();
+            if (r.length > 0) {
+                r = r.charAt(0).toUpperCase() + r.slice(1);
+            }
             const nome = (m['NOME REGISTRO'] || m['NOME REGISTRO '] || m.NOME || m.Nome || m.NOMEARTISTICO || 'Músico').toString().trim();
-            const rest = (m['Restrição Alimentar'] || m['Restrição Alimentar '] || '').toString().trim();
-            return `${nome}: ${rest}`;
+            
+            if (!grupos[r]) {
+                grupos[r] = [];
+            }
+            grupos[r].push(nome);
         });
 
-        const textoFinal = `Restrições Alimentares:\n` + lines.join('\n');
+        // Ordenar as restrições alfabeticamente
+        const restricoesOrdenadas = Object.keys(grupos).sort((a, b) => a.localeCompare(b, 'pt-BR'));
+
+        // Ordenar os nomes dentro de cada grupo alfabeticamente
+        restricoesOrdenadas.forEach(r => {
+            grupos[r].sort((a, b) => a.localeCompare(b, 'pt-BR'));
+        });
+
+        // Montar a seção de resumo
+        const resumoLinhas = restricoesOrdenadas.map(r => `• ${r}: ${grupos[r].length}`);
+
+        // Montar o detalhamento
+        const detalhamentoLinhas = [];
+        restricoesOrdenadas.forEach(r => {
+            detalhamentoLinhas.push(`[${r}]`);
+            grupos[r].forEach(nome => {
+                detalhamentoLinhas.push(`• ${nome}`);
+            });
+            detalhamentoLinhas.push(''); // linha em branco entre grupos
+        });
+
+        const totalPessoas = filtered.length;
+        const textoFinal = `Restrições Alimentares (Total: ${totalPessoas})\n\n📊 Resumo:\n${resumoLinhas.join('\n')}\n\n📋 Detalhamento:\n${detalhamentoLinhas.join('\n').trim()}`;
 
         navigator.clipboard.writeText(textoFinal)
             .then(() => {
-                showNotification(`${filtered.length} restrições alimentares copiadas!`, "success");
+                showNotification(`${totalPessoas} restrições alimentares copiadas e agrupadas!`, "success");
             })
             .catch(err => {
                 console.error("Erro ao copiar restrições alimentares:", err);
