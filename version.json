@@ -1,8 +1,14 @@
 {
-  "hash": "807b8e1",
-  "date": "31/08/2026 23:50",
-  "buildAt": "2026-09-01T02:51:21.117Z",
+  "hash": "bcd44e3",
+  "date": "31/08/2026 23:54",
+  "buildAt": "2026-09-01T02:54:11.146Z",
   "history": [
+    {
+      "hash": "bcd44e3",
+      "date": "31/08/2026 23:54",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json do build"
+    },
     {
       "hash": "807b8e1",
       "date": "31/08/2026 23:50",
@@ -116,12 +122,6 @@
       "date": "23/08/2026 00:58",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualizar version.json do deploy"
-    },
-    {
-      "hash": "d409f8f",
-      "date": "23/08/2026 00:56",
-      "author": "Boris Romão Antunes",
-      "subject": "Revert \"feat: melhorias no sistema de notificações push\""
     }
   ]
 }
