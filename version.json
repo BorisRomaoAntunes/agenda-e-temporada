@@ -1,8 +1,20 @@
 {
-  "hash": "5111c9f",
-  "date": "01/09/2026 00:43",
-  "buildAt": "2026-09-01T03:45:30.240Z",
+  "hash": "93030ff",
+  "date": "01/09/2026 00:57",
+  "buildAt": "2026-09-01T03:58:18.603Z",
   "history": [
+    {
+      "hash": "93030ff",
+      "date": "01/09/2026 00:57",
+      "author": "Boris Romão Antunes",
+      "subject": "fix(admin): manter status inativo e preservar data de saida na gaveta do modal diff"
+    },
+    {
+      "hash": "45bc588",
+      "date": "01/09/2026 00:47",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json do deploy em produção"
+    },
     {
       "hash": "5111c9f",
       "date": "01/09/2026 00:43",
@@ -110,18 +122,6 @@
       "date": "27/08/2026 18:59",
       "author": "Boris Romão Antunes",
       "subject": "feat: metricas e analytics de adesao ao calendario no admin e site publico"
-    },
-    {
-      "hash": "9a511a2",
-      "date": "27/08/2026 13:19",
-      "author": "Boris Romão Antunes",
-      "subject": "feat: deteccao automatica de dispositivo Apple/Android para abrir calendario nativo"
-    },
-    {
-      "hash": "4e8f302",
-      "date": "27/08/2026 13:08",
-      "author": "Boris Romão Antunes",
-      "subject": "style: ajuste de cores e hover no botao de seguir calendario"
     }
   ]
 }
