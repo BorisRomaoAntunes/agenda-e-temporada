@@ -906,7 +906,7 @@ Intervalo
 
                     <!-- Cards Estatísticos Rápidos -->
                     <div class="musicos-stats-cards">
-                        <div class="musico-stat-card clickable-stat-card" id="card-total-musicos">
+                        <div class="musico-stat-card clickable-stat-card" id="card-total-musicos" data-tooltip="Clique para copiar e-mails">
                             <div class="stat-icon-bg bg-blue">
                                 <i data-lucide="users"></i>
                             </div>
@@ -915,7 +915,7 @@ Intervalo
                                 <h4 class="stat-value" id="stat-total-musicos">0</h4>
                             </div>
                         </div>
-                        <div class="musico-stat-card clickable-stat-card" id="card-bolsistas">
+                        <div class="musico-stat-card clickable-stat-card" id="card-bolsistas" data-tooltip="Clique para copiar e-mails dos bolsistas">
                             <div class="stat-icon-bg bg-green">
                                 <i data-lucide="graduation-cap"></i>
                             </div>
@@ -924,7 +924,7 @@ Intervalo
                                 <h4 class="stat-value" id="stat-bolsistas">0</h4>
                             </div>
                         </div>
-                        <div class="musico-stat-card clickable-stat-card" id="card-monitores">
+                        <div class="musico-stat-card clickable-stat-card" id="card-monitores" data-tooltip="Clique para copiar e-mails dos monitores">
                             <div class="stat-icon-bg bg-purple">
                                 <i data-lucide="award"></i>
                             </div>
@@ -933,13 +933,22 @@ Intervalo
                                 <h4 class="stat-value" id="stat-monitores">0</h4>
                             </div>
                         </div>
-                        <div class="musico-stat-card">
+                        <div class="musico-stat-card clickable-stat-card" id="card-restricoes" data-tooltip="Clique para copiar restrições alimentares">
                             <div class="stat-icon-bg bg-orange">
                                 <i data-lucide="shield-alert"></i>
                             </div>
                             <div class="stat-info">
                                 <span class="stat-label">Restrições Alimentares</span>
                                 <h4 class="stat-value" id="stat-restricoes">0</h4>
+                            </div>
+                        </div>
+                        <div class="musico-stat-card clickable-stat-card" id="card-extrair-dados" data-tooltip="Clique para abrir a ferramenta de extração personalizada">
+                            <div class="stat-icon-bg bg-indigo" style="background: rgba(99, 102, 241, 0.12); color: #6366f1;">
+                                <i data-lucide="list-checks"></i>
+                            </div>
+                            <div class="stat-info">
+                                <span class="stat-label">Extrair Dados</span>
+                                <h4 class="stat-value" style="font-size: 1.05rem; color: #4f46e5; font-weight: 700;">Copiar Lista</h4>
                             </div>
                         </div>
                     </div>
@@ -2444,6 +2453,134 @@ Intervalo
                 <button class="btn-outline" id="btn-cancel-import-diff" style="padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; border: 1px solid #cbd5e1; background: white; color: #334155;">Cancelar</button>
                 <button class="btn-primary" id="btn-confirm-import-diff" style="padding: 0.6rem 1.4rem; border-radius: 8px; font-weight: 600; cursor: pointer; background: var(--primary-color, #8b0000); color: white; border: none; display: flex; align-items: center; gap: 0.5rem;">
                     <i data-lucide="check-circle" style="width: 16px; height: 16px;"></i> Confirmar Importação
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Extração e Cópia Personalizada de Dados de Músicos -->
+    <div id="modal-extrair-musicos" class="modal-overlay" style="display: none; z-index: 10000;">
+        <div class="settings-modal-card" style="max-width: 920px; width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #f8fafc, #f1f5f9); border-bottom: 1px solid #e2e8f0; padding: 1.25rem 1.5rem;">
+                <div class="modal-header-info">
+                    <h3 style="margin: 0; font-size: 1.2rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 0.6rem;">
+                        <i data-lucide="list-checks" style="color: #6366f1; width: 22px; height: 22px;"></i> Extração Personalizada de Dados
+                    </h3>
+                    <p style="margin: 0.2rem 0 0 0; font-size: 0.85rem; color: #64748b;">Selecione os músicos, o dado desejado e copie o texto formatado em tempo real.</p>
+                </div>
+                <button class="btn-close-modal" id="btn-close-modal-extrair">
+                    <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                </button>
+            </div>
+
+            <div class="modal-body" style="padding: 1.5rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1.25rem; flex: 1;">
+                
+                <!-- 1. Seleção do Campo a Extrair -->
+                <div class="extractor-section">
+                    <label style="font-size: 0.82rem; font-weight: 700; text-transform: uppercase; color: #475569; letter-spacing: 0.04em; display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.6rem;">
+                        <i data-lucide="layers" style="width: 15px; height: 15px; color: #6366f1;"></i> 1. Qual dado você deseja extrair?
+                    </label>
+                    <div class="extractor-field-chips" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button type="button" class="btn-field-chip active" data-field="nomeArtistico">
+                            <i data-lucide="user"></i> <span>Nome Artístico</span>
+                        </button>
+                        <button type="button" class="btn-field-chip" data-field="email">
+                            <i data-lucide="mail"></i> <span>E-mail</span>
+                        </button>
+                        <button type="button" class="btn-field-chip" data-field="telefone">
+                            <i data-lucide="phone"></i> <span>Telefone / WhatsApp</span>
+                        </button>
+                        <button type="button" class="btn-field-chip" data-field="nomeRegistro">
+                            <i data-lucide="user-check"></i> <span>Nome Completo (Registro)</span>
+                        </button>
+                        <button type="button" class="btn-field-chip" data-field="cpf">
+                            <i data-lucide="file-text"></i> <span>CPF</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. Formato do Separador -->
+                <div class="extractor-section">
+                    <label style="font-size: 0.82rem; font-weight: 700; text-transform: uppercase; color: #475569; letter-spacing: 0.04em; display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.6rem;">
+                        <i data-lucide="split" style="width: 15px; height: 15px; color: #6366f1;"></i> 2. Formato do Separador
+                    </label>
+                    <div class="extractor-separator-chips" style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button type="button" class="btn-sep-chip active" data-separator="fluido">
+                            Texto Fluído ("A, B e C")
+                        </button>
+                        <button type="button" class="btn-sep-chip" data-separator="pontoVirgula">
+                            Ponto e Vírgula ("; ")
+                        </button>
+                        <button type="button" class="btn-sep-chip" data-separator="linha">
+                            Um por Linha
+                        </button>
+                        <button type="button" class="btn-sep-chip" data-separator="virgula">
+                            Vírgula Simples (", ")
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 3. Seleção de Músicos -->
+                <div class="extractor-section" style="border-top: 1px solid #e2e8f0; padding-top: 1.2rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.8rem;">
+                        <label style="font-size: 0.82rem; font-weight: 700; text-transform: uppercase; color: #475569; letter-spacing: 0.04em; display: flex; align-items: center; gap: 0.4rem; margin: 0;">
+                            <i data-lucide="users" style="width: 15px; height: 15px; color: #6366f1;"></i> 3. Selecione os Músicos
+                            <span id="extractor-selected-count" style="font-size: 0.8rem; font-weight: 700; color: #4f46e5; background: #e0e7ff; padding: 0.15rem 0.6rem; border-radius: 12px; margin-left: 0.3rem;">0 selecionados</span>
+                        </label>
+
+                        <!-- Alternador de Visualização -->
+                        <div style="display: flex; background: #e2e8f0; padding: 0.2rem; border-radius: 8px; gap: 0.2rem;">
+                            <button type="button" id="btn-view-naipes" class="extractor-view-btn active" style="padding: 0.35rem 0.75rem; border: none; background: white; color: #1e293b; font-size: 0.8rem; font-weight: 600; border-radius: 6px; cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,0.06); display: flex; align-items: center; gap: 0.35rem;">
+                                <i data-lucide="folder-tree" style="width: 14px; height: 14px;"></i> Por Naipes
+                            </button>
+                            <button type="button" id="btn-view-alfabetica" class="extractor-view-btn" style="padding: 0.35rem 0.75rem; border: none; background: transparent; color: #64748b; font-size: 0.8rem; font-weight: 600; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 0.35rem;">
+                                <i data-lucide="arrow-down-a-z" style="width: 14px; height: 14px;"></i> Ordem Alfabética (A-Z)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Barra de Ações Rápidas de Seleção e Busca -->
+                    <div style="display: flex; gap: 0.6rem; flex-wrap: wrap; align-items: center; justify-content: space-between; margin-bottom: 0.8rem;">
+                        <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+                            <button type="button" class="btn-quick-select" id="btn-select-all">Todos</button>
+                            <button type="button" class="btn-quick-select" id="btn-select-bolsistas">Bolsistas</button>
+                            <button type="button" class="btn-quick-select" id="btn-select-monitores">Monitores</button>
+                            <button type="button" class="btn-quick-select btn-quick-clear" id="btn-select-clear">Limpar</button>
+                        </div>
+                        <div style="position: relative; min-width: 220px; flex: 1; max-width: 320px;">
+                            <i data-lucide="search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 14px; height: 14px; color: #94a3b8; pointer-events: none;"></i>
+                            <input type="text" id="extractor-search-input" placeholder="Filtrar músico ou naipe..." style="width: 100%; padding: 0.45rem 0.6rem 0.45rem 2rem; font-size: 0.825rem; border: 1.5px solid #cbd5e1; border-radius: 8px; outline: none; background: #fff;">
+                        </div>
+                    </div>
+
+                    <!-- Lista de Músicos com Checkboxes (Scrollable Container) -->
+                    <div id="extractor-musicians-list" style="max-height: 280px; overflow-y: auto; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.75rem;">
+                        <!-- Preenchido via Javascript -->
+                    </div>
+                </div>
+
+                <!-- 4. Caixa de Pré-Visualização / Resultado ao Vivo -->
+                <div class="extractor-section" style="border-top: 1px solid #e2e8f0; padding-top: 1.2rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <label style="font-size: 0.82rem; font-weight: 700; text-transform: uppercase; color: #475569; letter-spacing: 0.04em; display: flex; align-items: center; gap: 0.4rem; margin: 0;">
+                            <i data-lucide="eye" style="width: 15px; height: 15px; color: #6366f1;"></i> Pré-visualização do Texto
+                        </label>
+                        <span id="extractor-char-count" style="font-size: 0.78rem; color: #64748b; font-weight: 600;">0 itens · 0 caracteres</span>
+                    </div>
+                    <div style="position: relative;">
+                        <textarea id="extractor-preview-text" readonly rows="4" placeholder="O resultado formatado aparecerá aqui conforme você seleciona os músicos..." style="width: 100%; border: 1.5px solid #cbd5e1; border-radius: 8px; padding: 0.75rem; font-family: inherit; font-size: 0.88rem; line-height: 1.5; color: #1e293b; background: white; resize: vertical; outline: none; box-sizing: border-box;"></textarea>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Footer com Botões -->
+            <div class="modal-footer" style="padding: 1rem 1.5rem; border-top: 1px solid #e2e8f0; background: #f8fafc; display: flex; justify-content: space-between; align-items: center; gap: 1rem; border-bottom-left-radius: 14px; border-bottom-right-radius: 14px;">
+                <button type="button" class="btn-outline" id="btn-close-modal-extrair-footer" style="padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; border: 1px solid #cbd5e1; background: white; color: #475569;">
+                    Fechar
+                </button>
+                <button type="button" class="btn-primary" id="btn-copy-extracted" style="padding: 0.65rem 1.4rem; border-radius: 8px; font-weight: 600; cursor: pointer; background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; border: none; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25); transition: transform 0.2s, box-shadow 0.2s;">
+                    <i data-lucide="copy" style="width: 16px; height: 16px;"></i> Copiar para Área de Transferência
                 </button>
             </div>
         </div>

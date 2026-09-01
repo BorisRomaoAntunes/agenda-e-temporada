@@ -6850,10 +6850,11 @@ function initMusiciansManagement() {
     const drawerOverlay = document.getElementById('musico-drawer-overlay');
     const btnCloseDrawer = document.getElementById('btn-close-drawer');
 
-    // Cards estatísticos clicáveis para cópia de e-mails
+    // Cards estatísticos clicáveis para cópia
     const cardTotal = document.getElementById('card-total-musicos');
     const cardBolsistas = document.getElementById('card-bolsistas');
     const cardMonitores = document.getElementById('card-monitores');
+    const cardRestricoes = document.getElementById('card-restricoes');
 
     const copiarEmailsFiltrados = (filtroFn, tipoNome) => {
         if (!allMusicians || allMusicians.length === 0) {
@@ -6889,6 +6890,51 @@ function initMusiciansManagement() {
             });
     };
 
+    const copiarRestricoesAlimentares = () => {
+        if (!allMusicians || allMusicians.length === 0) {
+            showNotification("Nenhum músico disponível para consultar restrições.", "warning");
+            return;
+        }
+
+        const filtered = allMusicians.filter(m => {
+            if (m.statusFirebase === 'desligado' || m.statusFirebase === 'inativo') return false;
+            const r = (m['Restrição Alimentar'] || m['Restrição Alimentar '] || '').toString().toLowerCase().trim();
+            if (r === "" || r === "-" || r === "não" || r === "não se aplica" || r.includes("sem restriç") || r.includes("sem restric") || r.includes("não possui") || r.includes("nao possui")) {
+                return false;
+            }
+            return true;
+        });
+
+        if (filtered.length === 0) {
+            showNotification("Nenhuma restrição alimentar encontrada entre os músicos ativos.", "warning");
+            return;
+        }
+
+        // Ordenar alfabeticamente pelo nome completo civil
+        filtered.sort((a, b) => {
+            const nomeA = (a['NOME REGISTRO'] || a['NOME REGISTRO '] || a.NOME || a.Nome || a.NOMEARTISTICO || '').toString().trim();
+            const nomeB = (b['NOME REGISTRO'] || b['NOME REGISTRO '] || b.NOME || b.Nome || b.NOMEARTISTICO || '').toString().trim();
+            return nomeA.localeCompare(nomeB, 'pt-BR');
+        });
+
+        const lines = filtered.map(m => {
+            const nome = (m['NOME REGISTRO'] || m['NOME REGISTRO '] || m.NOME || m.Nome || m.NOMEARTISTICO || 'Músico').toString().trim();
+            const rest = (m['Restrição Alimentar'] || m['Restrição Alimentar '] || '').toString().trim();
+            return `${nome}: ${rest}`;
+        });
+
+        const textoFinal = `Restrições Alimentares:\n` + lines.join('\n');
+
+        navigator.clipboard.writeText(textoFinal)
+            .then(() => {
+                showNotification(`${filtered.length} restrições alimentares copiadas!`, "success");
+            })
+            .catch(err => {
+                console.error("Erro ao copiar restrições alimentares:", err);
+                showNotification("Não foi possível copiar as restrições automaticamente.", "error");
+            });
+    };
+
     if (cardTotal) {
         cardTotal.addEventListener('click', () => {
             copiarEmailsFiltrados(m => {
@@ -6912,6 +6958,10 @@ function initMusiciansManagement() {
                 return (m.Status || '').toString().toLowerCase().includes('monitor');
             }, "Monitores");
         });
+    }
+
+    if (cardRestricoes) {
+        cardRestricoes.addEventListener('click', copiarRestricoesAlimentares);
     }
 
     // Função utilitária para obter o link correto do WhatsApp a partir do número cadastrado
@@ -10074,6 +10124,499 @@ ${strGeneroBolsistas}${strGeralGeneroNota}`;
             }
         });
     }
+
+    // =========================================================================
+    // MODAL DE EXTRAÇÃO E CÓPIA PERSONALIZADA DE DADOS DOS MÚSICOS
+    // =========================================================================
+    function initMusiciansExtractorModal() {
+        const cardOpen = document.getElementById('card-extrair-dados');
+        const modal = document.getElementById('modal-extrair-musicos');
+        const btnClose = document.getElementById('btn-close-modal-extrair');
+        const btnCloseFooter = document.getElementById('btn-close-modal-extrair-footer');
+        const btnCopy = document.getElementById('btn-copy-extracted');
+
+        const fieldChips = document.querySelectorAll('.btn-field-chip');
+        const sepChips = document.querySelectorAll('.btn-sep-chip');
+        const btnViewNaipes = document.getElementById('btn-view-naipes');
+        const btnViewAlfabetica = document.getElementById('btn-view-alfabetica');
+
+        const btnSelectAll = document.getElementById('btn-select-all');
+        const btnSelectBolsistas = document.getElementById('btn-select-bolsistas');
+        const btnSelectMonitores = document.getElementById('btn-select-monitores');
+        const btnSelectClear = document.getElementById('btn-select-clear');
+
+        const searchInput = document.getElementById('extractor-search-input');
+        const listContainer = document.getElementById('extractor-musicians-list');
+        const selectedCountEl = document.getElementById('extractor-selected-count');
+        const charCountEl = document.getElementById('extractor-char-count');
+        const previewTextarea = document.getElementById('extractor-preview-text');
+
+        if (!modal || !cardOpen) return;
+
+        let selectedIds = new Set();
+        let currentField = 'nomeArtistico';
+        let currentSeparator = 'fluido';
+        let currentView = 'naipes';
+        let searchQuery = '';
+
+        const openModal = () => {
+            modal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+            if (window.lucide) lucide.createIcons();
+            renderList();
+            updatePreview();
+        };
+
+        const closeModal = () => {
+            modal.style.display = 'none';
+            document.body.style.overflow = '';
+        };
+
+        cardOpen.addEventListener('click', openModal);
+        if (btnClose) btnClose.addEventListener('click', closeModal);
+        if (btnCloseFooter) btnCloseFooter.addEventListener('click', closeModal);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+
+        // Troca de campo
+        fieldChips.forEach(chip => {
+            chip.addEventListener('click', () => {
+                fieldChips.forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                currentField = chip.dataset.field;
+
+                // Sugestão inteligente de separador padrão para cada campo
+                if (currentField === 'email') {
+                    setSeparator('pontoVirgula');
+                } else if (currentField === 'nomeArtistico' || currentField === 'nomeRegistro') {
+                    setSeparator('fluido');
+                } else if (currentField === 'telefone' || currentField === 'cpf') {
+                    setSeparator('virgula');
+                }
+
+                updatePreview();
+            });
+        });
+
+        const setSeparator = (sepType) => {
+            currentSeparator = sepType;
+            sepChips.forEach(c => {
+                if (c.dataset.separator === sepType) {
+                    c.classList.add('active');
+                } else {
+                    c.classList.remove('active');
+                }
+            });
+        };
+
+        // Troca de separador
+        sepChips.forEach(chip => {
+            chip.addEventListener('click', () => {
+                sepChips.forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+                currentSeparator = chip.dataset.separator;
+                updatePreview();
+            });
+        });
+
+        // Alternar visualização (Por Naipes vs Alfabética)
+        if (btnViewNaipes && btnViewAlfabetica) {
+            btnViewNaipes.addEventListener('click', () => {
+                currentView = 'naipes';
+                btnViewNaipes.classList.add('active');
+                btnViewAlfabetica.classList.remove('active');
+                btnViewNaipes.style.background = '#ffffff';
+                btnViewNaipes.style.color = '#1e293b';
+                btnViewAlfabetica.style.background = 'transparent';
+                btnViewAlfabetica.style.color = '#64748b';
+                renderList();
+            });
+
+            btnViewAlfabetica.addEventListener('click', () => {
+                currentView = 'alfabetica';
+                btnViewAlfabetica.classList.add('active');
+                btnViewNaipes.classList.remove('active');
+                btnViewAlfabetica.style.background = '#ffffff';
+                btnViewAlfabetica.style.color = '#1e293b';
+                btnViewNaipes.style.background = 'transparent';
+                btnViewNaipes.style.color = '#64748b';
+                renderList();
+            });
+        }
+
+        // Busca reativa
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                searchQuery = e.target.value.toLowerCase().trim();
+                renderList();
+            });
+        }
+
+        // Obter lista de músicos ativos e válidos
+        const getActiveMusicians = () => {
+            return (allMusicians || []).filter(m => {
+                if (m.statusFirebase === 'desligado' || m.statusFirebase === 'inativo') return false;
+                const status = (m.Status || '').toString().toLowerCase();
+                return status.includes('bolsista') || status.includes('monitor');
+            });
+        };
+
+        // Ações Rápidas de Seleção
+        if (btnSelectAll) {
+            btnSelectAll.addEventListener('click', () => {
+                const actives = getActiveMusicians();
+                actives.forEach(m => selectedIds.add(m.id));
+                renderList();
+                updatePreview();
+            });
+        }
+
+        if (btnSelectBolsistas) {
+            btnSelectBolsistas.addEventListener('click', () => {
+                selectedIds.clear();
+                const actives = getActiveMusicians();
+                actives.forEach(m => {
+                    if ((m.Status || '').toString().toLowerCase().includes('bolsista')) {
+                        selectedIds.add(m.id);
+                    }
+                });
+                renderList();
+                updatePreview();
+            });
+        }
+
+        if (btnSelectMonitores) {
+            btnSelectMonitores.addEventListener('click', () => {
+                selectedIds.clear();
+                const actives = getActiveMusicians();
+                actives.forEach(m => {
+                    if ((m.Status || '').toString().toLowerCase().includes('monitor')) {
+                        selectedIds.add(m.id);
+                    }
+                });
+                renderList();
+                updatePreview();
+            });
+        }
+
+        if (btnSelectClear) {
+            btnSelectClear.addEventListener('click', () => {
+                selectedIds.clear();
+                renderList();
+                updatePreview();
+            });
+        }
+
+        // Renderizar a Lista de Músicos
+        const renderList = () => {
+            if (!listContainer) return;
+            const actives = getActiveMusicians();
+
+            // Filtrar pela busca
+            const filtered = actives.filter(m => {
+                if (!searchQuery) return true;
+                const nomeArt = (m.NOMEARTISTICO || m['NOME ARTÍSTICO'] || '').toLowerCase();
+                const nomeReg = (m['NOME REGISTRO'] || m.NOME || '').toLowerCase();
+                const inst = (m.INSTRUMENTOS || m.Instrumento || '').toLowerCase();
+                const status = (m.Status || '').toLowerCase();
+                return nomeArt.includes(searchQuery) || nomeReg.includes(searchQuery) || inst.includes(searchQuery) || status.includes(searchQuery);
+            });
+
+            if (filtered.length === 0) {
+                listContainer.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 2rem; font-size: 0.875rem;">Nenhum músico encontrado para o filtro.</div>`;
+                return;
+            }
+
+            if (currentView === 'alfabetica') {
+                // Ordenação Alfabética A-Z
+                filtered.sort((a, b) => {
+                    const nA = (a.NOMEARTISTICO || a['NOME REGISTRO'] || a.NOME || '').trim().toLowerCase();
+                    const nB = (b.NOMEARTISTICO || b['NOME REGISTRO'] || b.NOME || '').trim().toLowerCase();
+                    return nA.localeCompare(nB, 'pt-BR');
+                });
+
+                let html = `<div class="extractor-musicians-grid">`;
+                filtered.forEach(m => {
+                    const isChecked = selectedIds.has(m.id);
+                    const nome = m.NOMEARTISTICO || m['NOME REGISTRO'] || m.NOME || 'Sem nome';
+                    const inst = m.INSTRUMENTOS || m.Instrumento || '';
+                    const statusLower = (m.Status || '').toLowerCase();
+                    const isMonitor = statusLower.includes('monitor');
+                    const badgeClass = isMonitor ? 'monitor' : 'bolsista';
+                    const badgeText = isMonitor ? 'Monitor' : 'Bolsista';
+
+                    html += `
+                        <div class="extractor-musician-item ${isChecked ? 'selected' : ''}" data-id="${m.id}">
+                            <input type="checkbox" data-id="${m.id}" ${isChecked ? 'checked' : ''}>
+                            <div class="extractor-musician-info">
+                                <span class="extractor-musician-name" title="${nome}">${nome}</span>
+                                <span class="extractor-musician-meta">${inst}</span>
+                            </div>
+                            <span class="extractor-badge ${badgeClass}">${badgeText}</span>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+                listContainer.innerHTML = html;
+
+            } else {
+                // Agrupamento por Naipes
+                const ordemNaipes = [
+                    "Primeiros Violinos",
+                    "Segundos Violinos",
+                    "Violas",
+                    "Violoncelos",
+                    "Contrabaixos",
+                    "Flautas",
+                    "Oboés",
+                    "Clarinetes",
+                    "Fagotes",
+                    "Trompa",
+                    "Trompete",
+                    "Trombones",
+                    "Tuba",
+                    "Harpa",
+                    "Piano",
+                    "Percussão",
+                    "Outros"
+                ];
+
+                const grupos = {};
+                ordemNaipes.forEach(n => { grupos[n] = []; });
+
+                filtered.forEach(m => {
+                    const instNormalizado = normalizarNaipe(m.INSTRUMENTOS || m.Instrumento || '');
+                    let grupoEncontrado = "Outros";
+
+                    const match = ordemNaipes.find(n => {
+                        const nNorm = normalizarNaipe(n);
+                        return nNorm === instNormalizado || nNorm.includes(instNormalizado) || instNormalizado.includes(nNorm);
+                    });
+
+                    if (match) {
+                        grupoEncontrado = match;
+                    }
+                    grupos[grupoEncontrado].push(m);
+                });
+
+                let html = '';
+                ordemNaipes.forEach(naipe => {
+                    const musicosNaipe = grupos[naipe];
+                    if (!musicosNaipe || musicosNaipe.length === 0) return;
+
+                    // Ordenar músicos dentro do naipe
+                    musicosNaipe.sort((a, b) => {
+                        const nA = (a.NOMEARTISTICO || a['NOME REGISTRO'] || a.NOME || '').trim().toLowerCase();
+                        const nB = (b.NOMEARTISTICO || b['NOME REGISTRO'] || b.NOME || '').trim().toLowerCase();
+                        return nA.localeCompare(nB, 'pt-BR');
+                    });
+
+                    const allNaipeSelected = musicosNaipe.every(m => selectedIds.has(m.id));
+
+                    html += `
+                        <div class="extractor-naipe-group" data-naipe="${naipe}">
+                            <div class="extractor-naipe-header" data-naipe="${naipe}">
+                                <div class="extractor-naipe-title">
+                                    <input type="checkbox" class="naipe-master-checkbox" data-naipe="${naipe}" ${allNaipeSelected ? 'checked' : ''}>
+                                    <span>${naipe} (${musicosNaipe.length})</span>
+                                </div>
+                                <i data-lucide="folder" style="width: 15px; height: 15px; color: #94a3b8;"></i>
+                            </div>
+                            <div class="extractor-musicians-grid">
+                    `;
+
+                    musicosNaipe.forEach(m => {
+                        const isChecked = selectedIds.has(m.id);
+                        const nome = m.NOMEARTISTICO || m['NOME REGISTRO'] || m.NOME || 'Sem nome';
+                        const inst = m.INSTRUMENTOS || m.Instrumento || '';
+                        const statusLower = (m.Status || '').toLowerCase();
+                        const isMonitor = statusLower.includes('monitor');
+                        const badgeClass = isMonitor ? 'monitor' : 'bolsista';
+                        const badgeText = isMonitor ? 'Monitor' : 'Bolsista';
+
+                        html += `
+                            <div class="extractor-musician-item ${isChecked ? 'selected' : ''}" data-id="${m.id}">
+                                <input type="checkbox" data-id="${m.id}" ${isChecked ? 'checked' : ''}>
+                                <div class="extractor-musician-info">
+                                    <span class="extractor-musician-name" title="${nome}">${nome}</span>
+                                    <span class="extractor-musician-meta">${inst}</span>
+                                </div>
+                                <span class="extractor-badge ${badgeClass}">${badgeText}</span>
+                            </div>
+                        `;
+                    });
+
+                    html += `
+                            </div>
+                        </div>
+                    `;
+                });
+
+                listContainer.innerHTML = html;
+
+                // Definir estado indeterminado dos headers de naipe
+                document.querySelectorAll('.naipe-master-checkbox').forEach(cb => {
+                    const naipe = cb.dataset.naipe;
+                    const musicosNaipe = grupos[naipe] || [];
+                    const allSelected = musicosNaipe.length > 0 && musicosNaipe.every(m => selectedIds.has(m.id));
+                    const someSelected = !allSelected && musicosNaipe.some(m => selectedIds.has(m.id));
+                    cb.indeterminate = someSelected;
+                });
+            }
+
+            if (window.lucide) lucide.createIcons();
+
+            // Event Listeners nos itens individuais
+            listContainer.querySelectorAll('.extractor-musician-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    if (e.target.tagName === 'INPUT') return;
+                    const cb = item.querySelector('input[type="checkbox"]');
+                    if (cb) {
+                        cb.checked = !cb.checked;
+                        toggleMusicianSelection(cb.dataset.id, cb.checked);
+                    }
+                });
+            });
+
+            listContainer.querySelectorAll('input[data-id]').forEach(cb => {
+                cb.addEventListener('change', () => {
+                    toggleMusicianSelection(cb.dataset.id, cb.checked);
+                });
+            });
+
+            // Event Listeners no cabeçalho do naipe (checkbox do naipe)
+            listContainer.querySelectorAll('.naipe-master-checkbox').forEach(cb => {
+                cb.addEventListener('change', (e) => {
+                    e.stopPropagation();
+                    const group = cb.closest('.extractor-naipe-group');
+                    if (group) {
+                        const items = group.querySelectorAll('input[data-id]');
+                        items.forEach(itemCb => {
+                            itemCb.checked = cb.checked;
+                            const id = itemCb.dataset.id;
+                            if (cb.checked) {
+                                selectedIds.add(id);
+                            } else {
+                                selectedIds.delete(id);
+                            }
+                        });
+                        renderList();
+                        updatePreview();
+                    }
+                });
+            });
+        };
+
+        const toggleMusicianSelection = (id, isSelected) => {
+            if (isSelected) {
+                selectedIds.add(id);
+            } else {
+                selectedIds.delete(id);
+            }
+            renderList();
+            updatePreview();
+        };
+
+        // Motor de Formatação dos Dados
+        const updatePreview = () => {
+            if (!previewTextarea) return;
+
+            const actives = getActiveMusicians();
+            const selectedMusicians = actives.filter(m => selectedIds.has(m.id));
+
+            // Ordenar por nome
+            selectedMusicians.sort((a, b) => {
+                const nA = (a.NOMEARTISTICO || a['NOME REGISTRO'] || a.NOME || '').trim().toLowerCase();
+                const nB = (b.NOMEARTISTICO || b['NOME REGISTRO'] || b.NOME || '').trim().toLowerCase();
+                return nA.localeCompare(nB, 'pt-BR');
+            });
+
+            // Extrair valor do campo
+            const values = [];
+            selectedMusicians.forEach(m => {
+                let val = '';
+                if (currentField === 'nomeArtistico') {
+                    val = (m.NOMEARTISTICO || m['NOME ARTÍSTICO'] || m['NOME REGISTRO'] || m.NOME || '').toString().trim();
+                } else if (currentField === 'email') {
+                    val = (m.EMAIL || m.email || '').toString().trim();
+                } else if (currentField === 'telefone') {
+                    val = (m['TELEFONE'] || m['Telefone'] || m['WhatsApp'] || m.TELEFONE1 || '').toString().trim();
+                } else if (currentField === 'nomeRegistro') {
+                    val = (m['NOME REGISTRO'] || m['NOME REGISTRO '] || m.NOME || m.Nome || m.NOMEARTISTICO || '').toString().trim();
+                } else if (currentField === 'cpf') {
+                    val = (m.CPF || m.cpf || m.id || '').toString().trim();
+                }
+
+                if (val && val !== '-' && val !== 'null' && val !== 'undefined') {
+                    values.push(val);
+                }
+            });
+
+            // Formatação com o Separador escolhido
+            let formattedText = '';
+            if (values.length > 0) {
+                if (currentSeparator === 'fluido') {
+                    if (values.length === 1) {
+                        formattedText = values[0];
+                    } else if (values.length === 2) {
+                        formattedText = `${values[0]} e ${values[1]}`;
+                    } else {
+                        formattedText = `${values.slice(0, -1).join(', ')} e ${values[values.length - 1]}`;
+                    }
+                } else if (currentSeparator === 'pontoVirgula') {
+                    formattedText = values.join('; ');
+                } else if (currentSeparator === 'linha') {
+                    formattedText = values.join('\n');
+                } else if (currentSeparator === 'virgula') {
+                    formattedText = values.join(', ');
+                }
+            }
+
+            previewTextarea.value = formattedText;
+
+            if (selectedCountEl) {
+                selectedCountEl.textContent = `${selectedIds.size} selecionado${selectedIds.size === 1 ? '' : 's'}`;
+            }
+
+            if (charCountEl) {
+                charCountEl.textContent = `${values.length} ite${values.length === 1 ? 'm' : 'ns'} · ${formattedText.length} caracteres`;
+            }
+        };
+
+        // Copiar para Área de Transferência
+        if (btnCopy) {
+            btnCopy.addEventListener('click', async () => {
+                const text = previewTextarea ? previewTextarea.value.trim() : '';
+                if (!text) {
+                    showNotification("Selecione ao menos um músico com dado válido para copiar.", "warning");
+                    return;
+                }
+
+                try {
+                    await navigator.clipboard.writeText(text);
+                    const origHTML = btnCopy.innerHTML;
+                    btnCopy.innerHTML = `<i data-lucide="check" style="width: 16px; height: 16px;"></i> Copiado!`;
+                    btnCopy.style.background = 'linear-gradient(135deg, #10b981, #059669)';
+                    if (window.lucide) lucide.createIcons();
+
+                    setTimeout(() => {
+                        btnCopy.innerHTML = origHTML;
+                        btnCopy.style.background = 'linear-gradient(135deg, #6366f1, #4f46e5)';
+                        if (window.lucide) lucide.createIcons();
+                    }, 2000);
+
+                    showNotification("Dados copiados para a área de transferência!", "success");
+                } catch (err) {
+                    console.error("Erro ao copiar dados:", err);
+                    showNotification("Não foi possível copiar automaticamente para o clipboard.", "error");
+                }
+            });
+        }
+    }
+
+    // Inicializar Modal de Extração
+    initMusiciansExtractorModal();
 
     // Inicializar Áreas Copiáveis do Drawer
     initCopyableFields();

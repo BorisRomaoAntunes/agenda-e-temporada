@@ -79,6 +79,9 @@ onSnapshot(settingsRef, (snap) => {
         // Se o administrador desativar o letreiro, fechamos o painel de histórico
         if (!tickerEnabled) {
             historyPanel.classList.remove('open');
+            if (window.dismissTickerHint) window.dismissTickerHint(false);
+        } else {
+            if (window.checkAndShowTickerHint) window.checkAndShowTickerHint();
         }
     }
 });
@@ -693,14 +696,96 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (!trigger || !panel) return;
 
-    // ====== INTERAÇÃO DO PAINEL DE HISTÓRICO ======
+    // ====== INTERAÇÃO DO PAINEL DE HISTÓRICO & DICA DE DESCOBERTA ======
     const newsTicker = document.getElementById('newsTicker');
     const historyPanel = document.getElementById('historyPanel');
     const btnCloseHistory = document.getElementById('btnCloseHistory');
+    const tickerCoachmark = document.getElementById('tickerHintCoachmark');
+    const btnDismissTickerHint = document.getElementById('btnDismissTickerHint');
+    let hintTimeout = null;
+
+    function dismissTickerHint(permanent = true) {
+        if (hintTimeout) {
+            clearTimeout(hintTimeout);
+            hintTimeout = null;
+        }
+        if (!tickerCoachmark) return;
+        
+        if (tickerCoachmark.style.display !== 'none' && !tickerCoachmark.classList.contains('hiding')) {
+            tickerCoachmark.classList.add('hiding');
+            setTimeout(() => {
+                tickerCoachmark.style.display = 'none';
+                tickerCoachmark.classList.remove('hiding');
+                tickerCoachmark.setAttribute('aria-hidden', 'true');
+            }, 350);
+        }
+        
+        if (permanent) {
+            try {
+                localStorage.setItem('oer_ticker_hint_dismissed', 'true');
+            } catch (e) {
+                // Ignore storage errors
+            }
+        }
+    }
+
+    function checkAndShowTickerHint() {
+        if (!tickerCoachmark || !newsTicker) return;
+        
+        try {
+            const dismissed = localStorage.getItem('oer_ticker_hint_dismissed');
+            if (dismissed === 'true') return;
+        } catch (e) {
+            return;
+        }
+
+        // Aguarda 1.2s após o carregamento para animação suave
+        setTimeout(() => {
+            const isTickerVisible = window.getComputedStyle(newsTicker).display !== 'none';
+            const isHistoryOpen = historyPanel && historyPanel.classList.contains('open');
+            
+            if (isTickerVisible && !isHistoryOpen) {
+                tickerCoachmark.style.display = 'block';
+                tickerCoachmark.setAttribute('aria-hidden', 'false');
+                
+                // Auto-dismiss após 5 segundos
+                hintTimeout = setTimeout(() => {
+                    dismissTickerHint(true);
+                }, 5000);
+            }
+        }, 1200);
+    }
+
+    if (tickerCoachmark) {
+        // Clicar no botão X fecha a dica sem abrir o histórico
+        if (btnDismissTickerHint) {
+            btnDismissTickerHint.addEventListener('click', (e) => {
+                e.stopPropagation();
+                dismissTickerHint(true);
+            });
+        }
+
+        // Clicar no corpo da dica abre o histórico (simula clique no letreiro)
+        tickerCoachmark.addEventListener('click', (e) => {
+            if (btnDismissTickerHint && (e.target === btnDismissTickerHint || btnDismissTickerHint.contains(e.target))) return;
+            dismissTickerHint(true);
+            if (newsTicker) {
+                newsTicker.click();
+            }
+        });
+
+        // Registra globalmente para integração com onSnapshot
+        window.checkAndShowTickerHint = checkAndShowTickerHint;
+        window.dismissTickerHint = dismissTickerHint;
+
+        // Inicia checagem de exibição da dica
+        checkAndShowTickerHint();
+    }
 
     if (newsTicker && historyPanel && btnCloseHistory) {
         // Alternar visibilidade (Toggle)
         newsTicker.addEventListener('click', () => {
+            dismissTickerHint(true);
             const isOpen = historyPanel.classList.toggle('open');
             if (isOpen) {
                 // Reseta busca ao abrir

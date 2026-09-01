@@ -373,6 +373,151 @@ body.modo-concerto .header-separator {
     animation-play-state: paused;
 }
 
+/* ── Dica Interativa de Descoberta do Letreiro (Coachmark) ── */
+.ticker-hint-coachmark {
+    position: fixed;
+    top: calc(var(--header-height) + 40px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 105;
+    pointer-events: auto;
+    max-width: 90vw;
+    width: max-content;
+    animation: hintFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.ticker-hint-coachmark.hiding {
+    animation: hintFadeOut 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    pointer-events: none;
+}
+
+.ticker-hint-arrow {
+    width: 0;
+    height: 0;
+    border-left: 7px solid transparent;
+    border-right: 7px solid transparent;
+    border-bottom: 7px solid rgba(26, 26, 26, 0.95);
+    margin: 0 auto;
+    position: relative;
+    top: 1px;
+}
+
+.ticker-hint-content {
+    background: rgba(26, 26, 26, 0.94);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #ffffff;
+    border: 1px solid rgba(250, 204, 21, 0.4);
+    border-radius: 50px;
+    padding: 7px 14px 7px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22), 0 2px 6px rgba(0, 0, 0, 0.12);
+    cursor: pointer;
+    transition: transform 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+    user-select: none;
+}
+
+.ticker-hint-content:hover {
+    background: rgba(18, 18, 18, 0.98);
+    border-color: rgba(250, 204, 21, 0.7);
+    transform: translateY(-1px);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+}
+
+.ticker-hint-hand-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    line-height: 1;
+    animation: hintTapBounce 1.4s ease-in-out infinite;
+}
+
+.ticker-hint-text {
+    font-size: 0.84rem;
+    font-weight: 400;
+    color: #f1f5f9;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+}
+
+.ticker-hint-text strong {
+    color: #fde047;
+    font-weight: 700;
+}
+
+.ticker-hint-close {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 1.15rem;
+    line-height: 1;
+    padding: 0 0 0 4px;
+    margin-left: 2px;
+    cursor: pointer;
+    transition: color 0.15s ease, transform 0.15s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ticker-hint-close:hover {
+    color: #ffffff;
+    transform: scale(1.15);
+}
+
+@keyframes hintTapBounce {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-4px);
+    }
+}
+
+@keyframes hintFadeIn {
+    0% {
+        opacity: 0;
+        transform: translate(-50%, -8px) scale(0.96);
+    }
+    100% {
+        opacity: 1;
+        transform: translate(-50%, 0) scale(1);
+    }
+}
+
+@keyframes hintFadeOut {
+    0% {
+        opacity: 1;
+        transform: translate(-50%, 0) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(-50%, -6px) scale(0.96);
+    }
+}
+
+@media (max-width: 600px) {
+    .ticker-hint-coachmark {
+        top: calc(var(--header-height) + 38px);
+        width: calc(100% - 24px);
+        max-width: 360px;
+    }
+    
+    .ticker-hint-content {
+        padding: 6px 12px;
+        border-radius: 24px;
+    }
+    
+    .ticker-hint-text {
+        font-size: 0.78rem;
+        white-space: normal;
+        line-height: 1.25;
+    }
+}
+
 /* Painel de Histórico de Notificações */
 .history-panel {
     display: none;

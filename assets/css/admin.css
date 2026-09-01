@@ -4299,7 +4299,7 @@ input:checked + .slider:before {
 }
 
 .musico-stat-card.clickable-stat-card::after {
-    content: "Clique para copiar e-mails";
+    content: attr(data-tooltip);
     position: absolute;
     bottom: -32px;
     left: 50%;
@@ -5074,4 +5074,218 @@ input:checked + .slider:before {
 .admin-interval-btn-stop:active {
     transform: translateY(1px);
 }
+
+/* ==========================================================================
+   MODAL DE EXTRAÇÃO PERSONALIZADA DE DADOS DOS MÚSICOS
+   ========================================================================== */
+.card-extrair-dados:hover {
+    border-color: #818cf8 !important;
+}
+
+.extractor-field-chips,
+.extractor-separator-chips {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.btn-field-chip,
+.btn-sep-chip {
+    padding: 0.5rem 0.9rem;
+    border-radius: 8px;
+    font-size: 0.825rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1.5px solid #cbd5e1;
+    background: #ffffff;
+    color: #475569;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    transition: all 0.15s ease-in-out;
+}
+
+.btn-field-chip svg,
+.btn-sep-chip svg {
+    width: 15px;
+    height: 15px;
+}
+
+.btn-field-chip:hover,
+.btn-sep-chip:hover {
+    background: #f8fafc;
+    border-color: #94a3b8;
+    color: #1e293b;
+}
+
+.btn-field-chip.active,
+.btn-sep-chip.active {
+    background: #6366f1;
+    border-color: #6366f1;
+    color: #ffffff;
+    box-shadow: 0 2px 6px rgba(99, 102, 241, 0.25);
+}
+
+.btn-field-chip.active svg,
+.btn-sep-chip.active svg {
+    color: #ffffff;
+}
+
+.btn-quick-select {
+    padding: 0.35rem 0.7rem;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    color: #475569;
+    transition: all 0.15s ease;
+}
+
+.btn-quick-select:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #0f172a;
+}
+
+.btn-quick-clear {
+    color: #ef4444;
+    border-color: #fecaca;
+    background: #fef2f2;
+}
+
+.btn-quick-clear:hover {
+    background: #fee2e2;
+    border-color: #fca5a5;
+    color: #dc2626;
+}
+
+.extractor-view-btn {
+    transition: all 0.15s ease;
+}
+
+.extractor-view-btn.active {
+    background: #ffffff !important;
+    color: #1e293b !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Agrupamento por Naipe no Extrator */
+.extractor-naipe-group {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    margin-bottom: 0.6rem;
+    overflow: hidden;
+}
+
+.extractor-naipe-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 0.8rem;
+    background: #f8fafc;
+    border-bottom: 1px solid #f1f5f9;
+    cursor: pointer;
+    user-select: none;
+}
+
+.extractor-naipe-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.825rem;
+    font-weight: 700;
+    color: #334155;
+}
+
+.extractor-musicians-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.4rem;
+    padding: 0.6rem;
+}
+
+.extractor-musician-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 0.6rem;
+    border-radius: 6px;
+    background: #ffffff;
+    border: 1px solid #f1f5f9;
+    font-size: 0.825rem;
+    cursor: pointer;
+    transition: all 0.12s ease;
+    user-select: none;
+}
+
+.extractor-musician-item:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+}
+
+.extractor-musician-item.selected {
+    background: #eef2ff;
+    border-color: #c7d2fe;
+    color: #3730a3;
+    font-weight: 500;
+}
+
+.extractor-musician-item input[type="checkbox"] {
+    cursor: pointer;
+    width: 15px;
+    height: 15px;
+    accent-color: #6366f1;
+    flex-shrink: 0;
+}
+
+.extractor-musician-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+
+.extractor-musician-name {
+    font-weight: 600;
+    color: #1e293b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.extractor-musician-meta {
+    font-size: 0.72rem;
+    color: #64748b;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.extractor-badge {
+    font-size: 0.68rem;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    font-weight: 600;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.extractor-badge.bolsista {
+    background: #ecfdf5;
+    color: #059669;
+}
+
+.extractor-badge.monitor {
+    background: #f5f3ff;
+    color: #7c3aed;
+}
+
+#extractor-preview-text:focus {
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
+}
+
 
