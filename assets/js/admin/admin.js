@@ -9429,6 +9429,12 @@ ${strGeneroBolsistas}${strGeralGeneroNota}`;
             return { cellText: 'CL', cellClass: 'status-cancelado', incP: 0, incF: 0, excelText: 'CL' };
         }
 
+        const dataEntradaStr = parseDateToYYYYMMDD(musico['INICIO OER Contrato'] || musico.dataEntrada || musico.inicioContrato);
+        const isAntesDoInicio = dataEntradaStr && dataStr < dataEntradaStr;
+        if (isAntesDoInicio) {
+            return { cellText: '-', cellClass: 'status-nao-escalado', incP: 0, incF: 0, excelText: '-' };
+        }
+
         const isDispensadoGlobal = isDispensadoNoDia;
         const isAtestadoGlobal = isAtestadoNoDia;
         const musicoInstNorm = normalizarNaipe(musico.INSTRUMENTOS || musico.Instrumento || '');
@@ -9601,18 +9607,27 @@ ${strGeneroBolsistas}${strGeralGeneroNota}`;
                 });
                 
                 const ativos = allMusicians.filter(m => {
+                    // Verificar se a data de início é posterior ao final deste mês
+                    const dataEntradaStr = parseDateToYYYYMMDD(m['INICIO OER Contrato'] || m.dataEntrada || m.inicioContrato);
+                    if (dataEntradaStr && dataEntradaStr > endOfMonthQuery) {
+                        const temRegistroNoMes = Object.values(presencasPorData).some(presDoc => 
+                            Array.isArray(presDoc) ? presDoc.some(d => d.registros && d.registros[m.id]) : (presDoc && presDoc.registros && presDoc.registros[m.id])
+                        );
+                        if (!temRegistroNoMes) return false;
+                    }
+
                     const statusFirebase = (m.statusFirebase || 'ativo').toLowerCase();
                     if (statusFirebase === 'ativo') return true;
 
                     // Se estiver inativo/desligado:
                     // 1. Incluir se possui dataSaida cadastrada no mês do relatório ou posterior
-                    if (m.dataSaida && m.dataSaida >= startOfMonth) {
+                    if (m.dataSaida && m.dataSaida >= startOfMonthQuery) {
                         return true;
                     }
 
                     // 2. Fallback: Incluir se possui algum registro salvo de presença/falta no mês do relatório
                     const temRegistroNoMes = Object.values(presencasPorData).some(presDoc => 
-                        presDoc && presDoc.registros && presDoc.registros[m.id]
+                        Array.isArray(presDoc) ? presDoc.some(d => d.registros && d.registros[m.id]) : (presDoc && presDoc.registros && presDoc.registros[m.id])
                     );
                     if (temRegistroNoMes) {
                         return true;
@@ -10009,18 +10024,27 @@ ${strGeneroBolsistas}${strGeralGeneroNota}`;
                 const cellCommentsMap = {};
                 
                 const ativos = allMusicians.filter(m => {
+                    // Verificar se a data de início é posterior ao final deste mês
+                    const dataEntradaStr = parseDateToYYYYMMDD(m['INICIO OER Contrato'] || m.dataEntrada || m.inicioContrato);
+                    if (dataEntradaStr && dataEntradaStr > endOfMonthQuery) {
+                        const temRegistroNoMes = Object.values(presencasPorData).some(presDoc => 
+                            Array.isArray(presDoc) ? presDoc.some(d => d.registros && d.registros[m.id]) : (presDoc && presDoc.registros && presDoc.registros[m.id])
+                        );
+                        if (!temRegistroNoMes) return false;
+                    }
+
                     const statusFirebase = (m.statusFirebase || 'ativo').toLowerCase();
                     if (statusFirebase === 'ativo') return true;
 
                     // Se estiver inativo/desligado:
                     // 1. Incluir se possui dataSaida cadastrada no mês do relatório ou posterior
-                    if (m.dataSaida && m.dataSaida >= startOfMonth) {
+                    if (m.dataSaida && m.dataSaida >= startOfMonthQuery) {
                         return true;
                     }
 
                     // 2. Fallback: Incluir se possui algum registro salvo de presença/falta no mês do relatório
                     const temRegistroNoMes = Object.values(presencasPorData).some(presDoc => 
-                        presDoc && presDoc.registros && presDoc.registros[m.id]
+                        Array.isArray(presDoc) ? presDoc.some(d => d.registros && d.registros[m.id]) : (presDoc && presDoc.registros && presDoc.registros[m.id])
                     );
                     if (temRegistroNoMes) {
                         return true;
@@ -10376,7 +10400,13 @@ ${strGeneroBolsistas}${strGeralGeneroNota}`;
             const bolsistas = allMusicians.filter(m => {
                 if (m.statusFirebase === 'desligado' || m.statusFirebase === 'inativo') return false;
                 const status = (m.Status || '').toLowerCase();
-                return status.includes('bolsista');
+                if (!status.includes('bolsista')) return false;
+
+                const dataEntradaStr = parseDateToYYYYMMDD(m['INICIO OER Contrato'] || m.dataEntrada || m.inicioContrato);
+                if (dataEntradaStr && dataEntradaStr > endOfMonth) {
+                    return false;
+                }
+                return true;
             });
             
             // Dicionário de controle: bolsistaId -> { nome, faltas: [ { dia, obs } ], pendencias: [ { dia, obs } ], atrasosMin: 0 }
@@ -10406,6 +10436,12 @@ ${strGeneroBolsistas}${strGeralGeneroNota}`;
                         Object.entries(pres.registros).forEach(([musicoId, registro]) => {
                             if (dadosBolsistas[musicoId]) {
                                 const bInfo = dadosBolsistas[musicoId];
+                                const musicoOriginal = bolsistas.find(m => m.id === musicoId);
+                                const dataEntradaBolsista = musicoOriginal ? parseDateToYYYYMMDD(musicoOriginal['INICIO OER Contrato'] || musicoOriginal.dataEntrada || musicoOriginal.inicioContrato) : null;
+                                if (dataEntradaBolsista && dataStr < dataEntradaBolsista) {
+                                    return; // Data anterior ao início do contrato deste bolsista
+                                }
+
                                 const musicoInstNorm = normalizarNaipe(bInfo.inst);
 
                                 // Se for ensaio de naipe, verificar relevância

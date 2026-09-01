@@ -372,6 +372,33 @@ function getActiveMusiciansForCurrentCall() {
     return allMusicians.filter(m => isMusicianEscalatedInCall(m, call));
 }
 
+function parseDateToYYYYMMDD(val) {
+    if (!val || val === '-' || val === 'Sem data') return null;
+    let d = null;
+    if (!isNaN(val) && typeof val === 'number') {
+        d = new Date((val - 25569) * 86400 * 1000);
+    } else if (typeof val === 'string') {
+        const str = val.trim();
+        const partes = str.split('/');
+        if (partes.length === 3) {
+            const dia = parseInt(partes[0], 10);
+            const mes = parseInt(partes[1], 10) - 1;
+            const ano = parseInt(partes[2], 10);
+            d = new Date(ano, mes, dia);
+        } else if (str.includes('-')) {
+            const parsed = Date.parse(str);
+            if (!isNaN(parsed)) d = new Date(str + (str.length === 10 ? 'T12:00:00' : ''));
+        }
+    }
+    if (d && !isNaN(d.getTime())) {
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        return `${yyyy}-${mm}-${dd}`;
+    }
+    return null;
+}
+
 // Carregar Lista Completa de Músicos do Firestore
 async function loadMusicians() {
     try {
@@ -410,12 +437,16 @@ async function loadMusicians() {
             const nome = nomeArtistico || nomeCompleto || data.Nome || "Sem Nome";
             const instrumento = (data.INSTRUMENTOS || data.Instrumento || '').toString().trim() || "Outros";
 
+            const rawInicio = data['INICIO OER Contrato'] || data.dataEntrada || data.inicioContrato || null;
+            const dataEntradaStr = parseDateToYYYYMMDD(rawInicio);
+
             allMusiciansRaw.push({
                 id: docSnap.id,
                 Nome: nome,
                 Instrumento: instrumento,
                 Status: (rawStatus.includes("monitor") || rawStatus.includes("spalla")) ? "Monitor" : "Bolsista",
                 statusFirebase: (data.statusFirebase || 'ativo').toString().toLowerCase(),
+                dataEntrada: dataEntradaStr || null,
                 dataSaida: data.dataSaida || null
             });
         });
@@ -430,13 +461,19 @@ function updateActiveMusiciansForDate(targetDateStr) {
     if (!allMusiciansRaw || allMusiciansRaw.length === 0) return;
 
     allMusicians = allMusiciansRaw.filter(m => {
+        // Se houver registro salvo deste integrante na chamada da data, manter
+        if (attendanceData && attendanceData[m.id]) return true;
+
+        // Se o músico possui data de entrada futura em relação ao evento, não exibi-lo na chamada
+        if (m.dataEntrada && targetDateStr < m.dataEntrada) {
+            return false;
+        }
+
         const status = m.statusFirebase || 'ativo';
         if (status === 'ativo') return true;
 
-        if (attendanceData && attendanceData[m.id]) return true;
-
         if (m.dataSaida) {
-            return targetDateStr < m.dataSaida;
+            return targetDateStr <= m.dataSaida;
         }
 
         return false;
