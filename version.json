@@ -1,8 +1,20 @@
 {
-  "hash": "3931c67",
-  "date": "01/09/2026 00:36",
-  "buildAt": "2026-09-01T03:36:53.241Z",
+  "hash": "b04aac1",
+  "date": "01/09/2026 00:42",
+  "buildAt": "2026-09-01T03:43:11.239Z",
   "history": [
+    {
+      "hash": "b04aac1",
+      "date": "01/09/2026 00:42",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(admin): adicionar edicao de integrantes via gaveta no modal de importacao"
+    },
+    {
+      "hash": "5c3944d",
+      "date": "01/09/2026 00:37",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json do build"
+    },
     {
       "hash": "3931c67",
       "date": "01/09/2026 00:36",
@@ -110,18 +122,6 @@
       "date": "27/08/2026 12:59",
       "author": "Boris Romão Antunes",
       "subject": "feat: integracao Google Calendar publico de concertos com toggle no admin"
-    },
-    {
-      "hash": "ce364a4",
-      "date": "27/08/2026 09:48",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(admin): permite editar e excluir dispensas e atestados homologados com sincronizacao nas listas de presenca"
-    },
-    {
-      "hash": "afce400",
-      "date": "27/08/2026 09:47",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(admin): exibe instrumento do musico nos modais de dispensa e atestado"
     }
   ]
 }
