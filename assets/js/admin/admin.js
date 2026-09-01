@@ -7527,13 +7527,194 @@ function initMusiciansManagement() {
     const diffListContainer = document.getElementById('import-diff-list-container');
     const sheetNameEl = document.getElementById('import-diff-sheet-name');
 
+    // Gaveta de Edição de Músico no Diff
+    const editMusicoDrawer = document.getElementById('edit-musico-drawer');
+    const editMusicoDrawerOverlay = document.getElementById('edit-musico-drawer-overlay');
+    const btnCloseEditMusicoDrawer = document.getElementById('btn-close-edit-drawer');
+    const btnCancelEditMusico = document.getElementById('btn-cancel-edit-musico');
+    const formEditMusicoDrawer = document.getElementById('form-edit-musico-drawer');
+    const editStatusSelect = document.getElementById('edit-m-status');
+    const editDataSaidaContainer = document.getElementById('edit-m-container-data-saida');
+    const editDataSaidaInput = document.getElementById('edit-m-data-saida');
+
     let pendingImportData = null; // Armazena os dados do diff antes de confirmar
+    let currentEditingMusico = null; // Músico selecionado para edição
 
     const closeModalDiff = () => {
         if (modalDiff) modalDiff.style.display = 'none';
         pendingImportData = null;
         if (importInput) importInput.value = '';
+        closeEditMusicoDrawer();
     };
+
+    const openEditMusicoDrawer = (item, tabName, index) => {
+        if (!editMusicoDrawer || !editMusicoDrawerOverlay) return;
+        currentEditingMusico = { item, tabName, index, cpfId: item.cpfId || (item.CPF ? item.CPF.toString().replace(/[^\d]/g, "") : "") };
+
+        const getVal = (val) => (val === undefined || val === null || val === '-') ? '' : val;
+
+        document.getElementById('edit-m-nome-artistico').value = getVal(item.NOMEARTISTICO || item['NOME REGISTRO'] || item.Nome);
+        document.getElementById('edit-m-nome-registro').value = getVal(item['NOME REGISTRO'] || item.NOMEARTISTICO || item.Nome);
+        document.getElementById('edit-m-instrumento').value = getVal(item.INSTRUMENTOS || item.Instrumento);
+        document.getElementById('edit-m-cpf').value = getVal(item.CPF || item.cpfId);
+
+        // Status
+        let statusVal = item.Status || '';
+        if (!statusVal) {
+            statusVal = (tabName === 'inativados') ? 'Inativo' : 'Bolsista';
+        }
+        const statusLower = statusVal.toLowerCase();
+        let selectedStatus = 'Bolsista';
+        if (statusLower.includes('monitor')) selectedStatus = 'Monitor';
+        else if (statusLower.includes('titular')) selectedStatus = 'Reg.Titular';
+        else if (statusLower.includes('extra')) selectedStatus = 'Músico Extra';
+        else if (statusLower.includes('inativo') || statusLower.includes('cancelad')) selectedStatus = 'Inativo';
+        else if (statusLower.includes('desligad')) selectedStatus = 'Desligado';
+        else if (statusLower.includes('bolsista')) selectedStatus = 'Bolsista';
+        else selectedStatus = statusVal;
+
+        if (editStatusSelect) editStatusSelect.value = selectedStatus;
+
+        // Data de Saída
+        const hojeDataIso = new Date().toISOString().split('T')[0];
+        if (editDataSaidaInput) {
+            editDataSaidaInput.value = item.dataSaida || (tabName === 'inativados' ? hojeDataIso : '');
+        }
+
+        const isInactive = selectedStatus === 'Inativo' || selectedStatus === 'Desligado' || tabName === 'inativados';
+        if (editDataSaidaContainer) {
+            editDataSaidaContainer.style.display = isInactive ? 'block' : 'none';
+        }
+
+        // Outros campos
+        document.getElementById('edit-m-escalado').value = getVal(item.Escalado);
+        document.getElementById('edit-m-tipo-contrato').value = getVal(item['Tipo Contrato Prorrogáveis por igual prazo'] || item['Tipo Contrato']);
+        document.getElementById('edit-m-inicio-contrato').value = getVal(item['INICIO OER Contrato']);
+        document.getElementById('edit-m-termino-contrato').value = getVal(item['TERMINO OER Contrato']);
+        document.getElementById('edit-m-email').value = getVal(item.EMAIL || item.Email);
+        document.getElementById('edit-m-telefone').value = getVal(item.TELEFONE || item.Telefone);
+        document.getElementById('edit-m-nascimento').value = getVal(item['DATA DE NACIMENTO '] || item['DATA DE NASCIMENTO'] || item.Nascimento);
+        document.getElementById('edit-m-rg').value = getVal(item.RG || item.Rg);
+        document.getElementById('edit-m-pis').value = getVal(item['PIS/PASEP'] || item.Pis);
+        document.getElementById('edit-m-genero').value = getVal(item.GENERO || item['GÊNERO'] || item.genero);
+        document.getElementById('edit-m-banco').value = getVal(item['Banco '] || item.Banco);
+        document.getElementById('edit-m-agencia').value = getVal(item['Agencia '] || item.Agencia);
+        document.getElementById('edit-m-conta').value = getVal(item['Conta Corrente '] || item['Conta Corrente']);
+        document.getElementById('edit-m-endereco').value = getVal(item['Endereço'] || item['Endereço ']);
+        document.getElementById('edit-m-cep').value = getVal(item.CEP || item.Cep);
+        document.getElementById('edit-m-restricao').value = getVal(item['Restrição Alimentar']);
+        document.getElementById('edit-m-carro').value = getVal(item['Dados Carro']);
+
+        editMusicoDrawer.classList.add('open');
+        editMusicoDrawerOverlay.classList.add('open');
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    };
+
+    const closeEditMusicoDrawer = () => {
+        if (editMusicoDrawer) editMusicoDrawer.classList.remove('open');
+        if (editMusicoDrawerOverlay) editMusicoDrawerOverlay.classList.remove('open');
+        currentEditingMusico = null;
+    };
+
+    if (btnCloseEditMusicoDrawer) btnCloseEditMusicoDrawer.addEventListener('click', closeEditMusicoDrawer);
+    if (btnCancelEditMusico) btnCancelEditMusico.addEventListener('click', closeEditMusicoDrawer);
+    if (editMusicoDrawerOverlay) editMusicoDrawerOverlay.addEventListener('click', closeEditMusicoDrawer);
+
+    if (editStatusSelect) {
+        editStatusSelect.addEventListener('change', () => {
+            const st = editStatusSelect.value.toLowerCase();
+            const isInactive = st === 'inativo' || st === 'desligado';
+            if (editDataSaidaContainer) {
+                editDataSaidaContainer.style.display = isInactive ? 'block' : 'none';
+            }
+            if (isInactive && editDataSaidaInput && !editDataSaidaInput.value) {
+                editDataSaidaInput.value = new Date().toISOString().split('T')[0];
+            }
+        });
+    }
+
+    if (formEditMusicoDrawer) {
+        formEditMusicoDrawer.addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (!currentEditingMusico || !pendingImportData) return;
+
+            const { tabName, index, cpfId } = currentEditingMusico;
+            const item = currentEditingMusico.item;
+
+            const newNomeArtistico = document.getElementById('edit-m-nome-artistico').value.trim();
+            const newNomeRegistro = document.getElementById('edit-m-nome-registro').value.trim();
+            const newInstrumento = document.getElementById('edit-m-instrumento').value.trim();
+            const rawCpf = document.getElementById('edit-m-cpf').value.trim();
+            const newCpfId = rawCpf.replace(/[^\d]/g, "") || cpfId;
+            const newStatus = editStatusSelect.value;
+            const newDataSaida = editDataSaidaInput ? editDataSaidaInput.value : '';
+
+            // Atualizar propriedades do item em memória
+            item.NOMEARTISTICO = newNomeArtistico;
+            item['NOME REGISTRO'] = newNomeRegistro;
+            item.Nome = newNomeArtistico || newNomeRegistro;
+            item.INSTRUMENTOS = newInstrumento;
+            item.Instrumento = newInstrumento;
+            item.CPF = rawCpf;
+            item.cpfId = newCpfId;
+            item.Status = newStatus;
+            item.Escalado = document.getElementById('edit-m-escalado').value.trim();
+            item['Tipo Contrato Prorrogáveis por igual prazo'] = document.getElementById('edit-m-tipo-contrato').value.trim();
+            item['INICIO OER Contrato'] = document.getElementById('edit-m-inicio-contrato').value.trim();
+            item['TERMINO OER Contrato'] = document.getElementById('edit-m-termino-contrato').value.trim();
+            item.EMAIL = document.getElementById('edit-m-email').value.trim();
+            item.TELEFONE = document.getElementById('edit-m-telefone').value.trim();
+            item['DATA DE NACIMENTO '] = document.getElementById('edit-m-nascimento').value.trim();
+            item.RG = document.getElementById('edit-m-rg').value.trim();
+            item['PIS/PASEP'] = document.getElementById('edit-m-pis').value.trim();
+            item.GENERO = document.getElementById('edit-m-genero').value.trim();
+            item['Banco '] = document.getElementById('edit-m-banco').value.trim();
+            item['Agencia '] = document.getElementById('edit-m-agencia').value.trim();
+            item['Conta Corrente '] = document.getElementById('edit-m-conta').value.trim();
+            item['Endereço'] = document.getElementById('edit-m-endereco').value.trim();
+            item.CEP = document.getElementById('edit-m-cep').value.trim();
+            item['Restrição Alimentar'] = document.getElementById('edit-m-restricao').value.trim();
+            item['Dados Carro'] = document.getElementById('edit-m-carro').value.trim();
+
+            const isNowInactive = newStatus === 'Inativo' || newStatus === 'Desligado';
+            if (isNowInactive) {
+                item.dataSaida = newDataSaida || new Date().toISOString().split('T')[0];
+            } else {
+                delete item.dataSaida;
+            }
+
+            // Realocação entre abas se o status foi alterado
+            let targetTab = tabName;
+            if (tabName === 'inativados' && !isNowInactive) {
+                targetTab = 'atualizados';
+                pendingImportData.inativados.splice(index, 1);
+                pendingImportData.atualizados.push(item);
+            } else if (tabName !== 'inativados' && isNowInactive) {
+                targetTab = 'inativados';
+                pendingImportData[tabName].splice(index, 1);
+                pendingImportData.inativados.push(item);
+            }
+
+            // Recalcular métricas no modal
+            const elNovos = document.getElementById('diff-count-novos');
+            const elAtu = document.getElementById('diff-count-atualizados');
+            const elReat = document.getElementById('diff-count-reativados');
+            const elInat = document.getElementById('diff-count-inativados');
+
+            if (elNovos) elNovos.textContent = pendingImportData.novos.length;
+            if (elAtu) elAtu.textContent = pendingImportData.atualizados.length;
+            if (elReat) elReat.textContent = pendingImportData.reativados.length;
+            if (elInat) elInat.textContent = pendingImportData.inativados.length;
+
+            // Identificar aba ativa atual e renderizar
+            const currentActiveBtn = diffTabsContainer ? diffTabsContainer.querySelector('.diff-tab-btn.active') : null;
+            const activeTabName = currentActiveBtn ? currentActiveBtn.getAttribute('data-tab') : tabName;
+            renderDiffTabContent(activeTabName);
+
+            closeEditMusicoDrawer();
+            showNotification("Integrativo editado com sucesso na prévia!", "success");
+        });
+    }
 
     if (btnCloseDiff) btnCloseDiff.addEventListener('click', closeModalDiff);
     if (btnCancelDiff) btnCancelDiff.addEventListener('click', closeModalDiff);
@@ -7555,6 +7736,23 @@ function initMusiciansManagement() {
 
             const tabName = btn.getAttribute('data-tab');
             renderDiffTabContent(tabName);
+        });
+    }
+
+    // Delegação de clique no botão "Editar" de cada integrante da lista do Diff
+    if (diffListContainer) {
+        diffListContainer.addEventListener('click', (e) => {
+            const btnEdit = e.target.closest('.btn-edit-import-item');
+            if (!btnEdit || !pendingImportData) return;
+
+            const tab = btnEdit.getAttribute('data-tab');
+            const idx = parseInt(btnEdit.getAttribute('data-index'), 10);
+            const list = pendingImportData[tab] || [];
+            const item = list[idx];
+
+            if (item) {
+                openEditMusicoDrawer(item, tab, idx);
+            }
         });
     }
 
@@ -7591,12 +7789,12 @@ function initMusiciansManagement() {
         const list = pendingImportData[tabName] || [];
 
         if (list.length === 0) {
-            diffListContainer.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 1.5rem; font-size: 0.9rem;">Nenhum músico nesta categoria.</div>`;
+            diffListContainer.innerHTML = `<div style="text-align: center; color: #94a3b8; padding: 1.5rem; font-size: 0.9rem;">Nenhum integrante nesta categoria.</div>`;
             return;
         }
 
         let html = `<ul style="list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.5rem;">`;
-        list.forEach(item => {
+        list.forEach((item, idx) => {
             const nome = item.NOMEARTISTICO || item['NOME REGISTRO'] || item.Nome || 'Músico sem nome';
             const inst = item.INSTRUMENTOS || item.Instrumento || 'Sem instrumento';
             const cpf = item.CPF || item.cpfId || '-';
@@ -7605,20 +7803,26 @@ function initMusiciansManagement() {
 
             html += `
                 <li style="background: white; border: 1px solid #e2e8f0; border-radius: 6px; padding: 0.6rem 0.8rem; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
-                    <div>
-                        <strong style="color: #1e293b; font-size: 0.9rem;">${nome}</strong>
+                    <div style="min-width: 0; flex: 1;">
+                        <strong style="color: #1e293b; font-size: 0.9rem; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${nome}</strong>
                         <div style="font-size: 0.78rem; color: #64748b;">${inst} &bull; CPF: ${cpf} ${statusLabel ? `&bull; <span style="font-weight:600;">${statusLabel}</span>` : ''}</div>
                     </div>
-                    ${tabName === 'inativados' && dataSaidaDisplay ? `
-                        <div style="background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700; white-space: nowrap;">
-                            Saída: ${dataSaidaDisplay}
-                        </div>
-                    ` : ''}
+                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-shrink: 0;">
+                        ${tabName === 'inativados' && dataSaidaDisplay ? `
+                            <div style="background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; padding: 0.2rem 0.5rem; border-radius: 4px; font-size: 0.75rem; font-weight: 700; white-space: nowrap;">
+                                Saída: ${dataSaidaDisplay}
+                            </div>
+                        ` : ''}
+                        <button type="button" class="btn-edit-import-item" data-tab="${tabName}" data-index="${idx}" title="Editar dados antes de salvar">
+                            <i data-lucide="pencil" style="width: 12px; height: 12px;"></i> <span>Editar</span>
+                        </button>
+                    </div>
                 </li>
             `;
         });
         html += `</ul>`;
         diffListContainer.innerHTML = html;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
     }
 
     if (importInput) {
@@ -7829,15 +8033,17 @@ function initMusiciansManagement() {
                     countSaved++;
                 });
 
-                // 2. Marcar Músicos Ausentes como Inativos com sua DATA DE SAÍDA
+                // 2. Marcar Músicos Inativos com sua DATA DE SAÍDA e dados atualizados
                 inativados.forEach(item => {
-                    const docRef = doc(db, "musicos", item.cpfId);
-                    batch.update(docRef, {
-                        statusFirebase: "inativo",
-                        Status: "Inativo",
-                        dataSaida: item.dataSaida,
-                        updatedAt: serverTimestamp()
-                    });
+                    const { cpfId, statusOld, ...rowData } = item;
+                    const docRef = doc(db, "musicos", cpfId);
+                    const docData = { ...rowData };
+                    docData.statusFirebase = "inativo";
+                    docData.Status = docData.Status || "Inativo";
+                    docData.dataSaida = item.dataSaida || new Date().toISOString().split('T')[0];
+                    docData.updatedAt = serverTimestamp();
+
+                    batch.set(docRef, docData, { merge: true });
                     countSaved++;
                 });
 

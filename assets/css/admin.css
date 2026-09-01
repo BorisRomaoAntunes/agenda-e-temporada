@@ -5507,4 +5507,51 @@ input:checked + .slider:before {
     color: #94a3b8;
 }
 
+/* ================= GAVETA DE EDIÇÃO DE MÚSICO (DIFF & IMPORTAÇÃO) ================= */
+.form-input-custom {
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    color: #1e293b;
+    background: #ffffff;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+}
+
+.form-input-custom:focus {
+    border-color: var(--primary-color, #8b0000);
+    box-shadow: 0 0 0 3px rgba(139, 0, 0, 0.12);
+}
+
+.btn-edit-import-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.65rem;
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    color: #334155;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.btn-edit-import-item:hover {
+    background: #e2e8f0;
+    border-color: #94a3b8;
+    color: #0f172a;
+    transform: translateY(-1px);
+}
+
+.btn-edit-import-item:active {
+    transform: translateY(0);
+}
+
+
 

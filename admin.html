@@ -1323,6 +1323,161 @@ Intervalo
                         </div>
                     </div>
                 </div>
+
+                <!-- ===== GAVETA DE EDIÇÃO DE MÚSICO (DIFF & BANCO) ===== -->
+                <div class="drawer-overlay" id="edit-musico-drawer-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 10500; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;"></div>
+                <div class="musico-drawer" id="edit-musico-drawer" style="position: fixed; top: 0; right: -100%; width: min(560px, 100%); max-width: 100%; height: 100%; background: white; z-index: 10501; box-shadow: -5px 0 25px rgba(0,0,0,0.15); display: flex; flex-direction: column; transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: auto;">
+                    <div class="drawer-header" style="padding: 1.25rem 1.5rem; border-bottom: 1px solid #f0f2f5; display: flex; justify-content: space-between; align-items: center; background: #fafafa;">
+                        <div class="drawer-header-info">
+                            <h3 id="edit-drawer-title" style="margin: 0; font-size: 1.15rem; font-weight: 700; color: #1e293b; display: flex; align-items: center; gap: 0.5rem;">
+                                <i data-lucide="user-pen" style="width: 20px; height: 20px; color: var(--primary-color, #8b0000);"></i> Editar Integrante
+                            </h3>
+                            <p id="edit-drawer-subtitle" style="margin: 0.2rem 0 0 0; font-size: 0.82rem; color: #64748b; font-weight: 500;">Ajuste os dados antes de confirmar a importação</p>
+                        </div>
+                        <button type="button" class="btn-close-drawer" id="btn-close-edit-drawer" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #999; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; transition: background 0.2s;">
+                            <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                        </button>
+                    </div>
+                    
+                    <form id="form-edit-musico-drawer" style="display: flex; flex-direction: column; flex: 1; overflow: hidden; margin: 0;">
+                        <div class="drawer-body" style="padding: 1.25rem 1.5rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1.5rem; flex: 1;">
+                            
+                            <!-- Seção 1: Dados Artísticos & Vínculo -->
+                            <div class="drawer-section">
+                                <h4 style="margin: 0 0 0.8rem 0; font-size: 0.9rem; font-weight: 700; color: var(--primary-color, #8b0000); border-bottom: 1px dashed #e5e7eb; padding-bottom: 0.4rem; display: flex; align-items: center; gap: 0.4rem;">
+                                    <i data-lucide="music" style="width: 15px; height: 15px;"></i> Dados Artísticos & Vínculo
+                                </h4>
+                                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem 1rem;">
+                                    <div style="grid-column: span 2;">
+                                        <label style="font-size: 0.78rem; font-weight: 600; color: #475569; display: block; margin-bottom: 0.25rem;">Nome Artístico *</label>
+                                        <input type="text" id="edit-m-nome-artistico" required class="form-input-custom" placeholder="Ex: Maria Monteiro">
+                                    </div>
+                                    <div style="grid-column: span 2;">
+                                        <label style="font-size: 0.78rem; font-weight: 600; color: #475569; display: block; margin-bottom: 0.25rem;">Nome Registro (Completo)</label>
+                                        <input type="text" id="edit-m-nome-registro" class="form-input-custom" placeholder="Ex: Maria Fernanda Monteiro">
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.78rem; font-weight: 600; color: #475569; display: block; margin-bottom: 0.25rem;">Instrumento / Naipe</label>
+                                        <input type="text" id="edit-m-instrumento" class="form-input-custom" placeholder="Ex: Segundos Violinos">
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.78rem; font-weight: 600; color: #475569; display: block; margin-bottom: 0.25rem;">CPF *</label>
+                                        <input type="text" id="edit-m-cpf" required class="form-input-custom" placeholder="000.000.000-00">
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.78rem; font-weight: 600; color: #475569; display: block; margin-bottom: 0.25rem;">Status</label>
+                                        <select id="edit-m-status" class="form-input-custom">
+                                            <option value="Bolsista">Bolsista</option>
+                                            <option value="Monitor">Monitor</option>
+                                            <option value="Reg.Titular">Reg. Titular</option>
+                                            <option value="Músico Extra">Músico Extra</option>
+                                            <option value="Inativo">Inativo / Cancelado</option>
+                                            <option value="Desligado">Desligado</option>
+                                        </select>
+                                    </div>
+                                    <div id="edit-m-container-data-saida" style="display: none; background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; padding: 0.4rem 0.6rem;">
+                                        <label style="font-size: 0.78rem; font-weight: 700; color: #991b1b; display: block; margin-bottom: 0.25rem;">Data de Saída</label>
+                                        <input type="date" id="edit-m-data-saida" class="form-input-custom" style="border-color: #f87171;">
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.78rem; font-weight: 600; color: #475569; display: block; margin-bottom: 0.25rem;">Escalado</label>
+                                        <input type="text" id="edit-m-escalado" class="form-input-custom" placeholder="Ex: Escalado / Não">
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.78rem; font-weight: 600; color: #475569; display: block; margin-bottom: 0.25rem;">Tipo de Contrato</label>
+                                        <input type="text" id="edit-m-tipo-contrato" class="form-input-custom" placeholder="Ex: Bolsista">
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.78rem; font-weight: 600; color: #475569; display: block; margin-bottom: 0.25rem;">Início Contrato</label>
+                                        <input type="text" id="edit-m-inicio-contrato" class="form-input-custom" placeholder="DD/MM/AAAA ou DD-Mês">
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.78rem; font-weight: 600; color: #475569; display: block; margin-bottom: 0.25rem;">Término Contrato</label>
+                                        <input type="text" id="edit-m-termino-contrato" class="form-input-custom" placeholder="DD/MM/AAAA">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Seção 2: Contato & Pessoal -->
+                            <div class="drawer-section">
+                                <h4 style="margin: 0 0 0.8rem 0; font-size: 0.9rem; font-weight: 700; color: var(--primary-color, #8b0000); border-bottom: 1px dashed #e5e7eb; padding-bottom: 0.4rem; display: flex; align-items: center; gap: 0.4rem;">
+                                    <i data-lucide="contact" style="width: 15px; height: 15px;"></i> Contato & Documentos
+                                </h4>
+                                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem 1rem;">
+                                    <div style="grid-column: span 2;">
+                                        <label style="font-size: 0.78rem; font-weight: 600; color: #475569; display: block; margin-bottom: 0.25rem;">E-mail</label>
+                                        <input type="email" id="edit-m-email" class="form-input-custom" placeholder="email@exemplo.com">
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.78rem; font-weight: 600; color: #475569; display: block; margin-bottom: 0.25rem;">Telefone</label>
+                                        <input type="text" id="edit-m-telefone" class="form-input-custom" placeholder="(11) 99999-9999">
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.78rem; font-weight: 600; color: #475569; display: block; margin-bottom: 0.25rem;">Data de Nascimento</label>
+                                        <input type="text" id="edit-m-nascimento" class="form-input-custom" placeholder="DD/MM/AAAA">
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.78rem; font-weight: 600; color: #475569; display: block; margin-bottom: 0.25rem;">RG</label>
+                                        <input type="text" id="edit-m-rg" class="form-input-custom" placeholder="00.000.000-0">
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.78rem; font-weight: 600; color: #475569; display: block; margin-bottom: 0.25rem;">PIS/PASEP</label>
+                                        <input type="text" id="edit-m-pis" class="form-input-custom" placeholder="000.00000.00-0">
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.78rem; font-weight: 600; color: #475569; display: block; margin-bottom: 0.25rem;">Gênero</label>
+                                        <input type="text" id="edit-m-genero" class="form-input-custom" placeholder="M / F / Outro">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Seção 3: Dados Bancários & Logística -->
+                            <div class="drawer-section">
+                                <h4 style="margin: 0 0 0.8rem 0; font-size: 0.9rem; font-weight: 700; color: var(--primary-color, #8b0000); border-bottom: 1px dashed #e5e7eb; padding-bottom: 0.4rem; display: flex; align-items: center; gap: 0.4rem;">
+                                    <i data-lucide="wallet" style="width: 15px; height: 15px;"></i> Dados Bancários & Logística
+                                </h4>
+                                <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem 1rem;">
+                                    <div>
+                                        <label style="font-size: 0.78rem; font-weight: 600; color: #475569; display: block; margin-bottom: 0.25rem;">Banco</label>
+                                        <input type="text" id="edit-m-banco" class="form-input-custom" placeholder="Ex: Itaú">
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.78rem; font-weight: 600; color: #475569; display: block; margin-bottom: 0.25rem;">Agência</label>
+                                        <input type="text" id="edit-m-agencia" class="form-input-custom" placeholder="Ex: 0000">
+                                    </div>
+                                    <div style="grid-column: span 2;">
+                                        <label style="font-size: 0.78rem; font-weight: 600; color: #475569; display: block; margin-bottom: 0.25rem;">Conta Corrente</label>
+                                        <input type="text" id="edit-m-conta" class="form-input-custom" placeholder="Ex: 00000-0">
+                                    </div>
+                                    <div style="grid-column: span 2;">
+                                        <label style="font-size: 0.78rem; font-weight: 600; color: #475569; display: block; margin-bottom: 0.25rem;">Endereço</label>
+                                        <input type="text" id="edit-m-endereco" class="form-input-custom" placeholder="Rua, número, bairro, cidade">
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.78rem; font-weight: 600; color: #475569; display: block; margin-bottom: 0.25rem;">CEP</label>
+                                        <input type="text" id="edit-m-cep" class="form-input-custom" placeholder="00000-000">
+                                    </div>
+                                    <div>
+                                        <label style="font-size: 0.78rem; font-weight: 600; color: #475569; display: block; margin-bottom: 0.25rem;">Restrição Alimentar</label>
+                                        <input type="text" id="edit-m-restricao" class="form-input-custom" placeholder="Ex: Vegetariano, Sem glúten">
+                                    </div>
+                                    <div style="grid-column: span 2;">
+                                        <label style="font-size: 0.78rem; font-weight: 600; color: #475569; display: block; margin-bottom: 0.25rem;">Dados do Carro</label>
+                                        <input type="text" id="edit-m-carro" class="form-input-custom" placeholder="Modelo / Placa">
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                        
+                        <div class="drawer-footer" style="padding: 1rem 1.5rem; border-top: 1px solid #f0f2f5; display: flex; justify-content: flex-end; gap: 0.8rem; background: #fafafa;">
+                            <button type="button" class="btn-outline" id="btn-cancel-edit-musico" style="padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; border: 1px solid #cbd5e1; background: white; color: #334155;">Cancelar</button>
+                            <button type="submit" class="btn-primary" id="btn-save-edit-musico" style="padding: 0.6rem 1.4rem; border-radius: 8px; font-weight: 600; cursor: pointer; background: var(--primary-color, #8b0000); color: white; border: none; display: flex; align-items: center; gap: 0.5rem;">
+                                <i data-lucide="check" style="width: 16px; height: 16px;"></i> Salvar Alterações
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </section>
         </main>
     </div>
