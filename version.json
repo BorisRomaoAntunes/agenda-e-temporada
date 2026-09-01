@@ -1,8 +1,26 @@
 {
-  "hash": "9f5e26d",
-  "date": "01/09/2026 00:58",
-  "buildAt": "2026-09-01T04:06:25.982Z",
+  "hash": "c41632d",
+  "date": "01/09/2026 01:33",
+  "buildAt": "2026-09-01T04:33:30.851Z",
   "history": [
+    {
+      "hash": "c41632d",
+      "date": "01/09/2026 01:33",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(admin): separar bolsistas pendentes das faltas no relatorio de faltas e atrasos"
+    },
+    {
+      "hash": "d12a2b1",
+      "date": "01/09/2026 01:26",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(admin): permitir edicao direta de musicos pela gaveta lateral e sincronizar no Firestore"
+    },
+    {
+      "hash": "362ab62",
+      "date": "01/09/2026 01:09",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json do deploy em produção"
+    },
     {
       "hash": "9f5e26d",
       "date": "01/09/2026 00:58",
@@ -104,24 +122,6 @@
       "date": "28/08/2026 18:39",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualizar version.json do build"
-    },
-    {
-      "hash": "76071e0",
-      "date": "28/08/2026 18:38",
-      "author": "Boris Romão Antunes",
-      "subject": "fix(admin): exibir versao abaixo do email no painel admin"
-    },
-    {
-      "hash": "f138271",
-      "date": "28/08/2026 18:28",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(admin): adiciona suporte as 5 categorias de genero no relatorio de metas e drawer"
-    },
-    {
-      "hash": "02b5898",
-      "date": "28/08/2026 17:41",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(admin): adiciona bolsistas pendentes no relatorio de faltas e atrasos"
     }
   ]
 }
