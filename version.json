@@ -1,8 +1,20 @@
 {
-  "hash": "53248e8",
-  "date": "01/09/2026 19:48",
-  "buildAt": "2026-09-01T22:48:49.137Z",
+  "hash": "963d227",
+  "date": "01/09/2026 20:20",
+  "buildAt": "2026-09-01T23:21:04.345Z",
   "history": [
+    {
+      "hash": "963d227",
+      "date": "01/09/2026 20:20",
+      "author": "Boris Romão Antunes",
+      "subject": "fix(relatorio-metas): normalizar chaves canonicas de naipes para calculo exato de vagas"
+    },
+    {
+      "hash": "87d0da0",
+      "date": "01/09/2026 19:57",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json pós-deploy"
+    },
     {
       "hash": "53248e8",
       "date": "01/09/2026 19:48",
@@ -110,18 +122,6 @@
       "date": "01/09/2026 00:37",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualizar version.json do build"
-    },
-    {
-      "hash": "3931c67",
-      "date": "01/09/2026 00:36",
-      "author": "Boris Romão Antunes",
-      "subject": "fix(ticker): ajustar tempo de exibicao da dica para 7.5s"
-    },
-    {
-      "hash": "c440db7",
-      "date": "31/08/2026 23:54",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json do deploy em produção"
     }
   ]
 }
