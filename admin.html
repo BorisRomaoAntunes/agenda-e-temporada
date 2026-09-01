@@ -2417,23 +2417,38 @@ Intervalo
             </div>
 
             <!-- Body -->
-            <div class="ia-modal-body">
+            <div class="ia-modal-body" style="display: flex; flex-direction: column; gap: 1rem;">
                 <div class="ia-modal-tip" style="background: rgba(74, 85, 104, 0.08); border-color: rgba(74, 85, 104, 0.15); border-left-color: #4a5568; color: #4a5568;">
                     <i data-lucide="info" style="color: #4a5568;"></i>
                     Os números e percentuais demográficos abaixo foram extraídos em tempo real a partir dos músicos cadastrados.
                 </div>
 
-                <div class="version-input-wrapper" style="margin-top: 1.2rem;">
-                    <div id="metas-perfil-result" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.2rem; font-family: monospace; font-size: 0.95rem; line-height: 1.6; min-height: 150px; white-space: pre-wrap; word-break: break-word; color: #333; max-height: 300px; overflow-y: auto;">
+                <!-- Formato de Saída -->
+                <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                    <label style="font-size: 0.85rem; font-weight: 700; color: #444; display: flex; align-items: center; gap: 0.4rem;">
+                        <i data-lucide="file-text" style="width: 16px; height: 16px; color: #4a5568;"></i> Formato de Saída:
+                    </label>
+                    <div class="segment-control">
+                        <button type="button" class="segment-btn active" id="btn-metas-format-whatsapp">
+                            <i data-lucide="message-square" style="width: 13px; height: 13px;"></i> WhatsApp
+                        </button>
+                        <button type="button" class="segment-btn" id="btn-metas-format-email">
+                            <i data-lucide="mail" style="width: 13px; height: 13px;"></i> E-mail (com Assunto)
+                        </button>
+                    </div>
+                </div>
+
+                <div class="version-input-wrapper">
+                    <div id="metas-perfil-result" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.2rem; font-family: inherit; font-size: 0.95rem; line-height: 1.6; min-height: 150px; white-space: pre-wrap; word-break: break-word; color: #333; max-height: 300px; overflow-y: auto;">
                         <!-- Conteúdo inserido dinamicamente -->
                     </div>
                 </div>
 
-                <div id="metas-perfil-aviso-idade" style="margin-top: 0.5rem; font-size: 0.8rem; color: #718096; font-style: italic; display: none;">
+                <div id="metas-perfil-aviso-idade" style="margin-top: -0.5rem; font-size: 0.8rem; color: #718096; font-style: italic; display: none;">
                     <!-- Aviso de idades em branco -->
                 </div>
 
-                <div style="display: flex; gap: 0.8rem; margin-top: 1rem;">
+                <div style="display: flex; gap: 0.8rem; margin-top: 0.5rem;">
                     <button class="btn-robot-ai ia-modal-btn-action" id="btn-copy-metas" style="flex: 2; background: #4a5568;">
                         <i data-lucide="copy"></i> Copiar Texto
                     </button>
@@ -2531,10 +2546,26 @@ Intervalo
                     <span>Selecione o mês para gerar o texto consolidado. Faltas e atrasos são calculados automaticamente para músicos bolsistas ativos.</span>
                 </div>
 
-                <!-- Seleção do Mês -->
-                <div style="display: flex; flex-direction: column; gap: 0.4rem;">
-                    <label for="faltas-atrasos-mes" style="font-size: 0.85rem; font-weight: 700; color: #444;">Selecione o Mês / Ano:</label>
-                    <select id="faltas-atrasos-mes" class="form-control" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #ccc; font-size: 0.95rem;"></select>
+                <!-- Seleção do Mês e Formato de Saída -->
+                <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
+                    <div style="flex: 1; min-width: 180px; display: flex; flex-direction: column; gap: 0.4rem;">
+                        <label for="faltas-atrasos-mes" style="font-size: 0.85rem; font-weight: 700; color: #444;">Selecione o Mês / Ano:</label>
+                        <select id="faltas-atrasos-mes" class="form-control" style="width: 100%; padding: 0.6rem; border-radius: 8px; border: 1px solid #ccc; font-size: 0.95rem;"></select>
+                    </div>
+
+                    <div style="flex: 1.2; min-width: 220px; display: flex; flex-direction: column; gap: 0.4rem;">
+                        <label style="font-size: 0.85rem; font-weight: 700; color: #444; display: flex; align-items: center; gap: 0.4rem;">
+                            <i data-lucide="file-text" style="width: 16px; height: 16px; color: #b45309;"></i> Formato de Saída:
+                        </label>
+                        <div class="segment-control">
+                            <button type="button" class="segment-btn active" id="btn-faltas-format-whatsapp">
+                                <i data-lucide="message-square" style="width: 13px; height: 13px;"></i> WhatsApp
+                            </button>
+                            <button type="button" class="segment-btn" id="btn-faltas-format-email">
+                                <i data-lucide="mail" style="width: 13px; height: 13px;"></i> E-mail (com Assunto)
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Caixa de Resultado -->

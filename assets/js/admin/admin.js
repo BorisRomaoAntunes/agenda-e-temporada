@@ -8963,6 +8963,10 @@ function initMusiciansManagement() {
     const btnCopyMetas = document.getElementById('btn-copy-metas');
     const resultMetasContainer = document.getElementById('metas-perfil-result');
     const avisoIdadeContainer = document.getElementById('metas-perfil-aviso-idade');
+    const btnMetasFormatWhatsapp = document.getElementById('btn-metas-format-whatsapp');
+    const btnMetasFormatEmail = document.getElementById('btn-metas-format-email');
+
+    let dadosMetasCache = null;
 
     const metasPorNaipe = {
         "primeiro violino": 16,
@@ -9030,6 +9034,75 @@ function initMusiciansManagement() {
         // 5. Outra / Outro / Qualquer outro
         return 'outra';
     };
+
+    const gerarMetasMarkdown = (d) => {
+        return `*Relatório Quantidade de Musicistas OER - ${d.mes}/${d.ano}*
+_(Atualizado: ${d.strDataAtualizado})_
+
+*BOLSISTAS*: ${d.numBolsistas} atuais ${d.strBolsistasMeta}
+*Monitores*: ${d.numMonitores} atuais ${d.strMonitoresMeta}
+*Total GERAL*: ${d.numGeral} atuais ${d.strGeralMeta}${d.strExcedenteNaipes}
+
+*Perfil dos Bolsistas*
+*Idade:*
+Média: ${d.mediaIdade} anos
+Mais novo: ${d.maisNovo} anos
+Mais velho: ${d.maisVelho} anos
+
+*Gênero _(Apenas Bolsistas)_:*
+${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
+    };
+
+    const gerarMetasEmailHTML = (d) => {
+        let html = `<strong>Assunto:</strong> Relatório Quantidade de Musicistas OER - ${d.mes}/${d.ano}<br><br>`;
+        html += `<strong>Relatório Quantidade de Musicistas OER - ${d.mes}/${d.ano}</strong><br>`;
+        html += `<em>(Atualizado: ${d.strDataAtualizado})</em><br><br>`;
+        html += `<strong>BOLSISTAS:</strong> ${d.numBolsistas} atuais ${d.strBolsistasMeta}<br>`;
+        html += `<strong>Monitores:</strong> ${d.numMonitores} atuais ${d.strMonitoresMeta}<br>`;
+        html += `<strong>Total GERAL:</strong> ${d.numGeral} atuais ${d.strGeralMeta}`;
+        if (d.excedentesNaipes && d.excedentesNaipes.length > 0) {
+            html += `<br><em>(Excedente: ${d.excedentesNaipes.join(', ')})</em>`;
+        }
+        html += `<br><br><strong>Perfil dos Bolsistas</strong><br>`;
+        html += `<strong>Idade:</strong><br>`;
+        html += `Média: ${d.mediaIdade} anos<br>`;
+        html += `Mais novo: ${d.maisNovo} anos<br>`;
+        html += `Mais velho: ${d.maisVelho} anos<br><br>`;
+        html += `<strong>Gênero <em>(Apenas Bolsistas)</em>:</strong><br>`;
+        if (d.linhasGeneroBolsistas.length > 0) {
+            html += d.linhasGeneroBolsistas.join('<br>');
+        } else {
+            html += 'Nenhum dado de gênero registrado.';
+        }
+        if (d.strGeralGeneroNotaHtml) {
+            html += `<br><br><em>${d.strGeralGeneroNotaHtml}</em>`;
+        }
+        return html;
+    };
+
+    const atualizarExibicaoMetas = () => {
+        if (!resultMetasContainer || !dadosMetasCache) return;
+        const isEmail = btnMetasFormatEmail && btnMetasFormatEmail.classList.contains('active');
+        if (isEmail) {
+            resultMetasContainer.innerHTML = gerarMetasEmailHTML(dadosMetasCache);
+        } else {
+            resultMetasContainer.textContent = gerarMetasMarkdown(dadosMetasCache);
+        }
+    };
+
+    if (btnMetasFormatWhatsapp && btnMetasFormatEmail) {
+        btnMetasFormatWhatsapp.addEventListener('click', () => {
+            btnMetasFormatWhatsapp.classList.add('active');
+            btnMetasFormatEmail.classList.remove('active');
+            atualizarExibicaoMetas();
+        });
+
+        btnMetasFormatEmail.addEventListener('click', () => {
+            btnMetasFormatEmail.classList.add('active');
+            btnMetasFormatWhatsapp.classList.remove('active');
+            atualizarExibicaoMetas();
+        });
+    }
 
     if (btnGenerateMetas) {
         btnGenerateMetas.addEventListener('click', () => {
@@ -9199,6 +9272,7 @@ function initMusiciansManagement() {
             });
 
             let strGeralGeneroNota = "";
+            let strGeralGeneroNotaHtml = "";
             if (partesGeral.length > 0) {
                 let textoPartes = "";
                 if (partesGeral.length === 1) {
@@ -9208,6 +9282,7 @@ function initMusiciansManagement() {
                     textoPartes = `${partesGeral.join(', ')} e ${ult}`;
                 }
                 strGeralGeneroNota = `\n\n_(obs.: Caso precise também da quantidade gênero considerando o total geral de monitores e bolsistas reunidos, os números atuais são: ${textoPartes})._`;
+                strGeralGeneroNotaHtml = `(obs.: Caso precise também da quantidade gênero considerando o total geral de monitores e bolsistas reunidos, os números atuais são: ${textoPartes}).`;
             }
 
             // Data atual da solicitação
@@ -9215,31 +9290,22 @@ function initMusiciansManagement() {
             const dia = String(dataHoje.getDate()).padStart(2, '0');
             const mes = String(dataHoje.getMonth() + 1).padStart(2, '0');
             const ano = dataHoje.getFullYear();
-            const hora = String(dataHoje.getHours()).padStart(2, '0');
-            const minuto = String(dataHoje.getMinutes()).padStart(2, '0');
             const strDataAtualizado = `${dia}/${mes}/${ano}`;
 
-            // Gerar o relatório formatado
-            const relatorioText = `*Relatório Quantidade de Musicistas OER - ${mes}/${ano}*
-_(Atualizado: ${strDataAtualizado})_
+            dadosMetasCache = {
+                numBolsistas, strBolsistasMeta,
+                numMonitores, strMonitoresMeta,
+                numGeral, strGeralMeta,
+                excedentesNaipes, strExcedenteNaipes,
+                mediaIdade, maisNovo, maisVelho,
+                linhasGeneroBolsistas,
+                strGeneroBolsistas,
+                strGeralGeneroNota,
+                strGeralGeneroNotaHtml,
+                mes, ano, strDataAtualizado
+            };
 
-*BOLSISTAS*: ${numBolsistas} atuais ${strBolsistasMeta}
-*Monitores*: ${numMonitores} atuais ${strMonitoresMeta}
-*Total GERAL*: ${numGeral} atuais ${strGeralMeta}${strExcedenteNaipes}
-
-*Perfil dos Bolsistas*
-*Idade:*
-Média: ${mediaIdade} anos
-Mais novo: ${maisNovo} anos
-Mais velho: ${maisVelho} anos
-
-*Gênero _(Apenas Bolsistas)_:*
-${strGeneroBolsistas}${strGeralGeneroNota}`;
-
-            // Preencher o modal
-            if (resultMetasContainer) {
-                resultMetasContainer.textContent = relatorioText;
-            }
+            atualizarExibicaoMetas();
 
             // Mostrar aviso de idades em branco
             if (avisoIdadeContainer) {
@@ -9270,7 +9336,23 @@ ${strGeneroBolsistas}${strGeralGeneroNota}`;
     if (btnCopyMetas && resultMetasContainer) {
         btnCopyMetas.addEventListener('click', async () => {
             try {
-                await navigator.clipboard.writeText(resultMetasContainer.textContent);
+                const isEmail = btnMetasFormatEmail && btnMetasFormatEmail.classList.contains('active');
+                if (isEmail) {
+                    const htmlContent = resultMetasContainer.innerHTML;
+                    const plainText = resultMetasContainer.textContent;
+
+                    const blobHtml = new Blob([htmlContent], { type: 'text/html' });
+                    const blobText = new Blob([plainText], { type: 'text/plain' });
+
+                    const data = [new ClipboardItem({
+                        'text/html': blobHtml,
+                        'text/plain': blobText
+                    })];
+
+                    await navigator.clipboard.write(data);
+                } else {
+                    await navigator.clipboard.writeText(resultMetasContainer.textContent);
+                }
 
                 // Feedback visual de cópia bem-sucedida
                 const originalText = btnCopyMetas.innerHTML;
@@ -10267,6 +10349,90 @@ ${strGeneroBolsistas}${strGeralGeneroNota}`;
     const selectFaltasAtrasosMes = document.getElementById('faltas-atrasos-mes');
     const resultFaltasAtrasosContainer = document.getElementById('faltas-atrasos-result');
     const btnCopyFaltasAtrasos = document.getElementById('btn-copy-faltas-atrasos');
+    const btnFaltasFormatWhatsapp = document.getElementById('btn-faltas-format-whatsapp');
+    const btnFaltasFormatEmail = document.getElementById('btn-faltas-format-email');
+
+    let dadosFaltasCache = null;
+
+    const gerarFaltasMarkdown = (d) => {
+        const { mesNomeAno, listaFaltantes, listaPendentes, listaAtrasados } = d;
+        const secoesRelatorio = [];
+
+        if (listaFaltantes.length > 0) {
+            secoesRelatorio.push(`*Lista de Faltantes e Datas (Mês de ${mesNomeAno})*\n` + listaFaltantes.map(f => `\t• ${f.nome} - ${f.datasStr}`).join('\n'));
+        }
+
+        if (listaPendentes.length > 0) {
+            secoesRelatorio.push(`*Lista de Bolsistas Pendentes (Mês de ${mesNomeAno})*\n` + listaPendentes.map(p => `\t• ${p.nome} - ${p.datasStr}`).join('\n'));
+        }
+
+        if (listaAtrasados.length > 0) {
+            secoesRelatorio.push(`*Lista de Atrasos - Total Acumulado (Mês de ${mesNomeAno})*\n` + listaAtrasados.map(a => `\t• ${a.nome} - ${a.minutos} min`).join('\n'));
+        }
+
+        if (secoesRelatorio.length > 0) {
+            return secoesRelatorio.join('\n\n');
+        } else {
+            return `Nenhum registro de falta, pendência ou atraso no mês de ${mesNomeAno}.`;
+        }
+    };
+
+    const gerarFaltasEmailHTML = (d) => {
+        const { mesNomeAno, listaFaltantes, listaPendentes, listaAtrasados } = d;
+        let html = `<strong>Assunto:</strong> Relatório de Faltas e Atrasos (Bolsistas) - ${mesNomeAno}<br><br>`;
+
+        const secoesHTML = [];
+
+        if (listaFaltantes.length > 0) {
+            let sec = `<strong>Lista de Faltantes e Datas (Mês de ${mesNomeAno})</strong><br>`;
+            sec += listaFaltantes.map(f => `• <strong>${f.nome}</strong> - ${f.datasStr}`).join('<br>');
+            secoesHTML.push(sec);
+        }
+
+        if (listaPendentes.length > 0) {
+            let sec = `<strong>Lista de Bolsistas Pendentes (Mês de ${mesNomeAno})</strong><br>`;
+            sec += listaPendentes.map(p => `• <strong>${p.nome}</strong> - ${p.datasStr}`).join('<br>');
+            secoesHTML.push(sec);
+        }
+
+        if (listaAtrasados.length > 0) {
+            let sec = `<strong>Lista de Atrasos - Total Acumulado (Mês de ${mesNomeAno})</strong><br>`;
+            sec += listaAtrasados.map(a => `• <strong>${a.nome}</strong> - ${a.minutos} min`).join('<br>');
+            secoesHTML.push(sec);
+        }
+
+        if (secoesHTML.length > 0) {
+            html += secoesHTML.join('<br><br>');
+        } else {
+            html += `Nenhum registro de falta, pendência ou atraso no mês de ${mesNomeAno}.`;
+        }
+
+        return html;
+    };
+
+    const atualizarExibicaoFaltas = () => {
+        if (!resultFaltasAtrasosContainer || !dadosFaltasCache) return;
+        const isEmail = btnFaltasFormatEmail && btnFaltasFormatEmail.classList.contains('active');
+        if (isEmail) {
+            resultFaltasAtrasosContainer.innerHTML = gerarFaltasEmailHTML(dadosFaltasCache);
+        } else {
+            resultFaltasAtrasosContainer.textContent = gerarFaltasMarkdown(dadosFaltasCache);
+        }
+    };
+
+    if (btnFaltasFormatWhatsapp && btnFaltasFormatEmail) {
+        btnFaltasFormatWhatsapp.addEventListener('click', () => {
+            btnFaltasFormatWhatsapp.classList.add('active');
+            btnFaltasFormatEmail.classList.remove('active');
+            atualizarExibicaoFaltas();
+        });
+
+        btnFaltasFormatEmail.addEventListener('click', () => {
+            btnFaltasFormatEmail.classList.add('active');
+            btnFaltasFormatWhatsapp.classList.remove('active');
+            atualizarExibicaoFaltas();
+        });
+    }
 
     if (btnGenerateFaltasAtrasos) {
         btnGenerateFaltasAtrasos.addEventListener('click', () => {
@@ -10500,35 +10666,33 @@ ${strGeneroBolsistas}${strGeralGeneroNota}`;
             }
             
             // 1. Processar e formatar Faltas
-            const listaFaltantesLines = [];
-            
-            // Ordenar bolsistas por nome de exibição
+            const listaFaltantes = [];
             const bolsistasOrdenadosPorNome = Object.values(dadosBolsistas).sort((a, b) => a.nome.localeCompare(b.nome));
             
             bolsistasOrdenadosPorNome.forEach(b => {
                 if (b.faltas.length > 0) {
-                    const listDatasStr = b.faltas.map(f => `${String(f.dia).padStart(2, '0')}/${mesStr}${f.obs}`).join(', ');
-                    listaFaltantesLines.push(`\t• ${b.nome} - ${listDatasStr}`);
+                    const datasStr = b.faltas.map(f => `${String(f.dia).padStart(2, '0')}/${mesStr}${f.obs}`).join(', ');
+                    listaFaltantes.push({ nome: b.nome, datasStr });
                 }
             });
 
             // 2. Processar e formatar Pendências
-            const listaPendentesLines = [];
+            const listaPendentes = [];
             bolsistasOrdenadosPorNome.forEach(b => {
                 if (b.pendencias.length > 0) {
-                    const listDatasStr = b.pendencias.map(p => `${String(p.dia).padStart(2, '0')}/${mesStr}${p.obs}`).join(', ');
-                    listaPendentesLines.push(`\t• ${b.nome} - ${listDatasStr}`);
+                    const datasStr = b.pendencias.map(p => `${String(p.dia).padStart(2, '0')}/${mesStr}${p.obs}`).join(', ');
+                    listaPendentes.push({ nome: b.nome, datasStr });
                 }
             });
             
             // 3. Processar e formatar Atrasos (do maior para o menor)
-            const listaAtrasadosLines = [];
+            const listaAtrasados = [];
             const bolsistasComAtraso = Object.values(dadosBolsistas)
                 .filter(b => b.atrasosMin > 0)
                 .sort((a, b) => b.atrasosMin - a.atrasosMin);
                 
             bolsistasComAtraso.forEach(b => {
-                listaAtrasadosLines.push(`\t• ${b.nome} - ${b.atrasosMin} min`);
+                listaAtrasados.push({ nome: b.nome, minutos: b.atrasosMin });
             });
             
             const mesesNomes = [
@@ -10537,28 +10701,14 @@ ${strGeneroBolsistas}${strGeralGeneroNota}`;
             ];
             const mesNomeAno = `${mesesNomes[mesInt - 1]} / ${ano}`;
             
-            const secoesRelatorio = [];
+            dadosFaltasCache = {
+                mesNomeAno,
+                listaFaltantes,
+                listaPendentes,
+                listaAtrasados
+            };
 
-            if (listaFaltantesLines.length > 0) {
-                secoesRelatorio.push(`*Lista de Faltantes e Datas (Mês de ${mesNomeAno})*\n${listaFaltantesLines.join('\n')}`);
-            }
-
-            if (listaPendentesLines.length > 0) {
-                secoesRelatorio.push(`*Lista de Bolsistas Pendentes (Mês de ${mesNomeAno})*\n${listaPendentesLines.join('\n')}`);
-            }
-
-            if (listaAtrasadosLines.length > 0) {
-                secoesRelatorio.push(`*Lista de Atrasos - Total Acumulado (Mês de ${mesNomeAno})*\n${listaAtrasadosLines.join('\n')}`);
-            }
-
-            let relatorioText = '';
-            if (secoesRelatorio.length > 0) {
-                relatorioText = secoesRelatorio.join('\n\n');
-            } else {
-                relatorioText = `Nenhum registro de falta, pendência ou atraso no mês de ${mesNomeAno}.`;
-            }
-            
-            resultFaltasAtrasosContainer.textContent = relatorioText;
+            atualizarExibicaoFaltas();
             
         } catch (err) {
             console.error("Erro ao gerar relatório de faltas/atrasos:", err);
@@ -10569,7 +10719,23 @@ ${strGeneroBolsistas}${strGeralGeneroNota}`;
     if (btnCopyFaltasAtrasos && resultFaltasAtrasosContainer) {
         btnCopyFaltasAtrasos.addEventListener('click', async () => {
             try {
-                await navigator.clipboard.writeText(resultFaltasAtrasosContainer.textContent);
+                const isEmail = btnFaltasFormatEmail && btnFaltasFormatEmail.classList.contains('active');
+                if (isEmail) {
+                    const htmlContent = resultFaltasAtrasosContainer.innerHTML;
+                    const plainText = resultFaltasAtrasosContainer.textContent;
+
+                    const blobHtml = new Blob([htmlContent], { type: 'text/html' });
+                    const blobText = new Blob([plainText], { type: 'text/plain' });
+
+                    const data = [new ClipboardItem({
+                        'text/html': blobHtml,
+                        'text/plain': blobText
+                    })];
+
+                    await navigator.clipboard.write(data);
+                } else {
+                    await navigator.clipboard.writeText(resultFaltasAtrasosContainer.textContent);
+                }
                 
                 const originalText = btnCopyFaltasAtrasos.innerHTML;
                 btnCopyFaltasAtrasos.innerHTML = '<i data-lucide="check" style="width: 16px; height: 16px;"></i> Copiado!';
