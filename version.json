@@ -1,8 +1,20 @@
 {
-  "hash": "a86b5ae",
-  "date": "01/09/2026 01:48",
-  "buildAt": "2026-09-01T04:48:49.521Z",
+  "hash": "f2bc0af",
+  "date": "01/09/2026 10:23",
+  "buildAt": "2026-09-01T13:24:38.078Z",
   "history": [
+    {
+      "hash": "f2bc0af",
+      "date": "01/09/2026 10:23",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(admin): adicionar opcao de formato e-mail nos relatorios de metas e faltas"
+    },
+    {
+      "hash": "fded68c",
+      "date": "01/09/2026 01:49",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json do deploy em produção"
+    },
     {
       "hash": "a86b5ae",
       "date": "01/09/2026 01:48",
@@ -110,18 +122,6 @@
       "date": "31/08/2026 23:50",
       "author": "Boris Romão Antunes",
       "subject": "feat(admin): agrupar restricoes alimentares por categoria com resumo e ordenacao alfabetica"
-    },
-    {
-      "hash": "31b86b6",
-      "date": "31/08/2026 23:46",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(admin): modal minimalista de historico das ultimas 20 atualizacoes"
-    },
-    {
-      "hash": "3a1c93f",
-      "date": "31/08/2026 23:30",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json do deploy"
     }
   ]
 }
