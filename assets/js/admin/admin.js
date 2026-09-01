@@ -8968,19 +8968,48 @@ function initMusiciansManagement() {
 
     let dadosMetasCache = null;
 
+    const normalizarNaipeParaMetas = (instStr) => {
+        if (!instStr) return '';
+        const s = instStr.toLowerCase().trim()
+            .normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+        if (s.includes("1") || s.includes("primeir") || s.includes("spalla") || s.includes("violino i") || s.includes("1o") || s.includes("1º")) {
+            if (s.includes("viol")) return "primeiros_violinos";
+        }
+        if (s.includes("2") || s.includes("segund") || s.includes("violino ii") || s.includes("2o") || s.includes("2º")) {
+            if (s.includes("viol")) return "segundos_violinos";
+        }
+        if (s.includes("viola")) return "violas";
+        if (s.includes("cello") || s.includes("violoncel")) return "violoncelos";
+        if (s.includes("baixo") || s.includes("contraba")) return "contrabaixos";
+        if (s.includes("flaut") || s.includes("piccolo") || s.includes("flautim")) return "flautas";
+        if (s.includes("oboe") || s.includes("corne") || s.includes("oboes")) return "oboes";
+        if (s.includes("clari") || s.includes("requinta") || s.includes("clarone")) return "clarinetes";
+        if (s.includes("fagot") || s.includes("contrafagot")) return "fagotes";
+        if (s.includes("trompa")) return "trompas";
+        if (s.includes("trompete") || s.includes("pistao") || s.includes("tromp")) return "trompetes";
+        if (s.includes("trombone")) return "trombones";
+        if (s.includes("tuba") || s.includes("eufonio") || s.includes("bombardino")) return "tuba";
+        if (s.includes("piano") || s.includes("teclado") || s.includes("celesta") || s.includes("cravo")) return "piano";
+        if (s.includes("harpa")) return "harpa";
+        if (s.includes("percuss") || s.includes("timpan") || s.includes("bateria")) return "percussao";
+        if (s.includes("violino")) return "primeiros_violinos";
+        return s;
+    };
+
     const metasPorNaipe = {
-        "primeiro violino": 16,
-        "segundos violino": 16,
-        "viola": 10,
-        "violoncelo": 10,
-        "contrabaixo": 8,
-        "flauta": 4,
-        "oboe": 4,
-        "clarinete": 4,
-        "fagote": 4,
-        "trompa": 6,
-        "trompete": 4,
-        "trombone": 5,
+        "primeiros_violinos": 16,
+        "segundos_violinos": 16,
+        "violas": 10,
+        "violoncelos": 10,
+        "contrabaixos": 8,
+        "flautas": 4,
+        "oboes": 4,
+        "clarinetes": 4,
+        "fagotes": 4,
+        "trompas": 6,
+        "trompetes": 4,
+        "trombones": 5,
         "tuba": 1,
         "percussao": 5,
         "piano": 1,
@@ -8988,18 +9017,18 @@ function initMusiciansManagement() {
     };
 
     const metasBolsistasPorNaipe = {
-        "primeiro violino": 15,
-        "segundos violino": 15,
-        "viola": 9,
-        "violoncelo": 9,
-        "contrabaixo": 7,
-        "flauta": 3,
-        "oboe": 3,
-        "clarinete": 3,
-        "fagote": 3,
-        "trompa": 5,
-        "trompete": 3,
-        "trombone": 4,
+        "primeiros_violinos": 15,
+        "segundos_violinos": 15,
+        "violas": 9,
+        "violoncelos": 9,
+        "contrabaixos": 7,
+        "flautas": 3,
+        "oboes": 3,
+        "clarinetes": 3,
+        "fagotes": 3,
+        "trompas": 5,
+        "trompetes": 3,
+        "trombones": 4,
         "tuba": 0,
         "percussao": 4,
         "piano": 0,
@@ -9007,18 +9036,18 @@ function initMusiciansManagement() {
     };
 
     const nomesExibicaoNaipes = {
-        "primeiro violino": "Primeiros Violinos",
-        "segundos violino": "Segundos Violinos",
-        "viola": "Violas",
-        "violoncelo": "Violoncelos",
-        "contrabaixo": "Contrabaixos",
-        "flauta": "Flautas",
-        "oboe": "Oboés",
-        "clarinete": "Clarinetes",
-        "fagote": "Fagotes",
-        "trompa": "Trompas",
-        "trompete": "Trompetes",
-        "trombone": "Trombones",
+        "primeiros_violinos": "Primeiros Violinos",
+        "segundos_violinos": "Segundos Violinos",
+        "violas": "Violas",
+        "violoncelos": "Violoncelos",
+        "contrabaixos": "Contrabaixos",
+        "flautas": "Flautas",
+        "oboes": "Oboés",
+        "clarinetes": "Clarinetes",
+        "fagotes": "Fagotes",
+        "trompas": "Trompas",
+        "trompetes": "Trompetes",
+        "trombones": "Trombones",
         "tuba": "Tuba",
         "percussao": "Percussão",
         "piano": "Piano",
@@ -9170,7 +9199,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
             // Excedentes por Naipe (considerando total de ativos do naipe vs meta geral do naipe)
             const contagemNaipes = {};
             ativos.forEach(m => {
-                const naipeNormalizado = normalizarNaipe(m.INSTRUMENTOS);
+                const naipeNormalizado = normalizarNaipeParaMetas(m.INSTRUMENTOS);
                 if (naipeNormalizado) {
                     contagemNaipes[naipeNormalizado] = (contagemNaipes[naipeNormalizado] || 0) + 1;
                 }
@@ -9194,7 +9223,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
             // Vagas em aberto por Naipe (considerando bolsistas do naipe vs meta de bolsistas do naipe)
             const contagemBolsistasNaipes = {};
             bolsistas.forEach(m => {
-                const naipeNormalizado = normalizarNaipe(m.INSTRUMENTOS);
+                const naipeNormalizado = normalizarNaipeParaMetas(m.INSTRUMENTOS);
                 if (naipeNormalizado) {
                     contagemBolsistasNaipes[naipeNormalizado] = (contagemBolsistasNaipes[naipeNormalizado] || 0) + 1;
                 }
