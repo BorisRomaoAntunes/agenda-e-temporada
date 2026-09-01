@@ -1,8 +1,14 @@
 {
-  "hash": "f2bc0af",
-  "date": "01/09/2026 10:23",
-  "buildAt": "2026-09-01T13:24:38.078Z",
+  "hash": "122db64",
+  "date": "01/09/2026 10:24",
+  "buildAt": "2026-09-01T13:25:55.878Z",
   "history": [
+    {
+      "hash": "122db64",
+      "date": "01/09/2026 10:24",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json do deploy em produção"
+    },
     {
       "hash": "f2bc0af",
       "date": "01/09/2026 10:23",
@@ -116,12 +122,6 @@
       "date": "31/08/2026 23:50",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualizar version.json do deploy"
-    },
-    {
-      "hash": "f7542da",
-      "date": "31/08/2026 23:50",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(admin): agrupar restricoes alimentares por categoria com resumo e ordenacao alfabetica"
     }
   ]
 }
