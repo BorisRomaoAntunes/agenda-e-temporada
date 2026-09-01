@@ -1,8 +1,26 @@
 {
-  "hash": "fb259f9",
-  "date": "31/08/2026 23:30",
-  "buildAt": "2026-09-01T02:30:41.874Z",
+  "hash": "f7542da",
+  "date": "31/08/2026 23:50",
+  "buildAt": "2026-09-01T02:50:17.266Z",
   "history": [
+    {
+      "hash": "f7542da",
+      "date": "31/08/2026 23:50",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(admin): agrupar restricoes alimentares por categoria com resumo e ordenacao alfabetica"
+    },
+    {
+      "hash": "31b86b6",
+      "date": "31/08/2026 23:46",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(admin): modal minimalista de historico das ultimas 20 atualizacoes"
+    },
+    {
+      "hash": "3a1c93f",
+      "date": "31/08/2026 23:30",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json do deploy"
+    },
     {
       "hash": "fb259f9",
       "date": "31/08/2026 23:30",
@@ -104,24 +122,6 @@
       "date": "23/08/2026 00:54",
       "author": "Boris Romão Antunes",
       "subject": "Revert \"fix: visibilidade resiliente e estados do sino de notificacoes no site dos musicos\""
-    },
-    {
-      "hash": "965c3f6",
-      "date": "23/08/2026 00:54",
-      "author": "Boris Romão Antunes",
-      "subject": "Revert \"style: atualiza cor do sino de notificações para dourado\""
-    },
-    {
-      "hash": "938a944",
-      "date": "23/08/2026 00:45",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json do deploy"
-    },
-    {
-      "hash": "4dfe941",
-      "date": "23/08/2026 00:42",
-      "author": "Boris Romão Antunes",
-      "subject": "fix: tornar getMessaging resiliente para não bloquear letreiro e histórico de avisos"
     }
   ]
 }
