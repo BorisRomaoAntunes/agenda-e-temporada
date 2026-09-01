@@ -10537,25 +10537,25 @@ ${strGeneroBolsistas}${strGeralGeneroNota}`;
             ];
             const mesNomeAno = `${mesesNomes[mesInt - 1]} / ${ano}`;
             
-            let relatorioText = `*Lista de Faltantes e Datas (Mês de ${mesNomeAno})*\n`;
+            const secoesRelatorio = [];
+
             if (listaFaltantesLines.length > 0) {
-                relatorioText += listaFaltantesLines.join('\n');
-            } else {
-                relatorioText += "\t• Nenhum bolsista faltou neste mês.";
+                secoesRelatorio.push(`*Lista de Faltantes e Datas (Mês de ${mesNomeAno})*\n${listaFaltantesLines.join('\n')}`);
             }
 
-            relatorioText += `\n\n*Lista de Bolsistas Pendentes (Mês de ${mesNomeAno})*\n`;
             if (listaPendentesLines.length > 0) {
-                relatorioText += listaPendentesLines.join('\n');
-            } else {
-                relatorioText += "\t• Nenhum bolsista possui pendência neste mês.";
+                secoesRelatorio.push(`*Lista de Bolsistas Pendentes (Mês de ${mesNomeAno})*\n${listaPendentesLines.join('\n')}`);
             }
-            
-            relatorioText += `\n\n*Lista de Atrasos - Total Acumulado (Mês de ${mesNomeAno})*\n`;
+
             if (listaAtrasadosLines.length > 0) {
-                relatorioText += listaAtrasadosLines.join('\n');
+                secoesRelatorio.push(`*Lista de Atrasos - Total Acumulado (Mês de ${mesNomeAno})*\n${listaAtrasadosLines.join('\n')}`);
+            }
+
+            let relatorioText = '';
+            if (secoesRelatorio.length > 0) {
+                relatorioText = secoesRelatorio.join('\n\n');
             } else {
-                relatorioText += "\t• Nenhum bolsista teve atraso registrado neste mês.";
+                relatorioText = `Nenhum registro de falta, pendência ou atraso no mês de ${mesNomeAno}.`;
             }
             
             resultFaltasAtrasosContainer.textContent = relatorioText;
