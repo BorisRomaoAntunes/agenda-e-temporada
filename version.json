@@ -1,8 +1,20 @@
 {
-  "hash": "bcd44e3",
-  "date": "31/08/2026 23:54",
-  "buildAt": "2026-09-01T02:54:11.146Z",
+  "hash": "3931c67",
+  "date": "01/09/2026 00:36",
+  "buildAt": "2026-09-01T03:36:53.241Z",
   "history": [
+    {
+      "hash": "3931c67",
+      "date": "01/09/2026 00:36",
+      "author": "Boris Romão Antunes",
+      "subject": "fix(ticker): ajustar tempo de exibicao da dica para 7.5s"
+    },
+    {
+      "hash": "c440db7",
+      "date": "31/08/2026 23:54",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json do deploy em produção"
+    },
     {
       "hash": "bcd44e3",
       "date": "31/08/2026 23:54",
@@ -110,18 +122,6 @@
       "date": "27/08/2026 09:47",
       "author": "Boris Romão Antunes",
       "subject": "feat(admin): exibe instrumento do musico nos modais de dispensa e atestado"
-    },
-    {
-      "hash": "8eccbd5",
-      "date": "25/08/2026 12:12",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(admin): adiciona secao de atestados homologados abaixo de dispensas concedidas"
-    },
-    {
-      "hash": "069957b",
-      "date": "23/08/2026 00:58",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json do deploy"
     }
   ]
 }
