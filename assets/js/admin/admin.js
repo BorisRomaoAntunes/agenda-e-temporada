@@ -7553,25 +7553,42 @@ function initMusiciansManagement() {
 
         const getVal = (val) => (val === undefined || val === null || val === '-') ? '' : val;
 
+        // Formatar datas numéricas do Excel (ex: 39451) para texto legível DD/MM/AAAA
+        const formatExcelDateStr = (val) => {
+            if (!val || val === '-') return '';
+            if (!isNaN(val) && typeof val === 'number') {
+                const date = new Date((val - 25569) * 86400 * 1000);
+                if (!isNaN(date.getTime())) {
+                    const dd = String(date.getDate()).padStart(2, '0');
+                    const mm = String(date.getMonth() + 1).padStart(2, '0');
+                    const yyyy = date.getFullYear();
+                    return `${dd}/${mm}/${yyyy}`;
+                }
+            }
+            return String(val);
+        };
+
         document.getElementById('edit-m-nome-artistico').value = getVal(item.NOMEARTISTICO || item['NOME REGISTRO'] || item.Nome);
         document.getElementById('edit-m-nome-registro').value = getVal(item['NOME REGISTRO'] || item.NOMEARTISTICO || item.Nome);
         document.getElementById('edit-m-instrumento').value = getVal(item.INSTRUMENTOS || item.Instrumento);
         document.getElementById('edit-m-cpf').value = getVal(item.CPF || item.cpfId);
 
-        // Status
-        let statusVal = item.Status || '';
-        if (!statusVal) {
-            statusVal = (tabName === 'inativados') ? 'Inativo' : 'Bolsista';
-        }
-        const statusLower = statusVal.toLowerCase();
+        // Status: se for na aba Inativados, o status selecionado DEVE ser Inativo (ou Desligado)
         let selectedStatus = 'Bolsista';
-        if (statusLower.includes('monitor')) selectedStatus = 'Monitor';
-        else if (statusLower.includes('titular')) selectedStatus = 'Reg.Titular';
-        else if (statusLower.includes('extra')) selectedStatus = 'Músico Extra';
-        else if (statusLower.includes('inativo') || statusLower.includes('cancelad')) selectedStatus = 'Inativo';
-        else if (statusLower.includes('desligad')) selectedStatus = 'Desligado';
-        else if (statusLower.includes('bolsista')) selectedStatus = 'Bolsista';
-        else selectedStatus = statusVal;
+        if (tabName === 'inativados') {
+            const stLower = (item.Status || '').toLowerCase();
+            selectedStatus = stLower.includes('desligad') ? 'Desligado' : 'Inativo';
+        } else {
+            let statusVal = item.Status || 'Bolsista';
+            const statusLower = statusVal.toLowerCase();
+            if (statusLower.includes('monitor')) selectedStatus = 'Monitor';
+            else if (statusLower.includes('titular')) selectedStatus = 'Reg.Titular';
+            else if (statusLower.includes('extra')) selectedStatus = 'Músico Extra';
+            else if (statusLower.includes('inativo') || statusLower.includes('cancelad')) selectedStatus = 'Inativo';
+            else if (statusLower.includes('desligad')) selectedStatus = 'Desligado';
+            else if (statusLower.includes('bolsista')) selectedStatus = 'Bolsista';
+            else selectedStatus = statusVal;
+        }
 
         if (editStatusSelect) editStatusSelect.value = selectedStatus;
 
@@ -7586,14 +7603,14 @@ function initMusiciansManagement() {
             editDataSaidaContainer.style.display = isInactive ? 'block' : 'none';
         }
 
-        // Outros campos
+        // Outros campos com tratamento de datas do Excel
         document.getElementById('edit-m-escalado').value = getVal(item.Escalado);
         document.getElementById('edit-m-tipo-contrato').value = getVal(item['Tipo Contrato Prorrogáveis por igual prazo'] || item['Tipo Contrato']);
-        document.getElementById('edit-m-inicio-contrato').value = getVal(item['INICIO OER Contrato']);
-        document.getElementById('edit-m-termino-contrato').value = getVal(item['TERMINO OER Contrato']);
+        document.getElementById('edit-m-inicio-contrato').value = formatExcelDateStr(item['INICIO OER Contrato']);
+        document.getElementById('edit-m-termino-contrato').value = formatExcelDateStr(item['TERMINO OER Contrato']);
         document.getElementById('edit-m-email').value = getVal(item.EMAIL || item.Email);
         document.getElementById('edit-m-telefone').value = getVal(item.TELEFONE || item.Telefone);
-        document.getElementById('edit-m-nascimento').value = getVal(item['DATA DE NACIMENTO '] || item['DATA DE NASCIMENTO'] || item.Nascimento);
+        document.getElementById('edit-m-nascimento').value = formatExcelDateStr(item['DATA DE NACIMENTO '] || item['DATA DE NASCIMENTO'] || item.Nascimento);
         document.getElementById('edit-m-rg').value = getVal(item.RG || item.Rg);
         document.getElementById('edit-m-pis').value = getVal(item['PIS/PASEP'] || item.Pis);
         document.getElementById('edit-m-genero').value = getVal(item.GENERO || item['GÊNERO'] || item.genero);
@@ -7679,8 +7696,10 @@ function initMusiciansManagement() {
             const isNowInactive = newStatus === 'Inativo' || newStatus === 'Desligado';
             if (isNowInactive) {
                 item.dataSaida = newDataSaida || new Date().toISOString().split('T')[0];
+                item.statusFirebase = "inativo";
             } else {
                 delete item.dataSaida;
+                item.statusFirebase = "ativo";
             }
 
             // Realocação entre abas se o status foi alterado
