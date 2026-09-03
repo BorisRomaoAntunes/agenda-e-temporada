@@ -1,8 +1,20 @@
 {
-  "hash": "963d227",
-  "date": "01/09/2026 20:20",
-  "buildAt": "2026-09-01T23:21:04.345Z",
+  "hash": "e95ceb4",
+  "date": "02/09/2026 22:08",
+  "buildAt": "2026-09-03T01:10:53.535Z",
   "history": [
+    {
+      "hash": "e95ceb4",
+      "date": "02/09/2026 22:08",
+      "author": "Boris Romão Antunes",
+      "subject": "fix: filtrar apenas musicos instrumentistas nos relatorios de presenca PDF e Excel"
+    },
+    {
+      "hash": "dd9f82e",
+      "date": "01/09/2026 20:21",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json pós-deploy"
+    },
     {
       "hash": "963d227",
       "date": "01/09/2026 20:20",
@@ -108,18 +120,6 @@
     {
       "hash": "5111c9f",
       "date": "01/09/2026 00:43",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json do build"
-    },
-    {
-      "hash": "b04aac1",
-      "date": "01/09/2026 00:42",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(admin): adicionar edicao de integrantes via gaveta no modal de importacao"
-    },
-    {
-      "hash": "5c3944d",
-      "date": "01/09/2026 00:37",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualizar version.json do build"
     }
