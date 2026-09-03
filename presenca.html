@@ -90,12 +90,12 @@
             </div>
         </div>
 
-        <!-- Linha 3: Barra de Ações (Botão Chamada de Naipe + Abas + Filtros) -->
+        <!-- Linha 3: Barra de Ações (Botão Nova Chamada + Abas + Filtros) -->
         <div class="header-actions-bar">
-            <!-- Botão Abrir Chamada de Naipe (Destaque) -->
+            <!-- Botão Nova Chamada (Destaque) -->
             <button class="btn-add-naipe" id="btnOpenNaipeModal">
                 <i data-lucide="plus-circle" style="width: 15px; height: 15px;"></i>
-                <span>+ Criar Chamada de Naipe</span>
+                <span>+ Nova Chamada</span>
             </button>
 
             <!-- Abas de Ensaios da Data (quando há múltiplas chamadas) -->
@@ -245,65 +245,85 @@
         </div>
     </footer>
 
-    <!-- Modal de Abertura de Chamada de Naipe (Sob Demanda) -->
+    <!-- Modal de Nova Chamada (Naipe ou Tutti) -->
     <div class="modal-overlay" id="modalNaipeOverlay">
         <div class="modal-box">
             <div class="modal-header">
-                <h3><i data-lucide="music" style="width: 20px; height: 20px; color: var(--primary);"></i> Abrir Chamada de Naipe</h3>
+                <h3><i data-lucide="plus-circle" style="width: 20px; height: 20px; color: var(--primary);"></i> Nova Chamada</h3>
                 <button class="btn-close-modal" id="btnCloseNaipeModal"><i data-lucide="x" style="width: 20px; height: 20px;"></i></button>
             </div>
             <div class="modal-body">
-                <div class="form-group">
-                    <label class="form-label">Selecione o Naipe ou Família de Instrumentos:</label>
-                    
-                    <!-- Seletor Dropdown Customizado com Marcação Múltipla -->
-                    <div class="custom-multiselect-dropdown">
-                        <div class="dropdown-trigger" id="dropdownTrigger">
-                            <span id="dropdownPlaceholderText">Clique para selecionar naipes...</span>
-                            <i data-lucide="chevron-down" style="width: 16px; height: 16px; margin-left: auto;"></i>
-                        </div>
-                        <div class="tags-selected-container" id="tagsSelectedContainer"></div>
-                        
-                        <div class="select-dropdown-menu" id="dropdownMenu">
-                            <!-- Opção 1: Famílias de Instrumentos -->
-                            <div class="dropdown-optgroup-title">Famílias de Instrumentos (Gerais)</div>
-                            <label class="dropdown-option">
-                                <input type="checkbox" class="chk-fam-item" id="chk_fam_cordas" value="Cordas">
-                                <strong>Cordas (Geral)</strong>
-                            </label>
-                            <label class="dropdown-option">
-                                <input type="checkbox" class="chk-fam-item" id="chk_fam_madeiras" value="Madeiras">
-                                <strong>Madeiras (Geral)</strong>
-                            </label>
-                            <label class="dropdown-option">
-                                <input type="checkbox" class="chk-fam-item" id="chk_fam_metais" value="Metais">
-                                <strong>Metais (Geral)</strong>
-                            </label>
-                            <label class="dropdown-option">
-                                <input type="checkbox" class="chk-fam-item" id="chk_fam_percussao" value="Percussão">
-                                <strong>Percussão (Geral)</strong>
-                            </label>
 
-                            <!-- Opção 2: Naipes Específicos -->
-                            <div class="dropdown-optgroup-title">Naipes Específicos</div>
-                            <label class="dropdown-option"><input type="checkbox" class="chk-naipe-item" id="chk_v1" value="Primeiros Violinos"> Primeiros Violinos</label>
-                            <label class="dropdown-option"><input type="checkbox" class="chk-naipe-item" id="chk_v2" value="Segundos Violinos"> Segundos Violinos</label>
-                            <label class="dropdown-option"><input type="checkbox" class="chk-naipe-item" id="chk_va" value="Violas"> Violas</label>
-                            <label class="dropdown-option"><input type="checkbox" class="chk-naipe-item" id="chk_vc" value="Violoncelos"> Violoncelos</label>
-                            <label class="dropdown-option"><input type="checkbox" class="chk-naipe-item" id="chk_cb" value="Contrabaixos"> Contrabaixos</label>
-                            <label class="dropdown-option"><input type="checkbox" class="chk-naipe-item" id="chk_fl" value="Flautas"> Flautas</label>
-                            <label class="dropdown-option"><input type="checkbox" class="chk-naipe-item" id="chk_ob" value="Oboés"> Oboés</label>
-                            <label class="dropdown-option"><input type="checkbox" class="chk-naipe-item" id="chk_cl" value="Clarinetes"> Clarinetes</label>
-                            <label class="dropdown-option"><input type="checkbox" class="chk-naipe-item" id="chk_fg" value="Fagotes"> Fagotes</label>
-                            <label class="dropdown-option"><input type="checkbox" class="chk-naipe-item" id="chk_tp" value="Trompas"> Trompas</label>
-                            <label class="dropdown-option"><input type="checkbox" class="chk-naipe-item" id="chk_tr" value="Trompetes"> Trompetes</label>
-                            <label class="dropdown-option"><input type="checkbox" class="chk-naipe-item" id="chk_tb" value="Trombones"> Trombones</label>
-                            <label class="dropdown-option"><input type="checkbox" class="chk-naipe-item" id="chk_tu" value="Tubas"> Tubas</label>
-                            <label class="dropdown-option"><input type="checkbox" class="chk-naipe-item" id="chk_pr" value="Percussão"> Percussão</label>
+                <!-- Seleção de Tipo via Radio Buttons -->
+                <div class="form-group" style="margin-bottom: 1.2rem;">
+                    <label class="form-label" style="margin-bottom: 0.6rem;">Tipo de Chamada:</label>
+                    <div style="display: flex; gap: 1.2rem;">
+                        <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.9rem; font-weight: 600;">
+                            <input type="radio" name="tipoChamadaRadio" id="radioTipoNaipe" value="ensaio_naipe" checked>
+                            🎻 Ensaio de Naipe
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.9rem; font-weight: 600;">
+                            <input type="radio" name="tipoChamadaRadio" id="radioTipoTutti" value="ensaio_tutti">
+                            🎵 Ensaio Tutti
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Seção exclusiva para Ensaio de Naipe -->
+                <div id="secaoNaipe">
+                    <div class="form-group">
+                        <label class="form-label">Selecione o Naipe ou Família de Instrumentos:</label>
+                        
+                        <!-- Seletor Dropdown Customizado com Marcação Múltipla -->
+                        <div class="custom-multiselect-dropdown">
+                            <div class="dropdown-trigger" id="dropdownTrigger">
+                                <span id="dropdownPlaceholderText">Clique para selecionar naipes...</span>
+                                <i data-lucide="chevron-down" style="width: 16px; height: 16px; margin-left: auto;"></i>
+                            </div>
+                            <div class="tags-selected-container" id="tagsSelectedContainer"></div>
+                            
+                            <div class="select-dropdown-menu" id="dropdownMenu">
+                                <!-- Opção 1: Famílias de Instrumentos -->
+                                <div class="dropdown-optgroup-title">Famílias de Instrumentos (Gerais)</div>
+                                <label class="dropdown-option">
+                                    <input type="checkbox" class="chk-fam-item" id="chk_fam_cordas" value="Cordas">
+                                    <strong>Cordas (Geral)</strong>
+                                </label>
+                                <label class="dropdown-option">
+                                    <input type="checkbox" class="chk-fam-item" id="chk_fam_madeiras" value="Madeiras">
+                                    <strong>Madeiras (Geral)</strong>
+                                </label>
+                                <label class="dropdown-option">
+                                    <input type="checkbox" class="chk-fam-item" id="chk_fam_metais" value="Metais">
+                                    <strong>Metais (Geral)</strong>
+                                </label>
+                                <label class="dropdown-option">
+                                    <input type="checkbox" class="chk-fam-item" id="chk_fam_percussao" value="Percussão">
+                                    <strong>Percussão (Geral)</strong>
+                                </label>
+
+                                <!-- Opção 2: Naipes Específicos -->
+                                <div class="dropdown-optgroup-title">Naipes Específicos</div>
+                                <label class="dropdown-option"><input type="checkbox" class="chk-naipe-item" id="chk_v1" value="Primeiros Violinos"> Primeiros Violinos</label>
+                                <label class="dropdown-option"><input type="checkbox" class="chk-naipe-item" id="chk_v2" value="Segundos Violinos"> Segundos Violinos</label>
+                                <label class="dropdown-option"><input type="checkbox" class="chk-naipe-item" id="chk_va" value="Violas"> Violas</label>
+                                <label class="dropdown-option"><input type="checkbox" class="chk-naipe-item" id="chk_vc" value="Violoncelos"> Violoncelos</label>
+                                <label class="dropdown-option"><input type="checkbox" class="chk-naipe-item" id="chk_cb" value="Contrabaixos"> Contrabaixos</label>
+                                <label class="dropdown-option"><input type="checkbox" class="chk-naipe-item" id="chk_fl" value="Flautas"> Flautas</label>
+                                <label class="dropdown-option"><input type="checkbox" class="chk-naipe-item" id="chk_ob" value="Oboés"> Oboés</label>
+                                <label class="dropdown-option"><input type="checkbox" class="chk-naipe-item" id="chk_cl" value="Clarinetes"> Clarinetes</label>
+                                <label class="dropdown-option"><input type="checkbox" class="chk-naipe-item" id="chk_fg" value="Fagotes"> Fagotes</label>
+                                <label class="dropdown-option"><input type="checkbox" class="chk-naipe-item" id="chk_tp" value="Trompas"> Trompas</label>
+                                <label class="dropdown-option"><input type="checkbox" class="chk-naipe-item" id="chk_tr" value="Trompetes"> Trompetes</label>
+                                <label class="dropdown-option"><input type="checkbox" class="chk-naipe-item" id="chk_tb" value="Trombones"> Trombones</label>
+                                <label class="dropdown-option"><input type="checkbox" class="chk-naipe-item" id="chk_tu" value="Tubas"> Tubas</label>
+                                <label class="dropdown-option"><input type="checkbox" class="chk-naipe-item" id="chk_pr" value="Percussão"> Percussão</label>
+                            </div>
                         </div>
                     </div>
                 </div>
 
+                <!-- Campos de Horário (aparecem para ambos os tipos) -->
                 <div class="form-row-2">
                     <div class="form-group">
                         <label class="form-label">Horário de Início:</label>
@@ -315,7 +335,8 @@
                     </div>
                 </div>
 
-                <div class="form-group">
+                <!-- Campo Observação: apenas para Ensaio de Naipe -->
+                <div class="form-group" id="secaoObsNaipe">
                     <label class="form-label">Observação / Sala (opcional):</label>
                     <input type="text" id="inputNaipeObs" class="form-input" placeholder="Ex: Sala de Ensaios 02 / Leitura de Repertório">
                 </div>
@@ -326,6 +347,7 @@
             </div>
         </div>
     </div>
+
 
     <!-- Modal de Edição de Horário do Ensaio (Tutti ou Naipe) -->
     <div class="modal-overlay" id="modalEditHorarioOverlay">
@@ -366,7 +388,7 @@
     </div>
 
     <!-- Firebase SDK & Custom Logics -->
-    <script type="module" src="assets/js/admin/presenca.js?v=20260822_01"></script>
+    <script type="module" src="assets/js/admin/presenca.js?v=20260902_01"></script>
 
     <!-- Sistema de Rastreamento de Engajamento/Analytics -->
     <script type="module" src="assets/js/public/analytics.js"></script>

@@ -7136,20 +7136,40 @@ function initMusiciansManagement() {
         return null;
     };
 
+    // Função para verificar se o integrante é músico instrumentista (exclui equipe técnica, apoio, admin e regência)
+    function isInstrumentistaMusico(m) {
+        if (!m) return false;
+        const rawStatus = (m.Status || m.status || m.Cargo || m.cargo || '').toString().toLowerCase().trim();
+        
+        // Filtros de segurança
+        if (rawStatus.includes('emm')) return false;
+
+        const nomeRegLower = (m['NOME REGISTRO'] || m.Nome || m.nome || '').toString().toLowerCase();
+        const nomeArtLower = (m.NOMEARTISTICO || '').toString().toLowerCase();
+        if (nomeRegLower.includes('angela de santi') || nomeArtLower.includes('angela de santi')) return false;
+
+        // Exclui expressamente montagem, produção, coordenação, diretoria, apoio, arquivo, regentes, etc.
+        const isApoioOuAdmin = rawStatus.includes('montagem') ||
+                               rawStatus.includes('produç') ||
+                               rawStatus.includes('produc') ||
+                               rawStatus.includes('coorden') ||
+                               rawStatus.includes('coo.') ||
+                               rawStatus.includes('diret') ||
+                               rawStatus.includes('apoio') ||
+                               rawStatus.includes('arquiv') ||
+                               rawStatus.includes('regente') ||
+                               rawStatus.includes('reg.');
+        if (isApoioOuAdmin) return false;
+
+        // Apenas Bolsistas, Monitores e Spallas
+        const isBolsistaOrMonitor = rawStatus.includes("bolsista") || rawStatus.includes("monitor") || rawStatus.includes("spalla");
+        return isBolsistaOrMonitor;
+    }
+
     // Função para verificar se o integrante é músico ou bolsista (exclui equipe de apoio)
     function isMusicoOuBolsista(statusVal) {
         if (!statusVal) return false;
-        const status = statusVal.toLowerCase().trim();
-        // Exclui montagem, produção, coordenação, coo. artística, equipe técnica, arquivistas, etc.
-        const isApoioOuAdmin = status.includes('montagem') ||
-                               status.includes('produç') ||
-                               status.includes('produc') ||
-                               status.includes('coorden') ||
-                               status.includes('coo.') ||
-                               status.includes('diret') ||
-                               status.includes('apoio') ||
-                               status.includes('arquiv');
-        return !isApoioOuAdmin;
+        return isInstrumentistaMusico({ Status: statusVal });
     }
 
     let allMusicians = []; // Lista local em memória para busca reativa rápida
@@ -9671,12 +9691,6 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
             return { cellText: sym.symbol, cellClass: cClass, incP: sym.incP, incF: sym.incF, excelText: sym.excelSym };
         }
 
-        const naipeDoc = relevantDocs.find(d => d.tipo === 'ensaio_naipe');
-        const tuttiDoc = relevantDocs.find(d => d.tipo !== 'ensaio_naipe');
-
-        const regNaipe = (naipeDoc && naipeDoc.registros) ? naipeDoc.registros[musico.id] : null;
-        const regTutti = (tuttiDoc && tuttiDoc.registros) ? tuttiDoc.registros[musico.id] : null;
-
         if (isDispensadoGlobal) {
             return { cellText: 'D', cellClass: 'status-dispensa', incP: 0, incF: 0, excelText: 'D' };
         }
@@ -9684,18 +9698,45 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
             return { cellText: 'A', cellClass: 'status-atestado', incP: 0, incF: 0, excelText: 'A' };
         }
 
-        const symNaipe = getSymbol(regNaipe);
-        const symTutti = getSymbol(regTutti);
+        // Determinar prefixo correto por tipo de evento
+        const getTipoPrefix = (tipo) => {
+            if (tipo === 'ensaio_naipe') return 'N';
+            if (tipo === 'concerto') return 'C';
+            return 'T'; // ensaio_tutti ou qualquer outro
+        };
 
-        let incP = symNaipe.incP + symTutti.incP;
-        let incF = symNaipe.incF + symTutti.incF;
+        // Ordenar documentos por horarioInicio (o que começa primeiro aparece primeiro)
+        const docsOrdenados = [...relevantDocs].sort((a, b) => {
+            const hA = a.horarioInicio || '00:00';
+            const hB = b.horarioInicio || '00:00';
+            return hA.localeCompare(hB);
+        });
 
-        let cellText = `N:${symNaipe.symbol} T:${symTutti.symbol}`;
-        let excelText = `N:${symNaipe.excelSym}/T:${symTutti.excelSym}`;
+        let incP = 0;
+        let incF = 0;
+        let hasFalta = false;
+        let allPresenca = true;
+        const partesPdf = [];
+        const partesExcel = [];
+
+        docsOrdenados.forEach(doc => {
+            const reg = doc.registros ? doc.registros[musico.id] : null;
+            const sym = getSymbol(reg);
+            const prefix = getTipoPrefix(doc.tipo);
+            partesPdf.push(`${prefix}:${sym.symbol}`);
+            partesExcel.push(`${prefix}:${sym.excelSym}`);
+            incP += sym.incP;
+            incF += sym.incF;
+            if (sym.status === 'falta') hasFalta = true;
+            if (sym.status !== 'presenca') allPresenca = false;
+        });
+
+        let cellText = partesPdf.join(' ');
+        let excelText = partesExcel.join('/');
         let cellClass = 'status-composto';
-        if (symNaipe.status === 'falta' || symTutti.status === 'falta') {
+        if (hasFalta) {
             cellClass = 'status-falta';
-        } else if (symNaipe.status === 'presenca' && symTutti.status === 'presenca') {
+        } else if (allPresenca) {
             cellClass = 'status-presenca';
         }
 
@@ -9774,6 +9815,9 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                 });
                 
                 const ativos = allMusicians.filter(m => {
+                    // Filtrar apenas músicos instrumentistas (bolsistas, monitores e spallas), excluindo equipe técnica/apoio/regência
+                    if (!isInstrumentistaMusico(m)) return false;
+
                     // Verificar se a data de início é posterior ao final deste mês
                     const dataEntradaStr = parseDateToYYYYMMDD(m['INICIO OER Contrato'] || m.dataEntrada || m.inicioContrato);
                     if (dataEntradaStr && dataEntradaStr > endOfMonthQuery) {
@@ -10072,6 +10116,10 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                 <div class="legend-item"><span class="legend-badge status-atraso">At</span>Atraso</div>
                 <div class="legend-item"><span class="legend-badge status-cancelado">CL</span>Cancelado</div>
                 <div class="legend-item"><span class="legend-badge status-nao-escalado">-</span>Não Escalado</div>
+                <div class="legend-item" style="margin-left:10px;border-left:1px solid #ccc;padding-left:10px;"><strong>Prefixos (dias com múltiplos eventos):</strong></div>
+                <div class="legend-item"><span class="legend-badge" style="background:#e8f0e8;">N:</span>Ensaio de Naipe</div>
+                <div class="legend-item"><span class="legend-badge" style="background:#e8e8f0;">T:</span>Ensaio Tutti</div>
+                <div class="legend-item"><span class="legend-badge" style="background:#f0e8e8;">C:</span>Concerto</div>
             </div>
             <div class="footer-justificativas"><strong>Justificativas:</strong><ul>${justificativasHtml}</ul></div>
         </div>
@@ -10191,6 +10239,9 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                 const cellCommentsMap = {};
                 
                 const ativos = allMusicians.filter(m => {
+                    // Filtrar apenas músicos instrumentistas (bolsistas, monitores e spallas), excluindo equipe técnica/apoio/regência
+                    if (!isInstrumentistaMusico(m)) return false;
+
                     // Verificar se a data de início é posterior ao final deste mês
                     const dataEntradaStr = parseDateToYYYYMMDD(m['INICIO OER Contrato'] || m.dataEntrada || m.inicioContrato);
                     if (dataEntradaStr && dataEntradaStr > endOfMonthQuery) {
@@ -10397,7 +10448,13 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                     ["J", "Ausência Justificada", "Não soma como Falta (Isento)"],
                     ["At", "Atraso (minutos)", "Soma no total de Presenças (P)"],
                     ["CL", "Contrato Cancelado / Desligado", "Músico inativo a partir desta data"],
-                    ["-", "Não Escalado", "Músico não escalado para o ensaio/concerto"]
+                    ["-", "Não Escalado", "Músico não escalado para o ensaio/concerto"],
+                    [],
+                    ["PREFIXOS - DIAS COM MÚLTIPLOS EVENTOS (ordenados por horário)"],
+                    ["Prefixo", "Tipo de Evento", "Exemplo"],
+                    ["N:", "Ensaio de Naipe", "N:P = Presente no Ensaio de Naipe"],
+                    ["T:", "Ensaio Tutti", "T:F = Falta no Ensaio Tutti"],
+                    ["C:", "Concerto", "C:P = Presente no Concerto"]
                 ];
                 const legendaSheet = XLSX.utils.aoa_to_sheet(legendaRows);
                 legendaSheet['!cols'] = [{ wch: 10 }, { wch: 35 }, { wch: 40 }];

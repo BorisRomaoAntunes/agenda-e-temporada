@@ -673,12 +673,11 @@ function renderEventsTabs() {
         const timeFim = call.horarioFim ? call.horarioFim : (isNaipe ? '16:00' : (isConcerto ? '22:00' : '20:00'));
         const timeChipTitle = `Horário: ${timeInicio} às ${timeFim}. Toque para alterar.`;
 
-        // Botão × só aparece em abas de naipe (não no Tutti/Concerto)
-        const deleteBtnHtml = isNaipe
-            ? `<button class="tab-delete-btn" title="Apagar chamada de naipe" data-call-id="${call.id}">
+        // Botão × aparece em todas as abas (permite exclusão de qualquer chamada)
+        const deleteBtnTitle = isNaipe ? "Apagar chamada de naipe" : (isConcerto ? "Apagar chamada de concerto" : "Apagar ensaio tutti");
+        const deleteBtnHtml = `<button class="tab-delete-btn" title="${deleteBtnTitle}" data-call-id="${call.id}">
                    <i data-lucide="x" style="width: 12px; height: 12px;"></i>
-               </button>`
-            : '';
+               </button>`;
 
         tab.innerHTML = `
             <i data-lucide="${iconName}" style="width: 14px; height: 14px;"></i>
@@ -951,12 +950,14 @@ function deleteNaipeCall(callId) {
             renderMusicians();
         }
 
-        showToast("Chamada de naipe apagada.");
+        showToast("Chamada apagada.");
     };
 
     if (temRegistros) {
-        const naipeStr = Array.isArray(call.naipe) ? call.naipe.join(" + ") : (call.naipe || "Naipe");
-        const confirmar = confirm(`Há registros de presença preenchidos nesta chamada (${naipeStr}).\n\nTem certeza que deseja apagar?`);
+        const callStr = call.tipo === "ensaio_naipe"
+            ? (Array.isArray(call.naipe) ? call.naipe.join(" + ") : (call.naipe || "Naipe"))
+            : (call.label || "chamada");
+        const confirmar = confirm(`Há registros de presença preenchidos nesta chamada (${callStr}).\n\nTem certeza que deseja apagar?`);
         if (confirmar) executarExclusao();
     } else {
         executarExclusao();
@@ -1556,12 +1557,6 @@ function initNaipeModal() {
     const dropdownTrigger = document.getElementById("dropdownTrigger");
     const dropdownMenu = document.getElementById("dropdownMenu");
 
-    if (btnOpen) {
-        btnOpen.addEventListener("click", () => {
-            if (modalOverlay) modalOverlay.classList.add("open");
-        });
-    }
-
     const closeModal = () => {
         if (modalOverlay) modalOverlay.classList.remove("open");
         if (dropdownMenu) dropdownMenu.classList.remove("open");
@@ -1614,58 +1609,148 @@ function initNaipeModal() {
         item.addEventListener("change", updateNaipeTags);
     });
 
+    // Lógica dos radio buttons: alternar visibilidade das seções e texto do botão
+    const radioNaipe = document.getElementById("radioTipoNaipe");
+    const radioTutti = document.getElementById("radioTipoTutti");
+    const secaoNaipe = document.getElementById("secaoNaipe");
+    const secaoObs = document.getElementById("secaoObsNaipe");
+
+    const atualizarFormularioTipo = () => {
+        const isTutti = radioTutti && radioTutti.checked;
+        if (secaoNaipe) secaoNaipe.style.display = isTutti ? "none" : "block";
+        if (secaoObs) secaoObs.style.display = isTutti ? "none" : "block";
+        if (btnConfirm) {
+            btnConfirm.textContent = isTutti ? "Criar Ensaio Tutti" : "Criar Chamada de Naipe";
+        }
+        // Ajustar horários padrão conforme o tipo (apenas se o usuário não editou manualmente)
+        const inputInicio = document.getElementById("inputNaipeHoraInicio");
+        const inputFim = document.getElementById("inputNaipeHoraFim");
+        if (inputInicio && !inputInicio._userEdited) inputInicio.value = isTutti ? "17:00" : "14:00";
+        if (inputFim && !inputFim._userEdited) inputFim.value = isTutti ? "20:00" : "16:00";
+    };
+
+    // Marcar quando o usuário editar manualmente os horários
+    ["inputNaipeHoraInicio", "inputNaipeHoraFim"].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener("change", () => { el._userEdited = true; });
+    });
+
+    if (radioNaipe) radioNaipe.addEventListener("change", atualizarFormularioTipo);
+    if (radioTutti) radioTutti.addEventListener("change", atualizarFormularioTipo);
+
+    if (btnOpen) {
+        btnOpen.addEventListener("click", () => {
+            if (modalOverlay) modalOverlay.classList.add("open");
+            // Resetar radio para Naipe
+            if (radioNaipe) radioNaipe.checked = true;
+            // Limpar flag de edição manual dos horários
+            ["inputNaipeHoraInicio", "inputNaipeHoraFim"].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el._userEdited = false;
+            });
+            atualizarFormularioTipo();
+            // Limpar seleções de naipe e campo de observação
+            document.querySelectorAll(".chk-naipe-item, .chk-fam-item").forEach(c => c.checked = false);
+            updateNaipeTags();
+            const obsInput = document.getElementById("inputNaipeObs");
+            if (obsInput) obsInput.value = "";
+        });
+    }
+
     if (btnConfirm) {
         btnConfirm.addEventListener("click", async () => {
-            const checkedItems = Array.from(document.querySelectorAll(".chk-naipe-item:checked")).map(el => el.value);
-            if (checkedItems.length === 0) {
-                alert("Por favor, selecione ao menos um naipe para a chamada.");
-                return;
-            }
+            const isTutti = radioTutti && radioTutti.checked;
+            const horaInicio = document.getElementById("inputNaipeHoraInicio")?.value || (isTutti ? "17:00" : "14:00");
+            const horaFim = document.getElementById("inputNaipeHoraFim")?.value || (isTutti ? "20:00" : "16:00");
 
-            const horaInicio = document.getElementById("inputNaipeHoraInicio")?.value || "14:00";
-            const horaFim = document.getElementById("inputNaipeHoraFim")?.value || "16:00";
-            const obs = document.getElementById("inputNaipeObs")?.value || "";
+            if (isTutti) {
+                // --- Criar Ensaio Tutti ---
+                const newCallId = `${selectedDate}_tutti_${Date.now()}`;
+                const newCall = {
+                    id: newCallId,
+                    tipo: "ensaio_tutti",
+                    label: "Ensaio Tutti",
+                    naipe: null,
+                    horarioInicio: horaInicio,
+                    horarioFim: horaFim,
+                    registros: {},
+                    oficial: true
+                };
 
-            const newCallId = `${selectedDate}_naipe_${Date.now()}`;
-            const labelNaipe = checkedItems.join(" + ");
-            const newCall = {
-                id: newCallId,
-                tipo: "ensaio_naipe",
-                label: `Naipe: ${labelNaipe}`,
-                naipe: checkedItems,
-                horarioInicio: horaInicio,
-                horarioFim: horaFim,
-                anotacoes: obs,
-                registros: {},
-                oficial: true
-            };
+                dailyEventsCalls.push(newCall);
+                saveDraft();
+                closeModal();
 
-            dailyEventsCalls.push(newCall);
-            saveDraft();
-            closeModal();
+                try {
+                    const docRef = doc(db, "presencas", newCallId);
+                    await setDoc(docRef, {
+                        data: selectedDate,
+                        tipo: "ensaio_tutti",
+                        naipe: null,
+                        horarioInicio: horaInicio,
+                        horarioFim: horaFim,
+                        oficial: true,
+                        registros: {},
+                        ultimaAtualizacao: new Date().toISOString(),
+                        usuarioResponsavel: currentUserEmail || "Admin"
+                    });
+                } catch (fsErr) {
+                    console.warn("Aviso ao sincronizar Ensaio Tutti no Firestore:", fsErr);
+                }
 
-            // Gravar chamada no Firestore para refletir imediatamente no computador e outros dispositivos
-            try {
-                const docRef = doc(db, "presencas", newCallId);
-                await setDoc(docRef, {
-                    data: selectedDate,
+                renderEventsTabs();
+                setActiveCall(newCallId);
+                showToast("Ensaio Tutti criado com sucesso!");
+
+            } else {
+                // --- Criar Chamada de Naipe (comportamento original) ---
+                const checkedItems = Array.from(document.querySelectorAll(".chk-naipe-item:checked")).map(el => el.value);
+                if (checkedItems.length === 0) {
+                    alert("Por favor, selecione ao menos um naipe para a chamada.");
+                    return;
+                }
+
+                const obs = document.getElementById("inputNaipeObs")?.value || "";
+                const newCallId = `${selectedDate}_naipe_${Date.now()}`;
+                const labelNaipe = checkedItems.join(" + ");
+                const newCall = {
+                    id: newCallId,
                     tipo: "ensaio_naipe",
+                    label: `Naipe: ${labelNaipe}`,
                     naipe: checkedItems,
                     horarioInicio: horaInicio,
                     horarioFim: horaFim,
                     anotacoes: obs,
-                    oficial: true,
                     registros: {},
-                    ultimaAtualizacao: new Date().toISOString(),
-                    usuarioResponsavel: currentUserEmail || "Admin"
-                });
-            } catch (fsErr) {
-                console.warn("Aviso ao sincronizar chamada de naipe no Firestore:", fsErr);
-            }
+                    oficial: true
+                };
 
-            renderEventsTabs();
-            setActiveCall(newCallId);
-            showToast(`Chamada criada para o Naipe: ${labelNaipe}`);
+                dailyEventsCalls.push(newCall);
+                saveDraft();
+                closeModal();
+
+                try {
+                    const docRef = doc(db, "presencas", newCallId);
+                    await setDoc(docRef, {
+                        data: selectedDate,
+                        tipo: "ensaio_naipe",
+                        naipe: checkedItems,
+                        horarioInicio: horaInicio,
+                        horarioFim: horaFim,
+                        anotacoes: obs,
+                        oficial: true,
+                        registros: {},
+                        ultimaAtualizacao: new Date().toISOString(),
+                        usuarioResponsavel: currentUserEmail || "Admin"
+                    });
+                } catch (fsErr) {
+                    console.warn("Aviso ao sincronizar chamada de naipe no Firestore:", fsErr);
+                }
+
+                renderEventsTabs();
+                setActiveCall(newCallId);
+                showToast(`Chamada criada para o Naipe: ${labelNaipe}`);
+            }
         });
     }
 }
