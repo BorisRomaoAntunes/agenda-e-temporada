@@ -36,6 +36,8 @@ const optBtnAtestado = document.getElementById("optBtnAtestado");
 const optBtnDispensa = document.getElementById("optBtnDispensa");
 const optBtnNaoEscalado = document.getElementById("optBtnNaoEscalado");
 const optBtnJustificado = document.getElementById("optBtnJustificado");
+const optBtnFaltaPassagemSom = document.getElementById("optBtnFaltaPassagemSom");
+const concertoExtraOptions = document.getElementById("concertoExtraOptions");
 const justificationSection = document.getElementById("justificationSection");
 const justificationTextarea = document.getElementById("justificationTextarea");
 const btnSaveJustification = document.getElementById("btnSaveJustification");
@@ -207,6 +209,7 @@ async function initApp() {
     if (optBtnDispensa) optBtnDispensa.addEventListener("click", () => instantSelectStatus("dispensa"));
     if (optBtnNaoEscalado) optBtnNaoEscalado.addEventListener("click", () => instantSelectStatus("nao_escalado"));
     if (optBtnJustificado) optBtnJustificado.addEventListener("click", () => selectJustificadoStatus());
+    if (optBtnFaltaPassagemSom) optBtnFaltaPassagemSom.addEventListener("click", () => instantSelectStatus("falta_passagem_som"));
     if (justificationTextarea) justificationTextarea.addEventListener("input", handleJustificationInput);
     if (btnSaveJustification) btnSaveJustification.addEventListener("click", () => saveJustificationAndClose());
 
@@ -1129,7 +1132,7 @@ function renderMusicians() {
             if (activeFilter === "nao-escalado") {
                 matchFilter = statusInfo.status === "nao_escalado";
             } else if (activeFilter === "faltas-atrasos") {
-                matchFilter = statusInfo.status === "falta" || statusInfo.status === "atraso";
+                matchFilter = statusInfo.status === "falta" || statusInfo.status === "atraso" || statusInfo.status === "falta_passagem_som";
             } else if (activeFilter === "pendente") {
                 matchFilter = statusInfo.status === "none";
             }
@@ -1158,7 +1161,7 @@ function renderMusicians() {
         
         const presentCount = list.filter(m => {
             const st = (attendanceData[m.id] || { status: 'none' }).status;
-            return st === 'presenca' || st === 'atraso';
+            return st === 'presenca' || st === 'atraso' || st === 'falta_passagem_som';
         }).length;
         const totalCount = list.length;
         const isComplete = presentCount === totalCount && totalCount > 0;
@@ -1192,6 +1195,7 @@ function renderMusicians() {
             else if (statusInfo.status === "atestado") badgeLabel = "Atestado";
             else if (statusInfo.status === "dispensa") badgeLabel = "Dispensa";
             else if (statusInfo.status === "nao_escalado") badgeLabel = "Não Escalado";
+            else if (statusInfo.status === "falta_passagem_som") badgeLabel = "Falta Som";
             else if (statusInfo.status === "justificado") {
                 const justMsg = statusInfo.justificativa ? `: ${statusInfo.justificativa}` : "";
                 const shortJust = justMsg.length > 15 ? justMsg.substring(0, 15) + "..." : justMsg;
@@ -1277,6 +1281,7 @@ function updateCounters() {
         if (st === 'presenca') presence++;
         else if (st === 'atraso') delay++;
         else if (st === 'falta') absence++;
+        else if (st === 'falta_passagem_som') { absence++; presence++; }
         else if (st === 'none') pending++;
     });
 
@@ -1329,6 +1334,13 @@ function openDrawerForMusician(musician) {
     drawerTitle.innerText = musician.Nome;
     drawerSubtitle.innerText = `${musician.Instrumento} • ${musician.Status}`;
 
+    // Exibir/Ocultar botão de Falta em Passagem de Som conforme chamada ativa
+    const activeCall = dailyEventsCalls.find(c => c.id === activeCallId);
+    const isConcerto = activeCall && activeCall.tipo === "concerto";
+    if (concertoExtraOptions) {
+        concertoExtraOptions.style.display = isConcerto ? "block" : "none";
+    }
+
     if (selectedStatusTemp === "justificado") {
         justificationTextarea.value = current.justificativa || "";
     } else {
@@ -1355,7 +1367,15 @@ function instantSelectStatus(status) {
     saveDraft();
     renderMusicians();
     closeDrawer();
-    showToast(`Registrado: ${status === 'presenca' ? 'Presença' : status === 'falta' ? 'Falta' : status === 'atestado' ? 'Atestado' : 'Não Escalado'}`);
+    const statusLabels = {
+        presenca: 'Presença',
+        falta: 'Falta',
+        atestado: 'Atestado',
+        dispensa: 'Dispensa',
+        nao_escalado: 'Não Escalado',
+        falta_passagem_som: 'Falta em Passagem de Som'
+    };
+    showToast(`Registrado: ${statusLabels[status] || status}`);
 }
 
 // Selecionar status Justificado
@@ -1452,14 +1472,16 @@ function applyDelayChange() {
 
 // Atualizar Destaques no Drawer
 function updateDrawerButtonsVisuals() {
-    const btns = [optBtnPresenca, optBtnFalta, optBtnAtestado, optBtnNaoEscalado, optBtnJustificado];
+    const btns = [optBtnPresenca, optBtnFalta, optBtnAtestado, optBtnNaoEscalado, optBtnJustificado, optBtnDispensa, optBtnFaltaPassagemSom];
     btns.forEach(btn => btn?.classList.remove("selected"));
 
     if (selectedStatusTemp === "presenca") optBtnPresenca?.classList.add("selected");
     else if (selectedStatusTemp === "falta") optBtnFalta?.classList.add("selected");
     else if (selectedStatusTemp === "atestado") optBtnAtestado?.classList.add("selected");
+    else if (selectedStatusTemp === "dispensa") optBtnDispensa?.classList.add("selected");
     else if (selectedStatusTemp === "nao_escalado") optBtnNaoEscalado?.classList.add("selected");
     else if (selectedStatusTemp === "justificado") optBtnJustificado?.classList.add("selected");
+    else if (selectedStatusTemp === "falta_passagem_som") optBtnFaltaPassagemSom?.classList.add("selected");
 
     // Exibir/Ocultar seção de justificativa e botão Justificado
     if (justificationSection) {
@@ -1840,11 +1862,12 @@ async function saveOfficialData() {
         activeCall.oficial = true;
 
         // 2. Contabilizar totais para detalhes do Log
-        let presencas = 0, faltas = 0, atestados = 0, dispensas = 0, atrasos = 0, naoEscalados = 0, justificados = 0;
+        let presencas = 0, faltas = 0, atestados = 0, dispensas = 0, atrasos = 0, naoEscalados = 0, justificados = 0, faltasPassagem = 0;
         const listaRegistros = Object.values(attendanceData);
         listaRegistros.forEach(r => {
             if (r.status === 'presenca') presencas++;
             else if (r.status === 'falta') faltas++;
+            else if (r.status === 'falta_passagem_som') { faltasPassagem++; presencas++; }
             else if (r.status === 'atestado') atestados++;
             else if (r.status === 'dispensa') dispensas++;
             else if (r.status === 'atraso') atrasos++;
@@ -1879,6 +1902,7 @@ async function saveOfficialData() {
                 if (dispensas > 0) extras.push(`Dispensas: ${dispensas}`);
                 if (atrasos > 0) extras.push(`Atrasos: ${atrasos}`);
                 if (faltas > 0) extras.push(`Faltas: ${faltas}`);
+                if (faltasPassagem > 0) extras.push(`Faltas Passagem de Som: ${faltasPassagem}`);
                 if (justificados > 0) extras.push(`Justificados: ${justificados}`);
                 if (extras.length > 0) resultado += ` | ${extras.join(' | ')}`;
                 return resultado;

@@ -9659,6 +9659,9 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                 if (isAtestadoGlobal) return { symbol: 'A', status: 'atestado', incP: 0, incF: 0, excelSym: 'A' };
                 return { symbol: 'F', status: 'falta', incP: 0, incF: 1, excelSym: 'F' };
             }
+            if (st === 'falta_passagem_som') {
+                return { symbol: 'PS:F C:✓', status: 'falta_passagem_som', incP: 1, incF: 1, excelSym: 'PS:F/C:P' };
+            }
             if (st === 'atestado') return { symbol: 'A', status: 'atestado', incP: 0, incF: 0, excelSym: 'A' };
             if (st === 'dispensa') return { symbol: 'D', status: 'dispensa', incP: 0, incF: 0, excelSym: 'D' };
             if (st === 'justificado') return { symbol: 'J', status: 'justificado', incP: 0, incF: 0, excelSym: 'J' };
@@ -9678,6 +9681,9 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
             if (isAtestadoGlobal || (reg && reg.status === 'atestado')) {
                 return { cellText: 'A', cellClass: 'status-atestado', incP: 0, incF: 0, excelText: 'A' };
             }
+            if (reg && reg.status === 'falta_passagem_som') {
+                return { cellText: 'PS:F C:✓', cellClass: 'status-falta-som', incP: 1, incF: 1, excelText: 'PS:F/C:P' };
+            }
             const sym = getSymbol(reg);
             let cClass = 'status-sem-registro';
             if (sym.status === 'presenca') cClass = 'status-presenca';
@@ -9687,6 +9693,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
             else if (sym.status === 'justificado') cClass = 'status-justificado';
             else if (sym.status === 'atraso') cClass = 'status-atraso';
             else if (sym.status === 'nao_escalado') cClass = 'status-nao-escalado';
+            else if (sym.status === 'falta_passagem_som') cClass = 'status-falta-som';
 
             return { cellText: sym.symbol, cellClass: cClass, incP: sym.incP, incF: sym.incF, excelText: sym.excelSym };
         }
@@ -9721,14 +9728,25 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
 
         docsOrdenados.forEach(doc => {
             const reg = doc.registros ? doc.registros[musico.id] : null;
-            const sym = getSymbol(reg);
-            const prefix = getTipoPrefix(doc.tipo);
-            partesPdf.push(`${prefix}:${sym.symbol}`);
-            partesExcel.push(`${prefix}:${sym.excelSym}`);
-            incP += sym.incP;
-            incF += sym.incF;
-            if (sym.status === 'falta') hasFalta = true;
-            if (sym.status !== 'presenca') allPresenca = false;
+            if (reg && reg.status === 'falta_passagem_som') {
+                partesPdf.push('PS:F');
+                partesPdf.push('C:✓');
+                partesExcel.push('PS:F');
+                partesExcel.push('C:P');
+                incP += 1;
+                incF += 1;
+                hasFalta = true;
+                allPresenca = false;
+            } else {
+                const sym = getSymbol(reg);
+                const prefix = getTipoPrefix(doc.tipo);
+                partesPdf.push(`${prefix}:${sym.symbol}`);
+                partesExcel.push(`${prefix}:${sym.excelSym}`);
+                incP += sym.incP;
+                incF += sym.incF;
+                if (sym.status === 'falta') hasFalta = true;
+                if (sym.status !== 'presenca') allPresenca = false;
+            }
         });
 
         let cellText = partesPdf.join(' ');
@@ -10080,6 +10098,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
         
         .status-presenca { background-color: #dcfce7 !important; color: #166534 !important; }
         .status-falta { background-color: #fee2e2 !important; color: #991b1b !important; }
+        .status-falta-som { background-color: #ffedd5 !important; color: #9a3412 !important; font-weight: bold; }
         .status-atestado { background-color: #dbeafe !important; color: #1e40af !important; }
         .status-dispensa { background-color: #e0f2fe !important; color: #075985 !important; font-weight: bold; }
         .status-justificado { background-color: #f3e8ff !important; color: #6b21a8 !important; }
@@ -10110,6 +10129,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
             <div class="legend-items">
                 <div class="legend-item"><span class="legend-badge status-presenca">✓</span>Presença</div>
                 <div class="legend-item"><span class="legend-badge status-falta">F</span>Falta</div>
+                <div class="legend-item"><span class="legend-badge status-falta-som" style="width:auto;padding:0 3px;">PS:F</span>Falta Passagem de Som</div>
                 <div class="legend-item"><span class="legend-badge status-atestado">A</span>Atestado Médico</div>
                 <div class="legend-item"><span class="legend-badge status-dispensa">D</span>Dispensado</div>
                 <div class="legend-item"><span class="legend-badge status-justificado">J</span>Justificado</div>
@@ -10120,6 +10140,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                 <div class="legend-item"><span class="legend-badge" style="background:#e8f0e8;">N:</span>Ensaio de Naipe</div>
                 <div class="legend-item"><span class="legend-badge" style="background:#e8e8f0;">T:</span>Ensaio Tutti</div>
                 <div class="legend-item"><span class="legend-badge" style="background:#f0e8e8;">C:</span>Concerto</div>
+                <div class="legend-item"><span class="legend-badge" style="background:#ffedd5;">PS:</span>Passagem de Som</div>
             </div>
             <div class="footer-justificativas"><strong>Justificativas:</strong><ul>${justificativasHtml}</ul></div>
         </div>
@@ -10327,24 +10348,38 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                 const mesNomeExtenso = mesesNomes[mesInt - 1];
                 const tituloRelatorio = `${mesNomeExtenso.toUpperCase()} / ${ano}`;
                 
-                const excelRows = [];
-                excelRows.push(["LISTA DE PRESENÇA - ORQUESTRA EXPERIMENTAL DE REPERTÓRIO"]);
-                excelRows.push([`Mês / Ano: ${tituloRelatorio}`]);
-                if (concertosTexto) {
-                    excelRows.push([`Concertos / Apresentações: ${concertosTexto.replace(/\n/g, ' | ')}`]);
-                }
-                if (anotacoesTexto) {
-                    excelRows.push([`Anotações / Folgas: ${anotacoesTexto.replace(/\n/g, ' | ')}`]);
-                }
-                excelRows.push([]); 
+                // ── MAPA DE SUB-COLUNAS ─────────────────────────────────────────────
+                // Para cada dia: null = sem evento (1 coluna simples)
+                //                array = sub-colunas ordenadas por horarioInicio
+                const getTipoPrefixExcel = (tipo) => {
+                    if (tipo === 'ensaio_naipe') return 'N';
+                    if (tipo === 'concerto') return 'C';
+                    return 'T'; // ensaio_tutti ou qualquer outro
+                };
 
-                const headerRow = ["Nome / Instrumento"];
+                // flatCols: lista plana de todas as sub-colunas do mês
+                // { dataStr, diaFormatado, subCol: null | {tipo, prefix, doc} }
+                const flatCols = [];
                 for (let dia = 1; dia <= totalDias; dia++) {
-                    headerRow.push(`${String(dia).padStart(2, '0')}/${mesStr}`);
+                    const dataStr = `${ano}-${mesStr}-${String(dia).padStart(2, '0')}`;
+                    const diaFormatado = `${String(dia).padStart(2, '0')}/${mesStr}`;
+                    const docsDoDia = presencasPorData[dataStr] || [];
+                    if (docsDoDia.length === 0) {
+                        flatCols.push({ dataStr, diaFormatado, subCol: null });
+                    } else {
+                        const sorted = [...docsDoDia].sort((a, b) =>
+                            (a.horarioInicio || '00:00').localeCompare(b.horarioInicio || '00:00')
+                        );
+                        sorted.forEach(doc => flatCols.push({
+                            dataStr,
+                            diaFormatado,
+                            subCol: { tipo: doc.tipo, prefix: getTipoPrefixExcel(doc.tipo), doc }
+                        }));
+                    }
                 }
-                headerRow.push("P", "F");
-                excelRows.push(headerRow);
+                const totalDataCols = flatCols.length;
 
+                // Helper: converte índice de coluna (0-based) em letra(s) do Excel
                 const getColLetter = (colIndex) => {
                     let letter = '';
                     let tempCol = colIndex;
@@ -10355,55 +10390,112 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                     return letter;
                 };
 
-                // Comentários de eventos no cabeçalho das datas
-                const headerRowIndexInExcel = excelRows.length;
-                for (let dia = 1; dia <= totalDias; dia++) {
-                    const dataStr = `${ano}-${mesStr}-${String(dia).padStart(2, '0')}`;
-                    if (eventosPorData[dataStr] && eventosPorData[dataStr].length > 0) {
-                        const colLetter = getColLetter(dia);
-                        const cellRef = `${colLetter}${headerRowIndexInExcel}`;
-                        cellCommentsMap[cellRef] = `Atividade(s):\n${eventosPorData[dataStr].join('\n')}`;
-                    }
+                // ── LINHAS TÍTULO ────────────────────────────────────────────────────
+                const excelRows = [];
+                excelRows.push(["LISTA DE PRESENÇA - ORQUESTRA EXPERIMENTAL DE REPERTÓRIO"]);
+                excelRows.push([`Mês / Ano: ${tituloRelatorio}`]);
+                if (concertosTexto) {
+                    excelRows.push([`Concertos / Apresentações: ${concertosTexto.replace(/\n/g, ' | ')}`]);
                 }
+                if (anotacoesTexto) {
+                    excelRows.push([`Anotações / Folgas: ${anotacoesTexto.replace(/\n/g, ' | ')}`]);
+                }
+                excelRows.push([]);
 
+                const headerRow1StartIndex = excelRows.length; // índice 0-based da linha de datas
+                const headerRow2StartIndex = headerRow1StartIndex + 1;
+                const totalColsInSheet = 1 + totalDataCols + 2; // nome + sub-cols + P + F
+
+                // ── CABEÇALHO LINHA 1: Datas ─────────────────────────────────────────
+                // Apenas a 1ª sub-coluna de cada dia recebe a data; as demais ficam vazias (para merge)
+                const headerRow1 = ["Nome / Instrumento"];
+                let prevDataStr = null;
+                flatCols.forEach(col => {
+                    headerRow1.push(col.dataStr !== prevDataStr ? col.diaFormatado : "");
+                    prevDataStr = col.dataStr;
+                });
+                headerRow1.push("P", "F");
+                excelRows.push(headerRow1);
+
+                // ── CABEÇALHO LINHA 2: Siglas dos tipos ─────────────────────────────
+                const headerRow2 = [""];
+                flatCols.forEach(col => headerRow2.push(col.subCol ? col.subCol.prefix : ""));
+                headerRow2.push("", "");
+                excelRows.push(headerRow2);
+
+                // ── COMENTÁRIOS DE EVENTOS NO CABEÇALHO ─────────────────────────────
+                const headerRow1ExcelRow = headerRow1StartIndex + 1; // 1-based para ref de célula
+                const commentedDays = new Set();
+                flatCols.forEach((col, colIdx) => {
+                    if (commentedDays.has(col.dataStr)) return; // comentário apenas na 1ª sub-coluna do dia
+                    commentedDays.add(col.dataStr);
+                    if (eventosPorData[col.dataStr] && eventosPorData[col.dataStr].length > 0) {
+                        const cellRef = `${getColLetter(colIdx + 1)}${headerRow1ExcelRow}`;
+                        cellCommentsMap[cellRef] = `Atividade(s):\n${eventosPorData[col.dataStr].join('\n')}`;
+                    }
+                });
+
+                // ── HELPER: SÍMBOLO EXCEL PARA UM ÚNICO DOC DE PRESENÇA ──────────────
+                const getSingleDocExcelSym = (musico, doc, dataStr) => {
+                    const isDispensado = dispensasMap[musico.id] && dispensasMap[musico.id].has(dataStr);
+                    const isAtestado = atestadosMap[musico.id] && atestadosMap[musico.id].has(dataStr);
+                    if (musico.dataSaida && dataStr >= musico.dataSaida) return 'CL';
+                    const dataEntradaStr = parseDateToYYYYMMDD(musico['INICIO OER Contrato'] || musico.dataEntrada || musico.inicioContrato);
+                    if (dataEntradaStr && dataStr < dataEntradaStr) return '-';
+                    // Verificar relevância para ensaio de naipe
+                    if (doc.tipo === 'ensaio_naipe' && doc.naipe) {
+                        const musicoInstNorm = normalizarNaipe(musico.INSTRUMENTOS || musico.Instrumento || '');
+                        const naipesArr = (Array.isArray(doc.naipe) ? doc.naipe : [doc.naipe])
+                            .map(n => normalizarNaipe(n)).filter(Boolean);
+                        if (!naipesArr.some(nn => nn === musicoInstNorm || nn.includes(musicoInstNorm) || musicoInstNorm.includes(nn))) return '-';
+                    }
+                    if (isDispensado) return 'D';
+                    if (isAtestado) return 'A';
+                    const reg = doc.registros ? doc.registros[musico.id] : null;
+                    if (!reg) return '-';
+                    const st = reg.status;
+                    if (st === 'presenca') return 'P';
+                    if (st === 'falta') { if (isDispensado) return 'D'; if (isAtestado) return 'A'; return 'F'; }
+                    if (st === 'falta_passagem_som') return 'PS:F/C:P';
+                    if (st === 'atestado') return 'A';
+                    if (st === 'dispensa') return 'D';
+                    if (st === 'justificado') return 'J';
+                    if (st === 'atraso') return reg.minutes ? `${reg.minutes}m` : 'P';
+                    if (st === 'nao_escalado') return '-';
+                    if (isDispensado) return 'D';
+                    if (isAtestado) return 'A';
+                    return '-';
+                };
+
+                // ── LINHAS DOS MÚSICOS ───────────────────────────────────────────────
                 const naipesComMusicos = [...ordemNaipesExibicao, "Outros"].filter(n => musicosPorNaipe[n].length > 0);
 
                 naipesComMusicos.forEach(naipe => {
-                    const naipeRow = [naipe.toUpperCase()];
-                    excelRows.push(naipeRow);
+                    excelRows.push([naipe.toUpperCase()]);
 
                     musicosPorNaipe[naipe].forEach(musico => {
                         const nomeExibido = musico.NOMEARTISTICO || musico['NOME REGISTRO'] || 'Músico';
                         const rowMusico = [nomeExibido];
-                        const currentExcelRowIndex = excelRows.length + 1; // Linha (1-based) no Excel
+                        const currentExcelRowIndex = excelRows.length + 1; // 1-based para fórmulas
 
-                        for (let dia = 1; dia <= totalDias; dia++) {
-                            const dataStr = `${ano}-${mesStr}-${String(dia).padStart(2, '0')}`;
-                            const docsDoDia = presencasPorData[dataStr] || [];
-
-                            const statusRes = getMusicianStatusForDate(musico, docsDoDia, dispensasMap, atestadosMap, dataStr);
-                            const cellText = statusRes.excelText || statusRes.cellText;
-
-                            if (statusRes.cellClass === 'status-dispensa') {
-                                const colLetter = getColLetter(dia);
-                                const cellRef = `${colLetter}${currentExcelRowIndex}`;
-                                cellCommentsMap[cellRef] = "Bolsista Dispensado";
-                            } else if (statusRes.cellClass === 'status-atestado') {
-                                const colLetter = getColLetter(dia);
-                                const cellRef = `${colLetter}${currentExcelRowIndex}`;
-                                cellCommentsMap[cellRef] = "Atestado Médico Homologado";
+                        flatCols.forEach((col, colIdx) => {
+                            if (!col.subCol) {
+                                rowMusico.push(''); // dia sem evento
+                            } else {
+                                const sym = getSingleDocExcelSym(musico, col.subCol.doc, col.dataStr);
+                                const cellRef = `${getColLetter(colIdx + 1)}${currentExcelRowIndex}`;
+                                if (sym === 'D') cellCommentsMap[cellRef] = "Bolsista Dispensado";
+                                else if (sym === 'A') cellCommentsMap[cellRef] = "Atestado Médico Homologado";
+                                rowMusico.push(sym);
                             }
-                            rowMusico.push(cellText);
-                        }
+                        });
 
-                        const startCol = 'B';
-                        const endCol = getColLetter(totalDias);
-                        const formulaRange = `${startCol}${currentExcelRowIndex}:${endCol}${currentExcelRowIndex}`;
-
-                        // Injetar fórmulas do Excel para somar P e F dinamicamente
-                        rowMusico.push({ f: `COUNTIF(${formulaRange}, "P")` });
-                        rowMusico.push({ f: `COUNTIF(${formulaRange}, "F")` });
-
+                        // COUNTIF cobre todas as sub-colunas (col B até última coluna de dados)
+                        const startColLetter = getColLetter(1); // B
+                        const endColLetter = getColLetter(totalDataCols);
+                        const formulaRange = `${startColLetter}${currentExcelRowIndex}:${endColLetter}${currentExcelRowIndex}`;
+                        rowMusico.push({ f: `COUNTIF(${formulaRange}, "P") + COUNTIF(${formulaRange}, "*C:P*")` });
+                        rowMusico.push({ f: `COUNTIF(${formulaRange}, "F") + COUNTIF(${formulaRange}, "*PS:F*")` });
                         excelRows.push(rowMusico);
                     });
                 });
@@ -10415,7 +10507,33 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
 
                 const worksheet = XLSX.utils.aoa_to_sheet(excelRows);
 
-                // Aplicar anotações/comentários (.c) nas células correspondentes no SheetJS (ocultos por padrão, visíveis apenas no hover)
+                // ── MERGES DO CABEÇALHO DUPLO ────────────────────────────────────────
+                const merges = [];
+                // "Nome / Instrumento": mescla vertical entre linha 1 e linha 2 do cabeçalho
+                merges.push({ s: { r: headerRow1StartIndex, c: 0 }, e: { r: headerRow2StartIndex, c: 0 } });
+                // "P" e "F": mescla vertical
+                merges.push({ s: { r: headerRow1StartIndex, c: totalColsInSheet - 2 }, e: { r: headerRow2StartIndex, c: totalColsInSheet - 2 } });
+                merges.push({ s: { r: headerRow1StartIndex, c: totalColsInSheet - 1 }, e: { r: headerRow2StartIndex, c: totalColsInSheet - 1 } });
+
+                // Datas: mescla horizontal (multi-evento) ou vertical (sem evento)
+                let colOffset = 1;
+                for (let dia = 1; dia <= totalDias; dia++) {
+                    const dataStr = `${ano}-${mesStr}-${String(dia).padStart(2, '0')}`;
+                    const colsForDay = flatCols.filter(c => c.dataStr === dataStr);
+                    const dayCount = colsForDay.length;
+                    if (dayCount > 1) {
+                        // Múltiplos eventos: mescla horizontal a data na linha 1
+                        merges.push({ s: { r: headerRow1StartIndex, c: colOffset }, e: { r: headerRow1StartIndex, c: colOffset + dayCount - 1 } });
+                    } else if (colsForDay[0] && colsForDay[0].subCol === null) {
+                        // Sem evento: mescla vertical (data ocupa linha 1 e linha 2)
+                        merges.push({ s: { r: headerRow1StartIndex, c: colOffset }, e: { r: headerRow2StartIndex, c: colOffset } });
+                    }
+                    // Dia com evento único: sem mescla (data em linha 1, sigla em linha 2)
+                    colOffset += dayCount;
+                }
+                worksheet['!merges'] = merges;
+
+                // ── COMENTÁRIOS NAS CÉLULAS ──────────────────────────────────────────
                 Object.entries(cellCommentsMap).forEach(([cellRef, text]) => {
                     if (!worksheet[cellRef]) {
                         worksheet[cellRef] = { t: 's', v: '' };
@@ -10424,13 +10542,13 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                     commentObj.hidden = true;
                     worksheet[cellRef].c = commentObj;
                 });
-                
-                // Ajustar largura das colunas
+
+                // ── LARGURA DAS COLUNAS ──────────────────────────────────────────────
                 const colWidths = [{ wch: 30 }]; // Nome
-                for (let i = 1; i <= totalDias; i++) {
-                    colWidths.push({ wch: 8 });
+                for (let i = 0; i < totalDataCols; i++) {
+                    colWidths.push({ wch: 6 });
                 }
-                colWidths.push({ wch: 6 }, { wch: 6 }); // Totais P e F
+                colWidths.push({ wch: 6 }, { wch: 6 }); // P e F
                 worksheet['!cols'] = colWidths;
 
                 const workbook = XLSX.utils.book_new();
@@ -10443,6 +10561,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                     ["Sigla", "Descrição / Status", "Efeito na Frequência"],
                     ["P", "Presença / Atraso", "Soma no total de Presenças (P)"],
                     ["F", "Falta Não Justificada", "Soma no total de Faltas (F)"],
+                    ["PS:F/C:P", "Falta em Passagem de Som", "Soma 1 Falta (PS) e 1 Presença (Concerto)"],
                     ["A", "Atestado Médico", "Não soma como Falta (Isento)"],
                     ["D", "Dispensa Concedida", "Não soma como Falta (Isento)"],
                     ["J", "Ausência Justificada", "Não soma como Falta (Isento)"],
@@ -10454,7 +10573,8 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                     ["Prefixo", "Tipo de Evento", "Exemplo"],
                     ["N:", "Ensaio de Naipe", "N:P = Presente no Ensaio de Naipe"],
                     ["T:", "Ensaio Tutti", "T:F = Falta no Ensaio Tutti"],
-                    ["C:", "Concerto", "C:P = Presente no Concerto"]
+                    ["C:", "Concerto", "C:P = Presente no Concerto"],
+                    ["PS:", "Passagem de Som", "PS:F = Falta na Passagem de Som"]
                 ];
                 const legendaSheet = XLSX.utils.aoa_to_sheet(legendaRows);
                 legendaSheet['!cols'] = [{ wch: 10 }, { wch: 35 }, { wch: 40 }];
@@ -10767,9 +10887,12 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
 
                                 const isPendente = registro.status === 'pendente' || registro.status === 'none';
                                 const isFalta = registro.status === 'falta';
+                                const isFaltaPassagemSom = registro.status === 'falta_passagem_som';
 
                                 if (!isDispensado && !isAtestado) {
-                                    if (isFalta) {
+                                    if (isFaltaPassagemSom) {
+                                        bInfo.faltas.push({ dia, obs: ' (Falta Passagem de Som)' });
+                                    } else if (isFalta) {
                                         let labelObs = '';
                                         if (pres.tipo === 'ensaio_naipe' && pres.naipe) {
                                             const naipeStr = Array.isArray(pres.naipe) ? pres.naipe.join(' + ') : pres.naipe;

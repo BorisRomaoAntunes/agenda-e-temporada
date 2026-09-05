@@ -682,6 +682,16 @@ body {
     border: none;
 }
 
+.musician-card.falta-passagem-som {
+    background-color: #fff7ed;
+    border-color: #fed7aa;
+}
+.musician-card.falta-passagem-som .status-badge {
+    background-color: #ea580c;
+    color: white;
+    border: none;
+}
+
 /* Drawer / Bottom Sheet */
 .drawer-overlay {
     position: fixed;
@@ -1367,6 +1377,8 @@ body {
 .opt-btn-compact.dispensa.selected { background: #6b21a8; color: white; border-color: #6b21a8; }
 .opt-btn-compact.nao-escalado { color: var(--color-not-scheduled); border-color: #cbd5e1; background: var(--color-not-scheduled-bg); }
 .opt-btn-compact.justificado { color: var(--color-justified); border-color: #f3e8ff; background: var(--color-justified-bg); }
+.opt-btn-compact.falta-passagem-som { color: #c2410c; border-color: #fed7aa; background: #fff7ed; }
+.opt-btn-compact.falta-passagem-som.selected { background: #ea580c; color: white; border-color: #ea580c; }
 
 /* ==========================================================================
    ESTILOS PARA ENSAIOS DE NAIPE SOB DEMANDA E ABAS DE CHAMADA
