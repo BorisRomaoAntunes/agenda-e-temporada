@@ -1,8 +1,20 @@
 {
-  "hash": "e95ceb4",
-  "date": "02/09/2026 22:08",
-  "buildAt": "2026-09-03T01:10:53.535Z",
+  "hash": "bdd949a",
+  "date": "05/09/2026 08:38",
+  "buildAt": "2026-09-05T11:38:17.620Z",
   "history": [
+    {
+      "hash": "bdd949a",
+      "date": "05/09/2026 08:38",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(presenca): adicionar opcao de status falta em passagem de som para concertos"
+    },
+    {
+      "hash": "99d6e9e",
+      "date": "02/09/2026 22:11",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json apos deploy"
+    },
     {
       "hash": "e95ceb4",
       "date": "02/09/2026 22:08",
@@ -110,18 +122,6 @@
       "date": "01/09/2026 00:57",
       "author": "Boris Romão Antunes",
       "subject": "fix(admin): manter status inativo e preservar data de saida na gaveta do modal diff"
-    },
-    {
-      "hash": "45bc588",
-      "date": "01/09/2026 00:47",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json do deploy em produção"
-    },
-    {
-      "hash": "5111c9f",
-      "date": "01/09/2026 00:43",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json do build"
     }
   ]
 }
