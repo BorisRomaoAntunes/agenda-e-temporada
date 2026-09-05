@@ -1,8 +1,20 @@
 {
-  "hash": "34958ed",
-  "date": "05/09/2026 08:38",
-  "buildAt": "2026-09-05T11:38:46.901Z",
+  "hash": "0fd1a1a",
+  "date": "05/09/2026 09:13",
+  "buildAt": "2026-09-05T12:14:06.998Z",
   "history": [
+    {
+      "hash": "0fd1a1a",
+      "date": "05/09/2026 09:13",
+      "author": "Boris Romão Antunes",
+      "subject": "fix(presenca): alterar texto do badge de status para FALTA PS"
+    },
+    {
+      "hash": "0196dee",
+      "date": "05/09/2026 08:39",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json apos deploy em producao"
+    },
     {
       "hash": "34958ed",
       "date": "05/09/2026 08:38",
@@ -110,18 +122,6 @@
       "date": "01/09/2026 01:26",
       "author": "Boris Romão Antunes",
       "subject": "feat(admin): permitir edicao direta de musicos pela gaveta lateral e sincronizar no Firestore"
-    },
-    {
-      "hash": "362ab62",
-      "date": "01/09/2026 01:09",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json do deploy em produção"
-    },
-    {
-      "hash": "9f5e26d",
-      "date": "01/09/2026 00:58",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json do build"
     }
   ]
 }
