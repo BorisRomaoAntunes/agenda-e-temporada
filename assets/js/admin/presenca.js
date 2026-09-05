@@ -1195,7 +1195,7 @@ function renderMusicians() {
             else if (statusInfo.status === "atestado") badgeLabel = "Atestado";
             else if (statusInfo.status === "dispensa") badgeLabel = "Dispensa";
             else if (statusInfo.status === "nao_escalado") badgeLabel = "Não Escalado";
-            else if (statusInfo.status === "falta_passagem_som") badgeLabel = "Falta Som";
+            else if (statusInfo.status === "falta_passagem_som") badgeLabel = "Falta PS";
             else if (statusInfo.status === "justificado") {
                 const justMsg = statusInfo.justificativa ? `: ${statusInfo.justificativa}` : "";
                 const shortJust = justMsg.length > 15 ? justMsg.substring(0, 15) + "..." : justMsg;
