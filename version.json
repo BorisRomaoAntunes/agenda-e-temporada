@@ -1,8 +1,14 @@
 {
-  "hash": "bdd949a",
+  "hash": "34958ed",
   "date": "05/09/2026 08:38",
-  "buildAt": "2026-09-05T11:38:17.620Z",
+  "buildAt": "2026-09-05T11:38:46.901Z",
   "history": [
+    {
+      "hash": "34958ed",
+      "date": "05/09/2026 08:38",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json apos nova funcionalidade"
+    },
     {
       "hash": "bdd949a",
       "date": "05/09/2026 08:38",
@@ -116,12 +122,6 @@
       "date": "01/09/2026 00:58",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualizar version.json do build"
-    },
-    {
-      "hash": "93030ff",
-      "date": "01/09/2026 00:57",
-      "author": "Boris Romão Antunes",
-      "subject": "fix(admin): manter status inativo e preservar data de saida na gaveta do modal diff"
     }
   ]
 }
