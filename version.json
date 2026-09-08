@@ -1,8 +1,14 @@
 {
-  "hash": "656e309",
-  "date": "08/09/2026 10:38",
-  "buildAt": "2026-09-08T13:39:53.854Z",
+  "hash": "a8f9ae7",
+  "date": "08/09/2026 10:39",
+  "buildAt": "2026-09-08T13:40:35.303Z",
   "history": [
+    {
+      "hash": "a8f9ae7",
+      "date": "08/09/2026 10:39",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json apos nova funcionalidade"
+    },
     {
       "hash": "656e309",
       "date": "08/09/2026 10:38",
@@ -116,12 +122,6 @@
       "date": "01/09/2026 01:37",
       "author": "Boris Romão Antunes",
       "subject": "feat: suporte inteligente a data de inicio de contrato em chamadas e relatorios"
-    },
-    {
-      "hash": "a7052c9",
-      "date": "01/09/2026 01:33",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json do deploy em produção"
     }
   ]
 }
