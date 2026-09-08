@@ -19,8 +19,9 @@
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="assets/img/favicon-final.png">
     <link rel="apple-touch-icon" sizes="180x180" href="assets/img/favicon-final-180.png">
+    <meta name="theme-color" content="#ffffff" id="meta-theme-color">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Agenda OER">
     <meta name="description" content="Visualizador simples e rápido de partituras e arquivos PDF para músicos.">
     <meta http-equiv="Content-Security-Policy"
@@ -473,13 +474,17 @@
 
             const logoOer = document.querySelector('.logo-oer');
 
+            const metaTheme = document.getElementById('meta-theme-color');
+
             if (effectiveTheme === 'dark') {
                 body.classList.add('modo-concerto');
                 currentThemeIcon.setAttribute('data-lucide', 'moon');
                 if (logoOer) logoOer.src = 'assets/img/logo_oer_Darkmode.png';
+                if (metaTheme) metaTheme.setAttribute('content', '#050505');
             } else {
                 currentThemeIcon.setAttribute('data-lucide', 'sun');
                 if (logoOer) logoOer.src = 'assets/img/logo_oer.png';
+                if (metaTheme) metaTheme.setAttribute('content', '#ffffff');
             }
 
             // Atualizar ícones do Lucide

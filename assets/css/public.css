@@ -17,7 +17,12 @@ button, a, [role="button"], input[type="submit"], input[type="button"] {
 .main-header {
     background-color: #ffffff;
     /* Fundo branco no header */
-    height: var(--header-height);
+    height: auto;
+    min-height: var(--header-height);
+    padding-top: var(--safe-area-top);
+    padding-left: var(--safe-area-left);
+    padding-right: var(--safe-area-right);
+    box-sizing: border-box;
     display: flex;
     align-items: center;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
@@ -254,20 +259,30 @@ body.modo-concerto .header-separator {
 
 /* Responsividade do Header */
 @media (max-width: 600px) {
+    .main-header {
+        min-height: calc(50px + var(--safe-area-top));
+        padding-top: max(var(--safe-area-top), 6px);
+        padding-bottom: 6px;
+    }
+
     .header-brand {
-        gap: 0.75rem;
+        gap: 0.6rem;
     }
 
     .header-separator {
-        height: 25px;
+        height: 20px;
     }
 
     .main-header h1 {
-        font-size: 1.1rem;
+        font-size: 1.05rem;
     }
 
     .logo-oer {
-        height: 35px;
+        height: 32px;
+    }
+
+    .news-ticker {
+        top: calc(50px + var(--safe-area-top));
     }
 }
 
@@ -2112,18 +2127,24 @@ body.modo-concerto .theme-dropdown::after {
 @media (max-width: 768px) {
     .viewer-container {
         height: auto;
+        min-height: unset;
         display: flex;
-        padding: 2rem 1rem 2rem 1rem;
-        /* Reduzido de 120px para 2rem para otimizar espaço até o rodapé */
+        flex-direction: column;
+        justify-content: space-evenly;
+        align-items: center;
+        padding: 0.4rem 1rem;
+        flex: 1;
+        gap: 0.5rem;
+        box-sizing: border-box;
     }
 
     .news-ticker {
-        font-size: 0.85rem;
-        padding: 0.4rem 0;
+        font-size: 0.82rem;
+        padding: 0.35rem 0;
     }
 
     .ticker-item {
-        padding-right: 60px;
+        padding-right: 40px;
     }
 
     .pdf-grid {
@@ -2133,47 +2154,105 @@ body.modo-concerto .theme-dropdown::after {
 
     .mobile-controls {
         display: flex !important;
-        /* Exibe botões em mobile */
         width: 100%;
+        max-width: 360px;
+        order: 1;
+        margin-bottom: 0;
+    }
+
+    .mobile-buttons {
+        gap: 0.6rem;
+        width: 100%;
+        max-width: 100%;
     }
 
     .btn-download.primary {
-        padding: 1.2rem 2rem;
-        font-size: 1rem;
+        padding: 0.75rem 1.4rem;
+        font-size: 0.95rem;
         width: 100%;
-        border-radius: 50px;
+        border-radius: 40px;
     }
 
     .form-actions {
         flex-direction: column;
-        gap: 1.5rem;
+        gap: 0.5rem;
         order: -1;
         align-items: center;
+        margin-bottom: 0;
+        width: 100%;
+    }
+
+    #dynamic-links-container {
+        gap: 0.5rem;
+        margin-bottom: 0;
     }
 
     .main-buttons-group {
         flex-direction: column;
         /* Empilha no mobile */
-        gap: 1.5rem;
-    }
-
-    .mobile-controls {
-        display: flex !important;
+        gap: 0.5rem;
         width: 100%;
-        order: 1;
+        align-items: center;
     }
 
     .btn-form {
-        width: 320px;
-        max-width: 90vw;
+        width: 100%;
+        max-width: 340px;
+        padding: 0.2rem 0.4rem;
+        gap: 0.75rem;
+    }
+
+    .btn-form-icon {
+        width: 40px;
+        height: 40px;
+        box-shadow: 0 2px 8px rgba(139, 0, 0, 0.3);
+    }
+
+    .btn-form-icon svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    .btn-form-label {
+        font-size: 0.88rem;
+        line-height: 1.25;
+        max-width: 280px;
+    }
+
+    .version-badge {
+        top: -8px;
+        right: -8px;
+        transform: rotate(20deg);
+    }
+
+    .badge-star {
+        width: 65px;
+        height: 65px;
+        box-shadow: 0 2px 8px rgba(255, 215, 0, 0.35);
+    }
+
+    .badge-version {
+        font-size: 0.65rem;
+    }
+
+    .badge-new-label {
+        font-size: 0.48rem;
+        padding: 0.1rem 0.35rem;
     }
 }
 
 /* Forçar Layout Mobile (Samsung Browser) */
 body.force-mobile .viewer-container {
     height: auto;
+    min-height: unset;
     display: flex;
-    padding: 2rem 1rem 2rem 1rem;
+    flex-direction: column;
+    justify-content: space-evenly;
+    align-items: center;
+    padding: 0.4rem 1rem;
+    flex: 1;
+    gap: 0.5rem;
+    box-sizing: border-box;
 }
 
 body.force-mobile .pdf-grid {
@@ -2183,25 +2262,82 @@ body.force-mobile .pdf-grid {
 body.force-mobile .mobile-controls {
     display: flex !important;
     width: 100%;
+    max-width: 360px;
     order: 1;
+    margin-bottom: 0;
+}
+
+body.force-mobile .mobile-buttons {
+    gap: 0.6rem;
+    width: 100%;
+    max-width: 100%;
 }
 
 body.force-mobile .btn-download.primary {
-    padding: 1.2rem 2rem;
-    font-size: 1rem;
+    padding: 0.75rem 1.4rem;
+    font-size: 0.95rem;
     width: 100%;
+    border-radius: 40px;
 }
 
 body.force-mobile .form-actions {
     flex-direction: column;
-    gap: 1.5rem;
+    gap: 0.5rem;
     order: -1;
+    align-items: center;
+    margin-bottom: 0;
+    width: 100%;
+}
+
+body.force-mobile .main-buttons-group {
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
     align-items: center;
 }
 
 body.force-mobile .btn-form {
-    width: 320px;
-    max-width: 90vw;
+    width: 100%;
+    max-width: 340px;
+    padding: 0.2rem 0.4rem;
+    gap: 0.75rem;
+}
+
+body.force-mobile .btn-form-icon {
+    width: 40px;
+    height: 40px;
+    box-shadow: 0 2px 8px rgba(139, 0, 0, 0.3);
+}
+
+body.force-mobile .btn-form-icon svg {
+    width: 20px;
+    height: 20px;
+}
+
+body.force-mobile .btn-form-label {
+    font-size: 0.88rem;
+    line-height: 1.25;
+}
+
+body.force-mobile .version-badge {
+    top: -8px;
+    right: -8px;
+    transform: rotate(20deg);
+}
+
+body.force-mobile .badge-star {
+    width: 65px;
+    height: 65px;
+    box-shadow: 0 2px 8px rgba(255, 215, 0, 0.35);
+}
+
+body.force-mobile .badge-version {
+    font-size: 0.65rem;
+}
+
+body.force-mobile .badge-new-label {
+    font-size: 0.48rem;
+    padding: 0.1rem 0.35rem;
 }
 
 /* ============================================
@@ -2546,36 +2682,81 @@ body.force-mobile .btn-form {
 
 
 @media (max-width: 768px) {
+    .main-footer {
+        padding: 0.35rem 0;
+        padding-bottom: max(0.35rem, var(--safe-area-bottom));
+        flex-shrink: 0;
+    }
+
     .footer-container {
-        flex-direction: column-reverse;
-        gap: 1.5rem;
-        text-align: center;
-        padding: 1.5rem 1rem;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.2rem 1rem;
+        text-align: left;
+    }
+
+    .footer-info {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        max-width: calc(100% - 90px);
+    }
+
+    .footer-info p {
+        font-size: 0.68rem;
+        line-height: 1.2;
+        margin: 0;
+    }
+
+    #app-version-badge {
+        font-size: 0.62rem !important;
+        margin-top: 1px !important;
+    }
+
+    .footer-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        flex-shrink: 0;
+    }
+
+    .btn-footer-secondary,
+    .btn-theme-selector {
+        width: 34px;
+        height: 34px;
+    }
+
+    .btn-footer-secondary svg,
+    .btn-theme-selector svg {
+        width: 17px;
+        height: 17px;
     }
 
     .theme-dropdown {
-        right: 50%;
-        transform: translateX(50%) translateY(10px);
-        bottom: calc(100% + 10px);
+        right: 0;
+        transform: translateY(8px);
+        bottom: calc(100% + 8px);
     }
 
     .theme-dropdown.active {
-        transform: translateX(50%) translateY(0);
+        transform: translateY(0);
     }
 
     .notification-container {
-        bottom: 130px;
-        right: 1.5rem;
+        bottom: calc(50px + var(--safe-area-bottom));
+        right: 1rem;
     }
 
     .notification-trigger {
-        width: 55px;
-        height: 55px;
+        width: 44px;
+        height: 44px;
     }
 
     .notification-trigger svg {
-        width: 26px;
-        height: 26px;
+        width: 20px;
+        height: 20px;
     }
 }
 
