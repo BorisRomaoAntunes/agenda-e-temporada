@@ -1,8 +1,20 @@
 {
-  "hash": "0fd1a1a",
-  "date": "05/09/2026 09:13",
-  "buildAt": "2026-09-05T12:14:06.998Z",
+  "hash": "656e309",
+  "date": "08/09/2026 10:38",
+  "buildAt": "2026-09-08T13:39:53.854Z",
   "history": [
+    {
+      "hash": "656e309",
+      "date": "08/09/2026 10:38",
+      "author": "Boris Romão Antunes",
+      "subject": "fix(ui): proteger cabecalho de notch/status bar e eliminar scroll mobile"
+    },
+    {
+      "hash": "19978bd",
+      "date": "05/09/2026 09:15",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json apos deploy em producao"
+    },
     {
       "hash": "0fd1a1a",
       "date": "05/09/2026 09:13",
@@ -110,18 +122,6 @@
       "date": "01/09/2026 01:33",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualizar version.json do deploy em produção"
-    },
-    {
-      "hash": "c41632d",
-      "date": "01/09/2026 01:33",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(admin): separar bolsistas pendentes das faltas no relatorio de faltas e atrasos"
-    },
-    {
-      "hash": "d12a2b1",
-      "date": "01/09/2026 01:26",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(admin): permitir edicao direta de musicos pela gaveta lateral e sincronizar no Firestore"
     }
   ]
 }
