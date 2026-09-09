@@ -8975,6 +8975,160 @@ function initMusiciansManagement() {
         });
     }
 
+    // 8.1 Relatório de Quantidade do Efetivo OER
+    const btnGenerateQuantidadeEfetivo = document.getElementById('btn-generate-quantidade-efetivo');
+    const modalQuantidadeEfetivo = document.getElementById('quantidade-efetivo-modal-overlay');
+    const btnCloseQuantidadeEfetivo = document.getElementById('btn-quantidade-efetivo-modal-close');
+    const btnCloseQuantidadeEfetivoFooter = document.getElementById('btn-close-quantidade-efetivo-footer');
+    const btnCopyQuantidadeEfetivo = document.getElementById('btn-copy-quantidade-efetivo');
+    const resultQuantidadeEfetivo = document.getElementById('quantidade-efetivo-result');
+
+    let currentQuantidadeEfetivoTexto = "";
+
+    const normalizarNaipeEfetivo = (m) => {
+        const rawInst = (m.INSTRUMENTOS || m.Instrumento || m.instrumento || '').trim();
+        const statusStr = (m.Status || m.status || '').trim();
+        const naipeStr = (m.Naipe || m.NAIPE || m.naipe || '').trim();
+        
+        const combined = `${rawInst} ${statusStr} ${naipeStr}`.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+        if (combined.includes("1") || combined.includes("primeir") || combined.includes("spalla") || combined.includes("violino i") || combined.includes("1o") || combined.includes("1º")) {
+            if (combined.includes("viol")) return "primeiros_violinos";
+        }
+        if (combined.includes("2") || combined.includes("segund") || combined.includes("violino ii") || combined.includes("2o") || combined.includes("2º")) {
+            if (combined.includes("viol")) return "segundos_violinos";
+        }
+        if (combined.includes("viola")) return "violas";
+        if (combined.includes("cello") || combined.includes("violoncel")) return "violoncelos";
+        if (combined.includes("baixo") || combined.includes("contraba")) return "contrabaixos";
+        if (combined.includes("flaut") || combined.includes("piccolo") || combined.includes("flautim")) return "flautas";
+        if (combined.includes("oboe") || combined.includes("corne") || combined.includes("oboes")) return "oboes";
+        if (combined.includes("clari") || combined.includes("requinta") || combined.includes("clarone")) return "clarinetes";
+        if (combined.includes("fagot") || combined.includes("contrafagot")) return "fagotes";
+        if (combined.includes("trompa")) return "trompas";
+        if (combined.includes("trompete") || combined.includes("pistao") || combined.includes("tromp")) return "trompetes";
+        if (combined.includes("trombone")) return "trombones";
+        if (combined.includes("tuba") || combined.includes("eufonio") || combined.includes("bombardino")) return "tuba";
+        if (combined.includes("piano") || combined.includes("teclado") || combined.includes("celesta") || combined.includes("cravo")) return "piano";
+        if (combined.includes("harpa")) return "harpa";
+        if (combined.includes("percuss") || combined.includes("timpan") || combined.includes("bateria")) return "percussao";
+        if (combined.includes("violino")) return "primeiros_violinos";
+        return "";
+    };
+
+    if (btnGenerateQuantidadeEfetivo) {
+        btnGenerateQuantidadeEfetivo.addEventListener('click', () => {
+            if (!allMusicians || allMusicians.length === 0) {
+                showNotification("Nenhum músico carregado ainda.", "warning");
+                return;
+            }
+
+            // Filtrar ativos: bolsistas e monitores ativos
+            const ativos = allMusicians.filter(m => {
+                if (m.statusFirebase === 'desligado' || m.statusFirebase === 'inativo') return false;
+                const status = (m.Status || '').toLowerCase();
+                return status.includes('bolsista') || status.includes('monitor');
+            });
+
+            const contagem = {
+                primeiros_violinos: 0,
+                segundos_violinos: 0,
+                violas: 0,
+                violoncelos: 0,
+                contrabaixos: 0,
+                flautas: 0,
+                oboes: 0,
+                clarinetes: 0,
+                fagotes: 0,
+                trompas: 0,
+                trompetes: 0,
+                trombones: 0,
+                tuba: 0,
+                harpa: 0,
+                piano: 0,
+                percussao: 0
+            };
+
+            ativos.forEach(m => {
+                const naipeKey = normalizarNaipeEfetivo(m);
+                if (naipeKey && contagem[naipeKey] !== undefined) {
+                    contagem[naipeKey]++;
+                }
+            });
+
+            const mesesPt = [
+                "JANEIRO", "FEVEREIRO", "MARÇO", "ABRIL", "MAIO", "JUNHO",
+                "JULHO", "AGOSTO", "SETEMBRO", "OUTUBRO", "NOVEMBRO", "DEZEMBRO"
+            ];
+            const hoje = new Date();
+            const mesNome = mesesPt[hoje.getMonth()];
+            const dia = String(hoje.getDate()).padStart(2, '0');
+            const mesNum = String(hoje.getMonth() + 1).padStart(2, '0');
+            const ano = hoje.getFullYear();
+            const dataFormatada = `${dia}/${mesNum}/${ano}`;
+
+            const cordasStr = `${contagem.primeiros_violinos} ${contagem.segundos_violinos} ${contagem.violas} ${contagem.violoncelos} ${contagem.contrabaixos}`;
+            const madeirasStr = `${contagem.flautas} ${contagem.oboes} ${contagem.clarinetes} ${contagem.fagotes}`;
+            const metaisStr = `${contagem.trompas} ${contagem.trompetes} ${contagem.trombones} ${contagem.tuba}`;
+            const outrosStr = `${contagem.harpa} hp, ${contagem.piano} pno e ${contagem.percussao} Percussionistas`;
+
+            currentQuantidadeEfetivoTexto = `*Quantidade   OER - ${mesNome}* \n_levantamento gerado no dia ${dataFormatada}_\n\nCordas \n${cordasStr}\n\nMadeiras \n${madeirasStr}\n\nMetais \n${metaisStr}\n\n${outrosStr}`;
+
+            if (resultQuantidadeEfetivo) {
+                resultQuantidadeEfetivo.textContent = currentQuantidadeEfetivoTexto;
+            }
+
+            if (modalQuantidadeEfetivo) {
+                modalQuantidadeEfetivo.style.display = 'flex';
+            }
+        });
+    }
+
+    const fecharModalQuantidadeEfetivo = () => {
+        if (modalQuantidadeEfetivo) modalQuantidadeEfetivo.style.display = 'none';
+    };
+
+    if (btnCloseQuantidadeEfetivo) btnCloseQuantidadeEfetivo.addEventListener('click', fecharModalQuantidadeEfetivo);
+    if (btnCloseQuantidadeEfetivoFooter) btnCloseQuantidadeEfetivoFooter.addEventListener('click', fecharModalQuantidadeEfetivo);
+    if (modalQuantidadeEfetivo) {
+        modalQuantidadeEfetivo.addEventListener('click', (e) => {
+            if (e.target === modalQuantidadeEfetivo) fecharModalQuantidadeEfetivo();
+        });
+    }
+
+    if (btnCopyQuantidadeEfetivo && resultQuantidadeEfetivo) {
+        btnCopyQuantidadeEfetivo.addEventListener('click', async () => {
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(currentQuantidadeEfetivoTexto);
+                } else {
+                    const textArea = document.createElement("textarea");
+                    textArea.value = currentQuantidadeEfetivoTexto;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                }
+
+                const originalText = btnCopyQuantidadeEfetivo.innerHTML;
+                btnCopyQuantidadeEfetivo.innerHTML = '<i data-lucide="check" style="width: 16px; height: 16px;"></i> Copiado!';
+                btnCopyQuantidadeEfetivo.style.background = '#10B981';
+                if (window.lucide) lucide.createIcons();
+
+                setTimeout(() => {
+                    btnCopyQuantidadeEfetivo.innerHTML = originalText;
+                    btnCopyQuantidadeEfetivo.style.background = '#1e3a8a';
+                    if (window.lucide) lucide.createIcons();
+                }, 2000);
+
+                showNotification("Texto copiado para a área de transferência! 📋", "success");
+            } catch (err) {
+                console.error("Erro ao copiar texto:", err);
+                showNotification("Erro ao copiar texto.", "error");
+            }
+        });
+    }
+
     // 9. Relatório de Metas e Perfil de Músicos
     const btnGenerateMetas = document.getElementById('btn-generate-metas');
     const modalMetas = document.getElementById('metas-perfil-modal-overlay');

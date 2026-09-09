@@ -962,6 +962,9 @@ Intervalo
                             <button id="btn-generate-ficha-ia" class="btn-report-card" title="Clique uma vez para carregar (usa cache se atualizado) ou clique duplo para forçar nova geração via IA" style="background: #2E8B57;">
                                 <i data-lucide="sparkles"></i> <span>Ficha Técnica - Comunicação</span>
                             </button>
+                            <button id="btn-generate-quantidade-efetivo" class="btn-report-card" title="Clique para ver e copiar a quantidade do efetivo atual da OER" style="background: #1e3a8a;">
+                                <i data-lucide="users"></i> <span>Quantidade Efetivo OER</span>
+                            </button>
                             <button id="btn-generate-metas" class="btn-report-card" title="Clique para gerar o relatório de metas e perfil de músicos em tempo real" style="background: #4a5568;">
                                 <i data-lucide="bar-chart-2"></i> <span>Resumo de Metas e Perfil</span>
                             </button>
@@ -2453,6 +2456,50 @@ Intervalo
                         <i data-lucide="copy"></i> Copiar Texto
                     </button>
                     <button class="btn-outline" id="btn-close-metas-modal-footer" style="flex: 1; border-radius: 8px; font-weight: 600; cursor: pointer; border: 1px solid #ccc; background: white;">
+                        Fechar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL RELATÓRIO QUANTIDADE EFETIVO OER ===== -->
+    <div id="quantidade-efetivo-modal-overlay" class="ia-modal-overlay" style="display:none;" aria-modal="true" role="dialog">
+        <div class="ia-modal-card" style="max-width: 580px; width: 95%;">
+            <!-- Header -->
+            <div class="ia-modal-header">
+                <div class="ia-modal-header-info">
+                    <div class="ia-modal-icon" style="background: rgba(30, 58, 138, 0.1); color: #1e3a8a;">
+                        <i data-lucide="users"></i>
+                    </div>
+                    <div>
+                        <h3>Quantidade Efetivo OER</h3>
+                        <p>Formatado para cópia imediata</p>
+                    </div>
+                </div>
+                <button class="ia-modal-close" id="btn-quantidade-efetivo-modal-close" title="Fechar">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="ia-modal-body" style="display: flex; flex-direction: column; gap: 1rem;">
+                <div class="ia-modal-tip" style="background: rgba(30, 58, 138, 0.08); border-color: rgba(30, 58, 138, 0.15); border-left-color: #1e3a8a; color: #1e3a8a;">
+                    <i data-lucide="info" style="color: #1e3a8a;"></i>
+                    Levantamento em tempo real do efetivo atual por naipes e famílias da OER (bolsistas e monitores ativos).
+                </div>
+
+                <div class="version-input-wrapper">
+                    <div id="quantidade-efetivo-result" style="background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.2rem; font-family: inherit; font-size: 0.95rem; line-height: 1.6; min-height: 150px; white-space: pre-wrap; word-break: break-word; color: #333; max-height: 320px; overflow-y: auto;">
+                        <!-- Conteúdo inserido dinamicamente -->
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 0.8rem; margin-top: 0.5rem;">
+                    <button class="btn-robot-ai ia-modal-btn-action" id="btn-copy-quantidade-efetivo" style="flex: 2; background: #1e3a8a;">
+                        <i data-lucide="copy"></i> Copiar Texto
+                    </button>
+                    <button class="btn-outline" id="btn-close-quantidade-efetivo-footer" style="flex: 1; border-radius: 8px; font-weight: 600; cursor: pointer; border: 1px solid #ccc; background: white;">
                         Fechar
                     </button>
                 </div>
