@@ -1,8 +1,20 @@
 {
-  "hash": "60ba759",
-  "date": "08/09/2026 23:40",
-  "buildAt": "2026-09-09T02:41:01.914Z",
+  "hash": "d4a5baa",
+  "date": "10/09/2026 18:21",
+  "buildAt": "2026-09-10T21:22:13.604Z",
   "history": [
+    {
+      "hash": "d4a5baa",
+      "date": "10/09/2026 18:21",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(admin): transformar campo Instrumento/Naipe em lista suspensa"
+    },
+    {
+      "hash": "2183a63",
+      "date": "08/09/2026 23:41",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json pós-deploy v60ba759"
+    },
     {
       "hash": "60ba759",
       "date": "08/09/2026 23:40",
@@ -110,18 +122,6 @@
       "date": "01/09/2026 10:23",
       "author": "Boris Romão Antunes",
       "subject": "feat(admin): adicionar opcao de formato e-mail nos relatorios de metas e faltas"
-    },
-    {
-      "hash": "fded68c",
-      "date": "01/09/2026 01:49",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json do deploy em produção"
-    },
-    {
-      "hash": "a86b5ae",
-      "date": "01/09/2026 01:48",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(admin): ocultar secoes vazias no relatorio de faltas, pendencias e atrasos"
     }
   ]
 }
