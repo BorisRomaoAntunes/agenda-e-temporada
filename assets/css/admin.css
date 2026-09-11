@@ -1236,9 +1236,15 @@ button, a, [role="button"], input[type="submit"], input[type="button"], label {
         font-size: 0.95rem;
     }
 
-    .brand p,
-    .brand .admin-version-badge {
+    .brand p {
         display: none;
+    }
+
+    .brand .admin-version-badge {
+        display: inline-flex;
+        font-size: 0.62rem;
+        padding: 1px 6px;
+        margin-top: 2px;
     }
     
     .dash-main {
