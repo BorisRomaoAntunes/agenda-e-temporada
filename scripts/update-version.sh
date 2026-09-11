@@ -27,6 +27,22 @@ try {
       return { hash: commitHash, date: commitDate, author, subject };
     });
   }
+
+  // Salvaguarda: se houver arquivos modificados ainda não commitados, refletir no histórico
+  const status = execSync("git status --porcelain 2>/dev/null").toString().trim();
+  const uncommitted = status.split("\n").filter(l => !l.includes("version.json") && l.trim().length > 0);
+  if (uncommitted.length > 0) {
+    const uncommittedDate = new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+    history.unshift({
+      hash: hash + "+mod",
+      date: uncommittedDate,
+      author: "Deploy Local",
+      subject: `Atualização implantada (${uncommitted.length} arquivos modificados)`
+    });
+    history = history.slice(0, 20);
+    date = uncommittedDate;
+    hash = hash + "+mod";
+  }
 } catch (e) {
   console.warn("Aviso ao extrair histórico git:", e.message);
 }

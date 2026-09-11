@@ -112,6 +112,7 @@ let unsubscribeLinks = null; // Guarda o listener de links temporários
 let unsubscribeEngagement = null; // Guarda o listener do gráfico de engajamento
 let unsubscribeMusicians = null; // Guarda o listener da coleção de músicos
 let unsubscribeIntervalTimer = null; // Guarda o listener do cronômetro de intervalo
+let unsubscribeVersion = null; // Guarda o listener da versão em tempo real
 let adminIntervalTicker = null; // Guarda o ticker em tempo real do admin
 let currentEngagementDays = 7; // Quantidade de dias padrão para exibir no gráfico
 let isNotificationsEnabled = true; // Estado global das notificações push
@@ -155,6 +156,7 @@ onAuthStateChanged(auth, (user) => {
         initIntervalTimerControls(); // Inicia o controle do cronômetro de intervalo
         initMusiciansManagement(); // Inicia o gerenciamento de músicos (importação e busca reativa)
         initSecuritySection(); // Inicia a seção de segurança da conta
+        initRealtimeVersionModule(); // Inicia sincronização e escuta em tempo real da versão
     } else {
         // Não logado
         dashboardContainer.classList.remove('active');
@@ -168,6 +170,7 @@ onAuthStateChanged(auth, (user) => {
         if (unsubscribeEngagement) { unsubscribeEngagement(); unsubscribeEngagement = null; }
         if (unsubscribeMusicians) { unsubscribeMusicians(); unsubscribeMusicians = null; }
         if (unsubscribeIntervalTimer) { unsubscribeIntervalTimer(); unsubscribeIntervalTimer = null; }
+        if (unsubscribeVersion) { unsubscribeVersion(); unsubscribeVersion = null; }
         if (adminIntervalTicker) { clearInterval(adminIntervalTicker); adminIntervalTicker = null; }
         if (window.engagementChartInstance) {
             window.engagementChartInstance.destroy();
@@ -11743,5 +11746,91 @@ function initCopyableFields() {
         window.lucide.createIcons();
     }
 }
+
+// ================= SISTEMA DE VERSÃO EM TEMPO REAL (FIRESTORE) =================
+
+let lastKnownVersionHash = null;
+
+/**
+ * Inicializa a escuta em tempo real do documento config/version e verifica necessidade de sincronização
+ */
+function initRealtimeVersionModule() {
+    listenToVersionUpdates();
+    checkAndSyncVersionWithFirestore();
+}
+
+/**
+ * Escuta em tempo real (onSnapshot) o documento config/version do Firestore
+ */
+function listenToVersionUpdates() {
+    if (unsubscribeVersion) return;
+
+    try {
+        const versionDocRef = doc(db, 'config', 'version');
+        unsubscribeVersion = onSnapshot(versionDocRef, (docSnap) => {
+            if (!docSnap.exists()) return;
+
+            const versionData = docSnap.data();
+            if (!versionData || !versionData.hash) return;
+
+            const isUpdate = lastKnownVersionHash !== null && lastKnownVersionHash !== versionData.hash;
+            lastKnownVersionHash = versionData.hash;
+
+            // Dispara para a UI global se configurada
+            if (typeof window.setAppVersionData === 'function') {
+                window.setAppVersionData(versionData, isUpdate);
+            } else {
+                const el = document.getElementById('app-version-badge');
+                if (el) {
+                    el.textContent = `v${versionData.hash} · ${versionData.date || ''}`;
+                }
+            }
+
+            if (isUpdate) {
+                console.log(`⚡ [Versão em Tempo Real] Nova versão implantada recebida via Firestore: #${versionData.hash}`);
+            }
+        }, (err) => {
+            console.warn('⚠️ [Admin] Erro no listener de versão em tempo real:', err);
+        });
+    } catch (e) {
+        console.warn('⚠️ [Admin] Falha ao inicializar listener de versão:', e);
+    }
+}
+
+/**
+ * Verifica se a versão do deploy local (/version.json) é mais recente que a gravada no Firestore,
+ * e se for, atualiza o Firestore como admin autenticado.
+ */
+async function checkAndSyncVersionWithFirestore() {
+    try {
+        const response = await fetch('/version.json?_=' + Date.now());
+        if (!response.ok) return;
+
+        const localVersion = await response.json();
+        if (!localVersion || !localVersion.hash) return;
+
+        const versionDocRef = doc(db, 'config', 'version');
+        const docSnap = await getDoc(versionDocRef);
+
+        let mustSync = false;
+        if (!docSnap.exists()) {
+            mustSync = true;
+        } else {
+            const remoteVersion = docSnap.data();
+            if (remoteVersion.hash !== localVersion.hash) {
+                mustSync = true;
+            }
+        }
+
+        if (mustSync) {
+            console.log(`🔄 [Admin] Sincronizando versão local #${localVersion.hash} com Firestore...`);
+            await setDoc(versionDocRef, localVersion, { merge: true });
+            console.log(`✅ [Admin] Versão #${localVersion.hash} sincronizada com sucesso no Firestore!`);
+        }
+    } catch (err) {
+        console.warn('⚠️ [Admin] Não foi possível sincronizar versão com Firestore:', err);
+    }
+}
+
 
 

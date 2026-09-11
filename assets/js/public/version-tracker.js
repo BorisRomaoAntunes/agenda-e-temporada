@@ -40,6 +40,7 @@ class PDFVersionTracker {
 
             // Ouve as mudanças do Firestore em tempo real
             this.listenToFirestore();
+            this.listenToAppVersion();
         } catch (error) {
             console.error('Erro na inicialização:', error);
             // Fallback para o arquivo local caso falhe
@@ -65,6 +66,31 @@ class PDFVersionTracker {
             console.error('Erro ao escutar Firestore:', error);
             this.fallbackToLocalConfig();
         });
+    }
+
+    /**
+     * Escuta atualizações de versão do sistema em tempo real
+     */
+    listenToAppVersion() {
+        try {
+            const docRef = doc(db, 'config', 'version');
+            onSnapshot(docRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if (data && data.hash) {
+                        const el = document.getElementById('app-version-badge');
+                        if (el) {
+                            el.textContent = `v${data.hash} · ${data.date || ''}`;
+                            el.title = `Versão do sistema: #${data.hash} (Tempo Real ⚡)`;
+                        }
+                    }
+                }
+            }, (err) => {
+                console.warn('⚠️ [version-tracker] Erro ao escutar versão em tempo real:', err);
+            });
+        } catch (e) {
+            console.warn('⚠️ [version-tracker] Falha ao inicializar listener de versão:', e);
+        }
     }
 
     async fallbackToLocalConfig() {

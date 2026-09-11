@@ -2947,21 +2947,51 @@ Intervalo
             if (modal) modal.style.display = 'none';
         }
 
-        // Fetch de versão e listeners
+        // Função chamada tanto pelo fallback inicial quanto pelo listener Firestore em tempo real
+        window.setAppVersionData = function(data, isRealtimeUpdate = false) {
+            if (!data) return;
+            appVersionData = data;
+            const el = document.getElementById('app-version-badge');
+            if (el) {
+                el.textContent = 'v' + (data.hash || '') + ' · ' + (data.date || '');
+                el.title = 'Clique para ver o histórico das últimas 20 atualizações (Tempo Real ⚡)';
+                if (isRealtimeUpdate) {
+                    el.style.transition = 'all 0.4s ease';
+                    el.style.transform = 'scale(1.08)';
+                    el.style.color = '#16a34a';
+                    el.style.fontWeight = '700';
+                    setTimeout(() => {
+                        el.style.transform = '';
+                        el.style.color = '';
+                        el.style.fontWeight = '';
+                    }, 2500);
+                }
+            }
+            const modal = document.getElementById('modal-version-history');
+            if (modal && modal.style.display === 'flex') {
+                renderVersionHistory(data);
+                if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
+                    lucide.createIcons();
+                }
+            }
+        };
+
+        // Listener de clique no badge
+        const versionBadgeEl = document.getElementById('app-version-badge');
+        if (versionBadgeEl) {
+            versionBadgeEl.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                openVersionModal();
+            });
+        }
+
+        // Fetch inicial imediato (fallback até a conexão do Firestore responder)
         fetch('/version.json?_=' + Date.now())
             .then(r => r.json())
             .then(v => {
-                appVersionData = v;
-                const el = document.getElementById('app-version-badge');
-                if (el) {
-                    el.textContent = 'v' + v.hash + ' · ' + v.date;
-                    el.title = 'Clique para ver o histórico das últimas 20 atualizações';
-                    
-                    el.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        openVersionModal();
-                    });
+                if (!appVersionData) {
+                    window.setAppVersionData(v, false);
                 }
             })
             .catch(() => {});
