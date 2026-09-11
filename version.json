@@ -1,8 +1,20 @@
 {
-  "hash": "3c5c2d6",
-  "date": "11/09/2026 17:25",
-  "buildAt": "2026-09-11T20:26:00.692Z",
+  "hash": "366b194",
+  "date": "11/09/2026 17:51",
+  "buildAt": "2026-09-11T20:51:50.729Z",
   "history": [
+    {
+      "hash": "366b194",
+      "date": "11/09/2026 17:51",
+      "author": "Boris Romão Antunes",
+      "subject": "fix(ui): exibir badge de versao e historico no layout mobile"
+    },
+    {
+      "hash": "62ee57f",
+      "date": "11/09/2026 17:26",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json v3c5c2d6"
+    },
     {
       "hash": "3c5c2d6",
       "date": "11/09/2026 17:25",
@@ -110,18 +122,6 @@
       "date": "01/09/2026 19:57",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualizar version.json pós-deploy"
-    },
-    {
-      "hash": "53248e8",
-      "date": "01/09/2026 19:48",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(relatorio-metas): exibir vagas em aberto por instrumento"
-    },
-    {
-      "hash": "e5457c7",
-      "date": "01/09/2026 10:27",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json do deploy em produção"
     }
   ]
 }
