@@ -1,8 +1,20 @@
 {
-  "hash": "366b194",
-  "date": "11/09/2026 17:51",
-  "buildAt": "2026-09-11T20:51:50.729Z",
+  "hash": "2a9b8a0",
+  "date": "11/09/2026 18:20",
+  "buildAt": "2026-09-11T21:20:51.987Z",
   "history": [
+    {
+      "hash": "2a9b8a0",
+      "date": "11/09/2026 18:20",
+      "author": "Boris Romão Antunes",
+      "subject": "style(ui): aumentar botoes e corrigir alinhamento do letreiro no mobile"
+    },
+    {
+      "hash": "2fae4f8",
+      "date": "11/09/2026 17:52",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json pós-deploy v366b194"
+    },
     {
       "hash": "366b194",
       "date": "11/09/2026 17:51",
@@ -108,18 +120,6 @@
     {
       "hash": "dd9f82e",
       "date": "01/09/2026 20:21",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json pós-deploy"
-    },
-    {
-      "hash": "963d227",
-      "date": "01/09/2026 20:20",
-      "author": "Boris Romão Antunes",
-      "subject": "fix(relatorio-metas): normalizar chaves canonicas de naipes para calculo exato de vagas"
-    },
-    {
-      "hash": "87d0da0",
-      "date": "01/09/2026 19:57",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualizar version.json pós-deploy"
     }
