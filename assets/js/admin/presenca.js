@@ -472,18 +472,32 @@ function updateActiveMusiciansForDate(targetDateStr) {
     if (!allMusiciansRaw || allMusiciansRaw.length === 0) return;
 
     allMusicians = allMusiciansRaw.filter(m => {
-        // Se houver registro salvo deste integrante na chamada da data, manter
-        if (attendanceData && attendanceData[m.id]) return true;
+        const isDesligado = m.statusFirebase === 'inativo' || m.statusFirebase === 'desligado';
 
-        // Se o músico possui data de entrada futura em relação ao evento, não exibi-lo na chamada
+        // 1. Se o integrante está desligado/cancelado/inativo e a data do evento é igual ou posterior à data de saída:
+        // ele NÃO deve mais participar da lista de chamada
+        if (isDesligado && m.dataSaida && targetDateStr >= m.dataSaida) {
+            // Se havia registro "none" (pendente herdado de antes do desligamento), limpa do attendanceData para não inflar contadores
+            if (attendanceData && attendanceData[m.id] && (attendanceData[m.id].status === 'none' || !attendanceData[m.id].status)) {
+                delete attendanceData[m.id];
+            }
+            return false;
+        }
+
+        // 2. Se o músico possui data de entrada futura em relação ao evento, não exibi-lo na chamada
         if (m.dataEntrada && targetDateStr < m.dataEntrada) {
             return false;
+        }
+
+        // 3. Se houver registro real salvo deste integrante na chamada da data (presenca, falta, atestado, etc.), manter
+        if (attendanceData && attendanceData[m.id] && attendanceData[m.id].status && attendanceData[m.id].status !== 'none') {
+            return true;
         }
 
         const status = m.statusFirebase || 'ativo';
         if (status === 'ativo') return true;
 
-        // Para integrantes cancelados/desligados: mantidos na chamada até o dia anterior à saída;
+        // 4. Para integrantes cancelados/desligados: mantidos na chamada até o dia anterior à saída;
         // no próprio dia da saída (targetDateStr >= m.dataSaida) já não participam mais da lista de chamada.
         if (m.dataSaida) {
             return targetDateStr < m.dataSaida;
@@ -1022,6 +1036,16 @@ function setActiveCall(callId) {
             }
         });
     }
+
+    // Limpar do attendanceData qualquer integrante desligado que já não pertença mais à orquestra nesta data e que tenha status "none"
+    allMusiciansRaw.forEach(m => {
+        const isDesligado = m.statusFirebase === 'inativo' || m.statusFirebase === 'desligado';
+        if (isDesligado && m.dataSaida && selectedDate >= m.dataSaida) {
+            if (attendanceData[m.id] && (attendanceData[m.id].status === 'none' || !attendanceData[m.id].status)) {
+                delete attendanceData[m.id];
+            }
+        }
+    });
 
     // Verificar se existem dispensas e atestados homologados ativos para a data selecionada
     const checkDispensasEAtestados = async () => {
