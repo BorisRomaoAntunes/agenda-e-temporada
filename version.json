@@ -1,8 +1,20 @@
 {
-  "hash": "2a9b8a0",
-  "date": "11/09/2026 18:20",
-  "buildAt": "2026-09-11T21:20:51.987Z",
+  "hash": "91ac3b5",
+  "date": "15/09/2026 10:27",
+  "buildAt": "2026-09-15T13:28:47.139Z",
   "history": [
+    {
+      "hash": "91ac3b5",
+      "date": "15/09/2026 10:27",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(atestados): trava de validacao de musico na homologacao de atestados e integracao de cadastros pendentes"
+    },
+    {
+      "hash": "3d36da7",
+      "date": "11/09/2026 18:22",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json pós-deploy v2a9b8a0"
+    },
     {
       "hash": "2a9b8a0",
       "date": "11/09/2026 18:20",
@@ -110,18 +122,6 @@
       "date": "02/09/2026 22:11",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualizar version.json apos deploy"
-    },
-    {
-      "hash": "e95ceb4",
-      "date": "02/09/2026 22:08",
-      "author": "Boris Romão Antunes",
-      "subject": "fix: filtrar apenas musicos instrumentistas nos relatorios de presenca PDF e Excel"
-    },
-    {
-      "hash": "dd9f82e",
-      "date": "01/09/2026 20:21",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json pós-deploy"
     }
   ]
 }
