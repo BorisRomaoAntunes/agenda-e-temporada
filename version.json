@@ -1,8 +1,26 @@
 {
-  "hash": "91ac3b5",
-  "date": "15/09/2026 10:27",
-  "buildAt": "2026-09-15T13:28:47.139Z",
+  "hash": "d4aa771+mod",
+  "date": "15/09/2026, 17:40:37",
+  "buildAt": "2026-09-15T20:40:37.013Z",
   "history": [
+    {
+      "hash": "d4aa771+mod",
+      "date": "15/09/2026, 17:40:37",
+      "author": "Deploy Local",
+      "subject": "Atualização implantada (1 arquivos modificados)"
+    },
+    {
+      "hash": "d4aa771",
+      "date": "15/09/2026 17:39",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(presenca): manter bolsista cancelado ate data de saida e exibir nos relatorios do mes"
+    },
+    {
+      "hash": "a36258e",
+      "date": "15/09/2026 10:29",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json v91ac3b5"
+    },
     {
       "hash": "91ac3b5",
       "date": "15/09/2026 10:27",
@@ -104,24 +122,6 @@
       "date": "05/09/2026 08:39",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualizar version.json apos deploy em producao"
-    },
-    {
-      "hash": "34958ed",
-      "date": "05/09/2026 08:38",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json apos nova funcionalidade"
-    },
-    {
-      "hash": "bdd949a",
-      "date": "05/09/2026 08:38",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(presenca): adicionar opcao de status falta em passagem de som para concertos"
-    },
-    {
-      "hash": "99d6e9e",
-      "date": "02/09/2026 22:11",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json apos deploy"
     }
   ]
 }
