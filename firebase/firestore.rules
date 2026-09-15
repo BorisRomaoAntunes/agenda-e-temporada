@@ -67,6 +67,11 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // Coleção "cadastros_pendentes" — novos bolsistas e monitores via webhook aguardando validação
+    match /cadastros_pendentes/{document} {
+      allow read, write: if isAdmin();
+    }
+
     // Coleção "musicos" — dados cadastrais completos dos músicos (sensíveis)
     match /musicos/{document} {
       allow read, write: if isAdmin();

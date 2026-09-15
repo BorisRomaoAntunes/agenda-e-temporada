@@ -155,6 +155,7 @@ onAuthStateChanged(auth, (user) => {
         initCalendarManagement(); // Inicia o módulo de calendário interativo
         initIntervalTimerControls(); // Inicia o controle do cronômetro de intervalo
         initMusiciansManagement(); // Inicia o gerenciamento de músicos (importação e busca reativa)
+        initCadastrosManagement(); // Inicia o monitoramento de novos cadastros pendentes via Webhook
         initSecuritySection(); // Inicia a seção de segurança da conta
         initRealtimeVersionModule(); // Inicia sincronização e escuta em tempo real da versão
     } else {
@@ -4051,6 +4052,7 @@ function initAtestadosManagement() {
     const inputEditDias = document.getElementById('atestado-edit-dias');
     const inputEditResumo = document.getElementById('atestado-edit-resumo');
     const selectMusico = document.getElementById('atestado-select-musico');
+    const validationStatus = document.getElementById('atestado-validation-status');
     
     const btnDownloadDelete = document.getElementById('btn-download-delete-atestado');
     const btnDeleteOnly = document.getElementById('btn-delete-only-atestado');
@@ -4188,6 +4190,49 @@ function initAtestadosManagement() {
         return "";
     }
 
+    // Helper: Validar vínculo com a base de músicos e gerenciar trava de homologação
+    function updateMusicianValidationState() {
+        if (!selectMusico || !validationStatus || !btnDownloadDelete) return false;
+
+        const selectedId = selectMusico.value;
+        const matchedMusician = musiciansList.find(m => m.id === selectedId);
+
+        if (matchedMusician) {
+            // Músico Válido na base
+            selectMusico.classList.remove('select-invalid');
+            selectMusico.classList.add('select-valid');
+            
+            validationStatus.className = 'atestado-validation-feedback status-valid';
+            const inst = matchedMusician.instrumento ? ` (${matchedMusician.instrumento})` : '';
+            validationStatus.innerHTML = `<i data-lucide="check-circle" style="width: 16px; height: 16px; flex-shrink: 0;"></i> <span>Músico validado na base: <strong>${matchedMusician.nome}</strong>${inst}</span>`;
+            validationStatus.style.display = 'flex';
+
+            btnDownloadDelete.disabled = false;
+            btnDownloadDelete.removeAttribute('title');
+            if (window.lucide) lucide.createIcons();
+            return true;
+        } else {
+            // Músico não selecionado ou inválido
+            selectMusico.classList.remove('select-valid');
+            selectMusico.classList.add('select-invalid');
+
+            validationStatus.className = 'atestado-validation-feedback status-invalid';
+            validationStatus.innerHTML = `<i data-lucide="alert-triangle" style="width: 16px; height: 16px; flex-shrink: 0;"></i> <span><strong>Atenção:</strong> Músico não identificado na base de dados. Selecione o músico cadastrado no menu acima para liberar a homologação.</span>`;
+            validationStatus.style.display = 'flex';
+
+            btnDownloadDelete.disabled = true;
+            btnDownloadDelete.setAttribute('title', 'Selecione e valide o músico na base para liberar a homologação');
+            if (window.lucide) lucide.createIcons();
+            return false;
+        }
+    }
+
+    if (selectMusico) {
+        selectMusico.addEventListener('change', () => {
+            updateMusicianValidationState();
+        });
+    }
+
     // Atualizar campo de fim automaticamente
     function updateEndDateUI() {
         const endStr = calculateEndDate(inputEditInicio.value, inputEditDias.value);
@@ -4269,10 +4314,11 @@ function initAtestadosManagement() {
         
         updateEndDateUI(); // Calcula o fim ao abrir
 
-        // Selecionar o músico correspondente no dropdown
+        // Selecionar o músico correspondente no dropdown e avaliar trava
         if (selectMusico) {
             const matchedId = findMatchingMusicianId(data.nome);
             selectMusico.value = matchedId;
+            updateMusicianValidationState();
         }
         
         // Limpar visualizador antes de carregar
@@ -4302,6 +4348,17 @@ function initAtestadosManagement() {
         atestadoModal.style.display = 'none';
         modalPdfViewer.src = '';
         document.body.style.overflow = 'auto';
+        if (selectMusico) {
+            selectMusico.classList.remove('select-valid', 'select-invalid');
+            selectMusico.value = '';
+        }
+        if (validationStatus) {
+            validationStatus.style.display = 'none';
+            validationStatus.innerHTML = '';
+        }
+        if (btnDownloadDelete) {
+            btnDownloadDelete.disabled = false;
+        }
     }
 
     if (btnCloseAtestadoModal) btnCloseAtestadoModal.addEventListener('click', closeAtestadoModal);
@@ -4314,9 +4371,12 @@ function initAtestadosManagement() {
                 return;
             }
 
+            const isMusicianValid = updateMusicianValidationState();
             const musicianId = selectMusico ? selectMusico.value : '';
-            if (!musicianId) {
-                showNotification('Por favor, selecione e vincule o músico correspondente.', 'error');
+            const matchedMusician = musiciansList.find(m => m.id === musicianId);
+
+            if (!isMusicianValid || !musicianId || !matchedMusician) {
+                showNotification('Trava de segurança: Músico não validado com a base. Selecione um músico cadastrado para prosseguir.', 'error');
                 if (selectMusico) selectMusico.focus();
                 return;
             }
@@ -4516,6 +4576,98 @@ function initAtestadosManagement() {
                 if (window.lucide) lucide.createIcons();
             }
         });
+    }
+}
+
+// ================= MÓDULO DE CADASTROS PENDENTES (WEBHOOK / POWER AUTOMATE) =================
+function initCadastrosManagement() {
+    const cadastrosGrid = document.getElementById('cadastros-grid');
+    const cadastrosGridContainer = document.getElementById('cadastros-grid-container');
+    const badgeCadastrosCount = document.getElementById('badge-cadastros-count');
+
+    if (!cadastrosGrid || !cadastrosGridContainer) return;
+
+    // Escutar novos cadastros pendentes no Firestore em tempo real
+    const qCadastros = query(collection(db, "cadastros_pendentes"), orderBy("createdAt", "desc"));
+
+    onSnapshot(qCadastros, (snapshot) => {
+        const docs = [];
+        snapshot.forEach((docSnap) => {
+            const d = docSnap.data();
+            if (!d.status || d.status === "pendente") {
+                docs.push({ id: docSnap.id, ...d });
+            }
+        });
+
+        if (docs.length === 0) {
+            cadastrosGridContainer.classList.remove('visible');
+            cadastrosGrid.innerHTML = '<div class="admin-notif-empty">Nenhum cadastro pendente para revisão.</div>';
+            if (badgeCadastrosCount) badgeCadastrosCount.style.display = 'none';
+            return;
+        }
+
+        cadastrosGridContainer.classList.add('visible');
+        if (badgeCadastrosCount) {
+            badgeCadastrosCount.textContent = docs.length;
+            badgeCadastrosCount.style.display = 'inline-block';
+        }
+
+        if (docs.length > 1) {
+            cadastrosGrid.classList.add('is-scrollable');
+        } else {
+            cadastrosGrid.classList.remove('is-scrollable');
+        }
+
+        cadastrosGrid.innerHTML = '';
+        docs.forEach((item) => {
+            const card = createCadastroCard(item);
+            cadastrosGrid.appendChild(card);
+        });
+
+        if (window.lucide) lucide.createIcons();
+    });
+
+    function createCadastroCard(item) {
+        const div = document.createElement('div');
+        div.className = 'atestado-card';
+        const data = item.dadosRecebidos || {};
+        const nome = data.NOMEARTISTICO || data.Nome || 'Bolsista/Monitor';
+        const naipe = data.INSTRUMENTOS || data.Instrumento || 'Sem instrumento';
+        const cpf = data.CPF || item.cpfId || '---';
+        const status = data.Status || 'Bolsista';
+        const isConflito = item.conflito === true;
+
+        const badgeHtml = isConflito
+            ? `<span style="background: #fef3c7; color: #92400e; font-size: 0.72rem; font-weight: 700; padding: 2px 7px; border-radius: 6px; display: inline-flex; align-items: center; gap: 3px;"><i data-lucide="alert-triangle" style="width: 11px; height: 11px;"></i> Atualização / CPF Existente</span>`
+            : `<span style="background: #dcfce7; color: #15803d; font-size: 0.72rem; font-weight: 700; padding: 2px 7px; border-radius: 6px; display: inline-flex; align-items: center; gap: 3px;"><i data-lucide="sparkles" style="width: 11px; height: 11px;"></i> Novo ${status}</span>`;
+
+        div.innerHTML = `
+            <div class="atestado-card-icon" style="background: ${isConflito ? 'rgba(245, 158, 11, 0.12)' : 'rgba(16, 185, 129, 0.12)'}; color: ${isConflito ? '#d97706' : '#10b981'};">
+                <i data-lucide="${isConflito ? 'user-cog' : 'user-plus'}"></i>
+            </div>
+            <div class="atestado-card-info">
+                <h4 title="${nome}">${nome}</h4>
+                <p style="margin: 0.2rem 0; font-weight: 500;">${naipe} &bull; ${status}</p>
+                <p style="font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 0.4rem;">CPF: <strong>${cpf}</strong></p>
+                <div>${badgeHtml}</div>
+            </div>
+            <div class="atestado-card-actions" style="margin-top: 0.75rem;">
+                <button type="button" class="btn-primary btn-view-cadastro" data-id="${item.id}" style="width: 100%; border-radius: 10px; padding: 0.5rem 0.8rem; font-size: 0.85rem; display: flex; align-items: center; justify-content: center; gap: 0.4rem; background: var(--primary-color, #8b0000); color: white; border: none; cursor: pointer;">
+                    <i data-lucide="user-pen" style="width: 14px; height: 14px;"></i> Revisar Cadastro
+                </button>
+            </div>
+        `;
+
+        const btnView = div.querySelector('.btn-view-cadastro');
+        btnView.addEventListener('click', () => {
+            if (typeof window.openEditMusicoDrawerPending === 'function') {
+                window.openEditMusicoDrawerPending(item);
+            } else {
+                showNotification("Módulo de integrantes carregando, tente novamente em instantes.", "info");
+            }
+        });
+
+        return div;
     }
 }
 
@@ -7722,15 +7874,126 @@ function initMusiciansManagement() {
         if (typeof lucide !== 'undefined') lucide.createIcons();
     };
 
+    // Abertura da gaveta para Revisão e Homologação de Cadastro Pendente (Power Automate)
+    const openEditMusicoDrawerPending = (pendingItem) => {
+        if (!editMusicoDrawer || !editMusicoDrawerOverlay) return;
+        const item = pendingItem.dadosRecebidos || {};
+        const cpfId = pendingItem.cpfId || (item.CPF ? item.CPF.toString().replace(/[^\d]/g, "") : "");
+        currentEditingMusico = {
+            item: item,
+            isDirectEdit: false,
+            isPendingCadastro: true,
+            pendingDocId: pendingItem.id,
+            conflito: pendingItem.conflito,
+            dadosExistentes: pendingItem.dadosExistentes,
+            cpfId: cpfId
+        };
+
+        const titleEl = document.getElementById('edit-drawer-title');
+        const subtitleEl = document.getElementById('edit-drawer-subtitle');
+        const btnSaveText = document.getElementById('btn-save-edit-musico-text');
+        const btnReject = document.getElementById('btn-reject-pending-cad');
+        const bannerEl = document.getElementById('edit-m-pending-banner');
+
+        if (titleEl) {
+            titleEl.innerHTML = `<i data-lucide="user-plus" style="width: 20px; height: 20px; color: var(--primary-color, #8b0000);"></i> Revisar Cadastro - ${item.NOMEARTISTICO || item.Nome || 'Bolsista/Monitor'}`;
+        }
+        if (subtitleEl) {
+            subtitleEl.textContent = 'Submetido via formulário (Power Automate). Valide os campos e aprove a inserção.';
+        }
+        if (btnSaveText) {
+            btnSaveText.textContent = 'Validar & Adicionar ao Sistema';
+        }
+        if (btnReject) {
+            btnReject.style.display = 'inline-flex';
+        }
+
+        if (bannerEl) {
+            bannerEl.style.display = 'block';
+            if (pendingItem.conflito && pendingItem.dadosExistentes) {
+                const antNome = pendingItem.dadosExistentes.NOMEARTISTICO || pendingItem.dadosExistentes.Nome || 'Integrante';
+                const antStatus = pendingItem.dadosExistentes.Status || 'Cadastrado';
+                bannerEl.style.background = '#fffbeb';
+                bannerEl.style.border = '1px solid #fde68a';
+                bannerEl.style.color = '#92400e';
+                bannerEl.innerHTML = `
+                    <div style="font-weight: 700; display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.25rem;">
+                        <i data-lucide="alert-triangle" style="width: 16px; height: 16px; color: #d97706;"></i> Atenção: CPF Já Cadastrado na OER
+                    </div>
+                    <div>Este CPF (<strong>${item.CPF || cpfId}</strong>) já pertence a <strong>${antNome}</strong> (Status atual: <strong>${antStatus}</strong>). Ao aprovar, os novos dados serão mesclados com o cadastro existente.</div>
+                `;
+            } else {
+                bannerEl.style.background = '#f0fdf4';
+                bannerEl.style.border = '1px solid #bbf7d0';
+                bannerEl.style.color = '#166534';
+                bannerEl.innerHTML = `
+                    <div style="font-weight: 700; display: flex; align-items: center; gap: 0.4rem; margin-bottom: 0.25rem;">
+                        <i data-lucide="sparkles" style="width: 16px; height: 16px; color: #16a34a;"></i> Novo Cadastro de Bolsista/Monitor
+                    </div>
+                    <div>Este integrante ainda não existe na base de dados. Revise as informações abaixo e clique em <strong>Validar & Adicionar ao Sistema</strong> para ativá-lo.</div>
+                `;
+            }
+        }
+
+        let statusVal = item.Status || 'Bolsista';
+        const statusLower = statusVal.toLowerCase();
+        let selectedStatus = 'Bolsista';
+        if (statusLower.includes('monitor')) selectedStatus = 'Monitor';
+        else if (statusLower.includes('titular')) selectedStatus = 'Reg.Titular';
+        else if (statusLower.includes('extra')) selectedStatus = 'Músico Extra';
+        else if (statusLower.includes('bolsista')) selectedStatus = 'Bolsista';
+        else selectedStatus = statusVal;
+
+        populateEditDrawerFields(item, selectedStatus);
+
+        editMusicoDrawer.classList.add('open');
+        editMusicoDrawerOverlay.classList.add('open');
+        if (typeof lucide !== 'undefined') lucide.createIcons();
+    };
+    window.openEditMusicoDrawerPending = openEditMusicoDrawerPending;
+
     const closeEditMusicoDrawer = () => {
         if (editMusicoDrawer) editMusicoDrawer.classList.remove('open');
         if (editMusicoDrawerOverlay) editMusicoDrawerOverlay.classList.remove('open');
+        const bannerEl = document.getElementById('edit-m-pending-banner');
+        if (bannerEl) bannerEl.style.display = 'none';
+        const btnReject = document.getElementById('btn-reject-pending-cad');
+        if (btnReject) btnReject.style.display = 'none';
+        const btnSaveText = document.getElementById('btn-save-edit-musico-text');
+        if (btnSaveText) btnSaveText.textContent = 'Salvar Alterações';
         currentEditingMusico = null;
     };
 
     if (btnCloseEditMusicoDrawer) btnCloseEditMusicoDrawer.addEventListener('click', closeEditMusicoDrawer);
     if (btnCancelEditMusico) btnCancelEditMusico.addEventListener('click', closeEditMusicoDrawer);
     if (editMusicoDrawerOverlay) editMusicoDrawerOverlay.addEventListener('click', closeEditMusicoDrawer);
+
+    const btnRejectPending = document.getElementById('btn-reject-pending-cad');
+    if (btnRejectPending) {
+        btnRejectPending.addEventListener('click', async () => {
+            if (!currentEditingMusico || !currentEditingMusico.isPendingCadastro || !currentEditingMusico.pendingDocId) return;
+            const nome = document.getElementById('edit-m-nome-artistico').value.trim() || 'este cadastro';
+            if (!confirm(`Tem certeza que deseja descartar a solicitação de cadastro de "${nome}"?`)) return;
+
+            btnRejectPending.disabled = true;
+            btnRejectPending.innerHTML = '<i data-lucide="loader-2" class="animate-spin" style="width:14px;height:14px;"></i> Descartando...';
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+
+            try {
+                await deleteDoc(doc(db, "cadastros_pendentes", currentEditingMusico.pendingDocId));
+                await saveLog('sistema', `Solicitação de cadastro de ${nome} descartada pelo administrador.`);
+                showNotification(`Cadastro de "${nome}" descartado com sucesso.`, "info");
+                closeEditMusicoDrawer();
+            } catch (err) {
+                console.error("Erro ao descartar cadastro pendente:", err);
+                showNotification("Erro ao descartar cadastro: " + err.message, "error");
+            } finally {
+                btnRejectPending.disabled = false;
+                btnRejectPending.innerHTML = '<i data-lucide="trash-2" style="width: 15px; height: 15px;"></i> Descartar Cadastro';
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            }
+        });
+    }
 
     if (editStatusSelect) {
         editStatusSelect.addEventListener('change', () => {
@@ -7829,6 +8092,94 @@ function initMusiciansManagement() {
                     if (btnSave) {
                         btnSave.disabled = false;
                         btnSave.innerHTML = '<i data-lucide="check" style="width: 16px; height: 16px;"></i> Salvar Alterações';
+                        if (typeof lucide !== 'undefined') lucide.createIcons();
+                    }
+                }
+                return;
+            }
+
+            // CASO 1.5: Homologação de Cadastro Pendente (Vindo do Webhook / Power Automate)
+            if (currentEditingMusico.isPendingCadastro) {
+                const docId = currentEditingMusico.cpfId || newCpfId;
+                if (!docId) {
+                    showNotification("CPF inválido ou ausente para identificar o músico no banco.", "error");
+                    return;
+                }
+
+                const cadernoExcertosVal = document.getElementById('edit-m-caderno-excertos') ? document.getElementById('edit-m-caderno-excertos').value.trim() : '';
+
+                const finalMusicoData = {
+                    NOMEARTISTICO: newNomeArtistico,
+                    'NOME REGISTRO': newNomeRegistro,
+                    Nome: newNomeArtistico || newNomeRegistro,
+                    INSTRUMENTOS: newInstrumento,
+                    Instrumento: newInstrumento,
+                    CPF: rawCpf,
+                    cpfId: docId,
+                    Status: newStatus,
+                    Escalado: document.getElementById('edit-m-escalado').value.trim() || "Escalado",
+                    'Tipo Contrato Prorrogáveis por igual prazo': document.getElementById('edit-m-tipo-contrato').value.trim() || newStatus,
+                    'INICIO OER Contrato': document.getElementById('edit-m-inicio-contrato').value.trim(),
+                    'TERMINO OER Contrato': document.getElementById('edit-m-termino-contrato').value.trim(),
+                    'Data de Envio Caderno de Exceros': cadernoExcertosVal,
+                    EMAIL: document.getElementById('edit-m-email').value.trim(),
+                    TELEFONE: document.getElementById('edit-m-telefone').value.trim(),
+                    'DATA DE NACIMENTO ': document.getElementById('edit-m-nascimento').value.trim(),
+                    RG: document.getElementById('edit-m-rg').value.trim(),
+                    'PIS/PASEP': document.getElementById('edit-m-pis').value.trim(),
+                    GENERO: document.getElementById('edit-m-genero').value.trim(),
+                    'Banco ': document.getElementById('edit-m-banco').value.trim(),
+                    'Agencia ': document.getElementById('edit-m-agencia').value.trim(),
+                    'Conta Corrente ': document.getElementById('edit-m-conta').value.trim(),
+                    'Endereço': document.getElementById('edit-m-endereco').value.trim(),
+                    CEP: document.getElementById('edit-m-cep').value.trim(),
+                    'Restrição Alimentar': document.getElementById('edit-m-restricao').value.trim(),
+                    'Dados Carro': document.getElementById('edit-m-carro').value.trim(),
+                    statusFirebase: isNowInactive ? "inativo" : "ativo",
+                    atualizadoEm: new Date().toISOString()
+                };
+
+                if (isNowInactive) {
+                    finalMusicoData.dataSaida = newDataSaida || new Date().toISOString().split('T')[0];
+                } else {
+                    finalMusicoData.dataSaida = null;
+                }
+
+                const btnSave = document.getElementById('btn-save-edit-musico');
+                if (btnSave) {
+                    btnSave.disabled = true;
+                    btnSave.innerHTML = '<i data-lucide="loader-2" class="animate-spin" style="width:16px;height:16px;"></i> Homologando...';
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                }
+
+                try {
+                    // 1. Salvar ou atualizar na coleção 'musicos'
+                    const musicoDocRef = doc(db, "musicos", docId);
+                    await setDoc(musicoDocRef, finalMusicoData, { merge: true });
+
+                    // 2. Remover o cadastro da fila de 'cadastros_pendentes'
+                    if (currentEditingMusico.pendingDocId) {
+                        await deleteDoc(doc(db, "cadastros_pendentes", currentEditingMusico.pendingDocId));
+                    }
+
+                    // 3. Atualizar carimbo de importação para invalidar cache público
+                    try {
+                        await setDoc(doc(db, "config", "musiciansImport"), { lastImportTime: serverTimestamp() }, { merge: true });
+                    } catch (e) {
+                        console.warn("Aviso ao atualizar musiciansImport:", e);
+                    }
+
+                    await saveLog('sistema', `Novo integrante ${newNomeArtistico || newNomeRegistro} (CPF: ${docId}) homologado e adicionado via Webhook Power Automate.`);
+
+                    showNotification(`Músico ${newNomeArtistico || newNomeRegistro} homologado com sucesso!`, "success");
+                    closeEditMusicoDrawer();
+                } catch (err) {
+                    console.error("Erro ao homologar cadastro pendente:", err);
+                    showNotification("Erro ao homologar cadastro: " + err.message, "error");
+                } finally {
+                    if (btnSave) {
+                        btnSave.disabled = false;
+                        btnSave.innerHTML = '<i data-lucide="check" style="width: 16px; height: 16px;"></i> <span id="btn-save-edit-musico-text">Salvar Alterações</span>';
                         if (typeof lucide !== 'undefined') lucide.createIcons();
                     }
                 }

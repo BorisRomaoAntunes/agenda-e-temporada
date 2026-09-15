@@ -1,6 +1,6 @@
 const { onDocumentCreated, onDocumentDeleted, onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
-const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { onCall, HttpsError, onRequest } = require("firebase-functions/v2/https");
 const { onObjectFinalized } = require("firebase-functions/v2/storage");
 const { defineSecret } = require("firebase-functions/params");
 const functions = require("firebase-functions");
@@ -13,9 +13,10 @@ const path = require("path");
 const os = require("os");
 const fs = require("fs");
 
-// Secret Manager: chave da API Gemini e Google Calendar Service Account
+// Secret Manager: chave da API Gemini, Google Calendar Service Account e Webhook Secret
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
 const googleCalendarSaKey = defineSecret("GOOGLE_CALENDAR_SA_KEY");
+const webhookSecret = defineSecret("WEBHOOK_SECRET");
 
 admin.initializeApp();
 
@@ -2322,5 +2323,213 @@ exports.extractLinkMetadata = onCall({
     }
 });
 
+// ============================================================================
+// WEBHOOK HTTP: Recebimento de Novos Cadastros de Bolsistas / Monitores (Power Automate)
+// ============================================================================
+exports.webhookCadastroBolsista = onRequest({
+    secrets: [webhookSecret],
+    cors: true
+}, async (req, res) => {
+    // 1. Apenas aceita requisições POST
+    if (req.method === "OPTIONS") {
+        return res.status(204).send("");
+    }
+    if (req.method !== "POST") {
+        return res.status(405).json({
+            success: false,
+            error: "Método não permitido. Utilize o método POST para enviar dados de cadastro."
+        });
+    }
 
+    try {
+        // 2. Validação de Autenticação Segura
+        const configuredSecret = (webhookSecret && typeof webhookSecret.value === "function" ? webhookSecret.value() : null) || process.env.WEBHOOK_SECRET;
 
+        // Se houver segredo configurado no Secret Manager ou .env, exige validação rigorosa
+        if (configuredSecret) {
+            const apiKeyHeader = req.headers["x-api-key"] || req.headers["x-api-token"];
+            const authHeader = req.headers["authorization"];
+            let incomingToken = apiKeyHeader;
+
+            if (!incomingToken && authHeader) {
+                if (authHeader.startsWith("Bearer ")) {
+                    incomingToken = authHeader.substring(7).trim();
+                } else {
+                    incomingToken = authHeader.trim();
+                }
+            }
+
+            if (!incomingToken || incomingToken !== configuredSecret) {
+                console.warn("[Webhook] Tentativa de acesso não autorizada ao webhook de cadastro.");
+                return res.status(401).json({
+                    success: false,
+                    error: "Acesso não autorizado. Chave de API ('x-api-key' ou 'Authorization: Bearer') inválida ou ausente."
+                });
+            }
+        }
+
+        // 3. Obtenção e Normalização do Corpo da Requisição
+        let body = req.body;
+        if (typeof body === "string") {
+            try {
+                body = JSON.parse(body);
+            } catch (jsonErr) {
+                return res.status(400).json({
+                    success: false,
+                    error: "Corpo da requisição inválido. Certifique-se de enviar um JSON válido."
+                });
+            }
+        }
+
+        if (!body || typeof body !== "object") {
+            return res.status(400).json({
+                success: false,
+                error: "Nenhum dado recebido no corpo da requisição."
+            });
+        }
+
+        // Helper para limpar e obter strings
+        const getStr = (val) => (val !== undefined && val !== null ? String(val).trim() : "");
+
+        // 4. Extração e Validação do CPF
+        const rawCpf = getStr(body.CPF || body.cpf || body.cpfId || body["CPF MÚSICO"] || body["CPF MUSICO"] || body["Cpf"]);
+        const cpfDigits = rawCpf.replace(/\D/g, "");
+
+        if (!cpfDigits || cpfDigits.length < 11) {
+            return res.status(400).json({
+                success: false,
+                error: "Campo CPF inválido ou ausente. O CPF deve conter 11 dígitos numéricos."
+            });
+        }
+
+        // Formatação legível padrão do CPF: 000.000.000-00
+        const formattedCpf = cpfDigits.length === 11 
+            ? cpfDigits.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, "$1.$2.$3-$4")
+            : rawCpf;
+
+        // 5. Extração e Validação de Nome e Naipe
+        const nomeArtistico = getStr(body.NOMEARTISTICO || body.nomeArtistico || body.nome || body.Nome || body["Nome Artístico"] || body["Nome Artistico"]);
+        const nomeRegistro = getStr(body["NOME REGISTRO"] || body.nomeRegistro || body.nomeCompleto || body["Nome Completo"] || body.Nome);
+
+        if (!nomeArtistico && !nomeRegistro) {
+            return res.status(400).json({
+                success: false,
+                error: "Nome (Artístico ou Registro Completo) é obrigatório."
+            });
+        }
+
+        const nomeFinal = nomeArtistico || nomeRegistro;
+        const instrumento = getStr(body.INSTRUMENTOS || body.instrumento || body.Instrumento || body.naipe || body.Naipe);
+
+        // Status: 'Bolsista' ou 'Monitor' (padrão 'Bolsista' se não especificado)
+        let status = getStr(body.Status || body.status || body.tipo || body["Tipo"] || body["Vínculo"] || body["Vinculo"]);
+        if (status.toLowerCase().includes("monitor")) {
+            status = "Monitor";
+        } else if (status.toLowerCase().includes("extra")) {
+            status = "Músico Extra";
+        } else if (status.toLowerCase().includes("titular")) {
+            status = "Reg. Titular";
+        } else {
+            status = "Bolsista";
+        }
+
+        // Demais campos cadastrais completos (compatíveis com o banco e o Excel do painel admin)
+        const email = getStr(body.EMAIL || body.email || body.Email || body["E-mail"]);
+        const telefone = getStr(body.TELEFONE || body.telefone || body.Telefone || body["Celular"]);
+        const dataNascimento = getStr(body["DATA DE NACIMENTO "] || body["DATA DE NASCIMENTO"] || body.dataNascimento || body.nascimento || body["Data de Nascimento"]);
+        const rg = getStr(body.RG || body.rg || body.Rg);
+        const pis = getStr(body["PIS/PASEP"] || body.pis || body.pisPasep || body["PIS"]);
+        const genero = getStr(body.GENERO || body.genero || body["Gênero"] || body["Genero"] || body["Identidade de Gênero"]);
+        const banco = getStr(body["Banco "] || body.banco || body.Banco);
+        const agencia = getStr(body["Agencia "] || body.agencia || body.Agencia);
+        const conta = getStr(body["Conta Corrente "] || body.conta || body.contaCorrente || body["Conta"]);
+        const endereco = getStr(body["Endereço"] || body["Endereço "] || body.endereco || body.Endereco);
+        const cep = getStr(body.CEP || body.cep || body.Cep);
+        const restricao = getStr(body["Restrição Alimentar"] || body["Restrição Alimentar "] || body.restricaoAlimentar || body["Restrição"]);
+        const carro = getStr(body["Dados Carro"] || body.dadosCarro || body["Carro"]);
+        const tipoContrato = getStr(body["Tipo Contrato Prorrogáveis por igual prazo"] || body.tipoContrato || status);
+        const inicioContrato = getStr(body["INICIO OER Contrato"] || body.inicioContrato);
+        const terminoContrato = getStr(body["TERMINO OER Contrato"] || body.terminoContrato);
+        const cadernoExcertos = getStr(body["Data de Envio Caderno de Exceros"] || body["Data de Envio Caderno de Excertos"] || body.cadernoExcertos);
+        const escalado = getStr(body.Escalado || body.escalado || "Escalado");
+
+        const normalizedMusicoData = {
+            NOMEARTISTICO: nomeArtistico || nomeRegistro,
+            "NOME REGISTRO": nomeRegistro || nomeArtistico,
+            Nome: nomeFinal,
+            INSTRUMENTOS: instrumento,
+            Instrumento: instrumento,
+            CPF: formattedCpf,
+            cpfId: cpfDigits,
+            Status: status,
+            Escalado: escalado,
+            "Tipo Contrato Prorrogáveis por igual prazo": tipoContrato,
+            "INICIO OER Contrato": inicioContrato,
+            "TERMINO OER Contrato": terminoContrato,
+            "Data de Envio Caderno de Exceros": cadernoExcertos,
+            EMAIL: email,
+            TELEFONE: telefone,
+            "DATA DE NACIMENTO ": dataNascimento,
+            RG: rg,
+            "PIS/PASEP": pis,
+            GENERO: genero,
+            "Banco ": banco,
+            "Agencia ": agencia,
+            "Conta Corrente ": conta,
+            "Endereço": endereco,
+            CEP: cep,
+            "Restrição Alimentar": restricao,
+            "Dados Carro": carro,
+            statusFirebase: "ativo"
+        };
+
+        // 6. Verificação de Duplicidade / Conflito com a Coleção 'musicos'
+        const existingMusicoSnap = await admin.firestore().collection("musicos").doc(cpfDigits).get();
+        let conflito = false;
+        let tipo = "novo";
+        let dadosExistentes = null;
+
+        if (existingMusicoSnap.exists) {
+            conflito = true;
+            tipo = "atualizacao";
+            dadosExistentes = existingMusicoSnap.data();
+            console.log(`[Webhook] Bolsista/Monitor com CPF ${cpfDigits} já existe no banco. Sinalizado como atualização/conflito.`);
+        } else {
+            console.log(`[Webhook] Novo Bolsista/Monitor recebido com CPF ${cpfDigits}.`);
+        }
+
+        // 7. Enfileirar na coleção 'cadastros_pendentes'
+        const pendentePayload = {
+            cpfId: cpfDigits,
+            tipo: tipo,
+            conflito: conflito,
+            dadosRecebidos: normalizedMusicoData,
+            dadosExistentes: dadosExistentes || null,
+            status: "pendente", // 'pendente' | 'aprovado' | 'rejeitado'
+            origem: "power_automate",
+            createdAt: FieldValue.serverTimestamp(),
+            updatedAt: FieldValue.serverTimestamp()
+        };
+
+        const pendenteRef = await admin.firestore().collection("cadastros_pendentes").add(pendentePayload);
+
+        // 8. Resposta de Sucesso ao Power Automate
+        return res.status(200).json({
+            success: true,
+            id: pendenteRef.id,
+            cpf: formattedCpf,
+            tipo: tipo,
+            conflito: conflito,
+            mensagem: conflito 
+                ? `Cadastro recebido. O CPF ${formattedCpf} já possui registro no sistema e foi encaminhado com sinalização de conflito/atualização para homologação da equipe.`
+                : `Cadastro de ${nomeFinal} recebido com sucesso e adicionado à fila de conferência e aprovação.`
+        });
+
+    } catch (error) {
+        console.error("[Webhook] Erro inesperado ao processar cadastro do Power Automate:", error);
+        return res.status(500).json({
+            success: false,
+            error: "Erro interno no servidor ao processar o formulário. Tente novamente mais tarde."
+        });
+    }
+});

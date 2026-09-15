@@ -313,6 +313,29 @@
                     </div>
                 </div>
 
+                <!-- NOVO: Grade de Novos Cadastros Pendentes (Bolsistas / Monitores via Webhook) -->
+                <div id="cadastros-grid-container" class="atestados-grid-wrapper" style="margin-bottom: 2.5rem;">
+                    <div class="logs-header" style="margin-bottom: 1.5rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                            <div>
+                                <h3 style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <i data-lucide="user-plus" style="color: var(--primary-color);"></i>
+                                    Novos Cadastros Pendentes
+                                    <span id="badge-cadastros-count" style="display: none; font-size: 0.75rem; background: var(--primary-color); color: white; border-radius: 999px; padding: 2px 8px; font-weight: 700;">0</span>
+                                </h3>
+                                <p>Recebidos via Power Automate / Formulário. Revise e valide antes de homologar no sistema.</p>
+                            </div>
+                            <div class="live-indicator" style="background: rgba(139, 0, 0, 0.08); color: var(--primary-color, #8b0000); border: 1px solid rgba(139, 0, 0, 0.15); padding: 0.35rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: 700; display: flex; align-items: center; gap: 0.4rem;">
+                                <span class="live-dot pulse-green" style="background: var(--primary-color, #8b0000);"></span>
+                                WEBHOOK ATIVO
+                            </div>
+                        </div>
+                    </div>
+                    <div id="cadastros-grid" class="atestados-grid">
+                        <div class="admin-notif-empty">Nenhum cadastro pendente para revisão.</div>
+                    </div>
+                </div>
+
                 <div class="logs-wrapper">
                     <div class="logs-header">
                         <div class="logs-header-info">
@@ -1350,6 +1373,9 @@ Intervalo
                     <form id="form-edit-musico-drawer" style="display: flex; flex-direction: column; flex: 1; overflow: hidden; margin: 0;">
                         <div class="drawer-body" style="padding: 1.25rem 1.5rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1.5rem; flex: 1;">
                             
+                            <!-- Banner de Alerta / Informação de Cadastro Pendente ou Conflito -->
+                            <div id="edit-m-pending-banner" style="display: none; padding: 0.85rem 1rem; border-radius: 8px; font-size: 0.84rem; line-height: 1.4;"></div>
+
                             <!-- Seção 1: Dados Artísticos & Vínculo -->
                             <div class="drawer-section">
                                 <h4 style="margin: 0 0 0.8rem 0; font-size: 0.9rem; font-weight: 700; color: var(--primary-color, #8b0000); border-bottom: 1px dashed #e5e7eb; padding-bottom: 0.4rem; display: flex; align-items: center; gap: 0.4rem;">
@@ -1500,11 +1526,18 @@ Intervalo
 
                         </div>
                         
-                        <div class="drawer-footer" style="padding: 1rem 1.5rem; border-top: 1px solid #f0f2f5; display: flex; justify-content: flex-end; gap: 0.8rem; background: #fafafa;">
-                            <button type="button" class="btn-outline" id="btn-cancel-edit-musico" style="padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; border: 1px solid #cbd5e1; background: white; color: #334155;">Cancelar</button>
-                            <button type="submit" class="btn-primary" id="btn-save-edit-musico" style="padding: 0.6rem 1.4rem; border-radius: 8px; font-weight: 600; cursor: pointer; background: var(--primary-color, #8b0000); color: white; border: none; display: flex; align-items: center; gap: 0.5rem;">
-                                <i data-lucide="check" style="width: 16px; height: 16px;"></i> Salvar Alterações
-                            </button>
+                        <div class="drawer-footer" style="padding: 1rem 1.5rem; border-top: 1px solid #f0f2f5; display: flex; justify-content: space-between; align-items: center; gap: 0.8rem; background: #fafafa;">
+                            <div>
+                                <button type="button" class="btn-outline" id="btn-reject-pending-cad" style="display: none; padding: 0.6rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; border: 1px solid #fca5a5; background: #fef2f2; color: #b91c1c; align-items: center; gap: 0.4rem;">
+                                    <i data-lucide="trash-2" style="width: 15px; height: 15px;"></i> Descartar Cadastro
+                                </button>
+                            </div>
+                            <div style="display: flex; gap: 0.8rem;">
+                                <button type="button" class="btn-outline" id="btn-cancel-edit-musico" style="padding: 0.6rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; border: 1px solid #cbd5e1; background: white; color: #334155;">Cancelar</button>
+                                <button type="submit" class="btn-primary" id="btn-save-edit-musico" style="padding: 0.6rem 1.4rem; border-radius: 8px; font-weight: 600; cursor: pointer; background: var(--primary-color, #8b0000); color: white; border: none; display: flex; align-items: center; gap: 0.5rem;">
+                                    <i data-lucide="check" style="width: 16px; height: 16px;"></i> <span id="btn-save-edit-musico-text">Salvar Alterações</span>
+                                </button>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -1810,6 +1843,7 @@ Intervalo
                             <select id="atestado-select-musico" class="version-input" style="height: 45px; border-radius: 8px;">
                                 <option value="">-- Selecione o Músico --</option>
                             </select>
+                            <div id="atestado-validation-status" class="atestado-validation-feedback" style="display: none;"></div>
                         </div>
                         
                         <div class="atestado-field-cid">

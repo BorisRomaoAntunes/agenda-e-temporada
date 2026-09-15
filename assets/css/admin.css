@@ -3172,6 +3172,50 @@ button, a, [role="button"], input[type="submit"], input[type="button"], label {
     opacity: 0.8;
 }
 
+/* Feedback visual de validação do músico */
+.atestado-validation-feedback {
+    margin-top: 6px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    line-height: 1.35;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+.atestado-validation-feedback.status-invalid {
+    background-color: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
+
+.atestado-validation-feedback.status-valid {
+    background-color: #f0fdf4;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+}
+
+#atestado-select-musico.select-invalid {
+    border-color: #ef4444 !important;
+    background-color: #fff5f5 !important;
+    box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.15);
+}
+
+#atestado-select-musico.select-valid {
+    border-color: #22c55e !important;
+    background-color: #f0fdf4 !important;
+}
+
+/* Botão de aprovação travado */
+#btn-download-delete-atestado:disabled {
+    opacity: 0.55;
+    cursor: not-allowed !important;
+    filter: grayscale(40%);
+}
+
 .atestado-modal-actions {
     grid-area: actions;
     display: flex;
