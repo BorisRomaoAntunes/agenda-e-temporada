@@ -431,8 +431,14 @@ async function loadMusicians() {
                                    rawStatus.includes('reg.');
             if (isApoioOuAdmin) return;
 
-            // Filtro de status: Apenas Bolsistas, Monitores e Spallas
-            const isBolsistaOrMonitor = rawStatus.includes("bolsista") || rawStatus.includes("monitor") || rawStatus.includes("spalla");
+            // Filtro de status: Apenas Bolsistas, Monitores e Spallas (inclui desligados/cancelados instrumentistas com data de saída)
+            const tipoContrato = (data['Tipo Contrato Prorrogáveis por igual prazo'] || data['Tipo Contrato'] || '').toString().toLowerCase();
+            const isDesligadoOuCancelado = rawStatus.includes('cancelad') || rawStatus.includes('inativ') || rawStatus.includes('desligad') || 
+                                           data.statusFirebase === 'inativo' || data.statusFirebase === 'desligado';
+            const temInstrumentoValido = !!(data.INSTRUMENTOS || data.Instrumento || '').toString().trim();
+            const isBolsistaOrMonitor = rawStatus.includes("bolsista") || rawStatus.includes("monitor") || rawStatus.includes("spalla") ||
+                                        tipoContrato.includes("bolsista") || tipoContrato.includes("monitor") || tipoContrato.includes("spalla") ||
+                                        (isDesligadoOuCancelado && temInstrumentoValido);
             if (!isBolsistaOrMonitor) return;
 
             const nomeArtistico = (data.NOMEARTISTICO || '').toString().trim();
@@ -442,15 +448,17 @@ async function loadMusicians() {
 
             const rawInicio = data['INICIO OER Contrato'] || data.dataEntrada || data.inicioContrato || null;
             const dataEntradaStr = parseDateToYYYYMMDD(rawInicio);
+            const rawSaida = data.dataSaida || null;
+            const dataSaidaStr = rawSaida ? (parseDateToYYYYMMDD(rawSaida) || rawSaida) : null;
 
             allMusiciansRaw.push({
                 id: docSnap.id,
                 Nome: nome,
                 Instrumento: instrumento,
                 Status: (rawStatus.includes("monitor") || rawStatus.includes("spalla")) ? "Monitor" : "Bolsista",
-                statusFirebase: (data.statusFirebase || 'ativo').toString().toLowerCase(),
+                statusFirebase: (data.statusFirebase || (isDesligadoOuCancelado ? 'inativo' : 'ativo')).toString().toLowerCase(),
                 dataEntrada: dataEntradaStr || null,
-                dataSaida: data.dataSaida || null
+                dataSaida: dataSaidaStr || null
             });
         });
     } catch (e) {
@@ -475,8 +483,10 @@ function updateActiveMusiciansForDate(targetDateStr) {
         const status = m.statusFirebase || 'ativo';
         if (status === 'ativo') return true;
 
+        // Para integrantes cancelados/desligados: mantidos na chamada até o dia anterior à saída;
+        // no próprio dia da saída (targetDateStr >= m.dataSaida) já não participam mais da lista de chamada.
         if (m.dataSaida) {
-            return targetDateStr <= m.dataSaida;
+            return targetDateStr < m.dataSaida;
         }
 
         return false;

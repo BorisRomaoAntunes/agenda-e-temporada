@@ -7316,8 +7316,14 @@ function initMusiciansManagement() {
                                rawStatus.includes('reg.');
         if (isApoioOuAdmin) return false;
 
-        // Apenas Bolsistas, Monitores e Spallas
-        const isBolsistaOrMonitor = rawStatus.includes("bolsista") || rawStatus.includes("monitor") || rawStatus.includes("spalla");
+        // Apenas Bolsistas, Monitores e Spallas (inclui integrantes cancelados/desligados/inativos instrumentistas)
+        const tipoContrato = (m['Tipo Contrato Prorrogáveis por igual prazo'] || m['Tipo Contrato'] || '').toString().toLowerCase();
+        const isDesligadoOuCancelado = rawStatus.includes('cancelad') || rawStatus.includes('inativ') || rawStatus.includes('desligad') || 
+                                       m.statusFirebase === 'inativo' || m.statusFirebase === 'desligado';
+        const temInstrumentoValido = !!(m.INSTRUMENTOS || m.Instrumento || '').toString().trim();
+        const isBolsistaOrMonitor = rawStatus.includes("bolsista") || rawStatus.includes("monitor") || rawStatus.includes("spalla") ||
+                                    tipoContrato.includes("bolsista") || tipoContrato.includes("monitor") || tipoContrato.includes("spalla") ||
+                                    (isDesligadoOuCancelado && temInstrumentoValido);
         return isBolsistaOrMonitor;
     }
 
@@ -7325,6 +7331,23 @@ function initMusiciansManagement() {
     function isMusicoOuBolsista(statusVal) {
         if (!statusVal) return false;
         return isInstrumentistaMusico({ Status: statusVal });
+    }
+
+    // Formata o nome do músico para relatórios (adicionando indicação de saída se desligado/cancelado)
+    function formatMusicianReportName(musico) {
+        if (!musico) return 'Músico';
+        const nome = (musico.NOMEARTISTICO || musico['NOME REGISTRO'] || 'Músico').trim();
+        const stLower = (musico.Status || musico.status || '').toLowerCase();
+        const statusFirebase = (musico.statusFirebase || '').toLowerCase();
+        const isDesligado = stLower.includes('cancelad') || stLower.includes('inativ') || stLower.includes('desligad') || 
+                            statusFirebase === 'inativo' || statusFirebase === 'desligado';
+        if (isDesligado && musico.dataSaida) {
+            const dataSaidaFormatada = musico.dataSaida.includes('-') 
+                ? musico.dataSaida.split('-').reverse().join('/') 
+                : musico.dataSaida;
+            return `${nome} (Desligado em ${dataSaidaFormatada})`;
+        }
+        return nome;
     }
 
     let allMusicians = []; // Lista local em memória para busca reativa rápida
@@ -7771,11 +7794,11 @@ function initMusiciansManagement() {
 
         // Data de Saída
         const hojeDataIso = new Date().toISOString().split('T')[0];
+        const isInactive = selectedStatus === 'Inativo' || selectedStatus === 'Desligado' || selectedStatus === 'Cancelado';
         if (editDataSaidaInput) {
-            editDataSaidaInput.value = item.dataSaida || (selectedStatus === 'Inativo' || selectedStatus === 'Desligado' ? hojeDataIso : '');
+            editDataSaidaInput.value = item.dataSaida || (isInactive ? hojeDataIso : '');
         }
 
-        const isInactive = selectedStatus === 'Inativo' || selectedStatus === 'Desligado';
         if (editDataSaidaContainer) {
             editDataSaidaContainer.style.display = isInactive ? 'block' : 'none';
         }
@@ -7825,8 +7848,9 @@ function initMusiciansManagement() {
         if (statusLower.includes('monitor')) selectedStatus = 'Monitor';
         else if (statusLower.includes('titular')) selectedStatus = 'Reg.Titular';
         else if (statusLower.includes('extra')) selectedStatus = 'Músico Extra';
-        else if (statusLower.includes('inativo') || statusLower.includes('cancelad')) selectedStatus = 'Inativo';
+        else if (statusLower.includes('cancelad')) selectedStatus = 'Cancelado';
         else if (statusLower.includes('desligad')) selectedStatus = 'Desligado';
+        else if (statusLower.includes('inativo')) selectedStatus = 'Inativo';
         else if (statusLower.includes('bolsista')) selectedStatus = 'Bolsista';
         else selectedStatus = statusVal;
 
@@ -7850,19 +7874,22 @@ function initMusiciansManagement() {
             subtitleEl.textContent = 'Ajuste os dados antes de confirmar a importação';
         }
 
-        // Status: se for na aba Inativados, o status selecionado DEVE ser Inativo (ou Desligado)
+        // Status: se for na aba Inativados, o status selecionado DEVE ser Inativo, Cancelado ou Desligado
         let selectedStatus = 'Bolsista';
         if (tabName === 'inativados') {
             const stLower = (item.Status || '').toLowerCase();
-            selectedStatus = stLower.includes('desligad') ? 'Desligado' : 'Inativo';
+            if (stLower.includes('cancelad')) selectedStatus = 'Cancelado';
+            else if (stLower.includes('desligad')) selectedStatus = 'Desligado';
+            else selectedStatus = 'Inativo';
         } else {
             let statusVal = item.Status || 'Bolsista';
             const statusLower = statusVal.toLowerCase();
             if (statusLower.includes('monitor')) selectedStatus = 'Monitor';
             else if (statusLower.includes('titular')) selectedStatus = 'Reg.Titular';
             else if (statusLower.includes('extra')) selectedStatus = 'Músico Extra';
-            else if (statusLower.includes('inativo') || statusLower.includes('cancelad')) selectedStatus = 'Inativo';
+            else if (statusLower.includes('cancelad')) selectedStatus = 'Cancelado';
             else if (statusLower.includes('desligad')) selectedStatus = 'Desligado';
+            else if (statusLower.includes('inativo')) selectedStatus = 'Inativo';
             else if (statusLower.includes('bolsista')) selectedStatus = 'Bolsista';
             else selectedStatus = statusVal;
         }
@@ -7998,7 +8025,7 @@ function initMusiciansManagement() {
     if (editStatusSelect) {
         editStatusSelect.addEventListener('change', () => {
             const st = editStatusSelect.value.toLowerCase();
-            const isInactive = st === 'inativo' || st === 'desligado';
+            const isInactive = st === 'inativo' || st === 'desligado' || st === 'cancelado';
             if (editDataSaidaContainer) {
                 editDataSaidaContainer.style.display = isInactive ? 'block' : 'none';
             }
@@ -8020,7 +8047,7 @@ function initMusiciansManagement() {
             const newCpfId = rawCpf.replace(/[^\d]/g, "") || currentEditingMusico.cpfId;
             const newStatus = editStatusSelect.value;
             const newDataSaida = editDataSaidaInput ? editDataSaidaInput.value : '';
-            const isNowInactive = newStatus === 'Inativo' || newStatus === 'Desligado';
+            const isNowInactive = newStatus === 'Inativo' || newStatus === 'Desligado' || newStatus === 'Cancelado';
 
             // CASO 1: Edição Direta no Banco de Dados Firestore
             if (currentEditingMusico.isDirectEdit) {
@@ -10354,9 +10381,12 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                     }
 
                     const statusFirebase = (m.statusFirebase || 'ativo').toLowerCase();
-                    if (statusFirebase === 'ativo') return true;
+                    const rawStatus = (m.Status || m.status || '').toLowerCase();
+                    const isDesligado = rawStatus.includes('cancelad') || rawStatus.includes('inativ') || rawStatus.includes('desligad') || 
+                                        statusFirebase === 'inativo' || statusFirebase === 'desligado';
+                    if (!isDesligado) return true;
 
-                    // Se estiver inativo/desligado:
+                    // Se estiver inativo/desligado/cancelado:
                     // 1. Incluir se possui dataSaida cadastrada no mês do relatório ou posterior
                     if (m.dataSaida && m.dataSaida >= startOfMonthQuery) {
                         return true;
@@ -10502,7 +10532,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                     `;
                     
                     musicosPorNaipe[naipe].forEach(musico => {
-                        const nomeExibido = musico.NOMEARTISTICO || musico['NOME REGISTRO'] || 'Músico';
+                        const nomeExibido = formatMusicianReportName(musico);
                         let cellsHtml = '';
                         let totalP = 0;
                         let totalF = 0;
@@ -10781,9 +10811,12 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                     }
 
                     const statusFirebase = (m.statusFirebase || 'ativo').toLowerCase();
-                    if (statusFirebase === 'ativo') return true;
+                    const rawStatus = (m.Status || m.status || '').toLowerCase();
+                    const isDesligado = rawStatus.includes('cancelad') || rawStatus.includes('inativ') || rawStatus.includes('desligad') || 
+                                        statusFirebase === 'inativo' || statusFirebase === 'desligado';
+                    if (!isDesligado) return true;
 
-                    // Se estiver inativo/desligado:
+                    // Se estiver inativo/desligado/cancelado:
                     // 1. Incluir se possui dataSaida cadastrada no mês do relatório ou posterior
                     if (m.dataSaida && m.dataSaida >= startOfMonthQuery) {
                         return true;
@@ -10982,7 +11015,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                     excelRows.push([naipe.toUpperCase()]);
 
                     musicosPorNaipe[naipe].forEach(musico => {
-                        const nomeExibido = musico.NOMEARTISTICO || musico['NOME REGISTRO'] || 'Músico';
+                        const nomeExibido = formatMusicianReportName(musico);
                         const rowMusico = [nomeExibido];
                         const currentExcelRowIndex = excelRows.length + 1; // 1-based para fórmulas
 
@@ -11332,24 +11365,48 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                 }
             });
 
-            // Filtrar apenas bolsistas ativos
+            // Filtrar bolsistas (ativos ou que saíram neste mês / que possuem registros no mês)
             const bolsistas = allMusicians.filter(m => {
-                if (m.statusFirebase === 'desligado' || m.statusFirebase === 'inativo') return false;
-                const status = (m.Status || '').toLowerCase();
-                if (!status.includes('bolsista')) return false;
+                const rawStatus = (m.Status || m.status || '').toLowerCase();
+                const tipoContrato = (m['Tipo Contrato Prorrogáveis por igual prazo'] || m['Tipo Contrato'] || '').toString().toLowerCase();
+                const isDesligadoOuCancelado = rawStatus.includes('cancelad') || rawStatus.includes('inativ') || rawStatus.includes('desligad') || 
+                                               m.statusFirebase === 'inativo' || m.statusFirebase === 'desligado';
+                const temInstrumentoValido = !!(m.INSTRUMENTOS || m.Instrumento || '').toString().trim();
+                
+                const isBolsista = rawStatus.includes('bolsista') || tipoContrato.includes('bolsista') || 
+                                   (isDesligadoOuCancelado && temInstrumentoValido && !rawStatus.includes('monitor') && !tipoContrato.includes('monitor'));
+                if (!isBolsista) return false;
 
                 const dataEntradaStr = parseDateToYYYYMMDD(m['INICIO OER Contrato'] || m.dataEntrada || m.inicioContrato);
                 if (dataEntradaStr && dataEntradaStr > endOfMonth) {
                     return false;
                 }
-                return true;
+
+                const statusFirebase = (m.statusFirebase || 'ativo').toLowerCase();
+                if (statusFirebase === 'ativo' && !isDesligadoOuCancelado) return true;
+
+                // Para inativos/cancelados/desligados:
+                // 1. Incluir se dataSaida >= startOfMonth
+                if (m.dataSaida && m.dataSaida >= startOfMonth) {
+                    return true;
+                }
+
+                // 2. Fallback: Se tem registro no mês
+                const temRegistroNoMes = Object.values(presencasPorData).some(presDoc => 
+                    Array.isArray(presDoc) ? presDoc.some(d => d.registros && d.registros[m.id]) : (presDoc && presDoc.registros && presDoc.registros[m.id])
+                );
+                if (temRegistroNoMes) {
+                    return true;
+                }
+
+                return false;
             });
             
             // Dicionário de controle: bolsistaId -> { nome, faltas: [ { dia, obs } ], pendencias: [ { dia, obs } ], atrasosMin: 0 }
             const dadosBolsistas = {};
             
             bolsistas.forEach(b => {
-                const nomeExibido = (b.NOMEARTISTICO || b['NOME REGISTRO'] || '').trim();
+                const nomeExibido = formatMusicianReportName(b);
                 if (nomeExibido) {
                     dadosBolsistas[b.id] = {
                         nome: nomeExibido,
@@ -11376,6 +11433,11 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                                 const dataEntradaBolsista = musicoOriginal ? parseDateToYYYYMMDD(musicoOriginal['INICIO OER Contrato'] || musicoOriginal.dataEntrada || musicoOriginal.inicioContrato) : null;
                                 if (dataEntradaBolsista && dataStr < dataEntradaBolsista) {
                                     return; // Data anterior ao início do contrato deste bolsista
+                                }
+
+                                // Se o bolsista foi cancelado/desligado e a data é igual ou posterior à data de saída, não computar faltas/pendências
+                                if (musicoOriginal && musicoOriginal.dataSaida && dataStr >= musicoOriginal.dataSaida) {
+                                    return;
                                 }
 
                                 const musicoInstNorm = normalizarNaipe(bInfo.inst);
