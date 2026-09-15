@@ -7364,6 +7364,10 @@ function initMusiciansManagement() {
             // Atualizar Estatísticas
             updateStats(allMusicians);
             
+            // Atualizar contagem no hint da busca Google
+            const countEl = document.getElementById('admin-results-count-text');
+            if (countEl) countEl.textContent = `${allMusicians.length} integrantes cadastrados no sistema`;
+
             // Renderizar a tabela (apenas os músicos ativos na visualização do painel)
             const ativosParaTabela = allMusicians.filter(m => m.statusFirebase !== "inativo" && m.statusFirebase !== "desligado");
             renderMusiciansTable(ativosParaTabela);
@@ -7616,13 +7620,914 @@ function initMusiciansManagement() {
         });
     }
 
-    // 5. Lógica da Gaveta Lateral (Drawer)
+    // 5. Lógica da Gaveta Lateral (Drawer) & Busca Estilo Google
+    let currentSelectedMusico = null; // Músico atualmente aberto na gaveta de leitura
+    let currentDrawerReportData = null; // Dados apurados do relatório do músico atual
+    let currentMusicoOccurrences = []; // Cache das ocorrências do músico aberto
+    let currentMusicoJustificativas = []; // Cache das justificativas para o histórico unificado
+
+    // Helper: Formata data YYYY-MM-DD para DD/MM/YYYY com segurança
+    function formatDataBR(val) {
+        if (!val || val === '-' || val === '') return '-';
+        if (typeof val === 'string' && val.includes('-')) {
+            const parts = val.split('T')[0].split('-');
+            if (parts.length === 3) {
+                return `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+        }
+        return val;
+    }
+
+    // Helper: Formata data de planilha Excel
+    function formatExcelDate(val) {
+        if (!val || val === '-') return '-';
+        if (!isNaN(val) && typeof val === 'number') {
+            const date = new Date((val - 25569) * 86400 * 1000);
+            return date.toLocaleDateString('pt-BR');
+        }
+        return formatDataBR(val);
+    }
+
+    // =========================================================================
+    // BARRA DE BUSCA CENTRALIZADA ESTILO GOOGLE (ABA HISTÓRICO)
+    // =========================================================================
+    function initGoogleMusicianSearch() {
+        const searchInput = document.getElementById('admin-google-search-input');
+        const clearBtn = document.getElementById('admin-search-clear-btn');
+        const dropdown = document.getElementById('admin-search-dropdown');
+        const resultsList = document.getElementById('admin-search-results-list');
+        const resultsCountText = document.getElementById('admin-results-count-text');
+        const wrapper = document.getElementById('google-search-wrapper');
+
+        if (!searchInput || !dropdown || !resultsList) return;
+
+        let selectedIndex = -1;
+        let filteredResults = [];
+
+        const closeDropdown = () => {
+            dropdown.classList.remove('active');
+            if (wrapper) wrapper.classList.remove('is-focused');
+            selectedIndex = -1;
+        };
+
+        const highlightMatch = (text, term) => {
+            if (!text) return '';
+            if (!term) return text;
+            const regex = new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+            return text.replace(regex, `<span class="match-highlight">$1</span>`);
+        };
+
+        const updateItemHighlight = () => {
+            const items = resultsList.querySelectorAll('.search-result-item');
+            items.forEach((it, idx) => {
+                if (idx === selectedIndex) {
+                    it.classList.add('highlighted');
+                    it.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+                } else {
+                    it.classList.remove('highlighted');
+                }
+            });
+        };
+
+        const performSearch = (rawQuery) => {
+            const queryText = (rawQuery || '').trim();
+            if (!queryText) {
+                if (clearBtn) clearBtn.classList.remove('visible');
+                closeDropdown();
+                return;
+            }
+
+            if (clearBtn) clearBtn.classList.add('visible');
+
+            const normalizedQuery = queryText.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            const searchTerms = normalizedQuery.split(/\s+/).filter(t => t !== "");
+
+            // Filtrar músicos em memória
+            const matches = (allMusicians || []).filter(musico => {
+                const searchFields = [
+                    musico.NOMEARTISTICO,
+                    musico['NOME REGISTRO'],
+                    musico.INSTRUMENTOS,
+                    musico.Status,
+                    musico.EMAIL,
+                    musico.TELEFONE,
+                    musico.CPF
+                ].map(f => f ? f.toString().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") : "");
+
+                return searchTerms.every(term => searchFields.some(f => f.includes(term)));
+            });
+
+            // Relevância / Score
+            const scored = matches.map(musico => {
+                let score = 0;
+                const nomeArt = (musico.NOMEARTISTICO || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                const nomeReg = (musico['NOME REGISTRO'] || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                const inst = (musico.INSTRUMENTOS || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                const status = (musico.Status || '').toLowerCase();
+
+                searchTerms.forEach(t => {
+                    if (nomeArt === t) score += 1000;
+                    else if (nomeArt.startsWith(t)) score += 500;
+                    else if (nomeArt.includes(t)) score += 200;
+
+                    if (nomeReg === t) score += 800;
+                    else if (nomeReg.startsWith(t)) score += 400;
+                    else if (nomeReg.includes(t)) score += 150;
+
+                    if (inst === t) score += 100;
+                    else if (inst.includes(t)) score += 50;
+
+                    if (status.includes(t)) score += 40;
+                });
+
+                const isAtivo = status.includes('bolsista') || status.includes('monitor');
+                if (isAtivo) score += 50;
+
+                return { musico, score };
+            });
+
+            scored.sort((a, b) => b.score - a.score || (a.musico.NOMEARTISTICO || '').localeCompare(b.musico.NOMEARTISTICO || ''));
+
+            filteredResults = scored.map(s => s.musico).slice(0, 15);
+            resultsList.innerHTML = '';
+            selectedIndex = -1;
+
+            if (filteredResults.length === 0) {
+                resultsList.innerHTML = `
+                    <div class="search-no-results" style="padding: 1.5rem; text-align: center; color: #94a3b8;">
+                        <i data-lucide="search-x" style="width: 28px; height: 28px; margin-bottom: 0.3rem;"></i>
+                        <p style="margin: 0; font-weight: 600;">Nenhum integrante encontrado</p>
+                        <p style="margin: 4px 0 0 0; font-size: 0.8rem; color: #94a3b8;">Tente buscar por outro nome, instrumento ou registro</p>
+                    </div>
+                `;
+                if (resultsCountText) resultsCountText.textContent = '0 resultados';
+                dropdown.classList.add('active');
+                if (wrapper) wrapper.classList.add('is-focused');
+                if (window.lucide) lucide.createIcons();
+                return;
+            }
+
+            filteredResults.forEach((musico, idx) => {
+                const li = document.createElement('li');
+                li.className = 'search-result-item';
+                li.dataset.index = idx;
+
+                const nome = musico.NOMEARTISTICO || musico['NOME REGISTRO'] || 'Músico';
+                const initials = nome.split(' ').map(n => n[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'MO';
+                const highlightedName = highlightMatch(nome, queryText);
+                const statusLower = (musico.Status || '').toLowerCase();
+                let statusBadgeClass = 'inativo';
+                if (statusLower.includes('bolsista')) statusBadgeClass = 'bolsista';
+                else if (statusLower.includes('monitor')) statusBadgeClass = 'monitor';
+                else if (statusLower.includes('titular')) statusBadgeClass = 'reg-titular';
+                else if (statusLower.includes('extra')) statusBadgeClass = 'musico-extra';
+
+                li.innerHTML = `
+                    <div class="search-item-left">
+                        <div class="musician-avatar">${initials}</div>
+                        <div class="search-item-info">
+                            <span class="search-item-name">${highlightedName}</span>
+                            <div class="search-item-meta">
+                                <span>${musico.INSTRUMENTOS || 'Sem instrumento'}</span>
+                                <span>·</span>
+                                <span class="status-pill ${statusBadgeClass}">${musico.Status || 'Ativo'}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="search-quick-stats">
+                        <span class="stat-badge-mini info" title="Instrumento">${musico.INSTRUMENTOS || '-'}</span>
+                        <i data-lucide="chevron-right" style="width: 16px; height: 16px; color: #94a3b8;"></i>
+                    </div>
+                `;
+
+                li.addEventListener('click', () => {
+                    openMusicoDrawer(musico);
+                    closeDropdown();
+                });
+
+                resultsList.appendChild(li);
+            });
+
+            if (resultsCountText) {
+                resultsCountText.textContent = `${filteredResults.length} integrante(s) encontrado(s)`;
+            }
+            dropdown.classList.add('active');
+            if (wrapper) wrapper.classList.add('is-focused');
+            if (window.lucide) lucide.createIcons();
+        };
+
+        searchInput.addEventListener('input', (e) => {
+            performSearch(e.target.value);
+        });
+
+        searchInput.addEventListener('focus', () => {
+            if (searchInput.value.trim().length > 0) {
+                dropdown.classList.add('active');
+                if (wrapper) wrapper.classList.add('is-focused');
+            }
+        });
+
+        if (clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                searchInput.value = '';
+                clearBtn.classList.remove('visible');
+                closeDropdown();
+                searchInput.focus();
+            });
+        }
+
+        searchInput.addEventListener('keydown', (e) => {
+            if (!dropdown.classList.contains('active')) return;
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (selectedIndex < filteredResults.length - 1) {
+                    selectedIndex++;
+                    updateItemHighlight();
+                }
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (selectedIndex > 0) {
+                    selectedIndex--;
+                    updateItemHighlight();
+                }
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (selectedIndex >= 0 && selectedIndex < filteredResults.length) {
+                    openMusicoDrawer(filteredResults[selectedIndex]);
+                    closeDropdown();
+                }
+            } else if (e.key === 'Escape') {
+                closeDropdown();
+                searchInput.blur();
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!dropdown.contains(e.target) && !searchInput.contains(e.target) && (!clearBtn || !clearBtn.contains(e.target))) {
+                closeDropdown();
+            }
+        });
+    }
+
+    // =========================================================================
+    // APURAÇÃO DE FREQUÊNCIA NO MÊS VIGENTE & OCORRÊNCIAS
+    // =========================================================================
+    async function loadMusicianDetailedReport(musico) {
+        const now = new Date();
+        const ano = now.getFullYear();
+        const mesInt = now.getMonth() + 1;
+        const mesStr = String(mesInt).padStart(2, '0');
+        const diaAtual = now.getDate();
+        const dataInicioMes = `${ano}-${mesStr}-01`;
+        const dataHoje = `${ano}-${mesStr}-${String(diaAtual).padStart(2, '0')}`;
+        const startOfYear = `${ano}-01-01`;
+
+        const mesesNomes = [
+            "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+            "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+        ];
+        const mesNomeExtenso = mesesNomes[mesInt - 1];
+
+        // Estado inicial de carregamento na gaveta
+        const freqSubtitle = document.getElementById('drawer-frequency-subtitle-text');
+        const occurrencesList = document.getElementById('drawer-occurrences-list');
+        const totalOccBadge = document.getElementById('drawer-total-ocorrencias-badge');
+        
+        if (freqSubtitle) freqSubtitle.innerHTML = `<i data-lucide="loader-2" class="spin"></i> Calculando registros de chamadas do mês...`;
+        if (occurrencesList) {
+            occurrencesList.innerHTML = `
+                <div style="padding: 1.5rem; text-align: center; color: #94a3b8; font-size: 0.85rem;">
+                    <i data-lucide="loader-2" class="spin" style="width: 24px; height: 24px; margin-bottom: 0.3rem;"></i>
+                    <p style="margin: 0;">Consultando histórico de faltas, atestados e dispensas...</p>
+                </div>
+            `;
+        }
+        if (window.lucide) lucide.createIcons();
+
+        try {
+            // Consulta simultânea a presencas, medicalCertificates_approved e dispensas
+            const presQuery = query(
+                collection(db, "presencas"),
+                where("__name__", ">=", startOfYear),
+                where("__name__", "<=", dataHoje + "_\uffff")
+            );
+
+            const [presSnap, atestSnap, dispSnap] = await Promise.all([
+                getDocs(presQuery).catch(err => {
+                    console.warn("Erro ao buscar presenças:", err);
+                    return { forEach: () => {} };
+                }),
+                getDocs(collection(db, "medicalCertificates_approved")).catch(err => {
+                    console.warn("Erro ao buscar atestados:", err);
+                    return { forEach: () => {} };
+                }),
+                getDocs(collection(db, "dispensas")).catch(err => {
+                    console.warn("Erro ao buscar dispensas:", err);
+                    return { forEach: () => {} };
+                })
+            ]);
+
+            let chamadasMes = 0;
+            let presencasMes = 0;
+            let faltasMes = 0;
+            let totalFaltasAno = 0;
+
+            const atestadosMusico = [];
+            const dispensasMusico = [];
+            const ocorrenciasList = [];
+            const justificativasList = [];
+
+            // 1. Processar atestados médicos
+            atestSnap.forEach(dSnap => {
+                const a = dSnap.data();
+                const idMatch = a.musicianId && (a.musicianId === musico.id || a.musicianId === musico.CPF);
+                const nomeMatch = a.nomeMusico && (
+                    a.nomeMusico.toLowerCase() === (musico.NOMEARTISTICO || '').toLowerCase() ||
+                    a.nomeMusico.toLowerCase() === (musico['NOME REGISTRO'] || '').toLowerCase()
+                );
+
+                if (idMatch || nomeMatch) {
+                    atestadosMusico.push({ id: dSnap.id, ...a });
+                    const dias = parseInt(a.dias) || 1;
+                    ocorrenciasList.push({
+                        tipo: 'atestado',
+                        tag: 'Atestado Médico',
+                        data: a.dataInicio === a.dataFim ? formatDataBR(a.dataInicio) : `${formatDataBR(a.dataInicio)} a ${formatDataBR(a.dataFim)}`,
+                        titulo: `Atestado Médico (${dias} dia${dias > 1 ? 's' : ''})`,
+                        cid: a.cid ? `CID ${a.cid}` : '',
+                        meta: a.resumo || a.motivo || 'Homologado pela Coordenação OER',
+                        dataSort: a.dataInicio || ''
+                    });
+                }
+            });
+
+            // 2. Processar dispensas oficiais
+            dispSnap.forEach(dSnap => {
+                const d = dSnap.data();
+                const idMatch = d.musicianId && (d.musicianId === musico.id || d.musicianId === musico.CPF);
+                const nomeMatch = d.nomeMusico && (
+                    d.nomeMusico.toLowerCase() === (musico.NOMEARTISTICO || '').toLowerCase() ||
+                    d.nomeMusico.toLowerCase() === (musico['NOME REGISTRO'] || '').toLowerCase()
+                );
+
+                if (idMatch || nomeMatch) {
+                    dispensasMusico.push({ id: dSnap.id, ...d });
+                    ocorrenciasList.push({
+                        tipo: 'dispensa',
+                        tag: 'Dispensa',
+                        data: d.dataInicio === d.dataFim ? formatDataBR(d.dataInicio) : `${formatDataBR(d.dataInicio)} a ${formatDataBR(d.dataFim)}`,
+                        titulo: 'Dispensa Concedida',
+                        cid: '',
+                        meta: d.descricao || d.motivo || 'Dispensa Oficial',
+                        dataSort: d.dataInicio || ''
+                    });
+                }
+            });
+
+            // 3. Processar listas de presença
+            presSnap.forEach(dSnap => {
+                const presData = dSnap.data();
+                const dataDoc = presData.data || dSnap.id.split('_')[0];
+                const reg = (presData.registros && presData.registros[musico.id]) ? presData.registros[musico.id] : null;
+
+                if (!reg) return;
+
+                // Capturar justificativas para o histórico unificado
+                if (reg.justificativa && reg.justificativa.trim() !== '') {
+                    justificativasList.push({
+                        origem: 'presenca',
+                        origemLabel: `Lista de Presença (${formatDataBR(dataDoc)})`,
+                        data: formatDataBR(dataDoc),
+                        autor: 'Lista de Presença / Coordenação',
+                        texto: reg.justificativa.trim(),
+                        dataSort: dataDoc
+                    });
+                }
+
+                const st = (reg.status || '').toLowerCase();
+                const isMesVigente = dataDoc >= dataInicioMes && dataDoc <= dataHoje;
+
+                // Se o integrante estava escalado/convocado
+                const isConvocado = st !== 'nao_escalado' && st !== 'dispensa' && st !== 'atestado' && st !== 'none' && st !== 'pendente';
+                const isPresenca = st === 'presenca' || st === 'atraso' || st === 'falta_passagem_som';
+                const isFalta = st === 'falta';
+                const isFaltaPS = st === 'falta_passagem_som';
+
+                if (isMesVigente && isConvocado) {
+                    chamadasMes++;
+                    if (isPresenca) presencasMes++;
+                    if (isFalta) faltasMes++;
+                }
+
+                // Ocorrências de falta no ano todo
+                if (isFalta || isFaltaPS) {
+                    totalFaltasAno++;
+                    ocorrenciasList.push({
+                        tipo: 'falta',
+                        tag: isFaltaPS ? 'Falta PS' : 'Falta',
+                        data: formatDataBR(dataDoc),
+                        titulo: isFaltaPS ? 'Falta na Passagem de Som' : (presData.titulo || 'Falta em Ensaio / Concerto'),
+                        cid: '',
+                        meta: reg.justificativa ? `Justificativa: "${reg.justificativa}"` : 'Sem justificativa registrada',
+                        dataSort: dataDoc
+                    });
+                }
+            });
+
+            // Ordenar ocorrências do mais novo para o mais antigo
+            ocorrenciasList.sort((a, b) => (b.dataSort || '').localeCompare(a.dataSort || ''));
+            justificativasList.sort((a, b) => (b.dataSort || '').localeCompare(a.dataSort || ''));
+
+            currentMusicoOccurrences = ocorrenciasList;
+            currentMusicoJustificativas = justificativasList;
+
+            // 4. Calcular % de participação no mês vigente
+            let pct = 100;
+            let statusClass = 'success';
+            let statusLabel = 'Excelente';
+
+            if (chamadasMes > 0) {
+                pct = Math.round((presencasMes / chamadasMes) * 100);
+            } else {
+                pct = 100; // Se não houve chamadas ainda, mantém 100% neutro
+            }
+
+            if (pct < 75) {
+                statusClass = 'danger';
+                statusLabel = 'Atenção Crítica';
+            } else if (pct < 90) {
+                statusClass = 'warning';
+                statusLabel = 'Regular';
+            } else {
+                statusClass = 'success';
+                statusLabel = 'Excelente';
+            }
+
+            // Atualizar Card de Frequência do Mês
+            const freqCard = document.getElementById('drawer-frequency-card');
+            const pctVal = document.getElementById('drawer-frequency-percentage-val');
+            const barFill = document.getElementById('drawer-frequency-bar-fill');
+            const statusLabelEl = document.getElementById('drawer-frequency-status-label');
+
+            if (freqCard) freqCard.className = `frequency-month-card ${statusClass}`;
+            if (pctVal) pctVal.textContent = `${pct}%`;
+            if (barFill) {
+                barFill.style.width = `${pct}%`;
+                barFill.style.background = statusClass === 'danger' ? '#dc2626' : (statusClass === 'warning' ? '#f59e0b' : '#10b981');
+            }
+            if (statusLabelEl) {
+                statusLabelEl.textContent = statusLabel;
+                statusLabelEl.style.color = statusClass === 'danger' ? '#dc2626' : (statusClass === 'warning' ? '#f59e0b' : '#10b981');
+            }
+            if (freqSubtitle) {
+                if (chamadasMes === 0) {
+                    freqSubtitle.innerHTML = `Nenhuma chamada convocada registrada no mês de <strong>${mesNomeExtenso}</strong> até hoje.`;
+                } else {
+                    freqSubtitle.innerHTML = `Compareceu a <strong>${presencasMes} de ${chamadasMes}</strong> chamadas convocadas até hoje`;
+                }
+            }
+
+            // 5. Atualizar KPIs do Drawer
+            const diasAfastamentoTotal = atestadosMusico.reduce((acc, a) => acc + (parseInt(a.dias) || 0), 0);
+            document.getElementById('drawer-kpi-faltas').textContent = totalFaltasAno;
+            document.getElementById('drawer-kpi-atestados').textContent = atestadosMusico.length;
+            document.getElementById('drawer-kpi-afastamento').textContent = `${diasAfastamentoTotal}d`;
+            document.getElementById('drawer-kpi-dispensas').textContent = dispensasMusico.length;
+
+            // 6. Renderizar Ocorrências
+            renderDrawerOccurrences(ocorrenciasList, 'todas');
+
+            // 7. Guardar objeto consolidado para emissão de relatório
+            currentDrawerReportData = {
+                musico,
+                frequenciaMes: {
+                    porcentagem: pct,
+                    presentes: presencasMes,
+                    totalChamadasAteHoje: chamadasMes,
+                    statusClass,
+                    statusLabel
+                },
+                kpis: {
+                    faltas: totalFaltasAno,
+                    atestados: atestadosMusico.length,
+                    diasAfastamento: `${diasAfastamentoTotal}d`,
+                    dispensas: dispensasMusico.length
+                },
+                ocorrencias: ocorrenciasList,
+                justificativas: justificativasList
+            };
+
+        } catch (err) {
+            console.error("Erro ao apurar relatório do músico:", err);
+            if (freqSubtitle) freqSubtitle.textContent = "Não foi possível carregar o cálculo de frequência.";
+            if (occurrencesList) {
+                occurrencesList.innerHTML = `
+                    <div style="padding: 1.5rem; text-align: center; color: #dc2626; font-size: 0.85rem;">
+                        <p style="margin: 0; font-weight: 600;">Erro ao consultar registros de frequência.</p>
+                    </div>
+                `;
+            }
+        }
+    }
+
+    function renderDrawerOccurrences(list, filter) {
+        const occurrencesList = document.getElementById('drawer-occurrences-list');
+        const totalOccBadge = document.getElementById('drawer-total-ocorrencias-badge');
+        if (!occurrencesList) return;
+
+        let filtered = list || [];
+        if (filter && filter !== 'todas') {
+            filtered = filtered.filter(o => o.tipo === filter);
+        }
+
+        if (totalOccBadge) totalOccBadge.textContent = `${filtered.length} registro(s)`;
+
+        occurrencesList.innerHTML = '';
+
+        if (filtered.length === 0) {
+            occurrencesList.innerHTML = `
+                <div style="padding: 1.5rem; text-align: center; color: #94a3b8; font-size: 0.85rem;">
+                    <i data-lucide="check-circle" style="width: 28px; height: 28px; color: #16a34a; margin-bottom: 0.3rem;"></i>
+                    <p style="margin: 0; font-weight: 600;">Nenhuma ocorrência registrada no filtro selecionado</p>
+                </div>
+            `;
+            if (window.lucide) lucide.createIcons();
+            return;
+        }
+
+        filtered.forEach(occ => {
+            const item = document.createElement('div');
+            item.className = `occurrence-item ${occ.tipo}`;
+
+            item.innerHTML = `
+                <div class="occ-top">
+                    <span class="occ-tag ${occ.tipo}">${occ.tag}</span>
+                    <span class="occ-date">${occ.data}</span>
+                </div>
+                <p class="occ-desc">${occ.titulo}</p>
+                ${occ.cid ? `<span class="occ-cid"><i data-lucide="activity" style="width: 13px; height: 13px;"></i> ${occ.cid}</span>` : ''}
+                <span class="occ-meta">${occ.meta}</span>
+            `;
+
+            occurrencesList.appendChild(item);
+        });
+
+        if (window.lucide) lucide.createIcons();
+    }
+
+    // Configuração dos botões de filtro de ocorrências
+    const drawerFilterPills = document.querySelectorAll('.occurrence-filter-bar .btn-filter-pill');
+    drawerFilterPills.forEach(pill => {
+        pill.addEventListener('click', () => {
+            drawerFilterPills.forEach(p => p.classList.remove('active'));
+            pill.classList.add('active');
+            const filterType = pill.dataset.drawerFilter || 'todas';
+            renderDrawerOccurrences(currentMusicoOccurrences, filterType);
+        });
+    });
+
+    // =========================================================================
+    // SALVAMENTO E HISTÓRICO DE ANOTAÇÕES CONFIDENCIAIS
+    // =========================================================================
+    const btnSaveNotes = document.getElementById('btn-save-drawer-notes');
+    const notesInput = document.getElementById('drawer-notes-input');
+    const notesTimestampDisplay = document.getElementById('drawer-notes-timestamp-display');
+    const btnOpenNotesHistory = document.getElementById('btn-open-notes-history');
+    const notesHistoryModal = document.getElementById('admin-notes-history-modal');
+    const btnCloseNotesModal = document.getElementById('btn-close-admin-notes-modal');
+    const unifiedNotesList = document.getElementById('admin-unified-notes-list');
+
+    function loadNotesForMusician(musico) {
+        if (!notesInput || !notesTimestampDisplay) return;
+
+        // 1. Tenta carregar do objeto Firestore
+        if (musico.anotacoesAdmin && musico.anotacoesAdmin.texto !== undefined) {
+            notesInput.value = musico.anotacoesAdmin.texto || '';
+            notesTimestampDisplay.textContent = musico.anotacoesAdmin.atualizadoEmFormatado || 'Anotação salva no sistema';
+            return;
+        }
+
+        // 2. Fallback: localStorage
+        const stored = localStorage.getItem(`oer_notes_${musico.id}`);
+        if (stored) {
+            try {
+                const data = JSON.parse(stored);
+                notesInput.value = data.text || '';
+                notesTimestampDisplay.textContent = data.timestamp || 'Última edição salva';
+                return;
+            } catch (e) {}
+        }
+
+        // 3. Em branco
+        notesInput.value = '';
+        notesTimestampDisplay.textContent = 'Nenhuma anotação registrada ainda';
+    }
+
+    if (btnSaveNotes) {
+        btnSaveNotes.addEventListener('click', async () => {
+            if (!currentSelectedMusico) return;
+
+            const text = notesInput.value.trim();
+            const now = new Date();
+            const timestampStr = `Salvo em ${now.toLocaleDateString('pt-BR')} às ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} por ${auth.currentUser?.email || 'Coordenação OER'}`;
+
+            btnSaveNotes.disabled = true;
+            btnSaveNotes.innerHTML = `<i data-lucide="loader-2" class="spin" style="width: 14px; height: 14px;"></i> <span>Salvando...</span>`;
+            if (window.lucide) lucide.createIcons();
+
+            try {
+                // Atualiza Firestore
+                await updateDoc(doc(db, "musicos", currentSelectedMusico.id), {
+                    anotacoesAdmin: {
+                        texto: text,
+                        atualizadoEm: serverTimestamp(),
+                        atualizadoEmFormatado: timestampStr,
+                        atualizadoPor: auth.currentUser?.email || 'Coordenação OER'
+                    }
+                });
+
+                // Atualiza cache em memória
+                currentSelectedMusico.anotacoesAdmin = {
+                    texto: text,
+                    atualizadoEmFormatado: timestampStr,
+                    atualizadoPor: auth.currentUser?.email || 'Coordenação OER'
+                };
+
+                // Espelha no objeto do allMusicians
+                const musicoInList = allMusicians.find(m => m.id === currentSelectedMusico.id);
+                if (musicoInList) {
+                    musicoInList.anotacoesAdmin = currentSelectedMusico.anotacoesAdmin;
+                }
+
+                // Salva no localStorage como cache imediato
+                localStorage.setItem(`oer_notes_${currentSelectedMusico.id}`, JSON.stringify({
+                    text: text,
+                    timestamp: timestampStr
+                }));
+
+                notesTimestampDisplay.textContent = timestampStr;
+
+                btnSaveNotes.classList.add('saved');
+                btnSaveNotes.innerHTML = `<i data-lucide="check" style="width: 14px; height: 14px;"></i> <span>Salvo!</span>`;
+                if (window.lucide) lucide.createIcons();
+
+                showNotification("Anotação do integrante salva com sucesso!", "success");
+
+                setTimeout(() => {
+                    btnSaveNotes.classList.remove('saved');
+                    btnSaveNotes.disabled = false;
+                    btnSaveNotes.innerHTML = `<i data-lucide="save" style="width: 14px; height: 14px;"></i> <span>Salvar Anotação</span>`;
+                    if (window.lucide) lucide.createIcons();
+                }, 2000);
+
+            } catch (err) {
+                console.error("Erro ao salvar anotação:", err);
+                btnSaveNotes.disabled = false;
+                btnSaveNotes.innerHTML = `<i data-lucide="save" style="width: 14px; height: 14px;"></i> <span>Salvar Anotação</span>`;
+                if (window.lucide) lucide.createIcons();
+                showNotification("Erro ao salvar no banco. Guardado localmente.", "warning");
+            }
+        });
+    }
+
+    // Modal de Histórico Unificado de Anotações & Justificativas
+    if (btnOpenNotesHistory && notesHistoryModal) {
+        btnOpenNotesHistory.addEventListener('click', () => {
+            if (!currentSelectedMusico) return;
+
+            const allNotes = [];
+
+            // 1. Anotação administrativa
+            if (currentSelectedMusico.anotacoesAdmin && currentSelectedMusico.anotacoesAdmin.texto) {
+                allNotes.push({
+                    origem: 'admin',
+                    origemLabel: 'Observações da Administração',
+                    data: currentSelectedMusico.anotacoesAdmin.atualizadoEmFormatado || 'Salvo no sistema',
+                    autor: currentSelectedMusico.anotacoesAdmin.atualizadoPor || 'Coordenação OER',
+                    texto: currentSelectedMusico.anotacoesAdmin.texto
+                });
+            }
+
+            // 2. Justificativas das listas de presença
+            if (currentMusicoJustificativas && currentMusicoJustificativas.length > 0) {
+                currentMusicoJustificativas.forEach(j => allNotes.push(j));
+            }
+
+            unifiedNotesList.innerHTML = '';
+
+            if (allNotes.length === 0) {
+                unifiedNotesList.innerHTML = `
+                    <div style="padding: 2.5rem; text-align: center; color: #94a3b8;">
+                        <i data-lucide="check-circle" style="width: 32px; height: 32px; color: #16a34a; margin-bottom: 0.5rem;"></i>
+                        <p style="margin: 0; font-weight: 600;">Nenhuma nota interna ou justificativa anterior registrada</p>
+                    </div>
+                `;
+            } else {
+                allNotes.forEach(n => {
+                    const item = document.createElement('div');
+                    item.className = `unified-note-item ${n.origem === 'presenca' ? 'origem-presenca' : 'origem-admin'}`;
+                    item.innerHTML = `
+                        <div class="note-item-header">
+                            <span class="note-origem-badge">${n.origemLabel}</span>
+                            <span class="note-item-meta">${n.data}</span>
+                        </div>
+                        <p class="note-item-text">${n.texto}</p>
+                        <span class="note-item-meta">Registrado por: <strong>${n.autor}</strong></span>
+                    `;
+                    unifiedNotesList.appendChild(item);
+                });
+            }
+
+            notesHistoryModal.style.display = 'flex';
+            notesHistoryModal.classList.add('active');
+            if (window.lucide) lucide.createIcons();
+        });
+
+        if (btnCloseNotesModal) {
+            btnCloseNotesModal.addEventListener('click', () => {
+                notesHistoryModal.style.display = 'none';
+                notesHistoryModal.classList.remove('active');
+            });
+        }
+
+        notesHistoryModal.addEventListener('click', (e) => {
+            if (e.target === notesHistoryModal) {
+                notesHistoryModal.style.display = 'none';
+                notesHistoryModal.classList.remove('active');
+            }
+        });
+    }
+
+    // =========================================================================
+    // MODAL DE EXPORTAÇÃO (COPIAR TEXTO OU IMPRIMIR COM LOGO OER)
+    // =========================================================================
+    const btnOpenExportModal = document.getElementById('btn-open-export-modal');
+    const exportModal = document.getElementById('admin-export-modal');
+    const btnCloseExportModal = document.getElementById('btn-close-admin-export-modal');
+    const btnCopyReportText = document.getElementById('btn-admin-copy-report-text');
+    const btnPrintOfficialCard = document.getElementById('btn-admin-print-official-card');
+
+    if (btnOpenExportModal && exportModal) {
+        btnOpenExportModal.addEventListener('click', () => {
+            exportModal.style.display = 'flex';
+            exportModal.classList.add('active');
+            if (window.lucide) lucide.createIcons();
+        });
+
+        if (btnCloseExportModal) {
+            btnCloseExportModal.addEventListener('click', () => {
+                exportModal.style.display = 'none';
+                exportModal.classList.remove('active');
+            });
+        }
+
+        exportModal.addEventListener('click', (e) => {
+            if (e.target === exportModal) {
+                exportModal.style.display = 'none';
+                exportModal.classList.remove('active');
+            }
+        });
+
+        // Opção 1: Copiar Relatório Completo em Texto
+        if (btnCopyReportText) {
+            btnCopyReportText.addEventListener('click', async () => {
+                if (!currentSelectedMusico) return;
+                const m = currentSelectedMusico;
+                const rep = currentDrawerReportData || {
+                    frequenciaMes: { porcentagem: 100, presentes: 0, totalChamadasAteHoje: 0 },
+                    kpis: { faltas: 0, atestados: 0, diasAfastamento: '0d', dispensas: 0 },
+                    ocorrencias: []
+                };
+
+                let txt = `🎼 *RELATÓRIO DO INTEGRANTE - OER*\n`;
+                txt += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+                txt += `👤 *Nome:* ${m.NOMEARTISTICO || '-'} (${m['NOME REGISTRO'] || '-'})\n`;
+                txt += `🎻 *Instrumento:* ${m.INSTRUMENTOS || '-'}\n`;
+                txt += `🏷️ *Vínculo:* ${(m.Status || '-').toUpperCase()} (Desde ${formatExcelDate(m['INICIO OER Contrato'])})\n`;
+                txt += `📊 *Frequência no Mês:* ${rep.frequenciaMes.porcentagem}% (${rep.frequenciaMes.presentes}/${rep.frequenciaMes.totalChamadasAteHoje} chamadas)\n\n`;
+
+                txt += `📋 *RESUMO DE OCORRÊNCIAS:*\n`;
+                txt += `• Faltas no Ano: ${rep.kpis.faltas}\n`;
+                txt += `• Atestados Médicos: ${rep.kpis.atestados} (${rep.kpis.diasAfastamento} afastado)\n`;
+                txt += `• Dispensas Oficiais: ${rep.kpis.dispensas}\n\n`;
+
+                if (rep.ocorrencias && rep.ocorrencias.length > 0) {
+                    txt += `🩺 *HISTÓRICO & CIDs:*\n`;
+                    rep.ocorrencias.forEach(o => {
+                        txt += `• [${o.data}] ${o.titulo} ${o.cid ? ' - ' + o.cid : ''}\n`;
+                    });
+                    txt += `\n`;
+                }
+
+                const obsText = notesInput?.value?.trim() || m.anotacoesAdmin?.texto;
+                if (obsText) {
+                    txt += `📝 *OBSERVAÇÕES DA ADMINISTRAÇÃO:*\n`;
+                    txt += `"${obsText}"\n\n`;
+                }
+
+                txt += `📞 *Contato:* ${m.TELEFONE || '-'} | ${m.EMAIL || '-'}\n`;
+                txt += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+                txt += `_Orquestra Experimental de Repertório · Sistema de Gestão_`;
+
+                try {
+                    await navigator.clipboard.writeText(txt);
+                    showNotification("Relatório geral em texto copiado com sucesso!", "success");
+                    exportModal.style.display = 'none';
+                    exportModal.classList.remove('active');
+                } catch (e) {
+                    console.error("Erro ao copiar texto:", e);
+                    showNotification("Não foi possível copiar automaticamente para o clipboard.", "error");
+                }
+            });
+        }
+
+        // Opção 2: Imprimir Ficha Oficial Timbrada (PDF)
+        if (btnPrintOfficialCard) {
+            btnPrintOfficialCard.addEventListener('click', () => {
+                if (!currentSelectedMusico) return;
+                populatePrintableReport(currentSelectedMusico);
+                exportModal.style.display = 'none';
+                exportModal.classList.remove('active');
+                setTimeout(() => {
+                    window.print();
+                }, 250);
+            });
+        }
+    }
+
+    function populatePrintableReport(m) {
+        const rep = currentDrawerReportData || {
+            frequenciaMes: { porcentagem: 100, presentes: 0, totalChamadasAteHoje: 0 },
+            kpis: { faltas: 0, atestados: 0, diasAfastamento: '0d', dispensas: 0 },
+            ocorrencias: []
+        };
+
+        const formatVal = (val) => (val === undefined || val === null || val.toString().trim() === "") ? '-' : val;
+
+        document.getElementById("pr-nome-artistico").textContent = formatVal(m.NOMEARTISTICO);
+        document.getElementById("pr-instrumento").textContent = formatVal(m.INSTRUMENTOS);
+        document.getElementById("pr-status").textContent = formatVal(m.Status).toUpperCase();
+        document.getElementById("pr-frequencia").textContent = `${rep.frequenciaMes.porcentagem}% (${rep.frequenciaMes.presentes}/${rep.frequenciaMes.totalChamadasAteHoje} ensaios)`;
+
+        document.getElementById("pr-nome-registro").textContent = formatVal(m['NOME REGISTRO']);
+        document.getElementById("pr-cpf").textContent = formatVal(m.CPF);
+        document.getElementById("pr-rg").textContent = formatVal(m.RG);
+        document.getElementById("pr-email").textContent = formatVal(m.EMAIL);
+        document.getElementById("pr-telefone").textContent = formatVal(m.TELEFONE);
+
+        document.getElementById("pr-inicio").textContent = formatExcelDate(m['INICIO OER Contrato']);
+        document.getElementById("pr-termino").textContent = formatExcelDate(m['TERMINO OER Contrato']);
+        document.getElementById("pr-banco").textContent = `${formatVal(m['Banco '] || m['Banco'])} / Ag: ${formatVal(m['Agencia '] || m['Agencia'])} / CC: ${formatVal(m['Conta Corrente '] || m['Conta Corrente'])}`;
+        document.getElementById("pr-restricao").textContent = formatVal(m['Restrição Alimentar']);
+        document.getElementById("pr-carro").textContent = formatVal(m['Dados Carro']);
+
+        document.getElementById("pr-kpi-faltas").textContent = rep.kpis.faltas;
+        document.getElementById("pr-kpi-atestados").textContent = rep.kpis.atestados;
+        document.getElementById("pr-kpi-afastamento").textContent = rep.kpis.diasAfastamento;
+        document.getElementById("pr-kpi-dispensas").textContent = rep.kpis.dispensas;
+
+        // Ocorrências
+        const tbody = document.getElementById("pr-tbody-ocorrencias");
+        if (tbody) {
+            tbody.innerHTML = "";
+            if (rep.ocorrencias && rep.ocorrencias.length > 0) {
+                rep.ocorrencias.forEach(o => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td>${o.data}</td>
+                        <td><strong>${o.tag}</strong></td>
+                        <td>${o.titulo} ${o.cid ? '<br><code>' + o.cid + '</code>' : ''}</td>
+                        <td>${o.meta || '-'}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } else {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #777;">Nenhuma falta ou atestado registrado para este integrante na temporada.</td></tr>`;
+            }
+        }
+
+        const obsVal = notesInput?.value?.trim() || m.anotacoesAdmin?.texto;
+        document.getElementById("pr-observacoes").textContent = obsVal || "Nenhuma observação interna registrada.";
+        document.getElementById("pr-data-emissao").textContent = new Date().toLocaleString('pt-BR');
+    }
+
+    // =========================================================================
+    // ABERTURA DA GAVETA LATERAL (DRAWER)
+    // =========================================================================
     function openMusicoDrawer(musico) {
         if (!drawer || !drawerOverlay) return;
         currentSelectedMusico = musico;
 
-        // Preencher cabeçalho
-        document.getElementById('drawer-musico-nome-artistico').textContent = musico.NOMEARTISTICO || 'Músico';
+        // Preencher cabeçalho e avatar
+        const nomeArtistico = musico.NOMEARTISTICO || 'Músico';
+        const avatarEl = document.getElementById('drawer-header-avatar');
+        if (avatarEl) {
+            const initials = nomeArtistico.split(' ').map(n => n[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'MO';
+            avatarEl.textContent = initials;
+        }
+
+        document.getElementById('drawer-musico-nome-artistico').textContent = nomeArtistico;
         document.getElementById('drawer-musico-instrumento').textContent = musico.INSTRUMENTOS || 'Sem instrumento';
 
         // Mapear campos lógicos
@@ -7646,16 +8551,6 @@ function initMusiciansManagement() {
         document.getElementById('drawer-val-escalado').textContent = formatValue(musico.Escalado);
         document.getElementById('drawer-val-anos-oer').textContent = formatValue(musico['ANOS NA OER']);
         document.getElementById('drawer-val-tempo-oer').textContent = formatValue(musico['TEMPO NA OER']);
-        
-        // Formatar datas vindas do Excel
-        const formatExcelDate = (val) => {
-            if (!val || val === '-') return '-';
-            if (!isNaN(val) && typeof val === 'number') {
-                const date = new Date((val - 25569) * 86400 * 1000);
-                return date.toLocaleDateString('pt-BR');
-            }
-            return val;
-        };
 
         document.getElementById('drawer-val-inicio-contrato').textContent = formatExcelDate(musico['INICIO OER Contrato']);
         document.getElementById('drawer-val-termino-contrato').textContent = formatExcelDate(musico['TERMINO OER Contrato']);
@@ -7711,19 +8606,36 @@ function initMusiciansManagement() {
         document.getElementById('drawer-val-restricao').textContent = formatValue(musico['Restrição Alimentar']);
         document.getElementById('drawer-val-carro').textContent = formatValue(musico['Dados Carro']);
 
+        // Carregar anotações
+        loadNotesForMusician(musico);
+
+        // Resetar filtro de ocorrências para 'todas'
+        drawerFilterPills.forEach(p => {
+            if (p.dataset.drawerFilter === 'todas') p.classList.add('active');
+            else p.classList.remove('active');
+        });
+
         // Abrir gaveta
-        drawer.classList.add('open');
-        drawerOverlay.classList.add('open');
+        drawer.classList.add('open', 'active');
+        drawerOverlay.classList.add('open', 'active');
+        document.body.style.overflow = 'hidden';
+
+        // Reativar cópia com clique nos novos campos
+        initCopyableFields();
+
         if (window.lucide) lucide.createIcons();
+
+        // Carregar e calcular assiduamente Frequência e Histórico de Ocorrências
+        loadMusicianDetailedReport(musico);
     }
 
-    let currentSelectedMusico = null; // Músico atualmente aberto na gaveta de leitura
     const btnEditCurrentMusico = document.getElementById('btn-edit-current-musico');
 
     function closeMusicoDrawer() {
         if (!drawer || !drawerOverlay) return;
-        drawer.classList.remove('open');
-        drawerOverlay.classList.remove('open');
+        drawer.classList.remove('open', 'active');
+        drawerOverlay.classList.remove('open', 'active');
+        document.body.style.overflow = '';
     }
 
     if (btnCloseDrawer) btnCloseDrawer.addEventListener('click', closeMusicoDrawer);
@@ -7736,6 +8648,25 @@ function initMusiciansManagement() {
             }
         });
     }
+
+    // Tecla Escape fecha Drawer e Modais
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            if (exportModal && exportModal.style.display !== 'none') {
+                exportModal.style.display = 'none';
+                exportModal.classList.remove('active');
+                return;
+            }
+            if (notesHistoryModal && notesHistoryModal.style.display !== 'none') {
+                notesHistoryModal.style.display = 'none';
+                notesHistoryModal.classList.remove('active');
+                return;
+            }
+            if (drawer && drawer.classList.contains('open')) {
+                closeMusicoDrawer();
+            }
+        }
+    });
 
     // 6. Importação da Planilha (.xlsx) com SheetJS e Modal de Confirmação (Diff)
     const modalDiff = document.getElementById('modal-confirm-import-excel');
@@ -12077,6 +13008,9 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
 
     // Inicializar Áreas Copiáveis do Drawer
     initCopyableFields();
+
+    // Inicializar Barra de Busca Google na aba Histórico
+    initGoogleMusicianSearch();
 }
 
 /**
@@ -12089,21 +13023,22 @@ function initCopyableFields() {
     
     fieldsToCopy.forEach(field => {
         // Ignorar se já foi inicializado
-        if (field.classList.contains('copyable-area')) return;
+        if (field.dataset.copyInitialized === 'true') return;
+        field.dataset.copyInitialized = 'true';
         
-        // Adiciona classe e ícone
-        field.classList.add('copyable-area');
+        // Garante classe de cópia
+        if (!field.classList.contains('copyable-area')) {
+            field.classList.add('copyable-area');
+        }
         
-        // O ícone será inserido logo no final do container
-        const iconHTML = `<i data-lucide="copy" class="copy-icon-indicator"></i>`;
-        
-        // Em .drawer-header-info o H3 é o primeiro filho, o P o segundo
-        // Nos .drawer-field, .field-value é onde o texto real está.
-        // O CSS com display: inline-flex (ou grid com flex) fará o alinhamento
-        field.insertAdjacentHTML('beforeend', iconHTML);
+        // Garante ícone se ainda não existir
+        if (!field.querySelector('.copy-icon-indicator')) {
+            const iconHTML = `<i data-lucide="copy" class="copy-icon-indicator"></i>`;
+            field.insertAdjacentHTML('beforeend', iconHTML);
+        }
         
         field.addEventListener('click', async (e) => {
-            // Evitar que cliques em links dentro do campo ativem a cópia (ex: Link do WhatsApp)
+            // Evitar que cliques em links ou botões dentro do campo ativem a cópia (ex: Link do WhatsApp)
             if (e.target.closest('a') || e.target.closest('button')) {
                 return;
             }
@@ -12115,13 +13050,12 @@ function initCopyableFields() {
                 const h3 = field.querySelector('h3');
                 textToCopy = h3 ? h3.textContent.trim() : '';
             } else {
-                const valEl = field.querySelector('.field-value');
+                const valEl = field.querySelector('.field-value') || field.querySelector('.field-txt');
                 if (!valEl) return;
                 
-                // Limpeza especial para campo de telefone e afins, ignorando conteúdo de badges/links
-                // Clone the node to manipulate and extract text cleanly
+                // Limpeza especial para campo de telefone e afins, ignorando badges e links
                 const clone = valEl.cloneNode(true);
-                const spansToRemove = clone.querySelectorAll('span:nth-child(2), a'); // Remove "Telefone", "Celular" badges e links WhatsApp
+                const spansToRemove = clone.querySelectorAll('span:nth-child(2), a, .copy-icon-indicator');
                 spansToRemove.forEach(el => el.remove());
                 
                 textToCopy = clone.textContent.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();

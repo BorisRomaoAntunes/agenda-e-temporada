@@ -176,6 +176,38 @@
 
             <!-- Seção 0: Histórico de Logs -->
             <section id="section-logs" class="tab-content active">
+                 <!-- Barra de Busca Centralizada Estilo Google (Histórico de Músicos) -->
+                 <div class="search-google-section">
+                     <div class="search-google-box">
+                         <div class="search-google-input-wrapper" id="google-search-wrapper">
+                             <i data-lucide="search" class="search-icon"></i>
+                             <input 
+                                 type="text" 
+                                 class="search-google-input" 
+                                 id="admin-google-search-input" 
+                                 placeholder="Pesquisar músico por nome, instrumento ou registro..." 
+                                 autocomplete="off"
+                                 spellcheck="false">
+                             
+                             <button class="search-clear-btn" id="admin-search-clear-btn" title="Limpar busca" type="button">
+                                 <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+                             </button>
+                             <span class="search-shortcut-badge">ESC</span>
+                         </div>
+
+                         <!-- Dropdown Preditivo -->
+                         <div class="search-results-dropdown" id="admin-search-dropdown">
+                             <ul class="search-results-list" id="admin-search-results-list">
+                                 <!-- Itens gerados dinamicamente via JS -->
+                             </ul>
+                             <div class="search-footer-hint">
+                                 <span>Use as setas <kbd>↑</kbd> <kbd>↓</kbd> para navegar e <kbd>Enter</kbd> para abrir ficha</span>
+                                 <span id="admin-results-count-text">Carregando músicos...</span>
+                             </div>
+                         </div>
+                     </div>
+                 </div>
+
                  <!-- Container de Cards de Métricas e Assinantes em Tempo Real -->
                  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
                      <!-- Card 1: Músicos Inscritos em Notificações Push -->
@@ -1202,159 +1234,6 @@ Intervalo
                     </div>
                 </div>
 
-                <!-- Gaveta Lateral de Ficha Completa (Drawer) -->
-                <div class="drawer-overlay" id="musico-drawer-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.3); z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;"></div>
-                <div class="musico-drawer" id="musico-drawer" style="position: fixed; top: 0; right: -100%; width: min(550px, 100%); max-width: 100%; height: 100%; background: white; z-index: 2001; box-shadow: -5px 0 25px rgba(0,0,0,0.08); display: flex; flex-direction: column; transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: auto;">
-                    <div class="drawer-header" style="padding: 1.25rem 1.5rem; border-bottom: 1px solid #f0f2f5; display: flex; justify-content: space-between; align-items: center; background: #fafafa;">
-                        <div class="drawer-header-info">
-                            <h3 id="drawer-musico-nome-artistico" style="margin: 0; font-size: 1.2rem; font-weight: 700; color: #333;">Nome Artístico</h3>
-                            <p id="drawer-musico-instrumento" style="margin: 0.2rem 0 0 0; font-size: 0.85rem; color: #777; font-weight: 500;">Instrumento</p>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 0.6rem;">
-                            <button type="button" class="btn-primary" id="btn-edit-current-musico" style="padding: 0.45rem 0.9rem; font-size: 0.85rem; border-radius: 8px; display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 600; cursor: pointer; border: none; background: var(--primary-color, #8b0000); color: white; transition: filter 0.2s;" title="Editar dados deste integrante">
-                                <i data-lucide="edit-3" style="width: 15px; height: 15px;"></i> <span>Editar</span>
-                            </button>
-                            <button class="btn-close-drawer" id="btn-close-drawer" style="background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #999; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; transition: background 0.2s; touch-action: manipulation; -webkit-tap-highlight-color: transparent;">
-                                <i data-lucide="x" style="width: 20px; height: 20px;"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="drawer-body" style="padding: 1.5rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1.8rem; flex: 1;">
-                        
-                        <!-- Seção 1: Dados Artísticos & Vínculo -->
-                        <div class="drawer-section">
-                            <h4 style="margin: 0 0 0.8rem 0; font-size: 0.95rem; font-weight: 700; color: var(--primary-color, #8b0000); border-bottom: 1px dashed #e5e7eb; padding-bottom: 0.4rem; display: flex; align-items: center; gap: 0.4rem;">
-                                <i data-lucide="music" style="width: 16px; height: 16px;"></i> Dados Artísticos & Vínculo
-                            </h4>
-                            <div class="drawer-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.8rem 1rem;">
-                                <div class="drawer-field" style="grid-column: span 2;">
-                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Nome Registro</span>
-                                    <span class="field-value" id="drawer-val-nome-registro" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block; word-break: break-all;">-</span>
-                                </div>
-                                <div class="drawer-field">
-                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Status</span>
-                                    <span class="field-value badge" id="drawer-val-status" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
-                                </div>
-                                <div class="drawer-field">
-                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Escalado</span>
-                                    <span class="field-value" id="drawer-val-escalado" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
-                                </div>
-                                <div class="drawer-field">
-                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Anos na OER</span>
-                                    <span class="field-value" id="drawer-val-anos-oer" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
-                                </div>
-                                <div class="drawer-field">
-                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Tempo na OER</span>
-                                    <span class="field-value" id="drawer-val-tempo-oer" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
-                                </div>
-                                <div class="drawer-field">
-                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Início OER Contrato</span>
-                                    <span class="field-value" id="drawer-val-inicio-contrato" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
-                                </div>
-                                <div class="drawer-field">
-                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Término OER Contrato</span>
-                                    <span class="field-value" id="drawer-val-termino-contrato" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
-                                </div>
-                                <div class="drawer-field" style="grid-column: span 2;">
-                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Tipo de Contrato</span>
-                                    <span class="field-value" id="drawer-val-tipo-contrato" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
-                                </div>
-                                <div class="drawer-field" style="grid-column: span 2;">
-                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Data Envio Caderno de Excertos</span>
-                                    <span class="field-value" id="drawer-val-caderno-excertos" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Seção 2: Contato & Documentos -->
-                        <div class="drawer-section">
-                            <h4 style="margin: 0 0 0.8rem 0; font-size: 0.95rem; font-weight: 700; color: var(--primary-color, #8b0000); border-bottom: 1px dashed #e5e7eb; padding-bottom: 0.4rem; display: flex; align-items: center; gap: 0.4rem;">
-                                <i data-lucide="contact" style="width: 16px; height: 16px;"></i> Contato & Documentos
-                            </h4>
-                            <div class="drawer-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.8rem 1rem;">
-                                <div class="drawer-field" style="grid-column: span 2;">
-                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">E-mail</span>
-                                    <span class="field-value" id="drawer-val-email" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block; word-break: break-all;">-</span>
-                                </div>
-                                <div class="drawer-field">
-                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Telefone</span>
-                                    <span class="field-value" id="drawer-val-telefone" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
-                                </div>
-                                <div class="drawer-field">
-                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">CPF</span>
-                                    <span class="field-value" id="drawer-val-cpf" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
-                                </div>
-                                <div class="drawer-field">
-                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">RG</span>
-                                    <span class="field-value" id="drawer-val-rg" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
-                                </div>
-                                <div class="drawer-field">
-                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">PIS/PASEP</span>
-                                    <span class="field-value" id="drawer-val-pis" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
-                                </div>
-                                <div class="drawer-field">
-                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Data de Nascimento</span>
-                                    <span class="field-value" id="drawer-val-nascimento" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
-                                </div>
-                                <div class="drawer-field">
-                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Idade</span>
-                                    <span class="field-value" id="drawer-val-idade" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
-                                </div>
-                                <div class="drawer-field">
-                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Gênero</span>
-                                    <span class="field-value" id="drawer-val-genero" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Seção 3: Dados Bancários -->
-                        <div class="drawer-section">
-                            <h4 style="margin: 0 0 0.8rem 0; font-size: 0.95rem; font-weight: 700; color: var(--primary-color, #8b0000); border-bottom: 1px dashed #e5e7eb; padding-bottom: 0.4rem; display: flex; align-items: center; gap: 0.4rem;">
-                                <i data-lucide="wallet" style="width: 16px; height: 16px;"></i> Dados Bancários
-                            </h4>
-                            <div class="drawer-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.8rem 1rem;">
-                                <div class="drawer-field">
-                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Banco</span>
-                                    <span class="field-value" id="drawer-val-banco" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
-                                </div>
-                                <div class="drawer-field">
-                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Agência</span>
-                                    <span class="field-value" id="drawer-val-agencia" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
-                                </div>
-                                <div class="drawer-field" style="grid-column: span 2;">
-                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Conta Corrente</span>
-                                    <span class="field-value" id="drawer-val-conta" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Seção 4: Logística, Carro & Endereço -->
-                        <div class="drawer-section">
-                            <h4 style="margin: 0 0 0.8rem 0; font-size: 0.95rem; font-weight: 700; color: var(--primary-color, #8b0000); border-bottom: 1px dashed #e5e7eb; padding-bottom: 0.4rem; display: flex; align-items: center; gap: 0.4rem;">
-                                <i data-lucide="truck" style="width: 16px; height: 16px;"></i> Logística & Endereço
-                            </h4>
-                            <div class="drawer-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.8rem 1rem;">
-                                <div class="drawer-field" style="grid-column: span 2;">
-                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Endereço</span>
-                                    <span class="field-value" id="drawer-val-endereco" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block; word-break: break-all;">-</span>
-                                </div>
-                                <div class="drawer-field">
-                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">CEP</span>
-                                    <span class="field-value" id="drawer-val-cep" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
-                                </div>
-                                <div class="drawer-field">
-                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Restrição Alimentar</span>
-                                    <span class="field-value" id="drawer-val-restricao" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block; word-break: break-all;">-</span>
-                                </div>
-                                <div class="drawer-field" style="grid-column: span 2;">
-                                    <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Dados do Carro</span>
-                                    <span class="field-value" id="drawer-val-carro" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block; word-break: break-all;">-</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- ===== GAVETA DE EDIÇÃO DE MÚSICO (DIFF & BANCO) ===== -->
                 <div class="drawer-overlay" id="edit-musico-drawer-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.4); z-index: 10500; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;"></div>
                 <div class="musico-drawer" id="edit-musico-drawer" style="position: fixed; top: 0; right: -100%; width: min(560px, 100%); max-width: 100%; height: 100%; background: white; z-index: 10501; box-shadow: -5px 0 25px rgba(0,0,0,0.15); display: flex; flex-direction: column; transition: right 0.3s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: auto;">
@@ -1544,6 +1423,444 @@ Intervalo
                 </div>
             </section>
         </main>
+    </div>
+
+    <!-- ====================================================================
+         GAVETA LATERAL GLOBAL DE PERFIL COMPLETO (DRAWER)
+         ==================================================================== -->
+    <div class="drawer-overlay" id="musico-drawer-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.45); backdrop-filter: blur(4px); z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;"></div>
+    <div class="musico-drawer" id="musico-drawer" style="position: fixed; top: 0; right: -660px; width: min(640px, 100%); max-width: 100%; height: 100%; background: white; z-index: 2001; box-shadow: -10px 0 35px rgba(0,0,0,0.18); display: flex; flex-direction: column; transition: right 0.35s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: auto;">
+        
+        <!-- Header da Gaveta -->
+        <div class="drawer-header" style="padding: 1.25rem 1.5rem; border-bottom: 1px solid #f0f2f5; display: flex; justify-content: space-between; align-items: center; background: #fafafa; position: sticky; top: 0; z-index: 10;">
+            <div style="display: flex; align-items: center; gap: 0.9rem;">
+                <div class="drawer-header-avatar" id="drawer-header-avatar" style="width: 46px; height: 46px; border-radius: 50%; background: linear-gradient(135deg, var(--primary-color, #8b0000), #b91c1c); color: white; display: flex; align-items: center; justify-content: center; font-size: 1.15rem; font-weight: 700; box-shadow: 0 4px 10px rgba(139, 0, 0, 0.25); flex-shrink: 0;">
+                    MO
+                </div>
+                <div class="drawer-header-info">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <h3 id="drawer-musico-nome-artistico" style="margin: 0; font-size: 1.2rem; font-weight: 700; color: #1e293b;">Nome Artístico</h3>
+                        <span class="field-value badge" id="drawer-val-status" style="font-size: 0.75rem; font-weight: 600; padding: 2px 8px; border-radius: 12px;">-</span>
+                    </div>
+                    <p id="drawer-musico-instrumento" style="margin: 0.2rem 0 0 0; font-size: 0.85rem; color: #64748b; font-weight: 500;">Instrumento</p>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <button type="button" class="btn-primary" id="btn-edit-current-musico" style="padding: 0.45rem 0.85rem; font-size: 0.82rem; border-radius: 8px; display: inline-flex; align-items: center; gap: 0.35rem; font-weight: 600; cursor: pointer; border: none; background: var(--primary-color, #8b0000); color: white; transition: filter 0.2s;" title="Editar dados deste integrante">
+                    <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i> <span>Editar</span>
+                </button>
+                <button class="btn-close-drawer" id="btn-close-drawer" style="background: #f1f5f9; border: none; font-size: 1.2rem; cursor: pointer; color: #64748b; display: flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 50%; transition: background 0.2s; touch-action: manipulation;">
+                    <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Corpo da Gaveta com Scroll Vertical Contínuo -->
+        <div class="drawer-body" style="padding: 1.5rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1.5rem; flex: 1;">
+
+            <!-- 1. CARD NOVO: PORCENTAGEM DE PARTICIPAÇÃO NO MÊS VIGENTE -->
+            <div class="frequency-month-card" id="drawer-frequency-card">
+                <div class="frequency-left">
+                    <span class="frequency-title">
+                        <i data-lucide="percent" style="width: 16px; height: 16px;"></i> Participação no Mês Vigente
+                    </span>
+                    <p class="frequency-subtitle" id="drawer-frequency-subtitle-text">
+                        Calculando registros de chamada...
+                    </p>
+                    <div class="frequency-bar-bg">
+                        <div class="frequency-bar-fill" id="drawer-frequency-bar-fill" style="width: 100%;"></div>
+                    </div>
+                </div>
+                <div class="frequency-right">
+                    <span class="frequency-percentage" id="drawer-frequency-percentage-val">100%</span>
+                    <span class="frequency-status-label" id="drawer-frequency-status-label" style="color: #10b981;">Excelente</span>
+                </div>
+            </div>
+
+            <!-- 2. BLOCO DE KPIS / RESUMO EXECUTIVO -->
+            <div class="kpi-grid">
+                <div class="kpi-card danger">
+                    <span class="kpi-val" id="drawer-kpi-faltas">0</span>
+                    <span class="kpi-label">Faltas no Ano</span>
+                </div>
+                <div class="kpi-card info">
+                    <span class="kpi-val" id="drawer-kpi-atestados">0</span>
+                    <span class="kpi-label">Atestados</span>
+                </div>
+                <div class="kpi-card purple">
+                    <span class="kpi-val" id="drawer-kpi-afastamento">0d</span>
+                    <span class="kpi-label">Afastamento</span>
+                </div>
+                <div class="kpi-card success">
+                    <span class="kpi-val" id="drawer-kpi-dispensas">0</span>
+                    <span class="kpi-label">Dispensas</span>
+                </div>
+            </div>
+
+            <!-- 3. RELATÓRIO DE OCORRÊNCIAS & CIDs -->
+            <div class="drawer-section-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 1.25rem;">
+                <div class="section-card-header" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.9rem; padding-bottom: 0.5rem; border-bottom: 1px solid #f1f5f9;">
+                    <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 0.5rem;">
+                        <i data-lucide="clipboard-list" style="color: var(--primary-color, #8b0000); width: 18px; height: 18px;"></i> Relatório de Ocorrências & CIDs
+                    </h4>
+                    <span style="font-size: 0.78rem; font-weight: 600; color: #64748b;" id="drawer-total-ocorrencias-badge">0 registros</span>
+                </div>
+
+                <div class="occurrence-filter-bar">
+                    <button type="button" class="btn-filter-pill active" data-drawer-filter="todas">Todas</button>
+                    <button type="button" class="btn-filter-pill" data-drawer-filter="atestado">Atestados (CID)</button>
+                    <button type="button" class="btn-filter-pill" data-drawer-filter="falta">Faltas</button>
+                    <button type="button" class="btn-filter-pill" data-drawer-filter="dispensa">Dispensas</button>
+                </div>
+
+                <div class="occurrence-list" id="drawer-occurrences-list">
+                    <div style="padding: 1.5rem; text-align: center; color: #94a3b8; font-size: 0.85rem;">
+                        <i data-lucide="check-circle" style="width: 28px; height: 28px; color: #16a34a; margin-bottom: 0.3rem;"></i>
+                        <p style="margin: 0; font-weight: 600;">Nenhuma falta ou atestado registrado para este integrante na temporada.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. BLOCO DE ANOTAÇÕES & OBSERVAÇÕES ADMINISTRATIVAS -->
+            <div class="drawer-section-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 1.25rem;">
+                <div class="section-card-header" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.6rem; padding-bottom: 0.5rem; border-bottom: 1px solid #f1f5f9;">
+                    <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 0.5rem;">
+                        <i data-lucide="sticky-note" style="color: var(--primary-color, #8b0000); width: 18px; height: 18px;"></i> Observações da Administração
+                    </h4>
+                    <span style="font-size: 0.75rem; color: #94a3b8; font-weight: 500;">Confidencial</span>
+                </div>
+                <p style="margin: 0; font-size: 0.8rem; color: #64748b;">
+                    Anotações internas sobre desempenho, acordos, masterclasses ou advertências.
+                </p>
+                <div class="notes-textarea-wrapper">
+                    <textarea 
+                        class="notes-textarea" 
+                        id="drawer-notes-input" 
+                        placeholder="Digite aqui observações e notas sobre este integrante..."></textarea>
+                    
+                    <div class="notes-actions">
+                        <span class="notes-timestamp" id="drawer-notes-timestamp-display">Nenhuma anotação registrada ainda</span>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <button type="button" class="btn-history-notes" id="btn-open-notes-history" title="Ver todo o histórico de anotações e justificativas da lista de presença">
+                                <i data-lucide="history" style="width: 14px; height: 14px;"></i> <span>Histórico Unificado</span>
+                            </button>
+                            <button type="button" class="btn-save-notes" id="btn-save-drawer-notes">
+                                <i data-lucide="save" style="width: 14px; height: 14px;"></i> <span>Salvar Anotação</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. DADOS ARTÍSTICOS & VÍNCULO (CAMPOS COPIÁVEIS) -->
+            <div class="drawer-section-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 1.25rem;">
+                <div class="section-card-header" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.8rem; padding-bottom: 0.4rem; border-bottom: 1px solid #f1f5f9;">
+                    <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--primary-color, #8b0000); display: flex; align-items: center; gap: 0.4rem;">
+                        <i data-lucide="music" style="width: 16px; height: 16px;"></i> Dados Artísticos & Vínculo
+                    </h4>
+                    <span style="font-size: 0.75rem; color: #94a3b8;">Clique para copiar</span>
+                </div>
+                <div class="drawer-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.8rem 1rem;">
+                    <div class="drawer-field copyable-area" style="grid-column: span 2;">
+                        <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Nome Registro</span>
+                        <span class="field-value field-txt" id="drawer-val-nome-registro" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block; word-break: break-all;">-</span>
+                    </div>
+                    <div class="drawer-field copyable-area">
+                        <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Escalado</span>
+                        <span class="field-value field-txt" id="drawer-val-escalado" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                    </div>
+                    <div class="drawer-field copyable-area">
+                        <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Anos na OER</span>
+                        <span class="field-value field-txt" id="drawer-val-anos-oer" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                    </div>
+                    <div class="drawer-field copyable-area">
+                        <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Tempo na OER</span>
+                        <span class="field-value field-txt" id="drawer-val-tempo-oer" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                    </div>
+                    <div class="drawer-field copyable-area">
+                        <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Início OER Contrato</span>
+                        <span class="field-value field-txt" id="drawer-val-inicio-contrato" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                    </div>
+                    <div class="drawer-field copyable-area">
+                        <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Término OER Contrato</span>
+                        <span class="field-value field-txt" id="drawer-val-termino-contrato" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                    </div>
+                    <div class="drawer-field copyable-area" style="grid-column: span 2;">
+                        <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Tipo de Contrato</span>
+                        <span class="field-value field-txt" id="drawer-val-tipo-contrato" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                    </div>
+                    <div class="drawer-field copyable-area" style="grid-column: span 2;">
+                        <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Data Envio Caderno de Excertos</span>
+                        <span class="field-value field-txt" id="drawer-val-caderno-excertos" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. CONTATO & DOCUMENTOS (CAMPOS COPIÁVEIS) -->
+            <div class="drawer-section-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 1.25rem;">
+                <div class="section-card-header" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.8rem; padding-bottom: 0.4rem; border-bottom: 1px solid #f1f5f9;">
+                    <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--primary-color, #8b0000); display: flex; align-items: center; gap: 0.4rem;">
+                        <i data-lucide="contact" style="width: 16px; height: 16px;"></i> Contato & Documentos
+                    </h4>
+                    <span style="font-size: 0.75rem; color: #94a3b8;">Clique para copiar</span>
+                </div>
+                <div class="drawer-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.8rem 1rem;">
+                    <div class="drawer-field copyable-area" style="grid-column: span 2;">
+                        <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">E-mail</span>
+                        <span class="field-value field-txt" id="drawer-val-email" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block; word-break: break-all;">-</span>
+                    </div>
+                    <div class="drawer-field copyable-area">
+                        <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Telefone</span>
+                        <div class="field-value field-txt" id="drawer-val-telefone" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</div>
+                    </div>
+                    <div class="drawer-field copyable-area">
+                        <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">CPF</span>
+                        <span class="field-value field-txt" id="drawer-val-cpf" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                    </div>
+                    <div class="drawer-field copyable-area">
+                        <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">RG</span>
+                        <span class="field-value field-txt" id="drawer-val-rg" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                    </div>
+                    <div class="drawer-field copyable-area">
+                        <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">PIS/PASEP</span>
+                        <span class="field-value field-txt" id="drawer-val-pis" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                    </div>
+                    <div class="drawer-field copyable-area">
+                        <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Data de Nascimento</span>
+                        <span class="field-value field-txt" id="drawer-val-nascimento" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                    </div>
+                    <div class="drawer-field copyable-area">
+                        <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Idade</span>
+                        <span class="field-value field-txt" id="drawer-val-idade" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                    </div>
+                    <div class="drawer-field copyable-area">
+                        <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Gênero</span>
+                        <span class="field-value field-txt" id="drawer-val-genero" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7. DADOS BANCÁRIOS (CAMPOS COPIÁVEIS) -->
+            <div class="drawer-section-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 1.25rem;">
+                <div class="section-card-header" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.8rem; padding-bottom: 0.4rem; border-bottom: 1px solid #f1f5f9;">
+                    <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--primary-color, #8b0000); display: flex; align-items: center; gap: 0.4rem;">
+                        <i data-lucide="wallet" style="width: 16px; height: 16px;"></i> Dados Bancários
+                    </h4>
+                    <span style="font-size: 0.75rem; color: #94a3b8;">Clique para copiar</span>
+                </div>
+                <div class="drawer-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.8rem 1rem;">
+                    <div class="drawer-field copyable-area">
+                        <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Banco</span>
+                        <span class="field-value field-txt" id="drawer-val-banco" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                    </div>
+                    <div class="drawer-field copyable-area">
+                        <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Agência</span>
+                        <span class="field-value field-txt" id="drawer-val-agencia" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                    </div>
+                    <div class="drawer-field copyable-area" style="grid-column: span 2;">
+                        <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Conta Corrente</span>
+                        <span class="field-value field-txt" id="drawer-val-conta" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 8. LOGÍSTICA & RESTRIÇÕES (CAMPOS COPIÁVEIS) -->
+            <div class="drawer-section-card" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 1.25rem;">
+                <div class="section-card-header" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.8rem; padding-bottom: 0.4rem; border-bottom: 1px solid #f1f5f9;">
+                    <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--primary-color, #8b0000); display: flex; align-items: center; gap: 0.4rem;">
+                        <i data-lucide="truck" style="width: 16px; height: 16px;"></i> Logística & Endereço
+                    </h4>
+                    <span style="font-size: 0.75rem; color: #94a3b8;">Clique para copiar</span>
+                </div>
+                <div class="drawer-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.8rem 1rem;">
+                    <div class="drawer-field copyable-area" style="grid-column: span 2;">
+                        <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Endereço</span>
+                        <span class="field-value field-txt" id="drawer-val-endereco" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block; word-break: break-all;">-</span>
+                    </div>
+                    <div class="drawer-field copyable-area">
+                        <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">CEP</span>
+                        <span class="field-value field-txt" id="drawer-val-cep" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                    </div>
+                    <div class="drawer-field copyable-area">
+                        <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Restrição Alimentar</span>
+                        <span class="field-value field-txt" id="drawer-val-restricao" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block; word-break: break-all;">-</span>
+                    </div>
+                    <div class="drawer-field copyable-area" style="grid-column: span 2;">
+                        <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Dados do Carro</span>
+                        <span class="field-value field-txt" id="drawer-val-carro" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block; word-break: break-all;">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botões de Ação do Rodapé -->
+            <div style="display: flex; gap: 0.75rem; padding-top: 1rem; border-top: 1px solid #f1f5f9;">
+                <button type="button" class="btn-primary" id="btn-open-export-modal" style="flex: 1; padding: 0.65rem; border-radius: 8px; font-weight: 600; font-size: 0.88rem; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem; background: linear-gradient(135deg, var(--primary-color, #8b0000), #991b1b); color: white; border: none; box-shadow: 0 4px 12px rgba(139,0,0,0.2);">
+                    <i data-lucide="printer" style="width: 16px; height: 16px;"></i> Imprimir / Exportar Relatório
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ====================================================================
+         MODAL 1: EXPORTAÇÃO (COPIAR TEXTO OU IMPRIMIR COM LOGO OER)
+         ==================================================================== -->
+    <div class="modal-overlay" id="admin-export-modal" style="display: none; z-index: 3100;">
+        <div class="modal-custom-content" style="background: #ffffff; width: min(580px, 100%); border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); overflow: hidden; display: flex; flex-direction: column;">
+            <div class="modal-custom-header" style="padding: 1.25rem 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; background: #fafafa;">
+                <h4 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 0.5rem;">
+                    <i data-lucide="file-output" style="color: var(--primary-color, #8b0000);"></i> Exportar Ficha do Integrante
+                </h4>
+                <button type="button" class="btn-close-modal" id="btn-close-admin-export-modal" style="background: none; border: none; cursor: pointer; color: #94a3b8; display: flex;">
+                    <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                </button>
+            </div>
+            <div class="modal-custom-body" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.2rem;">
+                <p style="margin: 0; font-size: 0.88rem; color: #64748b;">
+                    Escolha como deseja gerar e compartilhar as informações deste integrante:
+                </p>
+
+                <!-- Opção 1: Copiar Relatório Geral em Texto -->
+                <div class="export-option-card" id="btn-admin-copy-report-text">
+                    <div class="export-opt-info">
+                        <div class="export-opt-icon">
+                            <i data-lucide="copy"></i>
+                        </div>
+                        <div>
+                            <h5 class="export-opt-title">Copiar Relatório em Texto</h5>
+                            <p class="export-opt-desc">Gera um resumo formatado e copia direto para a área de transferência (ideal para WhatsApp ou e-mail).</p>
+                        </div>
+                    </div>
+                    <i data-lucide="chevron-right" style="color: #94a3b8;"></i>
+                </div>
+
+                <!-- Opção 2: Imprimir Ficha Estilizada com Logo OER -->
+                <div class="export-option-card" id="btn-admin-print-official-card">
+                    <div class="export-opt-info">
+                        <div class="export-opt-icon blue">
+                            <i data-lucide="printer"></i>
+                        </div>
+                        <div>
+                            <h5 class="export-opt-title">Imprimir Ficha Oficial (PDF)</h5>
+                            <p class="export-opt-desc">Abre a visualização de impressão A4 com logo oficial da OER, dados organizados e lista de ocorrências.</p>
+                        </div>
+                    </div>
+                    <i data-lucide="chevron-right" style="color: #94a3b8;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====================================================================
+         MODAL 2: HISTÓRICO UNIFICADO DE ANOTAÇÕES & JUSTIFICATIVAS
+         ==================================================================== -->
+    <div class="modal-overlay" id="admin-notes-history-modal" style="display: none; z-index: 3100;">
+        <div class="modal-custom-content" style="background: #ffffff; width: min(620px, 100%); border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); overflow: hidden; display: flex; flex-direction: column; max-height: 90vh;">
+            <div class="modal-custom-header" style="padding: 1.25rem 1.5rem; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; background: #fafafa;">
+                <h4 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 0.5rem;">
+                    <i data-lucide="history" style="color: var(--primary-color, #8b0000);"></i> Histórico de Anotações & Justificativas
+                </h4>
+                <button type="button" class="btn-close-modal" id="btn-close-admin-notes-modal" style="background: none; border: none; cursor: pointer; color: #94a3b8; display: flex;">
+                    <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                </button>
+            </div>
+            <div class="modal-custom-body" style="padding: 1.5rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem;">
+                <p style="margin: 0; font-size: 0.85rem; color: #64748b;" id="admin-notes-history-subtitle">
+                    Linha do tempo consolidando as notas da Coordenação e as justificativas digitadas nas listas de presença:
+                </p>
+
+                <div style="display: flex; flex-direction: column; gap: 0.85rem;" id="admin-unified-notes-list">
+                    <!-- Gerado dinamicamente via JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====================================================================
+         ELEMENTO OCULTO PARA IMPRESSÃO TIMBRADA (PRINTABLE REPORT)
+         ==================================================================== -->
+    <div id="printable-report">
+        <div class="print-header">
+            <img src="assets/img/logo_oer.png" alt="OER Logo" onerror="this.src='https://oer-agenda.web.app/assets/img/logo_oer.png'">
+            <div class="print-title">
+                <h2>Orquestra Experimental de Repertório</h2>
+                <p>Ficha de Acompanhamento Artístico & Frequência · Temporada 2026</p>
+            </div>
+        </div>
+
+        <table class="print-table">
+            <tr>
+                <th colspan="4" style="background: #8b0000; color: white;">1. IDENTIFICAÇÃO DO INTEGRANTE</th>
+            </tr>
+            <tr>
+                <td><strong>Nome Artístico:</strong> <span id="pr-nome-artistico">-</span></td>
+                <td><strong>Instrumento:</strong> <span id="pr-instrumento">-</span></td>
+                <td><strong>Vínculo:</strong> <span id="pr-status">-</span></td>
+                <td><strong>Participação Mês:</strong> <span id="pr-frequencia">-</span></td>
+            </tr>
+            <tr>
+                <td colspan="2"><strong>Nome Registro:</strong> <span id="pr-nome-registro">-</span></td>
+                <td><strong>CPF:</strong> <span id="pr-cpf">-</span></td>
+                <td><strong>RG:</strong> <span id="pr-rg">-</span></td>
+            </tr>
+            <tr>
+                <td colspan="2"><strong>E-mail:</strong> <span id="pr-email">-</span></td>
+                <td colspan="2"><strong>Telefone:</strong> <span id="pr-telefone">-</span></td>
+            </tr>
+            <tr>
+                <td><strong>Início Contrato:</strong> <span id="pr-inicio">-</span></td>
+                <td><strong>Término Contrato:</strong> <span id="pr-termino">-</span></td>
+                <td colspan="2"><strong>Dados Bancários:</strong> <span id="pr-banco">-</span></td>
+            </tr>
+            <tr>
+                <td colspan="2"><strong>Restrição Alimentar:</strong> <span id="pr-restricao">-</span></td>
+                <td colspan="2"><strong>Veículo Cadastrado:</strong> <span id="pr-carro">-</span></td>
+            </tr>
+        </table>
+
+        <table class="print-table">
+            <tr>
+                <th colspan="4" style="background: #8b0000; color: white;">2. RESUMO DE FREQUÊNCIA & SAÚDE</th>
+            </tr>
+            <tr>
+                <td style="text-align: center;"><strong>Faltas no Ano:</strong><br><span id="pr-kpi-faltas" style="font-size: 1.2rem; color: #dc2626;">0</span></td>
+                <td style="text-align: center;"><strong>Atestados Médicos:</strong><br><span id="pr-kpi-atestados" style="font-size: 1.2rem; color: #0284c7;">0</span></td>
+                <td style="text-align: center;"><strong>Dias Afastado:</strong><br><span id="pr-kpi-afastamento" style="font-size: 1.2rem; color: #9333ea;">0</span></td>
+                <td style="text-align: center;"><strong>Dispensas Concedidas:</strong><br><span id="pr-kpi-dispensas" style="font-size: 1.2rem; color: #16a34a;">0</span></td>
+            </tr>
+        </table>
+
+        <div style="margin-bottom: 15px;">
+            <h4 style="margin: 0 0 5px 0; font-size: 0.95rem; color: #8b0000; border-bottom: 1px solid #ccc; padding-bottom: 3px;">
+                3. HISTÓRICO DE OCORRÊNCIAS, FALTAS E CIDs
+            </h4>
+            <table class="print-table" id="pr-table-ocorrencias">
+                <thead>
+                    <tr>
+                        <th>Data / Período</th>
+                        <th>Tipo</th>
+                        <th>Descrição / CID Médico</th>
+                        <th>Justificativa / Detalhes</th>
+                    </tr>
+                </thead>
+                <tbody id="pr-tbody-ocorrencias">
+                    <!-- Inserido dinamicamente -->
+                </tbody>
+            </table>
+        </div>
+
+        <div>
+            <h4 style="margin: 0 0 5px 0; font-size: 0.95rem; color: #8b0000; border-bottom: 1px solid #ccc; padding-bottom: 3px;">
+                4. OBSERVAÇÕES E ANOTAÇÕES DA ADMINISTRAÇÃO
+            </h4>
+            <div id="pr-observacoes" style="border: 1px solid #ddd; padding: 10px; font-size: 0.85rem; min-height: 50px; background: #fafafa;">
+                -
+            </div>
+        </div>
+
+        <div style="margin-top: 30px; font-size: 0.75rem; color: #777; text-align: right;">
+            Documento gerado automaticamente pelo Sistema OER em <span id="pr-data-emissao">-</span>.
+        </div>
     </div>
     <!-- Modal de Ajustes do Sistema -->
     <div id="settings-modal" class="modal-overlay" style="display: none;">

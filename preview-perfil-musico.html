@@ -1,0 +1,2683 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Preview: Busca Google & Gaveta do Músico - OER</title>
+
+    <!-- Fonte Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- CSS base do projeto -->
+    <link rel="stylesheet" href="assets/css/common.css">
+    <link rel="stylesheet" href="assets/css/admin.css">
+
+    <!-- Ícones Lucide -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        :root {
+            --primary-oer: #8b0000;
+            --primary-hover: #700000;
+            --primary-soft: rgba(139, 0, 0, 0.08);
+            --bg-page: #f8f9fc;
+            --surface: #ffffff;
+            --border-light: #e5e7eb;
+            --text-main: #1f2937;
+            --text-muted: #6b7280;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-page);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Banner de Modo Demonstração */
+        .demo-top-banner {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            color: #f1f5f9;
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.85rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        .demo-top-banner strong {
+            color: #38bdf8;
+            font-weight: 700;
+        }
+        .demo-badge {
+            background: rgba(56, 189, 248, 0.15);
+            color: #38bdf8;
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Container Principal simula a página do Admin */
+        .preview-wrapper {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+
+        /* Simulador do Header e Tabs do Admin */
+        .mock-nav-tabs {
+            display: flex;
+            gap: 0.5rem;
+            border-bottom: 2px solid #e2e8f0;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            overflow-x: auto;
+        }
+        .mock-tab {
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #64748b;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.2s;
+        }
+        .mock-tab.active {
+            background: #fff;
+            color: var(--primary-oer);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            border-bottom: 2px solid var(--primary-oer);
+        }
+
+        /* ==========================================================================
+           BARRA DE BUSCA CENTRALIZADA ESTILO GOOGLE
+           ========================================================================== */
+        .search-google-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 1.5rem auto 2rem auto;
+            width: 100%;
+            max-width: 720px;
+            position: relative;
+        }
+
+        .search-google-box {
+            width: 100%;
+            position: relative;
+            z-index: 120;
+        }
+
+        .search-google-input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            background: #ffffff;
+            border: 1.5px solid #d1d5db;
+            border-radius: 32px;
+            padding: 0.65rem 1.25rem;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .search-google-input-wrapper:hover {
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.09);
+            border-color: #cbd5e1;
+        }
+
+        .search-google-input-wrapper.is-focused {
+            border-color: var(--primary-oer);
+            box-shadow: 0 8px 24px rgba(139, 0, 0, 0.12), 0 0 0 4px rgba(139, 0, 0, 0.06);
+            border-bottom-left-radius: 20px;
+            border-bottom-right-radius: 20px;
+        }
+
+        .search-google-input-wrapper .search-icon {
+            color: #9ca3af;
+            width: 22px;
+            height: 22px;
+            margin-right: 0.85rem;
+            flex-shrink: 0;
+            transition: color 0.2s;
+        }
+        .search-google-input-wrapper.is-focused .search-icon {
+            color: var(--primary-oer);
+        }
+
+        .search-google-input {
+            width: 100%;
+            border: none;
+            outline: none;
+            font-size: 1.05rem;
+            font-weight: 500;
+            color: #1e293b;
+            background: transparent;
+            font-family: inherit;
+        }
+        .search-google-input::placeholder {
+            color: #9ca3af;
+            font-weight: 400;
+        }
+
+        .search-clear-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 4px;
+            color: #9ca3af;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.15s;
+        }
+        .search-clear-btn:hover {
+            color: #475569;
+            background: #f1f5f9;
+        }
+        .search-clear-btn.visible {
+            display: flex;
+        }
+
+        .search-shortcut-badge {
+            font-size: 0.72rem;
+            font-weight: 600;
+            background: #f1f5f9;
+            color: #64748b;
+            padding: 3px 7px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            margin-left: 0.5rem;
+            user-select: none;
+            letter-spacing: 0.5px;
+        }
+
+        /* Dropdown Preditivo Suspenso */
+        .search-results-dropdown {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            right: 0;
+            background: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 16px 36px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0,0,0,0.06);
+            border: 1px solid #e2e8f0;
+            overflow: hidden;
+            display: none;
+            flex-direction: column;
+            max-height: 420px;
+            z-index: 125;
+            animation: dropdownSlideIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @keyframes dropdownSlideIn {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .search-results-dropdown.active {
+            display: flex;
+        }
+
+        .search-results-list {
+            list-style: none;
+            margin: 0;
+            padding: 0.5rem 0;
+            overflow-y: auto;
+            max-height: 360px;
+        }
+
+        .search-result-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0.75rem 1.25rem;
+            cursor: pointer;
+            transition: background 0.15s ease;
+            gap: 1rem;
+        }
+        .search-result-item:hover,
+        .search-result-item.highlighted {
+            background-color: #f8fafc;
+        }
+
+        .search-item-left {
+            display: flex;
+            align-items: center;
+            gap: 0.9rem;
+            flex: 1;
+            min-width: 0;
+        }
+
+        .musician-avatar {
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #8b0000, #b91c1c);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.95rem;
+            flex-shrink: 0;
+            box-shadow: 0 2px 6px rgba(139, 0, 0, 0.2);
+        }
+
+        .search-item-info {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+        }
+        .search-item-name {
+            font-size: 0.96rem;
+            font-weight: 600;
+            color: #1e293b;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .search-item-name .match-highlight {
+            color: var(--primary-oer);
+            font-weight: 800;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+
+        .search-item-meta {
+            font-size: 0.8rem;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 2px;
+        }
+
+        .status-pill {
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 2px 8px;
+            border-radius: 12px;
+            text-transform: capitalize;
+            letter-spacing: 0.3px;
+        }
+        .status-pill.bolsista {
+            background: #dcfce7;
+            color: #15803d;
+        }
+        .status-pill.monitor {
+            background: #f3e8ff;
+            color: #7e22ce;
+        }
+        .status-pill.titular {
+            background: #e0f2fe;
+            color: #0369a1;
+        }
+        .status-pill.extra {
+            background: #fef3c7;
+            color: #b45309;
+        }
+
+        .search-quick-stats {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.78rem;
+            color: #64748b;
+            flex-shrink: 0;
+        }
+        .stat-badge-mini {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 3px 8px;
+            border-radius: 6px;
+            background: #f1f5f9;
+            font-weight: 600;
+        }
+        .stat-badge-mini.danger {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+        .stat-badge-mini.info {
+            background: #e0f2fe;
+            color: #0284c7;
+        }
+
+        .search-footer-hint {
+            padding: 0.6rem 1.25rem;
+            background: #f8fafc;
+            border-top: 1px solid #e2e8f0;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .search-no-results {
+            padding: 2.5rem 1.5rem;
+            text-align: center;
+            color: #64748b;
+        }
+        .search-no-results i {
+            width: 36px;
+            height: 36px;
+            color: #cbd5e1;
+            margin-bottom: 0.5rem;
+        }
+
+        /* ==========================================================================
+           GAVETA LATERAL DO MÚSICO (DRAWER)
+           ========================================================================== */
+        .drawer-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.45);
+            backdrop-filter: blur(4px);
+            z-index: 2000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        .drawer-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .musico-drawer {
+            position: fixed;
+            top: 0;
+            right: -660px;
+            width: min(640px, 100%);
+            height: 100vh;
+            background: #ffffff;
+            box-shadow: -10px 0 35px rgba(0, 0, 0, 0.18);
+            z-index: 2001;
+            display: flex;
+            flex-direction: column;
+            transition: right 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .musico-drawer.active {
+            right: 0;
+        }
+
+        /* Header da Gaveta */
+        .drawer-header {
+            padding: 1.25rem 1.75rem;
+            border-bottom: 1px solid #f1f5f9;
+            background: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .drawer-header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .drawer-header-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #8b0000, #b91c1c);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: 700;
+            box-shadow: 0 4px 10px rgba(139, 0, 0, 0.25);
+        }
+        .drawer-header-title h3 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .drawer-header-title p {
+            margin: 2px 0 0 0;
+            font-size: 0.85rem;
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        .drawer-close-btn {
+            background: #f1f5f9;
+            border: none;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            transition: all 0.2s;
+        }
+        .drawer-close-btn:hover {
+            background: #e2e8f0;
+            color: #0f172a;
+            transform: rotate(90deg);
+        }
+
+        /* Corpo com Scroll */
+        .drawer-body {
+            padding: 1.5rem 1.75rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            flex: 1;
+        }
+
+        /* CARD ESPECIAL: PORCENTAGEM DE PARTICIPAÇÃO NO MÊS VIGENTE */
+        .frequency-month-card {
+            background: linear-gradient(135deg, #ffffff, #f8fafc);
+            border: 1.5px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 1.1rem 1.3rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+            position: relative;
+            overflow: hidden;
+        }
+        .frequency-month-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 5px;
+            background: #10b981;
+        }
+        .frequency-month-card.warning::before { background: #f59e0b; }
+        .frequency-month-card.danger::before { background: #ef4444; }
+
+        .frequency-left {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+        .frequency-title {
+            font-size: 0.82rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #475569;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .frequency-subtitle {
+            font-size: 0.8rem;
+            color: #64748b;
+            margin: 0;
+        }
+        .frequency-bar-bg {
+            width: 100%;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 10px;
+            margin-top: 0.5rem;
+            overflow: hidden;
+        }
+        .frequency-bar-fill {
+            height: 100%;
+            background: #10b981;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+
+        .frequency-right {
+            text-align: right;
+            flex-shrink: 0;
+        }
+        .frequency-percentage {
+            font-size: 2.1rem;
+            font-weight: 800;
+            line-height: 1;
+            color: #10b981;
+        }
+        .frequency-month-card.warning .frequency-percentage { color: #f59e0b; }
+        .frequency-month-card.danger .frequency-percentage { color: #ef4444; }
+
+        .frequency-status-label {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            margin-top: 4px;
+            display: block;
+        }
+
+        /* Seção: Cards de KPIs Resumo */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.65rem;
+        }
+        @media (max-width: 540px) {
+            .kpi-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        .kpi-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 0.85rem 0.65rem;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .kpi-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        }
+        .kpi-card.danger {
+            background: #fff5f5;
+            border-color: #fed7d7;
+        }
+        .kpi-card.info {
+            background: #f0f9ff;
+            border-color: #bae6fd;
+        }
+        .kpi-card.purple {
+            background: #faf5ff;
+            border-color: #e9d5ff;
+        }
+        .kpi-card.success {
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+        }
+        .kpi-val {
+            font-size: 1.45rem;
+            font-weight: 800;
+            line-height: 1.1;
+        }
+        .kpi-card.danger .kpi-val { color: #dc2626; }
+        .kpi-card.info .kpi-val { color: #0284c7; }
+        .kpi-card.purple .kpi-val { color: #9333ea; }
+        .kpi-card.success .kpi-val { color: #16a34a; }
+
+        .kpi-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Seções da Gaveta */
+        .drawer-section-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            padding: 1.25rem;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+        }
+
+        .section-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            padding-bottom: 0.6rem;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .section-card-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin: 0;
+        }
+        .section-card-title i {
+            color: var(--primary-oer);
+            width: 18px;
+            height: 18px;
+        }
+
+        /* Timeline / Ocorrências */
+        .occurrence-filter-bar {
+            display: flex;
+            gap: 0.4rem;
+            margin-bottom: 0.9rem;
+            flex-wrap: wrap;
+        }
+        .btn-filter-pill {
+            padding: 0.3rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border: 1px solid #e2e8f0;
+            background: #f8fafc;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .btn-filter-pill.active {
+            background: var(--primary-oer);
+            color: #ffffff;
+            border-color: var(--primary-oer);
+        }
+
+        .occurrence-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            max-height: 280px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+        .occurrence-item {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-left: 4px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 0.75rem 0.9rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+            transition: background 0.15s;
+        }
+        .occurrence-item:hover {
+            background: #f1f5f9;
+        }
+        .occurrence-item.falta {
+            border-left-color: #ef4444;
+        }
+        .occurrence-item.atestado {
+            border-left-color: #0284c7;
+            background: #f0f9ff;
+        }
+        .occurrence-item.dispensa {
+            border-left-color: #8b5cf6;
+            background: #faf5ff;
+        }
+        .occurrence-item.atraso {
+            border-left-color: #f59e0b;
+        }
+
+        .occ-top {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .occ-tag {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            padding: 2px 7px;
+            border-radius: 4px;
+        }
+        .occ-tag.falta { background: #fee2e2; color: #b91c1c; }
+        .occ-tag.atestado { background: #e0f2fe; color: #0369a1; }
+        .occ-tag.dispensa { background: #f3e8ff; color: #6b21a8; }
+        .occ-tag.atraso { background: #fef3c7; color: #b45309; }
+
+        .occ-date {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #64748b;
+        }
+        .occ-desc {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #1e293b;
+            margin: 0;
+        }
+        .occ-cid {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-weight: 700;
+            color: #0284c7;
+            font-size: 0.82rem;
+            background: rgba(2, 132, 199, 0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-top: 2px;
+        }
+        .occ-meta {
+            font-size: 0.76rem;
+            color: #64748b;
+        }
+
+        /* Bloco de Anotações */
+        .notes-textarea-wrapper {
+            position: relative;
+            margin-top: 0.5rem;
+        }
+        .notes-textarea {
+            width: 100%;
+            box-sizing: border-box;
+            min-height: 90px;
+            max-height: 250px;
+            padding: 0.85rem;
+            border-radius: 10px;
+            border: 1.5px solid #d1d5db;
+            font-family: inherit;
+            font-size: 0.88rem;
+            color: #1e293b;
+            line-height: 1.5;
+            resize: vertical;
+            outline: none;
+            transition: all 0.2s;
+            background: #ffffff;
+        }
+        .notes-textarea:focus {
+            border-color: var(--primary-oer);
+            box-shadow: 0 0 0 3px rgba(139, 0, 0, 0.08);
+        }
+        .notes-actions {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 0.6rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .notes-timestamp {
+            font-size: 0.75rem;
+            color: #94a3b8;
+            font-style: italic;
+        }
+        .notes-btns-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .btn-save-notes {
+            background: var(--primary-oer);
+            color: #ffffff;
+            border: none;
+            padding: 0.5rem 1.1rem;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: all 0.2s;
+        }
+        .btn-save-notes:hover {
+            background: var(--primary-hover);
+        }
+        .btn-save-notes.saved {
+            background: #16a34a;
+        }
+
+        .btn-history-notes {
+            background: #f8fafc;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+            padding: 0.5rem 0.9rem;
+            border-radius: 8px;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            transition: all 0.2s;
+        }
+        .btn-history-notes:hover {
+            background: #f1f5f9;
+            color: #0f172a;
+            border-color: #94a3b8;
+        }
+
+        /* ==========================================================================
+           CAMPOS COPIÁVEIS COM CLIQUE (IGUAL ABA MÚSICOS)
+           ========================================================================== */
+        .copyable-area {
+            position: relative;
+            cursor: pointer;
+            transition: background 0.15s ease, transform 0.1s ease;
+            border-radius: 6px;
+            padding: 0.25rem 0.45rem;
+            margin: -0.25rem -0.45rem;
+            display: inline-flex;
+            flex-direction: column;
+        }
+        .copyable-area:hover {
+            background: rgba(139, 0, 0, 0.05);
+        }
+        .copyable-area .copy-icon-indicator {
+            position: absolute;
+            right: 4px;
+            top: 4px;
+            width: 14px;
+            height: 14px;
+            color: #9ca3af;
+            opacity: 0;
+            transition: opacity 0.15s ease, color 0.15s ease;
+            pointer-events: none;
+        }
+        .copyable-area:hover .copy-icon-indicator {
+            opacity: 1;
+        }
+        .copyable-area.copied {
+            background: #ecfdf5;
+        }
+        .copyable-area.copied .copy-icon-indicator {
+            opacity: 1;
+            color: #10b981;
+        }
+        .copyable-area.copied .field-txt {
+            color: #047857 !important;
+        }
+
+        /* Ficha Cadastral (Scroll) */
+        .cadastral-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.85rem 1.1rem;
+        }
+        .cadastral-field {
+            display: flex;
+            flex-direction: column;
+            gap: 0.2rem;
+        }
+        .cadastral-field.span-2 {
+            grid-column: span 2;
+        }
+        .field-lbl {
+            font-size: 0.74rem;
+            color: #94a3b8;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .field-txt {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #1e293b;
+            word-break: break-word;
+        }
+        .field-txt a {
+            color: var(--primary-oer);
+            text-decoration: none;
+        }
+        .field-txt a:hover {
+            text-decoration: underline;
+        }
+
+        .btn-whatsapp-direct {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            background: #25d366;
+            color: white !important;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 0.76rem;
+            font-weight: 700;
+            text-decoration: none !important;
+            margin-left: 0.5rem;
+            transition: filter 0.15s;
+        }
+        .btn-whatsapp-direct:hover {
+            filter: brightness(0.92);
+        }
+
+        .food-restriction-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            background: #fff7ed;
+            color: #c2410c;
+            border: 1px solid #ffedd5;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.82rem;
+            font-weight: 600;
+        }
+
+        /* Rodapé de Informação */
+        .drawer-footer-actions {
+            display: flex;
+            gap: 0.75rem;
+            padding-top: 1rem;
+            border-top: 1px solid #f1f5f9;
+        }
+        .btn-action-primary {
+            flex: 1;
+            padding: 0.65rem;
+            border: none;
+            border-radius: 8px;
+            background: linear-gradient(135deg, var(--primary-oer), #991b1b);
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 0.88rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.45rem;
+            box-shadow: 0 4px 12px rgba(139, 0, 0, 0.2);
+            transition: all 0.15s;
+        }
+        .btn-action-primary:hover {
+            filter: brightness(1.1);
+            transform: translateY(-1px);
+        }
+
+        /* ==========================================================================
+           MODAIS (EXPORTAÇÃO/IMPRESSÃO & HISTÓRICO DE NOTAS)
+           ========================================================================== */
+        .modal-custom-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 3000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+        .modal-custom-overlay.active {
+            display: flex;
+        }
+        .modal-custom-content {
+            background: #ffffff;
+            width: min(580px, 100%);
+            border-radius: 16px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            max-height: 90vh;
+            animation: modalFadeIn 0.2s ease-out;
+        }
+        @keyframes modalFadeIn {
+            from { opacity: 0; transform: scale(0.96); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .modal-custom-header {
+            padding: 1.25rem 1.5rem;
+            border-bottom: 1px solid #f1f5f9;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #fafafa;
+        }
+        .modal-custom-header h4 {
+            margin: 0;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #0f172a;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .modal-custom-close {
+            background: none;
+            border: none;
+            color: #94a3b8;
+            cursor: pointer;
+            padding: 4px;
+            border-radius: 50%;
+            display: flex;
+        }
+        .modal-custom-close:hover { color: #0f172a; background: #e2e8f0; }
+
+        .modal-custom-body {
+            padding: 1.5rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+        }
+
+        /* Cards do Modal de Exportação */
+        .export-option-card {
+            border: 1.5px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .export-option-card:hover {
+            border-color: var(--primary-oer);
+            background: #fdf8f8;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+        }
+        .export-opt-info {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        .export-opt-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            background: rgba(139, 0, 0, 0.1);
+            color: var(--primary-oer);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+        .export-opt-icon.blue {
+            background: rgba(2, 132, 199, 0.1);
+            color: #0284c7;
+        }
+        .export-opt-title {
+            margin: 0;
+            font-size: 1rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        .export-opt-desc {
+            margin: 3px 0 0 0;
+            font-size: 0.82rem;
+            color: #64748b;
+        }
+
+        /* Histórico de Anotações e Justificativas */
+        .unified-note-item {
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 0.9rem 1rem;
+            background: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+        .unified-note-item.origem-presenca {
+            border-left: 4px solid #3b82f6;
+            background: #eff6ff;
+        }
+        .unified-note-item.origem-admin {
+            border-left: 4px solid var(--primary-oer);
+            background: #fff8f8;
+        }
+        .note-item-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .note-origem-badge {
+            font-size: 0.72rem;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 4px;
+            text-transform: uppercase;
+        }
+        .origem-presenca .note-origem-badge { background: #dbeafe; color: #1d4ed8; }
+        .origem-admin .note-origem-badge { background: #fee2e2; color: #991b1b; }
+        .note-item-text {
+            font-size: 0.88rem;
+            color: #1e293b;
+            margin: 0;
+            white-space: pre-wrap;
+            line-height: 1.45;
+        }
+        .note-item-meta {
+            font-size: 0.76rem;
+            color: #64748b;
+        }
+
+        /* ==========================================================================
+           FOLHA DE IMPRESSÃO ESTILIZADA (PRINT VIEW)
+           ========================================================================== */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            #printable-report, #printable-report * {
+                visibility: visible;
+            }
+            #printable-report {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                background: white;
+                color: black;
+                padding: 20px;
+                display: block !important;
+            }
+        }
+        #printable-report {
+            display: none;
+        }
+        .print-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 2px solid #8b0000;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+        .print-header img {
+            max-height: 55px;
+        }
+        .print-title {
+            text-align: right;
+        }
+        .print-title h2 { margin: 0; font-size: 1.3rem; color: #8b0000; }
+        .print-title p { margin: 3px 0 0 0; font-size: 0.85rem; color: #555; }
+        .print-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+            font-size: 0.85rem;
+        }
+        .print-table th, .print-table td {
+            border: 1px solid #ddd;
+            padding: 6px 10px;
+            text-align: left;
+        }
+        .print-table th {
+            background: #f2f2f2;
+            font-weight: 700;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Banner de Demonstração -->
+    <div class="demo-top-banner">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <span class="demo-badge">Modelo Local Atualizado</span>
+            <span>Ambiente com <strong>% de Participação</strong>, <strong>Cópia de Campos com Clique</strong>, <strong>Modal de Impressão/Texto</strong> e <strong>Histórico de Anotações</strong></span>
+        </div>
+        <div>
+            <span style="color: #94a3b8;">Projeto OER · Histórico</span>
+        </div>
+    </div>
+
+    <div class="preview-wrapper">
+
+        <!-- Abas do Painel Admin (Contexto Visual) -->
+        <div class="mock-nav-tabs">
+            <button class="mock-tab active">
+                <i data-lucide="history" style="width: 16px; height: 16px;"></i> Histórico & Comunicação
+            </button>
+            <button class="mock-tab">
+                <i data-lucide="calendar" style="width: 16px; height: 16px;"></i> Calendário
+            </button>
+            <button class="mock-tab">
+                <i data-lucide="users" style="width: 16px; height: 16px;"></i> Músicos
+            </button>
+        </div>
+
+        <!-- ====================================================================
+             COMPONENTE CENTRAL: BARRA DE BUSCA PREDITIVA ESTILO GOOGLE
+             ==================================================================== -->
+        <div class="search-google-section">
+            <div class="search-google-box">
+                <div class="search-google-input-wrapper" id="search-wrapper">
+                    <i data-lucide="search" class="search-icon"></i>
+                    <input 
+                        type="text" 
+                        class="search-google-input" 
+                        id="google-search-input" 
+                        placeholder="Pesquisar músico por nome, instrumento ou registro..." 
+                        autocomplete="off"
+                        spellcheck="false">
+                    
+                    <button class="search-clear-btn" id="search-clear-btn" title="Limpar busca">
+                        <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+                    </button>
+                    <span class="search-shortcut-badge">ESC</span>
+                </div>
+
+                <!-- Dropdown de Resultados Preditivos -->
+                <div class="search-results-dropdown" id="search-dropdown">
+                    <ul class="search-results-list" id="search-results-list">
+                        <!-- Itens gerados dinamicamente via JS -->
+                    </ul>
+                    <div class="search-footer-hint">
+                        <span>Use as setas <kbd>↑</kbd> <kbd>↓</kbd> para navegar e <kbd>Enter</kbd> para selecionar</span>
+                        <span id="results-count-text">5 músicos cadastrados</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ====================================================================
+             CARDS REAIS DA ABA HISTÓRICO (POSICIONADOS LOGO ABAIXO DA BUSCA)
+             ==================================================================== -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+            <!-- Card 1: Músicos Inscritos em Notificações Push -->
+            <div class="subscriber-count-card" id="subscriber-count-card" style="margin-top: 0;">
+                <div class="subscriber-info">
+                    <div class="subscriber-icon-bg">
+                        <i data-lucide="users"></i>
+                    </div>
+                    <div>
+                        <p class="subscriber-count-label">Músicos Inscritos (Push)</p>
+                        <h4 class="subscriber-count-value" id="subscriber-count-value">94 <span>assinantes</span></h4>
+                    </div>
+                </div>
+                <div class="live-indicator">
+                    <span class="live-dot"></span>
+                    <span class="live-text">AO VIVO</span>
+                </div>
+            </div>
+
+            <!-- Card 2: Adesão ao Calendário de Concertos -->
+            <div class="subscriber-count-card" id="calendar-stats-card" style="margin-top: 0; cursor: default;">
+                <div class="subscriber-info">
+                    <div class="subscriber-icon-bg" style="background: rgba(66, 133, 244, 0.12); color: #4285F4;">
+                        <i data-lucide="calendar-check"></i>
+                    </div>
+                    <div>
+                        <p class="subscriber-count-label">Adesão ao Calendário</p>
+                        <h4 class="subscriber-count-value" id="calendar-stats-total" style="color: #1a73e8;">68 <span>adesões</span></h4>
+                        <p id="calendar-stats-breakdown" style="font-size: 0.76rem; color: #777; margin: 2px 0 0 0; font-weight: 500;">
+                            🍏 42 Apple · 🌐 26 Google
+                        </p>
+                    </div>
+                </div>
+                <div class="live-indicator" style="background: rgba(66, 133, 244, 0.1); color: #4285F4;">
+                    <span class="live-dot" style="background: #4285F4;"></span>
+                    <span class="live-text" style="color: #4285F4;">CONCERTOS</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instrução de teste para o usuário -->
+        <div style="background: white; border: 1px dashed #cbd5e1; border-radius: 12px; padding: 1.5rem; text-align: center; color: #64748b;">
+            <p style="margin: 0; font-weight: 500;">
+                💡 <strong>Novidades integradas:</strong>
+                <br>1. Card de <strong>% de Participação no Mês Vigente</strong> (com base nos ensaios até a data atual).
+                <br>2. <strong>Clique para Copiar</strong> em todos os campos cadastrais e de contato (com ícone visual de check).
+                <br>3. Botão <strong>"Imprimir / Exportar"</strong> com modal para <strong>Copiar Relatório em Texto</strong> ou <strong>Imprimir Ficha Oficial</strong>.
+                <br>4. Botão <strong>"Histórico de Notas e Justificativas"</strong> unificando anotações do admin e justificativas da lista de presença!
+            </p>
+        </div>
+    </div>
+
+    <!-- ====================================================================
+         GAVETA LATERAL DE PERFIL COMPLETO (DRAWER)
+         ==================================================================== -->
+    <div class="drawer-overlay" id="drawer-overlay"></div>
+
+    <div class="musico-drawer" id="musico-drawer" role="dialog" aria-modal="true">
+        <!-- Header da Gaveta -->
+        <div class="drawer-header">
+            <div class="drawer-header-left">
+                <div class="drawer-header-avatar" id="drawer-avatar">GS</div>
+                <div class="drawer-header-title">
+                    <h3 id="drawer-nome-artistico">
+                        <span>Gabriel Santos</span>
+                        <span class="status-pill bolsista" id="drawer-status-pill">Bolsista</span>
+                    </h3>
+                    <p id="drawer-subtitulo">Trompete · Vínculo 2025</p>
+                </div>
+            </div>
+            <button class="drawer-close-btn" id="drawer-close-btn" title="Fechar (Esc)">
+                <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+            </button>
+        </div>
+
+        <!-- Corpo da Gaveta com Scroll Vertical Contínuo -->
+        <div class="drawer-body">
+
+            <!-- 1. CARD NOVO: PORCENTAGEM DE PARTICIPAÇÃO NO MÊS VIGENTE -->
+            <div class="frequency-month-card" id="frequency-card">
+                <div class="frequency-left">
+                    <span class="frequency-title">
+                        <i data-lucide="percent" style="width: 16px; height: 16px;"></i> Participação no Mês Vigente
+                    </span>
+                    <p class="frequency-subtitle" id="frequency-subtitle-text">
+                        Compareceu a <strong>9 de 12</strong> ensaios e chamadas convocadas até hoje
+                    </p>
+                    <div class="frequency-bar-bg">
+                        <div class="frequency-bar-fill" id="frequency-bar-fill" style="width: 75%;"></div>
+                    </div>
+                </div>
+                <div class="frequency-right">
+                    <span class="frequency-percentage" id="frequency-percentage-val">75%</span>
+                    <span class="frequency-status-label" id="frequency-status-label" style="color: #f59e0b;">Atenção</span>
+                </div>
+            </div>
+
+            <!-- 2. BLOCO DE KPIS / RESUMO EXECUTIVO -->
+            <div class="kpi-grid">
+                <div class="kpi-card danger">
+                    <span class="kpi-val" id="kpi-faltas">3</span>
+                    <span class="kpi-label">Faltas Totais</span>
+                </div>
+                <div class="kpi-card info">
+                    <span class="kpi-val" id="kpi-atestados">1</span>
+                    <span class="kpi-label">Atestados</span>
+                </div>
+                <div class="kpi-card purple">
+                    <span class="kpi-val" id="kpi-dias-afastamento">1d</span>
+                    <span class="kpi-label">Afastamento</span>
+                </div>
+                <div class="kpi-card success">
+                    <span class="kpi-val" id="kpi-dispensas">0</span>
+                    <span class="kpi-label">Dispensas</span>
+                </div>
+            </div>
+
+            <!-- 3. HISTÓRICO DE FREQUÊNCIA, ATESTADOS E CIDs -->
+            <div class="drawer-section-card">
+                <div class="section-card-header">
+                    <h4 class="section-card-title">
+                        <i data-lucide="clipboard-list"></i> Relatório de Ocorrências & CIDs
+                    </h4>
+                    <span style="font-size: 0.78rem; font-weight: 600; color: #64748b;" id="total-ocorrencias-badge">3 registros</span>
+                </div>
+
+                <div class="occurrence-filter-bar">
+                    <button class="btn-filter-pill active" data-filter="todas">Todas</button>
+                    <button class="btn-filter-pill" data-filter="atestado">Atestados (CID)</button>
+                    <button class="btn-filter-pill" data-filter="falta">Faltas</button>
+                    <button class="btn-filter-pill" data-filter="dispensa">Dispensas</button>
+                </div>
+
+                <div class="occurrence-list" id="drawer-occurrences-list">
+                    <!-- Itens renderizados dinamicamente -->
+                </div>
+            </div>
+
+            <!-- 4. BLOCO DE ANOTAÇÕES & OBSERVAÇÕES ADMINISTRATIVAS -->
+            <div class="drawer-section-card">
+                <div class="section-card-header">
+                    <h4 class="section-card-title">
+                        <i data-lucide="sticky-note"></i> Observações da Administração
+                    </h4>
+                    <span style="font-size: 0.75rem; color: #94a3b8; font-weight: 500;">Confidencial</span>
+                </div>
+                <p style="margin: 0; font-size: 0.8rem; color: #64748b;">
+                    Anotações internas sobre desempenho, acordos, masterclasses ou advertências.
+                </p>
+                <div class="notes-textarea-wrapper">
+                    <textarea 
+                        class="notes-textarea" 
+                        id="drawer-notes-input" 
+                        placeholder="Digite aqui observações e notas sobre este integrante..."></textarea>
+                    
+                    <div class="notes-actions">
+                        <span class="notes-timestamp" id="notes-timestamp-display">Última edição salva</span>
+                        <div class="notes-btns-group">
+                            <button class="btn-history-notes" id="btn-open-notes-history" title="Ver todo o histórico de anotações e justificativas da lista de presença">
+                                <i data-lucide="history" style="width: 14px; height: 14px;"></i> <span>Histórico Unificado</span>
+                            </button>
+                            <button class="btn-save-notes" id="btn-save-notes">
+                                <i data-lucide="save" style="width: 14px; height: 14px;"></i> <span>Salvar Anotação</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. DADOS CADASTRAIS & PESSOAIS COMPLETOS (COM CLIQUE PARA COPIAR) -->
+            <div class="drawer-section-card">
+                <div class="section-card-header">
+                    <h4 class="section-card-title">
+                        <i data-lucide="id-card"></i> Dados Pessoais & Contato
+                    </h4>
+                    <span style="font-size: 0.75rem; color: #94a3b8;">Clique no campo para copiar</span>
+                </div>
+
+                <div class="cadastral-grid">
+                    <div class="cadastral-field span-2 copyable-area" data-copy-target="cad-nome-registro" title="Clique para copiar">
+                        <span class="field-lbl">Nome Registro</span>
+                        <span class="field-txt" id="cad-nome-registro">Gabriel Souza Santos</span>
+                    </div>
+                    <div class="cadastral-field copyable-area" data-copy-target="cad-email" title="Clique para copiar">
+                        <span class="field-lbl">E-mail</span>
+                        <span class="field-txt" id="cad-email">gabriel.trompete@email.com</span>
+                    </div>
+                    <div class="cadastral-field copyable-area" data-copy-target="cad-telefone" title="Clique para copiar telefone">
+                        <span class="field-lbl">Telefone / WhatsApp</span>
+                        <div class="field-txt" style="display: flex; align-items: center;" id="cad-telefone-wrapper">
+                            <span id="cad-telefone">(11) 97654-3210</span>
+                            <a href="#" target="_blank" class="btn-whatsapp-direct" id="cad-btn-whatsapp">
+                                WhatsApp
+                            </a>
+                        </div>
+                    </div>
+                    <div class="cadastral-field copyable-area" data-copy-target="cad-cpf" title="Clique para copiar CPF">
+                        <span class="field-lbl">CPF</span>
+                        <span class="field-txt" id="cad-cpf">345.678.901-22</span>
+                    </div>
+                    <div class="cadastral-field copyable-area" data-copy-target="cad-rg" title="Clique para copiar RG">
+                        <span class="field-lbl">RG</span>
+                        <span class="field-txt" id="cad-rg">52.369.874-1 SSP/SP</span>
+                    </div>
+                    <div class="cadastral-field copyable-area" data-copy-target="cad-nascimento" title="Clique para copiar data de nascimento">
+                        <span class="field-lbl">Data Nascimento</span>
+                        <span class="field-txt" id="cad-nascimento">05/11/2000 (26 anos)</span>
+                    </div>
+                    <div class="cadastral-field copyable-area" data-copy-target="cad-genero" title="Clique para copiar gênero">
+                        <span class="field-lbl">Gênero</span>
+                        <span class="field-txt" id="cad-genero">Masculino</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 6. DADOS BANCÁRIOS & VÍNCULO CONTRATUAL (COM CLIQUE PARA COPIAR) -->
+            <div class="drawer-section-card">
+                <div class="section-card-header">
+                    <h4 class="section-card-title">
+                        <i data-lucide="badge-percent"></i> Vínculo & Dados Bancários
+                    </h4>
+                    <span style="font-size: 0.75rem; color: #94a3b8;">Clique no campo para copiar</span>
+                </div>
+
+                <div class="cadastral-grid">
+                    <div class="cadastral-field copyable-area" data-copy-target="cad-inicio-contrato" title="Clique para copiar início">
+                        <span class="field-lbl">Início Contrato</span>
+                        <span class="field-txt" id="cad-inicio-contrato">01/02/2025</span>
+                    </div>
+                    <div class="cadastral-field copyable-area" data-copy-target="cad-termino-contrato" title="Clique para copiar término">
+                        <span class="field-lbl">Término Contrato</span>
+                        <span class="field-txt" id="cad-termino-contrato">31/12/2026</span>
+                    </div>
+                    <div class="cadastral-field copyable-area" data-copy-target="cad-tempo-oer" title="Clique para copiar tempo">
+                        <span class="field-lbl">Tempo na OER</span>
+                        <span class="field-txt" id="cad-tempo-oer">1 ano e 7 meses</span>
+                    </div>
+                    <div class="cadastral-field copyable-area" data-copy-target="cad-banco" title="Clique para copiar dados bancários">
+                        <span class="field-lbl">Banco / Agência / Conta</span>
+                        <span class="field-txt" id="cad-banco">Santander · Ag 3456 · CC 78901-2</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7. LOGÍSTICA & RESTRIÇÕES ALIMENTARES (COM CLIQUE PARA COPIAR) -->
+            <div class="drawer-section-card">
+                <div class="section-card-header">
+                    <h4 class="section-card-title">
+                        <i data-lucide="truck"></i> Logística, Turnês & Alimentação
+                    </h4>
+                    <span style="font-size: 0.75rem; color: #94a3b8;">Clique no campo para copiar</span>
+                </div>
+
+                <div class="cadastral-grid">
+                    <div class="cadastral-field span-2 copyable-area" data-copy-target="cad-restricao-text" title="Clique para copiar restrição">
+                        <span class="field-lbl">Restrição Alimentar</span>
+                        <div id="cad-restricao-wrapper">
+                            <span class="food-restriction-badge" id="cad-restricao-text">🥛 Intolerância severa à lactose</span>
+                        </div>
+                    </div>
+                    <div class="cadastral-field span-2 copyable-area" data-copy-target="cad-endereco" title="Clique para copiar endereço">
+                        <span class="field-lbl">Endereço Residencial</span>
+                        <span class="field-txt" id="cad-endereco">Rua Vergueiro, 2500 - Vila Mariana, São Paulo - SP, CEP 04101-000</span>
+                    </div>
+                    <div class="cadastral-field span-2 copyable-area" data-copy-target="cad-carro" title="Clique para copiar veículo">
+                        <span class="field-lbl">Veículo / Estacionamento</span>
+                        <span class="field-txt" id="cad-carro">Fiat Uno Branco · Placa XYZ-9876</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ações Finais na Gaveta -->
+            <div class="drawer-footer-actions">
+                <button class="btn-action-primary" id="btn-open-export-modal">
+                    <i data-lucide="printer" style="width: 16px; height: 16px;"></i> Imprimir / Exportar Relatório
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ====================================================================
+         MODAL 1: EXPORTAÇÃO (COPIAR TEXTO OU IMPRIMIR FICHA TIMBRADA)
+         ==================================================================== -->
+    <div class="modal-custom-overlay" id="export-modal">
+        <div class="modal-custom-content">
+            <div class="modal-custom-header">
+                <h4><i data-lucide="file-output" style="color: var(--primary-oer);"></i> Exportar Ficha do Integrante</h4>
+                <button class="modal-custom-close" id="btn-close-export-modal">
+                    <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                </button>
+            </div>
+            <div class="modal-custom-body">
+                <p style="margin: 0; font-size: 0.88rem; color: #64748b;">
+                    Escolha como deseja gerar e compartilhar as informações deste integrante:
+                </p>
+
+                <!-- Opção 1: Copiar Relatório Geral em Texto -->
+                <div class="export-option-card" id="btn-copy-report-text">
+                    <div class="export-opt-info">
+                        <div class="export-opt-icon">
+                            <i data-lucide="copy"></i>
+                        </div>
+                        <div>
+                            <h5 class="export-opt-title">Copiar Relatório em Texto</h5>
+                            <p class="export-opt-desc">Gera um resumo formatado e copia direto para a área de transferência (ideal para WhatsApp ou e-mail).</p>
+                        </div>
+                    </div>
+                    <i data-lucide="chevron-right" style="color: #94a3b8;"></i>
+                </div>
+
+                <!-- Opção 2: Imprimir Ficha Estilizada com Logo OER -->
+                <div class="export-option-card" id="btn-print-official-card">
+                    <div class="export-opt-info">
+                        <div class="export-opt-icon blue">
+                            <i data-lucide="printer"></i>
+                        </div>
+                        <div>
+                            <h5 class="export-opt-title">Imprimir Ficha Oficial (PDF)</h5>
+                            <p class="export-opt-desc">Abre a visualização de impressão A4 com logo oficial da OER, dados organizados e lista de ocorrências.</p>
+                        </div>
+                    </div>
+                    <i data-lucide="chevron-right" style="color: #94a3b8;"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====================================================================
+         MODAL 2: HISTÓRICO UNIFICADO DE ANOTAÇÕES & JUSTIFICATIVAS
+         ==================================================================== -->
+    <div class="modal-custom-overlay" id="notes-history-modal">
+        <div class="modal-custom-content" style="width: min(620px, 100%);">
+            <div class="modal-custom-header">
+                <h4><i data-lucide="history" style="color: var(--primary-oer);"></i> Histórico de Anotações & Justificativas</h4>
+                <button class="modal-custom-close" id="btn-close-notes-modal">
+                    <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                </button>
+            </div>
+            <div class="modal-custom-body">
+                <p style="margin: 0; font-size: 0.85rem; color: #64748b;" id="notes-history-subtitle">
+                    Linha do tempo consolidando as notas da Coordenação e as justificativas digitadas nas listas de presença:
+                </p>
+
+                <div style="display: flex; flex-direction: column; gap: 0.85rem; max-height: 420px; overflow-y: auto;" id="unified-notes-list">
+                    <!-- Gerado dinamicamente via JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ====================================================================
+         ELEMENTO OCULTO PARA IMPRESSÃO TIMBRADA (PRINTABLE REPORT)
+         ==================================================================== -->
+    <div id="printable-report">
+        <div class="print-header">
+            <img src="assets/img/logo_oer.png" alt="OER Logo" onerror="this.src='https://oer-agenda.web.app/assets/img/logo_oer.png'">
+            <div class="print-title">
+                <h2>Orquestra Experimental de Repertório</h2>
+                <p>Ficha de Acompanhamento Artístico & Frequência · Temporada 2026</p>
+            </div>
+        </div>
+
+        <table class="print-table">
+            <tr>
+                <th colspan="4" style="background: #8b0000; color: white;">1. IDENTIFICAÇÃO DO INTEGRANTE</th>
+            </tr>
+            <tr>
+                <td><strong>Nome Artístico:</strong> <span id="pr-nome-artistico">-</span></td>
+                <td><strong>Instrumento:</strong> <span id="pr-instrumento">-</span></td>
+                <td><strong>Vínculo:</strong> <span id="pr-status">-</span></td>
+                <td><strong>Participação Mês:</strong> <span id="pr-frequencia">-</span></td>
+            </tr>
+            <tr>
+                <td colspan="2"><strong>Nome Registro:</strong> <span id="pr-nome-registro">-</span></td>
+                <td><strong>CPF:</strong> <span id="pr-cpf">-</span></td>
+                <td><strong>RG:</strong> <span id="pr-rg">-</span></td>
+            </tr>
+            <tr>
+                <td colspan="2"><strong>E-mail:</strong> <span id="pr-email">-</span></td>
+                <td colspan="2"><strong>Telefone:</strong> <span id="pr-telefone">-</span></td>
+            </tr>
+            <tr>
+                <td><strong>Início Contrato:</strong> <span id="pr-inicio">-</span></td>
+                <td><strong>Término Contrato:</strong> <span id="pr-termino">-</span></td>
+                <td colspan="2"><strong>Dados Bancários:</strong> <span id="pr-banco">-</span></td>
+            </tr>
+            <tr>
+                <td colspan="2"><strong>Restrição Alimentar:</strong> <span id="pr-restricao">-</span></td>
+                <td colspan="2"><strong>Veículo Cadastrado:</strong> <span id="pr-carro">-</span></td>
+            </tr>
+        </table>
+
+        <table class="print-table">
+            <tr>
+                <th colspan="4" style="background: #8b0000; color: white;">2. RESUMO DE FREQUÊNCIA & SAÚDE</th>
+            </tr>
+            <tr>
+                <td style="text-align: center;"><strong>Faltas no Ano:</strong><br><span id="pr-kpi-faltas" style="font-size: 1.2rem; color: #dc2626;">0</span></td>
+                <td style="text-align: center;"><strong>Atestados Médicos:</strong><br><span id="pr-kpi-atestados" style="font-size: 1.2rem; color: #0284c7;">0</span></td>
+                <td style="text-align: center;"><strong>Dias Afastado:</strong><br><span id="pr-kpi-afastamento" style="font-size: 1.2rem; color: #9333ea;">0</span></td>
+                <td style="text-align: center;"><strong>Dispensas Concedidas:</strong><br><span id="pr-kpi-dispensas" style="font-size: 1.2rem; color: #16a34a;">0</span></td>
+            </tr>
+        </table>
+
+        <div style="margin-bottom: 15px;">
+            <h4 style="margin: 0 0 5px 0; font-size: 0.95rem; color: #8b0000; border-bottom: 1px solid #ccc; padding-bottom: 3px;">
+                3. HISTÓRICO DE OCORRÊNCIAS, FALTAS E CIDs
+            </h4>
+            <table class="print-table" id="pr-table-ocorrencias">
+                <thead>
+                    <tr>
+                        <th>Data / Período</th>
+                        <th>Tipo</th>
+                        <th>Descrição / CID Médico</th>
+                        <th>Justificativa / Detalhes</th>
+                    </tr>
+                </thead>
+                <tbody id="pr-tbody-ocorrencias">
+                    <!-- Inserido dinamicamente -->
+                </tbody>
+            </table>
+        </div>
+
+        <div>
+            <h4 style="margin: 0 0 5px 0; font-size: 0.95rem; color: #8b0000; border-bottom: 1px solid #ccc; padding-bottom: 3px;">
+                4. OBSERVAÇÕES E ANOTAÇÕES DA ADMINISTRAÇÃO
+            </h4>
+            <div id="pr-observacoes" style="border: 1px solid #ddd; padding: 10px; font-size: 0.85rem; min-height: 50px; background: #fafafa;">
+                -
+            </div>
+        </div>
+
+        <div style="margin-top: 30px; font-size: 0.75rem; color: #777; text-align: right;">
+            Documento gerado automaticamente pelo Sistema OER em <span id="pr-data-emissao">-</span>.
+        </div>
+    </div>
+
+    <!-- ====================================================================
+         DADOS DE EXEMPLO E LÓGICA INTERATIVA
+         ==================================================================== -->
+    <script>
+        // Base de dados simulada de músicos ativos com cálculo de presença e justificativas
+        const mockMusicians = [
+            {
+                id: "mus_003",
+                nomeArtistico: "Gabriel Santos",
+                nomeRegistro: "Gabriel Souza Santos",
+                instrumento: "Trompete",
+                status: "bolsista",
+                escalado: "Sim",
+                email: "gabriel.trompete@email.com",
+                telefone: "(11) 97654-3210",
+                cpf: "345.678.901-22",
+                rg: "52.369.874-1 SSP/SP",
+                nascimento: "05/11/2000 (26 anos)",
+                genero: "Masculino",
+                inicioContrato: "01/02/2025",
+                terminoContrato: "31/12/2026",
+                tempoOer: "1 ano e 7 meses",
+                banco: "Santander · Ag 3456 · CC 78901-2",
+                restricao: "🥛 Intolerância severa à lactose",
+                endereco: "Rua Vergueiro, 2500 - Vila Mariana, São Paulo - SP, CEP 04101-000",
+                carro: "Fiat Uno Branco · Placa XYZ-9876",
+                frequenciaMes: {
+                    porcentagem: 75,
+                    presentes: 9,
+                    totalChamadasAteHoje: 12,
+                    statusClass: "warning",
+                    statusLabel: "Atenção (75%)"
+                },
+                kpis: { faltas: 3, atestados: 1, diasAfastamento: "1d", dispensas: 0 },
+                ocorrencias: [
+                    {
+                        tipo: "falta",
+                        tag: "Falta Injustificada",
+                        data: "12/06/2026",
+                        titulo: "Falta na Passagem de Som (Theatro Municipal)",
+                        cid: null,
+                        meta: "Notificado pela coordenação de produção"
+                    },
+                    {
+                        tipo: "atestado",
+                        tag: "Atestado Homologado",
+                        data: "02/08/2026 (1 dia)",
+                        titulo: "Atestado Odontológico",
+                        cid: "CID K08.8 - Procedimento cirúrgico odontológico",
+                        meta: "Dr. Marcos Paulo · CRO 45891"
+                    },
+                    {
+                        tipo: "atraso",
+                        tag: "Atraso Acumulado",
+                        data: "25/04/2026",
+                        titulo: "+25 min no Ensaio Tutti",
+                        cid: null,
+                        meta: "Trânsito na Av. 23 de Maio"
+                    }
+                ],
+                observacoes: "Avisado verbalmente sobre a pontualidade na passagem de som. Desempenho técnico sólido nos solos.",
+                historicoNotasEJustificativas: [
+                    {
+                        origem: "admin",
+                        origemLabel: "Coordenação Administrativa",
+                        data: "14/06/2026 às 15:30",
+                        autor: "Inspetoria OER",
+                        texto: "Reunião de alinhamento sobre assiduidade e compromisso com os horários de passagem de som no Theatro Municipal."
+                    },
+                    {
+                        origem: "presenca",
+                        origemLabel: "Justificativa da Lista de Presença",
+                        data: "25/04/2026 (Ensaio Tutti)",
+                        autor: "Lista de Presença - Chamada 14",
+                        texto: "Chegou às 10:25 devido a paralisação de tráfego no corredor norte. Compensou estudo individual no intervalo."
+                    },
+                    {
+                        origem: "presenca",
+                        origemLabel: "Justificativa da Lista de Presença",
+                        data: "02/08/2026 (Ensaio Naipe Metais)",
+                        autor: "Lista de Presença - Chamada 28",
+                        texto: "Ausência justificada por procedimento odontológico cirúrgico (atestado enviado no portal e homologado)."
+                    }
+                ]
+            },
+            {
+                id: "mus_001",
+                nomeArtistico: "Lucas Ribeiro",
+                nomeRegistro: "Lucas Ribeiro da Silva",
+                instrumento: "Violino I",
+                status: "bolsista",
+                escalado: "Sim",
+                email: "lucas.violino@email.com",
+                telefone: "(11) 98765-4321",
+                cpf: "123.456.789-00",
+                rg: "32.145.678-9 SSP/SP",
+                nascimento: "14/05/1998 (28 anos)",
+                genero: "Masculino",
+                inicioContrato: "01/02/2024",
+                terminoContrato: "31/12/2026",
+                tempoOer: "2 anos e 7 meses",
+                banco: "Banco do Brasil · Ag 1234 · CC 56789-0",
+                restricao: "🌱 Vegetariano estrito",
+                endereco: "Rua Conselheiro Crispiniano, 378 - República, São Paulo - SP",
+                carro: "Honda Civic Prata · Placa ABC-1234",
+                frequenciaMes: {
+                    porcentagem: 92,
+                    presentes: 11,
+                    totalChamadasAteHoje: 12,
+                    statusClass: "success",
+                    statusLabel: "Excelente (92%)"
+                },
+                kpis: { faltas: 2, atestados: 1, diasAfastamento: "3d", dispensas: 1 },
+                ocorrencias: [
+                    {
+                        tipo: "atestado",
+                        tag: "Atestado Homologado",
+                        data: "10/05/2026 a 12/05/2026 (3 dias)",
+                        titulo: "Atestado Médico Aprovado",
+                        cid: "CID M54.5 - Dor lombar baixa (Lombalgia)",
+                        meta: "Dr. Carlos Eduardo Mendes · CRM 145892/SP · Justificou Ensaio Tutti 2"
+                    },
+                    {
+                        tipo: "dispensa",
+                        tag: "Dispensa Concedida",
+                        data: "20/06/2026 a 22/06/2026",
+                        titulo: "Concurso Internacional de Cordas",
+                        cid: null,
+                        meta: "Autorizado pela Direção Artística e Maestro Titular"
+                    },
+                    {
+                        tipo: "falta",
+                        tag: "Falta Injustificada",
+                        data: "18/03/2026",
+                        titulo: "Ausência no Ensaio de Naipe",
+                        cid: null,
+                        meta: "Sem justificativa homologada no fechamento da folha"
+                    }
+                ],
+                observacoes: "Spalla assistente. Excelente liderança no naipe. Solicitou ajuste de escala para masterclass em outubro.",
+                historicoNotasEJustificativas: [
+                    {
+                        origem: "admin",
+                        origemLabel: "Coordenação Artística",
+                        data: "18/06/2026 às 11:20",
+                        autor: "Maestro Assistente",
+                        texto: "Liberado para representar a OER na eliminatória do Concurso Internacional de Cordas em Campos do Jordão."
+                    },
+                    {
+                        origem: "presenca",
+                        origemLabel: "Justificativa da Lista de Presença",
+                        data: "10/05/2026 (Ensaio Tutti)",
+                        autor: "Lista de Presença - Chamada 19",
+                        texto: "Atestado médico anexado no sistema cobrindo afastamento de 3 dias por lombalgia aguda."
+                    }
+                ]
+            },
+            {
+                id: "mus_002",
+                nomeArtistico: "Beatriz Ramos",
+                nomeRegistro: "Beatriz Ramos Antunes",
+                instrumento: "Violoncelo",
+                status: "monitor",
+                escalado: "Sim",
+                email: "beatriz.cello@email.com",
+                telefone: "(11) 99123-4567",
+                cpf: "234.567.890-11",
+                rg: "41.258.963-2 SSP/SP",
+                nascimento: "22/09/1996 (30 anos)",
+                genero: "Feminino",
+                inicioContrato: "01/02/2023",
+                terminoContrato: "31/12/2026",
+                tempoOer: "3 anos e 7 meses",
+                banco: "Itaú Unibanco · Ag 0987 · CC 12345-6",
+                restricao: "Sem restrições alimentares",
+                endereco: "Av. São João, 1120 - Centro, São Paulo - SP",
+                carro: "Sem veículo cadastrado",
+                frequenciaMes: {
+                    porcentagem: 100,
+                    presentes: 12,
+                    totalChamadasAteHoje: 12,
+                    statusClass: "success",
+                    statusLabel: "Perfeita (100%)"
+                },
+                kpis: { faltas: 0, atestados: 1, diasAfastamento: "2d", dispensas: 0 },
+                ocorrencias: [
+                    {
+                        tipo: "atestado",
+                        tag: "Atestado Homologado",
+                        data: "14/03/2026 a 15/03/2026 (2 dias)",
+                        titulo: "Atestado Médico Aprovado",
+                        cid: "CID J06.9 - Infecção aguda das vias aéreas superiores",
+                        meta: "Dra. Camila Rocha · CRM 198421/SP"
+                    }
+                ],
+                observacoes: "Monitora responsável pela organização do arquivo de partituras e conferência dos golpes de arco das cordas graves.",
+                historicoNotasEJustificativas: [
+                    {
+                        origem: "admin",
+                        origemLabel: "Arquivo & Biblioteca",
+                        data: "01/03/2026 às 14:00",
+                        autor: "Arquivista OER",
+                        texto: "Entregou todos os cadernos de cordas revisados com arcos padronizados para o Programa 2."
+                    }
+                ]
+            },
+            {
+                id: "mus_004",
+                nomeArtistico: "Mariana Duarte",
+                nomeRegistro: "Mariana Duarte Lima",
+                instrumento: "Flauta Transversal",
+                status: "bolsista",
+                escalado: "Sim",
+                email: "mariana.flauta@email.com",
+                telefone: "(11) 98111-2233",
+                cpf: "456.789.012-33",
+                rg: "38.741.852-0 SSP/SP",
+                nascimento: "19/07/1999 (27 anos)",
+                genero: "Feminino",
+                inicioContrato: "01/02/2024",
+                terminoContrato: "31/12/2026",
+                tempoOer: "2 anos e 7 meses",
+                banco: "Caixa Econômica · Ag 0234 · CC 00123-4",
+                restricao: "Sem restrições alimentares",
+                endereco: "Rua Augusta, 950 - Consolação, São Paulo - SP",
+                carro: "Sem veículo cadastrado",
+                frequenciaMes: {
+                    porcentagem: 83,
+                    presentes: 10,
+                    totalChamadasAteHoje: 12,
+                    statusClass: "warning",
+                    statusLabel: "Bom (83%)"
+                },
+                kpis: { faltas: 1, atestados: 1, diasAfastamento: "1d", dispensas: 1 },
+                ocorrencias: [
+                    {
+                        tipo: "atestado",
+                        tag: "Atestado Homologado",
+                        data: "18/07/2026 (1 dia)",
+                        titulo: "Atestado Médico Aprovado",
+                        cid: "CID G43.0 - Enxaqueca sem aura",
+                        meta: "Dra. Fernanda Lima · CRM 163254/SP"
+                    }
+                ],
+                observacoes: "",
+                historicoNotasEJustificativas: [
+                    {
+                        origem: "presenca",
+                        origemLabel: "Justificativa da Lista de Presença",
+                        data: "05/05/2026 (Ensaio Madeiras)",
+                        autor: "Lista de Presença - Chamada 16",
+                        texto: "Dispensa para audição em orquestra profissional previamente deferida."
+                    }
+                ]
+            },
+            {
+                id: "mus_005",
+                nomeArtistico: "Rodrigo Ferreira",
+                nomeRegistro: "Rodrigo Mendes Ferreira",
+                instrumento: "Percussão",
+                status: "bolsista",
+                escalado: "Sim",
+                email: "rodrigo.percussao@email.com",
+                telefone: "(11) 99888-7766",
+                cpf: "567.890.123-44",
+                rg: "47.963.258-4 SSP/SP",
+                nascimento: "08/03/1997 (29 anos)",
+                genero: "Masculino",
+                inicioContrato: "01/02/2024",
+                terminoContrato: "31/12/2026",
+                tempoOer: "2 anos e 7 meses",
+                banco: "Bradesco · Ag 2345 · CC 67890-1",
+                restricao: "🌱 Ovolactovegetariano",
+                endereco: "Rua Teodoro Sampaio, 1400 - Pinheiros, São Paulo - SP",
+                carro: "Chevrolet Onix Preto · Placa RMF-4567",
+                frequenciaMes: {
+                    porcentagem: 100,
+                    presentes: 12,
+                    totalChamadasAteHoje: 12,
+                    statusClass: "success",
+                    statusLabel: "Perfeita (100%)"
+                },
+                kpis: { faltas: 0, atestados: 0, diasAfastamento: "0d", dispensas: 0 },
+                ocorrencias: [],
+                observacoes: "Responsável pelo transporte e montagem de tímpanos nos concertos externos.",
+                historicoNotasEJustificativas: []
+            }
+        ];
+
+        // Estado da Aplicação
+        let activeMusician = mockMusicians[0]; // Inicia com Gabriel Santos
+        let selectedIndex = -1;
+        let filteredResults = [];
+
+        // Elementos DOM
+        const searchWrapper = document.getElementById("search-wrapper");
+        const searchInput = document.getElementById("google-search-input");
+        const searchClearBtn = document.getElementById("search-clear-btn");
+        const searchDropdown = document.getElementById("search-dropdown");
+        const searchResultsList = document.getElementById("search-results-list");
+        const resultsCountText = document.getElementById("results-count-text");
+
+        const drawerOverlay = document.getElementById("drawer-overlay");
+        const musicoDrawer = document.getElementById("musico-drawer");
+        const drawerCloseBtn = document.getElementById("drawer-close-btn");
+
+        // Elementos de Frequência
+        const frequencyCard = document.getElementById("frequency-card");
+        const frequencySubtitleText = document.getElementById("frequency-subtitle-text");
+        const frequencyBarFill = document.getElementById("frequency-bar-fill");
+        const frequencyPercentageVal = document.getElementById("frequency-percentage-val");
+        const frequencyStatusLabel = document.getElementById("frequency-status-label");
+
+        // Elementos da Gaveta
+        const drawerAvatar = document.getElementById("drawer-avatar");
+        const drawerNomeArtistico = document.getElementById("drawer-nome-artistico");
+        const drawerStatusPill = document.getElementById("drawer-status-pill");
+        const drawerSubtitulo = document.getElementById("drawer-subtitulo");
+
+        const kpiFaltas = document.getElementById("kpi-faltas");
+        const kpiAtestados = document.getElementById("kpi-atestados");
+        const kpiDiasAfastamento = document.getElementById("kpi-dias-afastamento");
+        const kpiDispensas = document.getElementById("kpi-dispensas");
+
+        const totalOcorrenciasBadge = document.getElementById("total-ocorrencias-badge");
+        const occurrencesList = document.getElementById("drawer-occurrences-list");
+        const notesInput = document.getElementById("drawer-notes-input");
+        const notesTimestampDisplay = document.getElementById("notes-timestamp-display");
+        const btnSaveNotes = document.getElementById("btnSaveNotes");
+        const btnOpenNotesHistory = document.getElementById("btn-open-notes-history");
+
+        // Modais
+        const exportModal = document.getElementById("export-modal");
+        const btnOpenExportModal = document.getElementById("btn-open-export-modal");
+        const btnCloseExportModal = document.getElementById("btn-close-export-modal");
+        const btnCopyReportText = document.getElementById("btn-copy-report-text");
+        const btnPrintOfficialCard = document.getElementById("btn-print-official-card");
+
+        const notesHistoryModal = document.getElementById("notes-history-modal");
+        const btnCloseNotesModal = document.getElementById("btn-close-notes-modal");
+        const unifiedNotesList = document.getElementById("unified-notes-list");
+
+        // Cadastrais
+        const cadNomeRegistro = document.getElementById("cad-nome-registro");
+        const cadEmail = document.getElementById("cad-email");
+        const cadTelefone = document.getElementById("cad-telefone");
+        const cadBtnWhatsapp = document.getElementById("cad-btn-whatsapp");
+        const cadCpf = document.getElementById("cad-cpf");
+        const cadRg = document.getElementById("cad-rg");
+        const cadNascimento = document.getElementById("cad-nascimento");
+        const cadGenero = document.getElementById("cad-genero");
+        const cadInicioContrato = document.getElementById("cad-inicio-contrato");
+        const cadTerminoContrato = document.getElementById("cad-termino-contrato");
+        const cadTempoOer = document.getElementById("cad-tempo-oer");
+        const cadBanco = document.getElementById("cad-banco");
+        const cadRestricaoWrapper = document.getElementById("cad-restricao-wrapper");
+        const cadEndereco = document.getElementById("cad-endereco");
+        const cadCarro = document.getElementById("cad-carro");
+
+        // Inicialização
+        document.addEventListener("DOMContentLoaded", () => {
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+            setupSearchListeners();
+            setupDrawerListeners();
+            setupNotesStorage();
+            setupCopyableFields();
+            setupExportModal();
+            setupNotesHistoryModal();
+        });
+
+        // ====================================================================
+        // LÓGICA DA BUSCA ESTILO GOOGLE COM PREDIÇÃO EM TEMPO REAL
+        // ====================================================================
+        function setupSearchListeners() {
+            searchInput.addEventListener("focus", () => {
+                searchWrapper.classList.add("is-focused");
+                renderSearchResults(searchInput.value.trim());
+            });
+
+            searchInput.addEventListener("input", (e) => {
+                const term = e.target.value;
+                searchClearBtn.classList.toggle("visible", term.length > 0);
+                renderSearchResults(term);
+            });
+
+            searchClearBtn.addEventListener("click", () => {
+                searchInput.value = "";
+                searchClearBtn.classList.remove("visible");
+                searchInput.focus();
+                renderSearchResults("");
+            });
+
+            // Teclado: Navegação com setas, Enter e Esc
+            searchInput.addEventListener("keydown", (e) => {
+                if (e.key === "Escape") {
+                    closeDropdown();
+                    searchInput.blur();
+                    return;
+                }
+
+                if (!searchDropdown.classList.contains("active")) return;
+
+                if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    selectedIndex = (selectedIndex + 1) % filteredResults.length;
+                    updateItemHighlight();
+                } else if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    selectedIndex = (selectedIndex - 1 + filteredResults.length) % filteredResults.length;
+                    updateItemHighlight();
+                } else if (e.key === "Enter") {
+                    e.preventDefault();
+                    if (selectedIndex >= 0 && selectedIndex < filteredResults.length) {
+                        openDrawerForMusician(filteredResults[selectedIndex]);
+                        closeDropdown();
+                    } else if (filteredResults.length > 0) {
+                        openDrawerForMusician(filteredResults[0]);
+                        closeDropdown();
+                    }
+                }
+            });
+
+            // Fechar ao clicar fora
+            document.addEventListener("click", (e) => {
+                if (!searchWrapper.contains(e.target) && !searchDropdown.contains(e.target)) {
+                    closeDropdown();
+                }
+            });
+        }
+
+        function closeDropdown() {
+            searchDropdown.classList.remove("active");
+            searchWrapper.classList.remove("is-focused");
+            selectedIndex = -1;
+        }
+
+        function renderSearchResults(query) {
+            const rawTerm = query.toLowerCase().trim();
+            const term = rawTerm.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+            if (term === "") {
+                filteredResults = [...mockMusicians];
+            } else {
+                filteredResults = mockMusicians.filter(m => {
+                    const nomeArt = (m.nomeArtistico || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                    const nomeReg = (m.nomeRegistro || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                    const inst = (m.instrumento || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                    const status = (m.status || "").toLowerCase();
+
+                    return nomeArt.includes(term) || nomeReg.includes(term) || inst.includes(term) || status.includes(term);
+                });
+            }
+
+            searchResultsList.innerHTML = "";
+            selectedIndex = -1;
+
+            if (filteredResults.length === 0) {
+                searchResultsList.innerHTML = `
+                    <div class="search-no-results">
+                        <i data-lucide="search-x"></i>
+                        <p style="margin: 0; font-weight: 600;">Nenhum integrante encontrado</p>
+                        <p style="margin: 4px 0 0 0; font-size: 0.8rem; color: #94a3b8;">Tente buscar por outro nome ou instrumento</p>
+                    </div>
+                `;
+                resultsCountText.textContent = "0 resultados";
+                searchDropdown.classList.add("active");
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+                return;
+            }
+
+            filteredResults.forEach((musico, idx) => {
+                const li = document.createElement("li");
+                li.className = "search-result-item";
+                li.dataset.index = idx;
+
+                const initials = musico.nomeArtistico.split(" ").map(n => n[0]).slice(0, 2).join("");
+                const highlightedName = highlightMatch(musico.nomeArtistico, rawTerm);
+
+                li.innerHTML = `
+                    <div class="search-item-left">
+                        <div class="musician-avatar">${initials}</div>
+                        <div class="search-item-info">
+                            <span class="search-item-name">${highlightedName}</span>
+                            <div class="search-item-meta">
+                                <span>${musico.instrumento}</span>
+                                <span>·</span>
+                                <span class="status-pill ${musico.status}">${musico.status}</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="search-quick-stats">
+                        <span class="stat-badge-mini info" title="Frequência do Mês"><i data-lucide="percent" style="width: 12px; height: 12px;"></i> ${musico.frequenciaMes.porcentagem}%</span>
+                        ${musico.kpis.faltas > 0 ? `<span class="stat-badge-mini danger" title="Faltas"><i data-lucide="alert-circle" style="width: 12px; height: 12px;"></i> ${musico.kpis.faltas} falta(s)</span>` : ''}
+                        <i data-lucide="chevron-right" style="width: 16px; height: 16px; color: #94a3b8;"></i>
+                    </div>
+                `;
+
+                li.addEventListener("click", () => {
+                    openDrawerForMusician(musico);
+                    closeDropdown();
+                });
+
+                searchResultsList.appendChild(li);
+            });
+
+            resultsCountText.textContent = `${filteredResults.length} integrante(s) encontrado(s)`;
+            searchDropdown.classList.add("active");
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        function highlightMatch(text, term) {
+            if (!term) return text;
+            const regex = new RegExp(`(${term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+            return text.replace(regex, `<span class="match-highlight">$1</span>`);
+        }
+
+        function updateItemHighlight() {
+            const items = searchResultsList.querySelectorAll(".search-result-item");
+            items.forEach((it, idx) => {
+                if (idx === selectedIndex) {
+                    it.classList.add("highlighted");
+                    it.scrollIntoView({ block: "nearest", behavior: "smooth" });
+                } else {
+                    it.classList.remove("highlighted");
+                }
+            });
+        }
+
+        // ====================================================================
+        // GAVETA LATERAL DO MÚSICO (DRAWER)
+        // ====================================================================
+        function setupDrawerListeners() {
+            drawerCloseBtn.addEventListener("click", closeDrawer);
+            drawerOverlay.addEventListener("click", closeDrawer);
+
+            document.addEventListener("keydown", (e) => {
+                if (e.key === "Escape") {
+                    if (exportModal.classList.contains("active")) {
+                        closeExportModal();
+                    } else if (notesHistoryModal.classList.contains("active")) {
+                        closeNotesModal();
+                    } else if (musicoDrawer.classList.contains("active")) {
+                        closeDrawer();
+                    }
+                }
+            });
+
+            // Filtros de ocorrências
+            const filterPills = document.querySelectorAll(".btn-filter-pill");
+            filterPills.forEach(pill => {
+                pill.addEventListener("click", () => {
+                    filterPills.forEach(p => p.classList.remove("active"));
+                    pill.classList.add("active");
+                    const filter = pill.dataset.filter;
+                    renderOccurrences(activeMusician ? activeMusician.ocorrencias : [], filter);
+                });
+            });
+        }
+
+        function openDrawerForMusician(musico) {
+            activeMusician = musico;
+
+            // Header
+            drawerAvatar.textContent = musico.nomeArtistico.split(" ").map(n => n[0]).slice(0, 2).join("");
+            drawerNomeArtistico.innerHTML = `
+                <span>${musico.nomeArtistico}</span>
+                <span class="status-pill ${musico.status}">${musico.status}</span>
+            `;
+            drawerSubtitulo.textContent = `${musico.instrumento} · Vínculo ${musico.inicioContrato.split('/')[2] || '2026'}`;
+
+            // Frequência do Mês Vigente
+            const freq = musico.frequenciaMes;
+            frequencyPercentageVal.textContent = `${freq.porcentagem}%`;
+            frequencyBarFill.style.width = `${freq.porcentagem}%`;
+            frequencySubtitleText.innerHTML = `Compareceu a <strong>${freq.presentes} de ${freq.totalChamadasAteHoje}</strong> ensaios e chamadas convocadas até hoje`;
+            
+            frequencyCard.className = `frequency-month-card ${freq.statusClass}`;
+            frequencyStatusLabel.textContent = freq.statusLabel;
+            frequencyStatusLabel.style.color = freq.statusClass === 'danger' ? '#dc2626' : (freq.statusClass === 'warning' ? '#f59e0b' : '#10b981');
+            frequencyBarFill.style.background = freq.statusClass === 'danger' ? '#dc2626' : (freq.statusClass === 'warning' ? '#f59e0b' : '#10b981');
+
+            // KPIs
+            kpiFaltas.textContent = musico.kpis.faltas;
+            kpiAtestados.textContent = musico.kpis.atestados;
+            kpiDiasAfastamento.textContent = musico.kpis.diasAfastamento;
+            kpiDispensas.textContent = musico.kpis.dispensas;
+
+            // Ocorrências
+            renderOccurrences(musico.ocorrencias, "todas");
+
+            // Anotações (com persistência em LocalStorage)
+            loadNotesForMusician(musico.id, musico.observacoes);
+
+            // Cadastrais
+            cadNomeRegistro.textContent = musico.nomeRegistro || "-";
+            cadEmail.textContent = musico.email || "-";
+            cadTelefone.textContent = musico.telefone || "-";
+            
+            const rawTel = (musico.telefone || "").replace(/\D/g, "");
+            if (rawTel) {
+                cadBtnWhatsapp.href = `https://wa.me/55${rawTel}?text=Ol%C3%A1%20${encodeURIComponent(musico.nomeArtistico)}%2C%20aqui%20%C3%A9%20da%20Coordena%C3%A7%C3%A3o%20da%20OER.`;
+                cadBtnWhatsapp.style.display = "inline-flex";
+            } else {
+                cadBtnWhatsapp.style.display = "none";
+            }
+
+            cadCpf.textContent = musico.cpf || "-";
+            cadRg.textContent = musico.rg || "-";
+            cadNascimento.textContent = musico.nascimento || "-";
+            cadGenero.textContent = musico.genero || "-";
+            cadInicioContrato.textContent = musico.inicioContrato || "-";
+            cadTerminoContrato.textContent = musico.terminoContrato || "-";
+            cadTempoOer.textContent = musico.tempoOer || "-";
+            cadBanco.textContent = musico.banco || "-";
+            
+            cadRestricaoWrapper.innerHTML = musico.restricao.includes("🌱") || musico.restricao.includes("🥛")
+                ? `<span class="food-restriction-badge" id="cad-restricao-text">${musico.restricao}</span>`
+                : `<span style="font-weight: 500; color: #475569;" id="cad-restricao-text">${musico.restricao}</span>`;
+
+            cadEndereco.textContent = musico.endereco || "-";
+            cadCarro.textContent = musico.carro || "-";
+
+            // Abrir com animação
+            drawerOverlay.classList.add("active");
+            musicoDrawer.classList.add("active");
+            document.body.style.overflow = "hidden";
+
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        function closeDrawer() {
+            drawerOverlay.classList.remove("active");
+            musicoDrawer.classList.remove("active");
+            document.body.style.overflow = "";
+        }
+
+        function renderOccurrences(ocorrencias, filter) {
+            occurrencesList.innerHTML = "";
+
+            let list = ocorrencias || [];
+            if (filter && filter !== "todas") {
+                list = list.filter(o => o.tipo === filter);
+            }
+
+            totalOcorrenciasBadge.textContent = `${list.length} registro(s)`;
+
+            if (list.length === 0) {
+                occurrencesList.innerHTML = `
+                    <div style="padding: 1.5rem; text-align: center; color: #94a3b8; font-size: 0.85rem;">
+                        <i data-lucide="check-circle" style="width: 28px; height: 28px; color: #16a34a; margin-bottom: 0.3rem;"></i>
+                        <p style="margin: 0; font-weight: 600;">Nenhuma ocorrência registrada no filtro selecionado</p>
+                    </div>
+                `;
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+                return;
+            }
+
+            list.forEach(occ => {
+                const item = document.createElement("div");
+                item.className = `occurrence-item ${occ.tipo}`;
+
+                item.innerHTML = `
+                    <div class="occ-top">
+                        <span class="occ-tag ${occ.tipo}">${occ.tag}</span>
+                        <span class="occ-date">${occ.data}</span>
+                    </div>
+                    <p class="occ-desc">${occ.titulo}</p>
+                    ${occ.cid ? `<span class="occ-cid"><i data-lucide="activity" style="width: 13px; height: 13px;"></i> ${occ.cid}</span>` : ''}
+                    <span class="occ-meta">${occ.meta}</span>
+                `;
+
+                occurrencesList.appendChild(item);
+            });
+
+            if (typeof lucide !== 'undefined') lucide.createIcons();
+        }
+
+        // ====================================================================
+        // CAMPOS COPIÁVEIS COM CLIQUE (IDÊNTICO À ABA MÚSICOS)
+        // ====================================================================
+        function setupCopyableFields() {
+            const fields = document.querySelectorAll(".copyable-area");
+
+            fields.forEach(f => {
+                // Adiciona ícone de cópia
+                const icon = document.createElement("i");
+                icon.className = "copy-icon-indicator";
+                icon.setAttribute("data-lucide", "copy");
+                f.appendChild(icon);
+
+                f.addEventListener("click", async (e) => {
+                    if (e.target.closest("a") || e.target.closest("button")) return;
+
+                    let textToCopy = "";
+                    const targetId = f.dataset.copyTarget;
+
+                    if (targetId) {
+                        const targetEl = document.getElementById(targetId);
+                        textToCopy = targetEl ? targetEl.textContent.trim() : "";
+                    } else {
+                        const txtEl = f.querySelector(".field-txt");
+                        textToCopy = txtEl ? txtEl.textContent.trim() : "";
+                    }
+
+                    if (!textToCopy || textToCopy === "-") return;
+
+                    try {
+                        await navigator.clipboard.writeText(textToCopy);
+
+                        f.classList.add("copied");
+                        icon.setAttribute("data-lucide", "check");
+                        if (typeof lucide !== 'undefined') lucide.createIcons();
+
+                        setTimeout(() => {
+                            f.classList.remove("copied");
+                            icon.setAttribute("data-lucide", "copy");
+                            if (typeof lucide !== 'undefined') lucide.createIcons();
+                        }, 1800);
+                    } catch (err) {
+                        console.error("Erro ao copiar:", err);
+                    }
+                });
+            });
+        }
+
+        // ====================================================================
+        // PERSISTÊNCIA DAS ANOTAÇÕES
+        // ====================================================================
+        function setupNotesStorage() {
+            btnSaveNotes.addEventListener("click", () => {
+                if (!activeMusician) return;
+
+                const text = notesInput.value.trim();
+                const now = new Date();
+                const timestamp = `Salvo em ${now.toLocaleDateString('pt-BR')} às ${now.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})} por Coordenação OER`;
+
+                // Salva no localStorage local
+                const key = `oer_notes_${activeMusician.id}`;
+                localStorage.setItem(key, JSON.stringify({ text, timestamp }));
+
+                // Atualiza objeto em memória
+                activeMusician.observacoes = text;
+
+                // Se houver texto, adiciona ao histórico unificado
+                if (text) {
+                    activeMusician.historicoNotasEJustificativas.unshift({
+                        origem: "admin",
+                        origemLabel: "Observações da Administração",
+                        data: `${now.toLocaleDateString('pt-BR')} às ${now.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}`,
+                        autor: "Coordenação OER",
+                        texto: text
+                    });
+                }
+
+                // Feedback visual
+                btnSaveNotes.classList.add("saved");
+                btnSaveNotes.innerHTML = `<i data-lucide="check" style="width: 14px; height: 14px;"></i> <span>Salvo!</span>`;
+                notesTimestampDisplay.textContent = timestamp;
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+
+                setTimeout(() => {
+                    btnSaveNotes.classList.remove("saved");
+                    btnSaveNotes.innerHTML = `<i data-lucide="save" style="width: 14px; height: 14px;"></i> <span>Salvar Anotação</span>`;
+                    if (typeof lucide !== 'undefined') lucide.createIcons();
+                }, 2000);
+            });
+        }
+
+        function loadNotesForMusician(musicianId, defaultText) {
+            const key = `oer_notes_${musicianId}`;
+            const stored = localStorage.getItem(key);
+
+            if (stored) {
+                try {
+                    const data = JSON.parse(stored);
+                    notesInput.value = data.text || "";
+                    notesTimestampDisplay.textContent = data.timestamp || "Última edição salva";
+                    return;
+                } catch(e) { }
+            }
+
+            notesInput.value = defaultText || "";
+            notesTimestampDisplay.textContent = defaultText ? "Anotação salva no sistema" : "Nenhuma anotação registrada ainda";
+        }
+
+        // ====================================================================
+        // MODAL 1: EXPORTAÇÃO (COPIAR TEXTO OU IMPRIMIR COM LOGO OER)
+        // ====================================================================
+        function setupExportModal() {
+            btnOpenExportModal.addEventListener("click", () => {
+                exportModal.classList.add("active");
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            });
+
+            btnCloseExportModal.addEventListener("click", closeExportModal);
+
+            exportModal.addEventListener("click", (e) => {
+                if (e.target === exportModal) closeExportModal();
+            });
+
+            // Opção 1: Copiar Relatório em Texto
+            btnCopyReportText.addEventListener("click", async () => {
+                if (!activeMusician) return;
+                const m = activeMusician;
+
+                let relatorio = `🎼 *RELATÓRIO DO INTEGRANTE - OER*\n`;
+                relatorio += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+                relatorio += `👤 *Nome:* ${m.nomeArtistico} (${m.nomeRegistro})\n`;
+                relatorio += `🎻 *Instrumento:* ${m.instrumento}\n`;
+                relatorio += `🏷️ *Vínculo:* ${m.status.toUpperCase()} (Desde ${m.inicioContrato})\n`;
+                relatorio += `📊 *Frequência no Mês:* ${m.frequenciaMes.porcentagem}% (${m.frequenciaMes.presentes}/${m.frequenciaMes.totalChamadasAteHoje} chamadas)\n\n`;
+
+                relatorio += `📋 *RESUMO DE OCORRÊNCIAS:*\n`;
+                relatorio += `• Faltas no Ano: ${m.kpis.faltas}\n`;
+                relatorio += `• Atestados Médicos: ${m.kpis.atestados} (${m.kpis.diasAfastamento} afastado)\n`;
+                relatorio += `• Dispensas Oficiais: ${m.kpis.dispensas}\n\n`;
+
+                if (m.ocorrencias && m.ocorrencias.length > 0) {
+                    relatorio += `🩺 *HISTÓRICO & CIDs:*\n`;
+                    m.ocorrencias.forEach(o => {
+                        relatorio += `• [${o.data}] ${o.titulo} ${o.cid ? ' - ' + o.cid : ''}\n`;
+                    });
+                    relatorio += `\n`;
+                }
+
+                if (m.observacoes) {
+                    relatorio += `📝 *OBSERVAÇÕES DA ADMINISTRAÇÃO:*\n`;
+                    relatorio += `"${m.observacoes}"\n\n`;
+                }
+
+                relatorio += `📞 *Contato:* ${m.telefone} | ${m.email}\n`;
+                relatorio += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+                relatorio += `_Orquestra Experimental de Repertório · Sistema de Gestão_`;
+
+                try {
+                    await navigator.clipboard.writeText(relatorio);
+                    alert("✅ Relatório geral em texto copiado com sucesso para a sua área de transferência!");
+                    closeExportModal();
+                } catch (e) {
+                    console.error("Erro ao copiar texto:", e);
+                }
+            });
+
+            // Opção 2: Imprimir Ficha Oficial Timbrada (PDF)
+            btnPrintOfficialCard.addEventListener("click", () => {
+                if (!activeMusician) return;
+                populatePrintableReport(activeMusician);
+                closeExportModal();
+                setTimeout(() => {
+                    window.print();
+                }, 200);
+            });
+        }
+
+        function closeExportModal() {
+            exportModal.classList.remove("active");
+        }
+
+        function populatePrintableReport(m) {
+            document.getElementById("pr-nome-artistico").textContent = m.nomeArtistico;
+            document.getElementById("pr-instrumento").textContent = m.instrumento;
+            document.getElementById("pr-status").textContent = m.status.toUpperCase();
+            document.getElementById("pr-frequencia").textContent = `${m.frequenciaMes.porcentagem}% (${m.frequenciaMes.presentes}/${m.frequenciaMes.totalChamadasAteHoje} ensaios)`;
+
+            document.getElementById("pr-nome-registro").textContent = m.nomeRegistro;
+            document.getElementById("pr-cpf").textContent = m.cpf;
+            document.getElementById("pr-rg").textContent = m.rg;
+            document.getElementById("pr-email").textContent = m.email;
+            document.getElementById("pr-telefone").textContent = m.telefone;
+
+            document.getElementById("pr-inicio").textContent = m.inicioContrato;
+            document.getElementById("pr-termino").textContent = m.terminoContrato;
+            document.getElementById("pr-banco").textContent = m.banco;
+            document.getElementById("pr-restricao").textContent = m.restricao;
+            document.getElementById("pr-carro").textContent = m.carro;
+
+            document.getElementById("pr-kpi-faltas").textContent = m.kpis.faltas;
+            document.getElementById("pr-kpi-atestados").textContent = m.kpis.atestados;
+            document.getElementById("pr-kpi-afastamento").textContent = m.kpis.diasAfastamento;
+            document.getElementById("pr-kpi-dispensas").textContent = m.kpis.dispensas;
+
+            // Ocorrências
+            const tbody = document.getElementById("pr-tbody-ocorrencias");
+            tbody.innerHTML = "";
+            if (m.ocorrencias && m.ocorrencias.length > 0) {
+                m.ocorrencias.forEach(o => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td>${o.data}</td>
+                        <td><strong>${o.tag}</strong></td>
+                        <td>${o.titulo} ${o.cid ? '<br><code>' + o.cid + '</code>' : ''}</td>
+                        <td>${o.meta || '-'}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } else {
+                tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #777;">Nenhuma falta ou atestado registrado para este integrante na temporada.</td></tr>`;
+            }
+
+            document.getElementById("pr-observacoes").textContent = m.observacoes || "Nenhuma observação interna registrada.";
+            document.getElementById("pr-data-emissao").textContent = new Date().toLocaleString('pt-BR');
+        }
+
+        // ====================================================================
+        // MODAL 2: HISTÓRICO UNIFICADO DE ANOTAÇÕES & JUSTIFICATIVAS
+        // ====================================================================
+        function setupNotesHistoryModal() {
+            btnOpenNotesHistory.addEventListener("click", () => {
+                if (!activeMusician) return;
+
+                const notes = activeMusician.historicoNotasEJustificativas || [];
+                unifiedNotesList.innerHTML = "";
+
+                if (notes.length === 0) {
+                    unifiedNotesList.innerHTML = `
+                        <div style="padding: 2.5rem; text-align: center; color: #94a3b8;">
+                            <i data-lucide="check-circle" style="width: 32px; height: 32px; color: #16a34a; margin-bottom: 0.5rem;"></i>
+                            <p style="margin: 0; font-weight: 600;">Nenhuma nota ou justificativa anterior registrada</p>
+                        </div>
+                    `;
+                } else {
+                    notes.forEach(n => {
+                        const item = document.createElement("div");
+                        item.className = `unified-note-item ${n.origem === 'presenca' ? 'origem-presenca' : 'origem-admin'}`;
+                        item.innerHTML = `
+                            <div class="note-item-header">
+                                <span class="note-origem-badge">${n.origemLabel}</span>
+                                <span class="note-item-meta">${n.data}</span>
+                            </div>
+                            <p class="note-item-text">${n.texto}</p>
+                            <span class="note-item-meta">Registrado por: <strong>${n.autor}</strong></span>
+                        `;
+                        unifiedNotesList.appendChild(item);
+                    });
+                }
+
+                notesHistoryModal.classList.add("active");
+                if (typeof lucide !== 'undefined') lucide.createIcons();
+            });
+
+            btnCloseNotesModal.addEventListener("click", closeNotesModal);
+
+            notesHistoryModal.addEventListener("click", (e) => {
+                if (e.target === notesHistoryModal) closeNotesModal();
+            });
+        }
+
+        function closeNotesModal() {
+            notesHistoryModal.classList.remove("active");
+        }
+    </script>
+</body>
+
+</html>
