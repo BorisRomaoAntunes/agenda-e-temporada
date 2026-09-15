@@ -1,13 +1,19 @@
 {
-  "hash": "d4aa771+mod",
-  "date": "15/09/2026, 17:40:37",
-  "buildAt": "2026-09-15T20:40:37.013Z",
+  "hash": "6ba04fb+mod",
+  "date": "15/09/2026, 17:40:49",
+  "buildAt": "2026-09-15T20:40:49.693Z",
   "history": [
     {
-      "hash": "d4aa771+mod",
-      "date": "15/09/2026, 17:40:37",
+      "hash": "6ba04fb+mod",
+      "date": "15/09/2026, 17:40:49",
       "author": "Deploy Local",
       "subject": "Atualização implantada (1 arquivos modificados)"
+    },
+    {
+      "hash": "6ba04fb",
+      "date": "15/09/2026 17:40",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json pós-deploy vd4aa771"
     },
     {
       "hash": "d4aa771",
@@ -116,12 +122,6 @@
       "date": "05/09/2026 09:13",
       "author": "Boris Romão Antunes",
       "subject": "fix(presenca): alterar texto do badge de status para FALTA PS"
-    },
-    {
-      "hash": "0196dee",
-      "date": "05/09/2026 08:39",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json apos deploy em producao"
     }
   ]
 }
