@@ -1,13 +1,13 @@
 {
-  "hash": "6c2e34f+mod",
-  "date": "16/09/2026, 10:06:17",
-  "buildAt": "2026-09-16T13:06:17.120Z",
+  "hash": "ced08c8",
+  "date": "16/09/2026 10:07",
+  "buildAt": "2026-09-16T13:09:44.002Z",
   "history": [
     {
-      "hash": "6c2e34f+mod",
-      "date": "16/09/2026, 10:06:17",
-      "author": "Deploy Local",
-      "subject": "Atualização implantada (5 arquivos modificados)"
+      "hash": "ced08c8",
+      "date": "16/09/2026 10:07",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(presenca): adiciona anotações em faltas com persistencia e integracao nos relatorios e historicos"
     },
     {
       "hash": "6c2e34f",
