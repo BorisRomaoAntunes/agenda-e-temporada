@@ -1,8 +1,14 @@
 {
-  "hash": "8458356",
-  "date": "16/09/2026 10:18",
-  "buildAt": "2026-09-16T13:18:47.687Z",
+  "hash": "bb12541",
+  "date": "16/09/2026 10:19",
+  "buildAt": "2026-09-16T13:29:29.594Z",
   "history": [
+    {
+      "hash": "bb12541",
+      "date": "16/09/2026 10:19",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pós-deploy"
+    },
     {
       "hash": "8458356",
       "date": "16/09/2026 10:18",
@@ -116,12 +122,6 @@
       "date": "11/09/2026 17:51",
       "author": "Boris Romão Antunes",
       "subject": "fix(ui): exibir badge de versao e historico no layout mobile"
-    },
-    {
-      "hash": "62ee57f",
-      "date": "11/09/2026 17:26",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json v3c5c2d6"
     }
   ]
 }
