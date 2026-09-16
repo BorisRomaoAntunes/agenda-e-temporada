@@ -5945,6 +5945,99 @@ input:checked + .slider:before {
 }
 
 /* ==========================================================================
+   CARDS DE KPIS RESUMO NA GAVETA DO MÚSICO
+   ========================================================================== */
+.kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.65rem;
+    margin: 0;
+}
+@media (max-width: 540px) {
+    .kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+.kpi-card {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.85rem 0.65rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.kpi-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+.kpi-card.danger {
+    background: #fff5f5;
+    border-color: #fed7d7;
+}
+.kpi-card.info {
+    background: #f0f9ff;
+    border-color: #bae6fd;
+}
+.kpi-card.purple {
+    background: #faf5ff;
+    border-color: #e9d5ff;
+}
+.kpi-card.success {
+    background: #f0fdf4;
+    border-color: #bbf7d0;
+}
+.kpi-val {
+    font-size: 1.45rem;
+    font-weight: 800;
+    line-height: 1.1;
+}
+.kpi-card.danger .kpi-val { color: #dc2626; }
+.kpi-card.info .kpi-val { color: #0284c7; }
+.kpi-card.purple .kpi-val { color: #9333ea; }
+.kpi-card.success .kpi-val { color: #16a34a; }
+
+.kpi-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ==========================================================================
+   FILTROS DE OCORRÊNCIAS (PÍLULAS)
+   ========================================================================== */
+.occurrence-filter-bar {
+    display: flex;
+    gap: 0.4rem;
+    margin-bottom: 0.9rem;
+    flex-wrap: wrap;
+}
+.btn-filter-pill {
+    padding: 0.35rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.76rem;
+    font-weight: 600;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    color: #64748b;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.btn-filter-pill:hover {
+    background: #f1f5f9;
+    color: #1e293b;
+}
+.btn-filter-pill.active {
+    background: var(--primary-color, #8b0000) !important;
+    color: #ffffff !important;
+    border-color: var(--primary-color, #8b0000) !important;
+}
+
+/* ==========================================================================
    OCORRÊNCIAS & HISTÓRICO NA GAVETA
    ========================================================================== */
 .occurrence-item {

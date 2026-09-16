@@ -7820,10 +7820,32 @@ function initMusiciansManagement() {
             performSearch(e.target.value);
         });
 
+        // Previne preenchimento automático indevido na inicialização
+        searchInput.value = '';
+        if (clearBtn) clearBtn.classList.remove('visible');
+
+        // Remove readonly no primeiro clique/foco para permitir digitação sem interferência do navegador
+        const enableSearchInput = () => {
+            if (searchInput.hasAttribute('readonly')) {
+                searchInput.removeAttribute('readonly');
+            }
+        };
+
         searchInput.addEventListener('focus', () => {
+            enableSearchInput();
             if (searchInput.value.trim().length > 0) {
                 dropdown.classList.add('active');
                 if (wrapper) wrapper.classList.add('is-focused');
+            }
+        });
+
+        searchInput.addEventListener('pointerdown', enableSearchInput);
+        searchInput.addEventListener('mousedown', enableSearchInput);
+        searchInput.addEventListener('touchstart', enableSearchInput);
+
+        searchInput.addEventListener('blur', () => {
+            if (!searchInput.value.trim()) {
+                searchInput.setAttribute('readonly', 'true');
             }
         });
 

@@ -182,12 +182,19 @@
                          <div class="search-google-input-wrapper" id="google-search-wrapper">
                              <i data-lucide="search" class="search-icon"></i>
                              <input 
-                                 type="text" 
+                                 type="search" 
                                  class="search-google-input" 
                                  id="admin-google-search-input" 
+                                 name="oer-search-query-noautofill"
                                  placeholder="Pesquisar músico por nome, instrumento ou registro..." 
                                  autocomplete="off"
-                                 spellcheck="false">
+                                 autocorrect="off"
+                                 autocapitalize="off"
+                                 spellcheck="false"
+                                 data-lpignore="true"
+                                 data-1p-ignore="true"
+                                 data-form-type="other"
+                                 readonly>
                              
                              <button class="search-clear-btn" id="admin-search-clear-btn" title="Limpar busca" type="button">
                                  <i data-lucide="x" style="width: 16px; height: 16px;"></i>
