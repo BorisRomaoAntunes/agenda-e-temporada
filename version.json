@@ -1,13 +1,19 @@
 {
-  "hash": "3892b66+mod",
-  "date": "16/09/2026, 09:54:02",
-  "buildAt": "2026-09-16T12:54:02.274Z",
+  "hash": "6c2e34f+mod",
+  "date": "16/09/2026, 10:06:17",
+  "buildAt": "2026-09-16T13:06:17.120Z",
   "history": [
     {
-      "hash": "3892b66+mod",
-      "date": "16/09/2026, 09:54:02",
+      "hash": "6c2e34f+mod",
+      "date": "16/09/2026, 10:06:17",
       "author": "Deploy Local",
-      "subject": "Atualização implantada (1 arquivos modificados)"
+      "subject": "Atualização implantada (5 arquivos modificados)"
+    },
+    {
+      "hash": "6c2e34f",
+      "date": "16/09/2026 09:59",
+      "author": "Boris Romão Antunes",
+      "subject": "fix(admin): aprimora calculo de tempo na OER e atualiza version.json"
     },
     {
       "hash": "3892b66",
@@ -116,12 +122,6 @@
       "date": "10/09/2026 18:23",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualizar version.json pós-deploy vd4a5baa"
-    },
-    {
-      "hash": "d4a5baa",
-      "date": "10/09/2026 18:21",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(admin): transformar campo Instrumento/Naipe em lista suspensa"
     }
   ]
 }

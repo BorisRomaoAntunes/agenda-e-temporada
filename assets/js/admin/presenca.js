@@ -204,12 +204,12 @@ async function initApp() {
     if (btnCloseDrawer) btnCloseDrawer.addEventListener("click", closeDrawer);
     if (overlay) overlay.addEventListener("click", closeDrawer);
     if (optBtnPresenca) optBtnPresenca.addEventListener("click", () => instantSelectStatus("presenca"));
-    if (optBtnFalta) optBtnFalta.addEventListener("click", () => instantSelectStatus("falta"));
+    if (optBtnFalta) optBtnFalta.addEventListener("click", () => selectFaltaStatus("falta"));
     if (optBtnAtestado) optBtnAtestado.addEventListener("click", () => instantSelectStatus("atestado"));
     if (optBtnDispensa) optBtnDispensa.addEventListener("click", () => instantSelectStatus("dispensa"));
     if (optBtnNaoEscalado) optBtnNaoEscalado.addEventListener("click", () => instantSelectStatus("nao_escalado"));
     if (optBtnJustificado) optBtnJustificado.addEventListener("click", () => selectJustificadoStatus());
-    if (optBtnFaltaPassagemSom) optBtnFaltaPassagemSom.addEventListener("click", () => instantSelectStatus("falta_passagem_som"));
+    if (optBtnFaltaPassagemSom) optBtnFaltaPassagemSom.addEventListener("click", () => selectFaltaStatus("falta_passagem_som"));
     if (justificationTextarea) justificationTextarea.addEventListener("input", handleJustificationInput);
     if (btnSaveJustification) btnSaveJustification.addEventListener("click", () => saveJustificationAndClose());
 
@@ -1225,11 +1225,19 @@ function renderMusicians() {
             // Determinar o texto de exibição do status
             let badgeLabel = "Pendente";
             if (statusInfo.status === "presenca") badgeLabel = "Presença";
-            else if (statusInfo.status === "falta") badgeLabel = "Falta";
+            else if (statusInfo.status === "falta") {
+                const faltaMsg = statusInfo.justificativa ? `: ${statusInfo.justificativa}` : "";
+                const shortFalta = faltaMsg.length > 15 ? faltaMsg.substring(0, 15) + "..." : faltaMsg;
+                badgeLabel = `Falta${shortFalta}`;
+            }
             else if (statusInfo.status === "atestado") badgeLabel = "Atestado";
             else if (statusInfo.status === "dispensa") badgeLabel = "Dispensa";
             else if (statusInfo.status === "nao_escalado") badgeLabel = "Não Escalado";
-            else if (statusInfo.status === "falta_passagem_som") badgeLabel = "Falta PS";
+            else if (statusInfo.status === "falta_passagem_som") {
+                const psMsg = statusInfo.justificativa ? `: ${statusInfo.justificativa}` : "";
+                const shortPS = psMsg.length > 12 ? psMsg.substring(0, 12) + "..." : psMsg;
+                badgeLabel = `Falta PS${shortPS}`;
+            }
             else if (statusInfo.status === "justificado") {
                 const justMsg = statusInfo.justificativa ? `: ${statusInfo.justificativa}` : "";
                 const shortJust = justMsg.length > 15 ? justMsg.substring(0, 15) + "..." : justMsg;
@@ -1375,7 +1383,7 @@ function openDrawerForMusician(musician) {
         concertoExtraOptions.style.display = isConcerto ? "block" : "none";
     }
 
-    if (selectedStatusTemp === "justificado") {
+    if (selectedStatusTemp === "justificado" || selectedStatusTemp === "falta" || selectedStatusTemp === "falta_passagem_som") {
         justificationTextarea.value = current.justificativa || "";
     } else {
         justificationTextarea.value = "";
@@ -1419,8 +1427,6 @@ function selectJustificadoStatus() {
     selectedStatusTemp = "justificado";
     selectedDelayTemp = 0;
 
-    updateDrawerButtonsVisuals();
-
     const current = attendanceData[activeMusicianId] || {};
     const currentJustificativa = current.status === "justificado" ? (current.justificativa || "") : "";
     justificationTextarea.value = currentJustificativa;
@@ -1432,6 +1438,7 @@ function selectJustificadoStatus() {
         justificativa: currentJustificativa
     };
 
+    updateDrawerButtonsVisuals();
     saveDraft();
     renderMusicians();
     
@@ -1441,12 +1448,47 @@ function selectJustificadoStatus() {
     }, 100);
 }
 
-// Manipular input da justificativa
+// Selecionar status Falta ou Falta em Passagem de Som
+function selectFaltaStatus(status = "falta") {
+    if (!activeMusicianId) return;
+
+    selectedStatusTemp = status;
+    selectedDelayTemp = 0;
+
+    const current = attendanceData[activeMusicianId] || {};
+    const currentNota = (current.status === status) ? (current.justificativa || "") : (current.justificativa || "");
+    justificationTextarea.value = currentNota;
+
+    // Salvar no attendanceData imediatamente com o status de falta
+    attendanceData[activeMusicianId] = {
+        status: status,
+        minutes: 0,
+        justificativa: currentNota
+    };
+
+    updateDrawerButtonsVisuals();
+    saveDraft();
+    renderMusicians();
+
+    const statusLabels = {
+        falta: 'Falta',
+        falta_passagem_som: 'Falta em Passagem de Som'
+    };
+    showToast(`Registrado: ${statusLabels[status] || status}`);
+
+    // Focar no campo de anotação
+    setTimeout(() => {
+        justificationTextarea.focus();
+    }, 100);
+}
+
+// Manipular input da justificativa / anotação de falta
 function handleJustificationInput(e) {
     if (!activeMusicianId) return;
 
-    if (attendanceData[activeMusicianId] && attendanceData[activeMusicianId].status === "justificado") {
-        attendanceData[activeMusicianId].justificativa = e.target.value;
+    const cur = attendanceData[activeMusicianId];
+    if (cur && (cur.status === "justificado" || cur.status === "falta" || cur.status === "falta_passagem_som")) {
+        cur.justificativa = e.target.value;
         saveDraft();
         renderMusicians();
     }
@@ -1467,21 +1509,30 @@ function applyQuickDelay(minutes) {
     showToast(`Atraso de ${minutes}m registrado!`);
 }
 
-// Salvar Justificativa e Fechar
+// Salvar Justificativa / Anotação e Fechar
 function saveJustificationAndClose() {
     if (!activeMusicianId) return;
     const text = (justificationTextarea.value || "").trim();
 
-    if (text === "") {
-        attendanceData[activeMusicianId] = { status: "none", minutes: 0 };
-        showToast("Justificativa vazia: status revertido para Pendente.");
-    } else {
+    if (selectedStatusTemp === "justificado") {
+        if (text === "") {
+            attendanceData[activeMusicianId] = { status: "none", minutes: 0 };
+            showToast("Justificativa vazia: status revertido para Pendente.");
+        } else {
+            attendanceData[activeMusicianId] = {
+                status: "justificado",
+                minutes: 0,
+                justificativa: text
+            };
+            showToast("Justificativa salva!");
+        }
+    } else if (selectedStatusTemp === "falta" || selectedStatusTemp === "falta_passagem_som") {
         attendanceData[activeMusicianId] = {
-            status: "justificado",
+            status: selectedStatusTemp,
             minutes: 0,
             justificativa: text
         };
-        showToast("Justificativa salva!");
+        showToast(text !== "" ? "Anotação da falta salva!" : "Falta registrada!");
     }
 
     saveDraft();
@@ -1517,14 +1568,44 @@ function updateDrawerButtonsVisuals() {
     else if (selectedStatusTemp === "justificado") optBtnJustificado?.classList.add("selected");
     else if (selectedStatusTemp === "falta_passagem_som") optBtnFaltaPassagemSom?.classList.add("selected");
 
-    // Exibir/Ocultar seção de justificativa e botão Justificado
+    // Exibir/Ocultar seção de justificativa / anotação de falta
     if (justificationSection) {
         if (selectedStatusTemp === "justificado") {
             justificationSection.style.display = "flex";
             if (optBtnJustificado) optBtnJustificado.style.display = "none";
+            if (optBtnFalta) optBtnFalta.style.display = "flex";
+            justificationTextarea.placeholder = "Digite o motivo da justificativa...";
+            justificationTextarea.classList.remove("mode-falta");
+            if (btnSaveJustification) {
+                btnSaveJustification.textContent = "Salvar Justificativa e Fechar";
+                btnSaveJustification.classList.remove("mode-falta");
+            }
+        } else if (selectedStatusTemp === "falta" || selectedStatusTemp === "falta_passagem_som") {
+            justificationSection.style.display = "flex";
+            if (optBtnJustificado) optBtnJustificado.style.display = "flex";
+            if (selectedStatusTemp === "falta" && optBtnFalta) {
+                optBtnFalta.style.display = "none";
+            } else if (optBtnFalta) {
+                optBtnFalta.style.display = "flex";
+            }
+            const placeholderText = selectedStatusTemp === "falta_passagem_som"
+                ? "Digite uma anotação sobre a falta na passagem de som (opcional)..."
+                : "Digite o motivo ou anotação da falta (opcional)...";
+            justificationTextarea.placeholder = placeholderText;
+            justificationTextarea.classList.add("mode-falta");
+            if (btnSaveJustification) {
+                btnSaveJustification.textContent = "Salvar Falta e Fechar";
+                btnSaveJustification.classList.add("mode-falta");
+            }
         } else {
             justificationSection.style.display = "none";
             if (optBtnJustificado) optBtnJustificado.style.display = "flex";
+            if (optBtnFalta) optBtnFalta.style.display = "flex";
+            justificationTextarea.classList.remove("mode-falta");
+            if (btnSaveJustification) {
+                btnSaveJustification.textContent = "Salvar e Fechar";
+                btnSaveJustification.classList.remove("mode-falta");
+            }
         }
     }
 

@@ -844,6 +844,27 @@ body {
     box-shadow: 0 0 0 3px rgba(168, 85, 247, 0.15);
 }
 
+.justification-textarea.mode-falta {
+    border-color: #fca5a5;
+    background-color: #fff1f2;
+    color: #991b1b;
+}
+
+.justification-textarea.mode-falta:focus {
+    border-color: #ef4444;
+    background-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15);
+}
+
+.justification-input-container .btn-confirm.mode-falta {
+    background-color: #ef4444 !important;
+    border-color: #ef4444 !important;
+}
+
+.justification-input-container .btn-confirm.mode-falta:hover {
+    background-color: #dc2626 !important;
+}
+
 /* Delay Selector (iOS Scroll wheel simulation) */
 .delay-section {
     border-top: 1px solid var(--border-color);

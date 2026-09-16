@@ -1465,12 +1465,18 @@ Intervalo
         <!-- Corpo da Gaveta com Scroll Vertical Contínuo -->
         <div class="drawer-body" style="padding: 1.5rem; overflow-y: auto; display: flex; flex-direction: column; gap: 1.5rem; flex: 1;">
 
-            <!-- 1. CARD NOVO: PORCENTAGEM DE PARTICIPAÇÃO NO MÊS VIGENTE -->
-            <div class="frequency-month-card" id="drawer-frequency-card">
+            <!-- 1. CARD NOVO: PORCENTAGEM DE PARTICIPAÇÃO NO MÊS VIGENTE (CLICÁVEL) -->
+            <div class="frequency-month-card clickable" id="drawer-frequency-card" role="button" tabindex="0" title="Clique para ver o histórico mensal completo de presenças">
                 <div class="frequency-left">
-                    <span class="frequency-title">
-                        <i data-lucide="percent" style="width: 16px; height: 16px;"></i> Participação no Mês Vigente
-                    </span>
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                        <span class="frequency-title">
+                            <i data-lucide="percent" style="width: 16px; height: 16px;"></i> Participação no Mês Vigente
+                        </span>
+                        <span class="frequency-history-toggle-hint">
+                            <span>Histórico</span>
+                            <i data-lucide="chevron-down" id="drawer-frequency-chevron" style="width: 14px; height: 14px; transition: transform 0.25s ease;"></i>
+                        </span>
+                    </div>
                     <p class="frequency-subtitle" id="drawer-frequency-subtitle-text">
                         Calculando registros de chamada...
                     </p>
@@ -1481,6 +1487,19 @@ Intervalo
                 <div class="frequency-right">
                     <span class="frequency-percentage" id="drawer-frequency-percentage-val">100%</span>
                     <span class="frequency-status-label" id="drawer-frequency-status-label" style="color: #10b981;">Excelente</span>
+                </div>
+            </div>
+
+            <!-- CONTAINER EXPANSÍVEL: HISTÓRICO MENSAL DE PARTICIPAÇÃO -->
+            <div class="frequency-history-container" id="drawer-frequency-history-container" style="display: none;">
+                <div class="frequency-history-header">
+                    <span class="frequency-history-header-title">
+                        <i data-lucide="calendar" style="width: 15px; height: 15px; color: var(--primary-color, #8b0000);"></i> Histórico Completo por Mês
+                    </span>
+                    <span class="frequency-history-counter" id="drawer-frequency-history-counter">0 meses</span>
+                </div>
+                <div class="frequency-history-list" id="drawer-frequency-history-list">
+                    <!-- Gerado dinamicamente via JS -->
                 </div>
             </div>
 

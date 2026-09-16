@@ -5957,6 +5957,191 @@ input:checked + .slider:before {
     line-height: 1.2;
 }
 
+/* Card interativo clicável com efeito hover */
+.frequency-month-card.clickable {
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+}
+.frequency-month-card.clickable:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+    transform: translateY(-1px);
+}
+.frequency-month-card.clickable:active {
+    transform: translateY(0);
+}
+.frequency-history-toggle-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #64748b;
+    background: #f1f5f9;
+    padding: 2px 7px;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+.frequency-month-card.clickable:hover .frequency-history-toggle-hint {
+    background: #e2e8f0;
+    color: #1e293b;
+}
+
+/* Container Sanfona: Histórico Mensal de Presenças */
+.frequency-history-container {
+    background: #ffffff;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.03);
+    margin-top: -0.5rem;
+    animation: freqHistorySlideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    box-sizing: border-box;
+    width: 100%;
+}
+
+@keyframes freqHistorySlideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.frequency-history-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+.frequency-history-header-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #475569;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+.frequency-history-counter {
+    font-size: 0.72rem;
+    color: #64748b;
+    font-weight: 600;
+    background: #f1f5f9;
+    padding: 2px 7px;
+    border-radius: 6px;
+}
+
+.frequency-history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    max-height: 290px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+.frequency-history-list::-webkit-scrollbar {
+    width: 5px;
+}
+.frequency-history-list::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+/* Itens individuais de cada mês */
+.frequency-history-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 0.7rem 0.85rem;
+    border-radius: 9px;
+    background: #f8fafc;
+    border: 1px solid #edf2f7;
+    transition: all 0.15s ease;
+}
+.frequency-history-item:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+}
+.frequency-history-item.is-current {
+    border-left: 3.5px solid #10b981;
+    background: #ffffff;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.02);
+}
+.frequency-history-item.is-current.warning {
+    border-left-color: #f59e0b;
+}
+.frequency-history-item.is-current.danger {
+    border-left-color: #ef4444;
+}
+
+.frequency-history-item-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.frequency-history-item-month {
+    font-size: 0.83rem;
+    font-weight: 700;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+.is-current-month-tag {
+    font-size: 0.64rem;
+    font-weight: 700;
+    background: #e0f2fe;
+    color: #0369a1;
+    padding: 1px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.frequency-history-item-pct {
+    font-size: 0.92rem;
+    font-weight: 800;
+}
+.frequency-history-item-pct.success { color: #10b981; }
+.frequency-history-item-pct.warning { color: #f59e0b; }
+.frequency-history-item-pct.danger { color: #ef4444; }
+.frequency-history-item-pct.neutral { color: #94a3b8; }
+
+.frequency-history-item-bar-bg {
+    width: 100%;
+    height: 5px;
+    background: #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+}
+.frequency-history-item-bar-fill {
+    height: 100%;
+    border-radius: 8px;
+    transition: width 0.4s ease;
+}
+.frequency-history-item-bar-fill.success { background: #10b981; }
+.frequency-history-item-bar-fill.warning { background: #f59e0b; }
+.frequency-history-item-bar-fill.danger { background: #ef4444; }
+.frequency-history-item-bar-fill.neutral { background: #cbd5e1; }
+
+.frequency-history-item-bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 0.74rem;
+    color: #64748b;
+}
+
 .drawer-section-card {
     flex-shrink: 0 !important;
 }
@@ -6199,6 +6384,10 @@ input:checked + .slider:before {
     border-left: 4px solid var(--primary-color, #8b0000);
     background: #fff8f8;
 }
+.unified-note-item.origem-falta {
+    border-left: 4px solid #ef4444;
+    background: #fef2f2;
+}
 .note-item-header {
     display: flex;
     align-items: center;
@@ -6213,6 +6402,7 @@ input:checked + .slider:before {
 }
 .origem-presenca .note-origem-badge { background: #dbeafe; color: #1d4ed8; }
 .origem-admin .note-origem-badge { background: #fee2e2; color: #991b1b; }
+.origem-falta .note-origem-badge { background: #fee2e2; color: #b91c1c; }
 .note-item-text {
     font-size: 0.88rem;
     color: #1e293b;

@@ -8025,10 +8025,9 @@ function initMusiciansManagement() {
         if (window.lucide) lucide.createIcons();
 
         try {
-            // Consulta simultânea a presencas, medicalCertificates_approved, dispensas e eventos
+            // Consulta simultânea a presencas (todo o histórico até hoje), medicalCertificates_approved, dispensas e eventos
             const presQuery = query(
                 collection(db, "presencas"),
-                where("__name__", ">=", startOfYear),
                 where("__name__", "<=", dataHoje + "_\uffff")
             );
 
@@ -8081,6 +8080,8 @@ function initMusiciansManagement() {
             let faltasAnoEnsaios = 0;
             let faltasAnoConcertos = 0;
             let faltasAnoPS = 0;
+            let oldestSystemDate = dataHoje;
+            const musicoMonthlyMap = {};
 
             const atestadosMusico = [];
             const dispensasMusico = [];
@@ -8138,15 +8139,30 @@ function initMusiciansManagement() {
             presSnap.forEach(dSnap => {
                 const presData = dSnap.data();
                 const dataDoc = presData.data || dSnap.id.split('_')[0];
+
+                if (dataDoc && /^\d{4}-\d{2}-\d{2}/.test(dataDoc)) {
+                    if (dataDoc < oldestSystemDate) {
+                        oldestSystemDate = dataDoc;
+                    }
+                }
+
                 const reg = (presData.registros && presData.registros[musico.id]) ? presData.registros[musico.id] : null;
 
                 if (!reg) return;
 
-                // Capturar justificativas para o histórico unificado
+                // Capturar justificativas e anotações para o histórico unificado
                 if (reg.justificativa && reg.justificativa.trim() !== '') {
+                    const isFaltaReg = reg.status === 'falta' || reg.status === 'falta_passagem_som';
+                    let rotuloOrigem = `Justificativa - Lista de Presença (${formatDataBR(dataDoc)})`;
+                    if (reg.status === 'falta') {
+                        rotuloOrigem = `Falta - Lista de Presença (${formatDataBR(dataDoc)})`;
+                    } else if (reg.status === 'falta_passagem_som') {
+                        rotuloOrigem = `Falta Passagem de Som - Lista de Presença (${formatDataBR(dataDoc)})`;
+                    }
+
                     justificativasList.push({
-                        origem: 'presenca',
-                        origemLabel: `Lista de Presença (${formatDataBR(dataDoc)})`,
+                        origem: isFaltaReg ? 'falta' : 'presenca',
+                        origemLabel: rotuloOrigem,
                         data: formatDataBR(dataDoc),
                         autor: 'Lista de Presença / Coordenação',
                         texto: reg.justificativa.trim(),
@@ -8169,8 +8185,21 @@ function initMusiciansManagement() {
                     if (isFalta) faltasMes++;
                 }
 
-                // Ocorrências de falta no ano todo
-                if (isFalta || isFaltaPS) {
+                // Acúmulo por mês histórico para o músico
+                if (dataDoc <= dataHoje && /^\d{4}-\d{2}-\d{2}/.test(dataDoc)) {
+                    const ym = dataDoc.substring(0, 7);
+                    if (!musicoMonthlyMap[ym]) {
+                        musicoMonthlyMap[ym] = { chamadas: 0, presencas: 0, faltas: 0 };
+                    }
+                    if (isConvocado) {
+                        musicoMonthlyMap[ym].chamadas++;
+                        if (isPresenca) musicoMonthlyMap[ym].presencas++;
+                        if (isFalta) musicoMonthlyMap[ym].faltas++;
+                    }
+                }
+
+                // Ocorrências de falta no ano todo (somente ano vigente)
+                if ((isFalta || isFaltaPS) && dataDoc >= startOfYear && dataDoc <= dataHoje) {
                     totalFaltasAno++;
 
                     const tipoPres = (presData.tipo || '').toLowerCase();
@@ -8200,7 +8229,7 @@ function initMusiciansManagement() {
                         data: formatDataBR(dataDoc),
                         titulo: tituloFalta,
                         cid: '',
-                        meta: reg.justificativa ? `Justificativa: "${reg.justificativa}"` : 'Sem justificativa registrada',
+                        meta: reg.justificativa ? `Anotação / Justificativa: "${reg.justificativa}"` : 'Sem anotação registrada',
                         dataSort: dataDoc
                     });
                 }
@@ -8241,7 +8270,7 @@ function initMusiciansManagement() {
             const barFill = document.getElementById('drawer-frequency-bar-fill');
             const statusLabelEl = document.getElementById('drawer-frequency-status-label');
 
-            if (freqCard) freqCard.className = `frequency-month-card ${statusClass}`;
+            if (freqCard) freqCard.className = `frequency-month-card clickable ${statusClass}`;
             if (pctVal) pctVal.textContent = `${pct}%`;
             if (barFill) {
                 barFill.style.width = `${pct}%`;
@@ -8286,10 +8315,76 @@ function initMusiciansManagement() {
             document.getElementById('drawer-kpi-afastamento').textContent = `${diasAfastamentoTotal}d`;
             document.getElementById('drawer-kpi-dispensas').textContent = dispensasMusico.length;
 
-            // 6. Renderizar Ocorrências
+            // 6. Gerar e Renderizar Histórico Mensal Retroativo Completo
+            const currentYM = `${ano}-${mesStr}`;
+            const oldestYM = (oldestSystemDate && /^\d{4}-\d{2}/.test(oldestSystemDate)) ? oldestSystemDate.substring(0, 7) : currentYM;
+            const monthsRange = [];
+            let [curY, curM] = currentYM.split('-').map(Number);
+            const [minY, minM] = oldestYM.split('-').map(Number);
+
+            while (curY > minY || (curY === minY && curM >= minM)) {
+                const ymStr = `${curY}-${String(curM).padStart(2, '0')}`;
+                monthsRange.push({
+                    year: curY,
+                    month: curM,
+                    ym: ymStr
+                });
+                curM--;
+                if (curM < 1) {
+                    curM = 12;
+                    curY--;
+                }
+            }
+
+            const monthlyHistoryData = monthsRange.map(m => {
+                const stats = musicoMonthlyMap[m.ym] || { chamadas: 0, presencas: 0, faltas: 0 };
+                const isCurrent = m.ym === currentYM;
+                const mesNome = mesesNomes[m.month - 1];
+                const tituloMes = `${mesNome} de ${m.year}`;
+
+                let pctMonth = null;
+                let statusClassMonth = 'neutral';
+                let statusLabelMonth = 'Sem convocações';
+                let subtitleMonth = 'Sem convocações registradas neste mês';
+
+                if (stats.chamadas > 0) {
+                    pctMonth = Math.round((stats.presencas / stats.chamadas) * 100);
+                    if (pctMonth < 75) {
+                        statusClassMonth = 'danger';
+                        statusLabelMonth = 'Atenção Crítica';
+                    } else if (pctMonth < 90) {
+                        statusClassMonth = 'warning';
+                        statusLabelMonth = 'Regular';
+                    } else {
+                        statusClassMonth = 'success';
+                        statusLabelMonth = 'Excelente';
+                    }
+                    const chamadasTxt = stats.chamadas === 1 ? 'chamada convocada' : 'chamadas convocadas';
+                    subtitleMonth = `Compareceu a <strong>${stats.presencas} de ${stats.chamadas}</strong> ${chamadasTxt}`;
+                }
+
+                return {
+                    ym: m.ym,
+                    year: m.year,
+                    month: m.month,
+                    tituloMes,
+                    isCurrent,
+                    chamadas: stats.chamadas,
+                    presencas: stats.presencas,
+                    faltas: stats.faltas,
+                    pct: pctMonth,
+                    statusClass: statusClassMonth,
+                    statusLabel: statusLabelMonth,
+                    subtitle: subtitleMonth
+                };
+            });
+
+            renderDrawerFrequencyHistory(monthlyHistoryData);
+
+            // 7. Renderizar Ocorrências
             renderDrawerOccurrences(ocorrenciasList, 'todas');
 
-            // 7. Guardar objeto consolidado para emissão de relatório
+            // 8. Guardar objeto consolidado para emissão de relatório
             currentDrawerReportData = {
                 musico,
                 frequenciaMes: {
@@ -8299,6 +8394,7 @@ function initMusiciansManagement() {
                     statusClass,
                     statusLabel
                 },
+                historicoMensal: monthlyHistoryData,
                 kpis: {
                     faltas: totalFaltasAno,
                     faltasEnsaios: faltasAnoEnsaios,
@@ -8380,6 +8476,63 @@ function initMusiciansManagement() {
             renderDrawerOccurrences(currentMusicoOccurrences, filterType);
         });
     });
+
+    // =========================================================================
+    // RENDERIZAÇÃO E CONTROLE DO HISTÓRICO MENSAL DE PRESENÇAS
+    // =========================================================================
+    function renderDrawerFrequencyHistory(historyData) {
+        const listEl = document.getElementById('drawer-frequency-history-list');
+        const counterEl = document.getElementById('drawer-frequency-history-counter');
+        if (!listEl) return;
+
+        if (counterEl) {
+            counterEl.textContent = `${historyData.length} ${historyData.length === 1 ? 'mês apurado' : 'meses apurados'}`;
+        }
+
+        if (!historyData || historyData.length === 0) {
+            listEl.innerHTML = `
+                <div style="padding: 1rem; text-align: center; color: #94a3b8; font-size: 0.8rem;">
+                    Nenhum mês localizado no histórico do sistema.
+                </div>
+            `;
+            return;
+        }
+
+        listEl.innerHTML = historyData.map(item => `
+            <div class="frequency-history-item ${item.isCurrent ? 'is-current ' + (item.statusClass !== 'neutral' ? item.statusClass : '') : ''}">
+                <div class="frequency-history-item-top">
+                    <span class="frequency-history-item-month">
+                        ${item.tituloMes}
+                        ${item.isCurrent ? '<span class="is-current-month-tag">Mês Vigente</span>' : ''}
+                    </span>
+                    <span class="frequency-history-item-pct ${item.statusClass}">
+                        ${item.pct !== null ? `${item.pct}%` : '—'}
+                    </span>
+                </div>
+                <div class="frequency-history-item-bar-bg">
+                    <div class="frequency-history-item-bar-fill ${item.statusClass}" style="width: ${item.pct !== null ? item.pct : 0}%;"></div>
+                </div>
+                <div class="frequency-history-item-bottom">
+                    <span>${item.subtitle}</span>
+                    <span style="font-weight: 600;">${item.statusLabel}</span>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function toggleDrawerFrequencyHistory(forceState) {
+        const container = document.getElementById('drawer-frequency-history-container');
+        const chevron = document.getElementById('drawer-frequency-chevron');
+        if (!container) return;
+
+        const isCurrentlyOpen = container.style.display !== 'none' && container.style.display !== '';
+        const shouldOpen = typeof forceState === 'boolean' ? forceState : !isCurrentlyOpen;
+
+        container.style.display = shouldOpen ? 'flex' : 'none';
+        if (chevron) {
+            chevron.style.transform = shouldOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+        }
+    }
 
     // =========================================================================
     // SALVAMENTO E HISTÓRICO DE ANOTAÇÕES CONFIDENCIAIS
@@ -8520,7 +8673,8 @@ function initMusiciansManagement() {
             } else {
                 allNotes.forEach(n => {
                     const item = document.createElement('div');
-                    item.className = `unified-note-item ${n.origem === 'presenca' ? 'origem-presenca' : 'origem-admin'}`;
+                    const classeOrigem = n.origem === 'falta' ? 'origem-falta' : (n.origem === 'presenca' ? 'origem-presenca' : 'origem-admin');
+                    item.className = `unified-note-item ${classeOrigem}`;
                     item.innerHTML = `
                         <div class="note-item-header">
                             <span class="note-origem-badge">${n.origemLabel}</span>
@@ -8869,6 +9023,9 @@ function initMusiciansManagement() {
         drawerOverlay.classList.add('open', 'active');
         document.body.style.overflow = 'hidden';
 
+        // Resetar sanfona de histórico para fechado
+        toggleDrawerFrequencyHistory(false);
+
         // Reativar cópia com clique nos novos campos
         initCopyableFields();
 
@@ -8885,10 +9042,24 @@ function initMusiciansManagement() {
         drawer.classList.remove('open', 'active');
         drawerOverlay.classList.remove('open', 'active');
         document.body.style.overflow = '';
+        toggleDrawerFrequencyHistory(false);
     }
 
     if (btnCloseDrawer) btnCloseDrawer.addEventListener('click', closeMusicoDrawer);
     if (drawerOverlay) drawerOverlay.addEventListener('click', closeMusicoDrawer);
+
+    const drawerFreqCard = document.getElementById('drawer-frequency-card');
+    if (drawerFreqCard) {
+        drawerFreqCard.addEventListener('click', () => {
+            toggleDrawerFrequencyHistory();
+        });
+        drawerFreqCard.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                toggleDrawerFrequencyHistory();
+            }
+        });
+    }
 
     if (btnEditCurrentMusico) {
         btnEditCurrentMusico.addEventListener('click', () => {
@@ -11679,12 +11850,13 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                     const pres = presencasPorData[dataStr];
                     if (pres && pres.registros) {
                         Object.entries(pres.registros).forEach(([musicoId, registro]) => {
-                            if (registro.status === 'justificado' && registro.justificativa) {
+                            if (registro.justificativa && registro.justificativa.trim() !== '') {
                                 const musico = allMusicians.find(m => m.id === musicoId);
                                 const nomeMusico = musico ? (musico.NOMEARTISTICO || musico['NOME REGISTRO']) : 'Músico Desconhecido';
                                 const dataFormatada = `${String(dia).padStart(2, '0')}/${mesStr}`;
+                                const tipoLabel = registro.status === 'falta' ? ' (Falta)' : (registro.status === 'falta_passagem_som' ? ' (Falta PS)' : '');
                                 justificativas.push({
-                                    texto: `${dataFormatada} - ${nomeMusico}: ${registro.justificativa.trim()}`
+                                    texto: `${dataFormatada} - ${nomeMusico}${tipoLabel}: ${registro.justificativa.trim()}`
                                 });
                             }
                         });
@@ -12248,6 +12420,13 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                                 const cellRef = `${getColLetter(colIdx + 1)}${currentExcelRowIndex}`;
                                 if (sym === 'D') cellCommentsMap[cellRef] = "Bolsista Dispensado";
                                 else if (sym === 'A') cellCommentsMap[cellRef] = "Atestado Médico Homologado";
+
+                                const regDoc = (col.subCol.doc && col.subCol.doc.registros) ? col.subCol.doc.registros[musico.id] : null;
+                                if (regDoc && regDoc.justificativa && regDoc.justificativa.trim() !== '') {
+                                    const prefixo = (regDoc.status === 'falta' || regDoc.status === 'falta_passagem_som') ? 'Anotação / Motivo da Falta: ' : 'Justificativa: ';
+                                    cellCommentsMap[cellRef] = `${prefixo}"${regDoc.justificativa.trim()}"`;
+                                }
+
                                 rowMusico.push(sym);
                             }
                         });
@@ -12682,7 +12861,8 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
 
                                 if (!isDispensado && !isAtestado) {
                                     if (isFaltaPassagemSom) {
-                                        bInfo.faltas.push({ dia, obs: ' (Falta Passagem de Som)' });
+                                        const extraNota = (registro.justificativa && registro.justificativa.trim() !== '') ? ` [Nota: "${registro.justificativa.trim()}"]` : '';
+                                        bInfo.faltas.push({ dia, obs: ` (Falta Passagem de Som${extraNota})` });
                                     } else if (isFalta) {
                                         let labelObs = ' (Ensaio)';
                                         if (pres.tipo === 'ensaio_naipe' && pres.naipe) {
@@ -12690,6 +12870,9 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                                             labelObs = ` (Ensaio de Naipe - ${naipeStr})`;
                                         } else if (isConcertoPres) {
                                             labelObs = ` (Concerto)`;
+                                        }
+                                        if (registro.justificativa && registro.justificativa.trim() !== '') {
+                                            labelObs += ` [Nota: "${registro.justificativa.trim()}"]`;
                                         }
                                         bInfo.faltas.push({ dia, obs: labelObs });
                                     } else if (isPendente) {
