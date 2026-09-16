@@ -1,8 +1,14 @@
 {
-  "hash": "ced08c8",
-  "date": "16/09/2026 10:07",
-  "buildAt": "2026-09-16T13:09:44.002Z",
+  "hash": "4cac0bc",
+  "date": "16/09/2026 10:15",
+  "buildAt": "2026-09-16T13:17:00.808Z",
   "history": [
+    {
+      "hash": "4cac0bc",
+      "date": "16/09/2026 10:15",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pós-deploy"
+    },
     {
       "hash": "ced08c8",
       "date": "16/09/2026 10:07",
@@ -116,12 +122,6 @@
       "date": "11/09/2026 17:25",
       "author": "Boris Romão Antunes",
       "subject": "feat(versao): historico e badge de versao em tempo real via Firestore onSnapshot"
-    },
-    {
-      "hash": "0308612",
-      "date": "10/09/2026 18:23",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json pós-deploy vd4a5baa"
     }
   ]
 }
