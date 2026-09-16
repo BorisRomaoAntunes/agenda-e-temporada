@@ -1,8 +1,20 @@
 {
-  "hash": "0287fb2",
-  "date": "15/09/2026 18:43",
-  "buildAt": "2026-09-15T21:44:23.557Z",
+  "hash": "3d7b604",
+  "date": "16/09/2026 08:37",
+  "buildAt": "2026-09-16T11:37:41.193Z",
   "history": [
+    {
+      "hash": "3d7b604",
+      "date": "16/09/2026 08:37",
+      "author": "Boris Romão Antunes",
+      "subject": "fix: desativar autofill no campo de busca e estilizar cards de KPIs e filtros da gaveta"
+    },
+    {
+      "hash": "ef357d5",
+      "date": "15/09/2026 18:44",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pós-deploy"
+    },
     {
       "hash": "0287fb2",
       "date": "15/09/2026 18:43",
@@ -110,18 +122,6 @@
       "date": "08/09/2026 10:41",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualizar version.json apos deploy em producao"
-    },
-    {
-      "hash": "a8f9ae7",
-      "date": "08/09/2026 10:39",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json apos nova funcionalidade"
-    },
-    {
-      "hash": "656e309",
-      "date": "08/09/2026 10:38",
-      "author": "Boris Romão Antunes",
-      "subject": "fix(ui): proteger cabecalho de notch/status bar e eliminar scroll mobile"
     }
   ]
 }
