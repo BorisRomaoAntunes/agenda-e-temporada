@@ -7321,9 +7321,20 @@ function initMusiciansManagement() {
     const calcularTempoOER = (inicioVal, fimVal, m) => {
         const dataInicio = parseDateFromExcelOrString(inicioVal);
         if (dataInicio && !isNaN(dataInicio.getTime())) {
-            let dataFim = parseDateFromExcelOrString(fimVal);
-            if (!dataFim || isNaN(dataFim.getTime()) || dataFim > new Date()) {
-                dataFim = new Date();
+            let dataFim = new Date();
+            // Se o integrante estiver inativo, desligado ou cancelado, calcula até a data de saída
+            const isInactive = m && (
+                (m.Status || '').toLowerCase().includes('inativo') ||
+                (m.Status || '').toLowerCase().includes('desligado') ||
+                (m.Status || '').toLowerCase().includes('cancelado') ||
+                m.statusFirebase === 'inativo'
+            );
+            if (isInactive) {
+                const saidaVal = m.dataSaida || fimVal;
+                const parsedSaida = parseDateFromExcelOrString(saidaVal);
+                if (parsedSaida && !isNaN(parsedSaida.getTime())) {
+                    dataFim = parsedSaida;
+                }
             }
             let diffYears = dataFim.getFullYear() - dataInicio.getFullYear();
             let diffMonths = dataFim.getMonth() - dataInicio.getMonth();

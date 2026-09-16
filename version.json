@@ -1,8 +1,26 @@
 {
-  "hash": "3d7b604",
-  "date": "16/09/2026 08:37",
-  "buildAt": "2026-09-16T11:37:41.193Z",
+  "hash": "3892b66+mod",
+  "date": "16/09/2026, 09:54:02",
+  "buildAt": "2026-09-16T12:54:02.274Z",
   "history": [
+    {
+      "hash": "3892b66+mod",
+      "date": "16/09/2026, 09:54:02",
+      "author": "Deploy Local",
+      "subject": "Atualização implantada (1 arquivos modificados)"
+    },
+    {
+      "hash": "3892b66",
+      "date": "16/09/2026 09:52",
+      "author": "Boris Romão Antunes",
+      "subject": "fix(musicos): normaliza cabecalhos da planilha e sincroniza datas contratuais no Firestore"
+    },
+    {
+      "hash": "6c7b38e",
+      "date": "16/09/2026 09:16",
+      "author": "Boris Romão Antunes",
+      "subject": "fix(admin): ajustar layout e evitar compressao no card de participacao mensal na gaveta do musico"
+    },
     {
       "hash": "3d7b604",
       "date": "16/09/2026 08:37",
@@ -104,24 +122,6 @@
       "date": "10/09/2026 18:21",
       "author": "Boris Romão Antunes",
       "subject": "feat(admin): transformar campo Instrumento/Naipe em lista suspensa"
-    },
-    {
-      "hash": "2183a63",
-      "date": "08/09/2026 23:41",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json pós-deploy v60ba759"
-    },
-    {
-      "hash": "60ba759",
-      "date": "08/09/2026 23:40",
-      "author": "Boris Romão Antunes",
-      "subject": "feat: adicionar relatório de Quantidade do Efetivo OER"
-    },
-    {
-      "hash": "b01df7d",
-      "date": "08/09/2026 10:41",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json apos deploy em producao"
     }
   ]
 }
