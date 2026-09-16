@@ -7252,31 +7252,114 @@ function initMusiciansManagement() {
         return result;
     };
 
-    // Função utilitária para calcular idade com segurança a partir de vários formatos de data do Excel / String
-    const calcularIdade = (nascimentoVal) => {
-        if (!nascimentoVal || nascimentoVal === '-') return null;
-        let dataNasc = null;
-        
-        // Se for número serial de data do Excel (ex: 36457)
-        if (!isNaN(nascimentoVal) && typeof nascimentoVal === 'number') {
-            dataNasc = new Date((nascimentoVal - 25569) * 86400 * 1000);
-        } else if (typeof nascimentoVal === 'string') {
-            // Tenta fazer parse do formato DD/MM/YYYY
-            const partes = nascimentoVal.trim().split('/');
-            if (partes.length === 3) {
-                const dia = parseInt(partes[0], 10);
-                const mes = parseInt(partes[1], 10) - 1;
-                const ano = parseInt(partes[2], 10);
-                dataNasc = new Date(ano, mes, dia);
+    // Utilitário robusto para converter dados de data (Excel serial, ISO, DD/MM/YYYY, etc.) para objeto Date seguro (evitando fuso horário)
+    const parseDateFromExcelOrString = (val) => {
+        if (!val || val === '-' || val === '') return null;
+        let d = null;
+        if (!isNaN(val) && typeof val === 'number') {
+            const utcDate = new Date((val - 25569) * 86400 * 1000);
+            if (!isNaN(utcDate.getTime())) {
+                d = new Date(utcDate.getUTCFullYear(), utcDate.getUTCMonth(), utcDate.getUTCDate(), 12, 0, 0);
+            }
+        } else if (typeof val === 'string') {
+            const cleanStr = val.trim();
+            if (!cleanStr || cleanStr === '-') return null;
+            // Se for número serial em formato string (ex: "44783")
+            if (!isNaN(cleanStr) && Number(cleanStr) > 20000 && Number(cleanStr) < 70000) {
+                const num = Number(cleanStr);
+                const utcDate = new Date((num - 25569) * 86400 * 1000);
+                if (!isNaN(utcDate.getTime())) {
+                    d = new Date(utcDate.getUTCFullYear(), utcDate.getUTCMonth(), utcDate.getUTCDate(), 12, 0, 0);
+                }
             } else {
-                // Tenta ISO YYYY-MM-DD
-                const dataParsed = Date.parse(nascimentoVal);
-                if (!isNaN(dataParsed)) {
-                    dataNasc = new Date(dataParsed);
+                const partesBarra = cleanStr.split('/');
+                if (partesBarra.length === 3) {
+                    const dia = parseInt(partesBarra[0], 10);
+                    const mes = parseInt(partesBarra[1], 10) - 1;
+                    const ano = parseInt(partesBarra[2], 10);
+                    d = new Date(ano, mes, dia, 12, 0, 0);
+                } else {
+                    const partesTraco = cleanStr.split('T')[0].split('-');
+                    if (partesTraco.length === 3) {
+                        if (partesTraco[0].length === 4) {
+                            // YYYY-MM-DD
+                            d = new Date(parseInt(partesTraco[0], 10), parseInt(partesTraco[1], 10) - 1, parseInt(partesTraco[2], 10), 12, 0, 0);
+                        } else {
+                            // DD-MM-YYYY
+                            d = new Date(parseInt(partesTraco[2], 10), parseInt(partesTraco[1], 10) - 1, parseInt(partesTraco[0], 10), 12, 0, 0);
+                        }
+                    } else {
+                        const parsed = Date.parse(cleanStr);
+                        if (!isNaN(parsed)) d = new Date(parsed);
+                    }
                 }
             }
         }
-        
+        return (d && !isNaN(d.getTime())) ? d : null;
+    };
+
+    // Helper para buscar campo em objeto de músico testando múltiplas chaves e normalizando quebras de linha \n e espaços
+    const getMusicoField = (m, ...possibleKeys) => {
+        if (!m || typeof m !== 'object') return '';
+        // 1. Tenta acesso direto pelas chaves informadas
+        for (const k of possibleKeys) {
+            if (m[k] !== undefined && m[k] !== null && m[k] !== '') return m[k];
+        }
+        // 2. Tenta varrer as chaves normalizadas
+        const normalizedTargets = possibleKeys.map(k => k.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase());
+        for (const [key, val] of Object.entries(m)) {
+            if (val === undefined || val === null || val === '') continue;
+            const normKey = key.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
+            if (normalizedTargets.includes(normKey)) {
+                return val;
+            }
+        }
+        return '';
+    };
+
+    // Helper para calcular com exatidão o tempo na OER (anos e meses)
+    const calcularTempoOER = (inicioVal, fimVal, m) => {
+        const dataInicio = parseDateFromExcelOrString(inicioVal);
+        if (dataInicio && !isNaN(dataInicio.getTime())) {
+            let dataFim = parseDateFromExcelOrString(fimVal);
+            if (!dataFim || isNaN(dataFim.getTime()) || dataFim > new Date()) {
+                dataFim = new Date();
+            }
+            let diffYears = dataFim.getFullYear() - dataInicio.getFullYear();
+            let diffMonths = dataFim.getMonth() - dataInicio.getMonth();
+            if (dataFim.getDate() < dataInicio.getDate()) {
+                diffMonths--;
+            }
+            if (diffMonths < 0) {
+                diffYears--;
+                diffMonths += 12;
+            }
+            if (diffYears < 0) return null;
+
+            if (diffYears === 0 && diffMonths === 0) {
+                return 'Menos de 1 mês';
+            }
+            const anosStr = diffYears > 0 ? `${diffYears} ${diffYears === 1 ? 'ano' : 'anos'}` : '';
+            const mesesStr = diffMonths > 0 ? `${diffMonths} ${diffMonths === 1 ? 'mês' : 'meses'}` : '';
+
+            if (anosStr && mesesStr) return `${anosStr} e ${mesesStr}`;
+            return anosStr || mesesStr;
+        }
+
+        // Fallback: se houver campo 'ANOS NA OER' ou 'TEMPO NA OER' salvo no objeto
+        if (m) {
+            const rawAnos = getMusicoField(m, 'ANOS NA OER', 'Tempo na OER', 'TEMPO NA OER');
+            if (rawAnos && rawAnos !== '-') {
+                return rawAnos.toString().trim();
+            }
+        }
+        return null;
+    };
+
+    // Função utilitária para calcular idade com segurança a partir de vários formatos de data do Excel / String
+    const calcularIdade = (nascimentoVal) => {
+        if (!nascimentoVal || nascimentoVal === '-') return null;
+        const dataNasc = parseDateFromExcelOrString(nascimentoVal);
         if (dataNasc && !isNaN(dataNasc.getTime())) {
             const hoje = new Date();
             let idade = hoje.getFullYear() - dataNasc.getFullYear();
@@ -7638,14 +7721,17 @@ function initMusiciansManagement() {
         return val;
     }
 
-    // Helper: Formata data de planilha Excel
+    // Helper: Formata data de planilha Excel ou string para DD/MM/AAAA
     function formatExcelDate(val) {
-        if (!val || val === '-') return '-';
-        if (!isNaN(val) && typeof val === 'number') {
-            const date = new Date((val - 25569) * 86400 * 1000);
-            return date.toLocaleDateString('pt-BR');
+        if (!val || val === '-' || val === '') return '-';
+        const parsed = parseDateFromExcelOrString(val);
+        if (parsed && !isNaN(parsed.getTime())) {
+            const dd = String(parsed.getDate()).padStart(2, '0');
+            const mm = String(parsed.getMonth() + 1).padStart(2, '0');
+            const yyyy = parsed.getFullYear();
+            return `${dd}/${mm}/${yyyy}`;
         }
-        return formatDataBR(val);
+        return formatDataBR(val) || '-';
     }
 
     // =========================================================================
@@ -7928,14 +8014,20 @@ function initMusiciansManagement() {
         if (window.lucide) lucide.createIcons();
 
         try {
-            // Consulta simultânea a presencas, medicalCertificates_approved e dispensas
+            // Consulta simultânea a presencas, medicalCertificates_approved, dispensas e eventos
             const presQuery = query(
                 collection(db, "presencas"),
                 where("__name__", ">=", startOfYear),
                 where("__name__", "<=", dataHoje + "_\uffff")
             );
 
-            const [presSnap, atestSnap, dispSnap] = await Promise.all([
+            const eventosAnoQuery = query(
+                collection(db, "eventos"),
+                where("date", ">=", startOfYear),
+                where("date", "<=", dataHoje)
+            );
+
+            const [presSnap, atestSnap, dispSnap, evtSnap] = await Promise.all([
                 getDocs(presQuery).catch(err => {
                     console.warn("Erro ao buscar presenças:", err);
                     return { forEach: () => {} };
@@ -7947,13 +8039,37 @@ function initMusiciansManagement() {
                 getDocs(collection(db, "dispensas")).catch(err => {
                     console.warn("Erro ao buscar dispensas:", err);
                     return { forEach: () => {} };
+                }),
+                getDocs(eventosAnoQuery).catch(err => {
+                    console.warn("Erro ao buscar eventos para identificação de chamadas:", err);
+                    return { forEach: () => {} };
                 })
             ]);
+
+            const eventosPorDataMap = {};
+            evtSnap.forEach(dSnap => {
+                const ev = dSnap.data();
+                if (ev && ev.date) {
+                    const tipoEvt = (ev.tipo || '').toLowerCase();
+                    const nomeEvt = `${ev.concertoNome || ''} ${ev.descricaoEnsaio || ''} ${ev.nome || ''}`.toLowerCase();
+                    const isConcerto = tipoEvt === 'concerto' || nomeEvt.includes('concerto');
+                    if (!eventosPorDataMap[ev.date] || isConcerto) {
+                        eventosPorDataMap[ev.date] = {
+                            isConcerto,
+                            tipo: ev.tipo,
+                            nome: ev.concertoNome || ev.descricaoEnsaio || ev.nome || ''
+                        };
+                    }
+                }
+            });
 
             let chamadasMes = 0;
             let presencasMes = 0;
             let faltasMes = 0;
             let totalFaltasAno = 0;
+            let faltasAnoEnsaios = 0;
+            let faltasAnoConcertos = 0;
+            let faltasAnoPS = 0;
 
             const atestadosMusico = [];
             const dispensasMusico = [];
@@ -8045,11 +8161,33 @@ function initMusiciansManagement() {
                 // Ocorrências de falta no ano todo
                 if (isFalta || isFaltaPS) {
                     totalFaltasAno++;
+
+                    const tipoPres = (presData.tipo || '').toLowerCase();
+                    const evtInfo = eventosPorDataMap[dataDoc];
+                    const isConcerto = tipoPres === 'concerto' || (!tipoPres && evtInfo && evtInfo.isConcerto);
+                    const isEnsaioNaipe = tipoPres === 'ensaio_naipe' || (!tipoPres && evtInfo && evtInfo.tipo === 'ensaio_naipe');
+
+                    let tituloFalta = '';
+                    if (isFaltaPS) {
+                        faltasAnoPS++;
+                        tituloFalta = 'Falta na Passagem de Som';
+                    } else if (isConcerto) {
+                        faltasAnoConcertos++;
+                        tituloFalta = 'Falta em Concerto';
+                    } else if (isEnsaioNaipe) {
+                        faltasAnoEnsaios++;
+                        const naipeDesc = presData.naipe ? (Array.isArray(presData.naipe) ? presData.naipe.join(' + ') : presData.naipe) : '';
+                        tituloFalta = naipeDesc ? `Falta em Ensaio de Naipe (${naipeDesc})` : 'Falta em Ensaio de Naipe';
+                    } else {
+                        faltasAnoEnsaios++;
+                        tituloFalta = 'Falta em Ensaio';
+                    }
+
                     ocorrenciasList.push({
                         tipo: 'falta',
                         tag: isFaltaPS ? 'Falta PS' : 'Falta',
                         data: formatDataBR(dataDoc),
-                        titulo: isFaltaPS ? 'Falta na Passagem de Som' : (presData.titulo || 'Falta em Ensaio / Concerto'),
+                        titulo: tituloFalta,
                         cid: '',
                         meta: reg.justificativa ? `Justificativa: "${reg.justificativa}"` : 'Sem justificativa registrada',
                         dataSort: dataDoc
@@ -8113,6 +8251,26 @@ function initMusiciansManagement() {
             // 5. Atualizar KPIs do Drawer
             const diasAfastamentoTotal = atestadosMusico.reduce((acc, a) => acc + (parseInt(a.dias) || 0), 0);
             document.getElementById('drawer-kpi-faltas').textContent = totalFaltasAno;
+
+            // Subtítulo discriminando Ensaios, Concertos e Passagem de Som
+            const kpiFaltasSub = document.getElementById('drawer-kpi-faltas-sub');
+            if (kpiFaltasSub) {
+                let subParts = [];
+                if (faltasAnoEnsaios > 0 || totalFaltasAno === 0) {
+                    subParts.push(`${faltasAnoEnsaios} Ensaio${faltasAnoEnsaios === 1 ? '' : 's'}`);
+                }
+                if (faltasAnoConcertos > 0) {
+                    subParts.push(`${faltasAnoConcertos} Concerto${faltasAnoConcertos === 1 ? '' : 's'}`);
+                }
+                if (faltasAnoPS > 0) {
+                    subParts.push(`${faltasAnoPS} Passagem de Som`);
+                }
+                if (subParts.length === 0) {
+                    subParts = ['0 Ensaio', '0 Concerto'];
+                }
+                kpiFaltasSub.textContent = subParts.join(' · ');
+            }
+
             document.getElementById('drawer-kpi-atestados').textContent = atestadosMusico.length;
             document.getElementById('drawer-kpi-afastamento').textContent = `${diasAfastamentoTotal}d`;
             document.getElementById('drawer-kpi-dispensas').textContent = dispensasMusico.length;
@@ -8132,6 +8290,9 @@ function initMusiciansManagement() {
                 },
                 kpis: {
                     faltas: totalFaltasAno,
+                    faltasEnsaios: faltasAnoEnsaios,
+                    faltasConcertos: faltasAnoConcertos,
+                    faltasPS: faltasAnoPS,
                     atestados: atestadosMusico.length,
                     diasAfastamento: `${diasAfastamentoTotal}d`,
                     dispensas: dispensasMusico.length
@@ -8422,15 +8583,40 @@ function initMusiciansManagement() {
                     ocorrencias: []
                 };
 
+                const rawInicio = getMusicoField(m, 'INICIO OER Contrato', 'INICIO OER\nContrato', 'inicioContrato', 'dataEntrada');
+                const rawTermino = getMusicoField(m, 'TERMINO OER Contrato', 'TERMINO OER\nContrato', 'terminoContrato');
+                const dataInicioFormatada = formatExcelDate(rawInicio);
+                const tempoOER = calcularTempoOER(rawInicio, rawTermino, m);
+
+                let vinculoDetalhe = (m.Status || '-').toUpperCase();
+                const parentesesPartes = [];
+                if (dataInicioFormatada && dataInicioFormatada !== '-') {
+                    parentesesPartes.push(`Desde ${dataInicioFormatada}`);
+                }
+                if (tempoOER) {
+                    parentesesPartes.push(`${tempoOER} na OER`);
+                }
+                if (parentesesPartes.length > 0) {
+                    vinculoDetalhe += ` (${parentesesPartes.join(' · ')})`;
+                }
+
                 let txt = `🎼 *RELATÓRIO DO INTEGRANTE - OER*\n`;
                 txt += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
                 txt += `👤 *Nome:* ${m.NOMEARTISTICO || '-'} (${m['NOME REGISTRO'] || '-'})\n`;
                 txt += `🎻 *Instrumento:* ${m.INSTRUMENTOS || '-'}\n`;
-                txt += `🏷️ *Vínculo:* ${(m.Status || '-').toUpperCase()} (Desde ${formatExcelDate(m['INICIO OER Contrato'])})\n`;
+                txt += `🏷️ *Vínculo:* ${vinculoDetalhe}\n`;
                 txt += `📊 *Frequência no Mês:* ${rep.frequenciaMes.porcentagem}% (${rep.frequenciaMes.presentes}/${rep.frequenciaMes.totalChamadasAteHoje} chamadas)\n\n`;
 
+                let faltasDetalheTxt = [];
+                if (rep.kpis.faltasEnsaios !== undefined) {
+                    faltasDetalheTxt.push(`${rep.kpis.faltasEnsaios} em Ensaio`);
+                    faltasDetalheTxt.push(`${rep.kpis.faltasConcertos} em Concerto`);
+                    if (rep.kpis.faltasPS) faltasDetalheTxt.push(`${rep.kpis.faltasPS} em Passagem de Som`);
+                }
+                const faltasComplemento = faltasDetalheTxt.length > 0 ? ` (${faltasDetalheTxt.join(', ')})` : '';
+
                 txt += `📋 *RESUMO DE OCORRÊNCIAS:*\n`;
-                txt += `• Faltas no Ano: ${rep.kpis.faltas}\n`;
+                txt += `• Faltas no Ano: ${rep.kpis.faltas}${faltasComplemento}\n`;
                 txt += `• Atestados Médicos: ${rep.kpis.atestados} (${rep.kpis.diasAfastamento} afastado)\n`;
                 txt += `• Dispensas Oficiais: ${rep.kpis.dispensas}\n\n`;
 
@@ -8487,9 +8673,16 @@ function initMusiciansManagement() {
 
         const formatVal = (val) => (val === undefined || val === null || val.toString().trim() === "") ? '-' : val;
 
+        const rawInicio = getMusicoField(m, 'INICIO OER Contrato', 'INICIO OER\nContrato', 'inicioContrato', 'dataEntrada');
+        const rawTermino = getMusicoField(m, 'TERMINO OER Contrato', 'TERMINO OER\nContrato', 'terminoContrato');
+        const dataInicioFormatada = formatExcelDate(rawInicio);
+        const dataTerminoFormatada = formatExcelDate(rawTermino);
+        const tempoOER = calcularTempoOER(rawInicio, rawTermino, m);
+
+        const statusUpper = formatVal(m.Status).toUpperCase();
         document.getElementById("pr-nome-artistico").textContent = formatVal(m.NOMEARTISTICO);
         document.getElementById("pr-instrumento").textContent = formatVal(m.INSTRUMENTOS);
-        document.getElementById("pr-status").textContent = formatVal(m.Status).toUpperCase();
+        document.getElementById("pr-status").textContent = tempoOER ? `${statusUpper} (${tempoOER} na OER)` : statusUpper;
         document.getElementById("pr-frequencia").textContent = `${rep.frequenciaMes.porcentagem}% (${rep.frequenciaMes.presentes}/${rep.frequenciaMes.totalChamadasAteHoje} ensaios)`;
 
         document.getElementById("pr-nome-registro").textContent = formatVal(m['NOME REGISTRO']);
@@ -8498,13 +8691,26 @@ function initMusiciansManagement() {
         document.getElementById("pr-email").textContent = formatVal(m.EMAIL);
         document.getElementById("pr-telefone").textContent = formatVal(m.TELEFONE);
 
-        document.getElementById("pr-inicio").textContent = formatExcelDate(m['INICIO OER Contrato']);
-        document.getElementById("pr-termino").textContent = formatExcelDate(m['TERMINO OER Contrato']);
+        document.getElementById("pr-inicio").textContent = dataInicioFormatada;
+        document.getElementById("pr-termino").textContent = dataTerminoFormatada;
         document.getElementById("pr-banco").textContent = `${formatVal(m['Banco '] || m['Banco'])} / Ag: ${formatVal(m['Agencia '] || m['Agencia'])} / CC: ${formatVal(m['Conta Corrente '] || m['Conta Corrente'])}`;
         document.getElementById("pr-restricao").textContent = formatVal(m['Restrição Alimentar']);
-        document.getElementById("pr-carro").textContent = formatVal(m['Dados Carro']);
+        document.getElementById("pr-carro").textContent = formatVal(getMusicoField(m, 'Dados Carro', 'Dados\nCarro'));
 
         document.getElementById("pr-kpi-faltas").textContent = rep.kpis.faltas;
+        const prFaltasSub = document.getElementById("pr-kpi-faltas-sub");
+        if (prFaltasSub) {
+            if (rep.kpis.faltasEnsaios !== undefined) {
+                let subParts = [];
+                if (rep.kpis.faltasEnsaios > 0 || rep.kpis.faltas === 0) subParts.push(`${rep.kpis.faltasEnsaios} Ens.`);
+                if (rep.kpis.faltasConcertos > 0) subParts.push(`${rep.kpis.faltasConcertos} Conc.`);
+                if (rep.kpis.faltasPS > 0) subParts.push(`${rep.kpis.faltasPS} PS`);
+                if (subParts.length === 0) subParts = ['0 Ens.', '0 Conc.'];
+                prFaltasSub.textContent = subParts.join(' / ');
+            } else {
+                prFaltasSub.textContent = '';
+            }
+        }
         document.getElementById("pr-kpi-atestados").textContent = rep.kpis.atestados;
         document.getElementById("pr-kpi-afastamento").textContent = rep.kpis.diasAfastamento;
         document.getElementById("pr-kpi-dispensas").textContent = rep.kpis.dispensas;
@@ -8570,14 +8776,24 @@ function initMusiciansManagement() {
         else if (statusLower.includes('desligado')) badgeClass = 'desligado';
         statusBadge.classList.add(badgeClass);
 
-        document.getElementById('drawer-val-escalado').textContent = formatValue(musico.Escalado);
-        document.getElementById('drawer-val-anos-oer').textContent = formatValue(musico['ANOS NA OER']);
-        document.getElementById('drawer-val-tempo-oer').textContent = formatValue(musico['TEMPO NA OER']);
+        const rawAnosOer = getMusicoField(musico, 'ANOS NA OER', 'Anos na OER');
+        const rawTempoOer = getMusicoField(musico, 'TEMPO NA OER', 'Tempo na OER');
+        const rawInicio = getMusicoField(musico, 'INICIO OER Contrato', 'INICIO OER\nContrato', 'inicioContrato', 'dataEntrada');
+        const rawTermino = getMusicoField(musico, 'TERMINO OER Contrato', 'TERMINO OER\nContrato', 'terminoContrato');
+        const rawTipoContrato = getMusicoField(musico, 'Tipo Contrato Prorrogáveis por igual prazo', 'Tipo Contrato\nProrrogáveis por igual prazo', 'Tipo Contrato');
+        const rawCadernoExcertos = getMusicoField(musico, 'Data de Envio Caderno de Exceros', 'Data de Envio\nCaderno de Exceros', 'Data de Envio Caderno de Excertos', 'Data Envio Caderno de Excertos');
+        const rawCarro = getMusicoField(musico, 'Dados Carro', 'Dados\nCarro');
 
-        document.getElementById('drawer-val-inicio-contrato').textContent = formatExcelDate(musico['INICIO OER Contrato']);
-        document.getElementById('drawer-val-termino-contrato').textContent = formatExcelDate(musico['TERMINO OER Contrato']);
-        document.getElementById('drawer-val-tipo-contrato').textContent = formatValue(musico['Tipo Contrato Prorrogáveis por igual prazo']);
-        document.getElementById('drawer-val-caderno-excertos').textContent = formatValue(musico['Data de Envio Caderno de Exceros']);
+        const tempoCalculado = calcularTempoOER(rawInicio, rawTermino, musico);
+
+        document.getElementById('drawer-val-escalado').textContent = formatValue(musico.Escalado);
+        document.getElementById('drawer-val-anos-oer').textContent = formatValue(rawAnosOer || tempoCalculado);
+        document.getElementById('drawer-val-tempo-oer').textContent = formatValue(rawTempoOer || tempoCalculado);
+
+        document.getElementById('drawer-val-inicio-contrato').textContent = formatExcelDate(rawInicio);
+        document.getElementById('drawer-val-termino-contrato').textContent = formatExcelDate(rawTermino);
+        document.getElementById('drawer-val-tipo-contrato').textContent = formatValue(rawTipoContrato);
+        document.getElementById('drawer-val-caderno-excertos').textContent = formatValue(rawCadernoExcertos);
 
         // Contatos e Docs
         document.getElementById('drawer-val-email').textContent = formatValue(musico.EMAIL);
@@ -8626,7 +8842,7 @@ function initMusiciansManagement() {
         document.getElementById('drawer-val-endereco').textContent = formatValue(musico['Endereço'] || musico['Endereço ']);
         document.getElementById('drawer-val-cep').textContent = formatValue(musico.CEP);
         document.getElementById('drawer-val-restricao').textContent = formatValue(musico['Restrição Alimentar']);
-        document.getElementById('drawer-val-carro').textContent = formatValue(musico['Dados Carro']);
+        document.getElementById('drawer-val-carro').textContent = formatValue(rawCarro);
 
         // Carregar anotações
         loadNotesForMusician(musico);
@@ -8725,17 +8941,8 @@ function initMusiciansManagement() {
 
         // Formatar datas numéricas do Excel (ex: 39451) para texto legível DD/MM/AAAA
         const formatExcelDateStr = (val) => {
-            if (!val || val === '-') return '';
-            if (!isNaN(val) && typeof val === 'number') {
-                const date = new Date((val - 25569) * 86400 * 1000);
-                if (!isNaN(date.getTime())) {
-                    const dd = String(date.getDate()).padStart(2, '0');
-                    const mm = String(date.getMonth() + 1).padStart(2, '0');
-                    const yyyy = date.getFullYear();
-                    return `${dd}/${mm}/${yyyy}`;
-                }
-            }
-            return String(val);
+            const formatted = formatExcelDate(val);
+            return (formatted === '-' || !formatted) ? '' : formatted;
         };
 
         document.getElementById('edit-m-nome-artistico').value = getVal(item.NOMEARTISTICO || item['NOME REGISTRO'] || item.Nome);
@@ -8758,26 +8965,26 @@ function initMusiciansManagement() {
 
         // Outros campos com tratamento de datas do Excel
         document.getElementById('edit-m-escalado').value = getVal(item.Escalado);
-        document.getElementById('edit-m-tipo-contrato').value = getVal(item['Tipo Contrato Prorrogáveis por igual prazo'] || item['Tipo Contrato']);
-        document.getElementById('edit-m-inicio-contrato').value = formatExcelDateStr(item['INICIO OER Contrato']);
-        document.getElementById('edit-m-termino-contrato').value = formatExcelDateStr(item['TERMINO OER Contrato']);
+        document.getElementById('edit-m-tipo-contrato').value = getVal(getMusicoField(item, 'Tipo Contrato Prorrogáveis por igual prazo', 'Tipo Contrato\nProrrogáveis por igual prazo', 'Tipo Contrato'));
+        document.getElementById('edit-m-inicio-contrato').value = formatExcelDateStr(getMusicoField(item, 'INICIO OER Contrato', 'INICIO OER\nContrato', 'inicioContrato', 'dataEntrada'));
+        document.getElementById('edit-m-termino-contrato').value = formatExcelDateStr(getMusicoField(item, 'TERMINO OER Contrato', 'TERMINO OER\nContrato', 'terminoContrato'));
         const cadernoInput = document.getElementById('edit-m-caderno-excertos');
         if (cadernoInput) {
-            cadernoInput.value = getVal(item['Data de Envio Caderno de Exceros'] || item['Data de Envio Caderno de Excertos'] || item['Data Envio Caderno de Excertos']);
+            cadernoInput.value = getVal(getMusicoField(item, 'Data de Envio Caderno de Exceros', 'Data de Envio\nCaderno de Exceros', 'Data de Envio Caderno de Excertos', 'Data Envio Caderno de Excertos'));
         }
         document.getElementById('edit-m-email').value = getVal(item.EMAIL || item.Email);
         document.getElementById('edit-m-telefone').value = getVal(item.TELEFONE || item.Telefone);
-        document.getElementById('edit-m-nascimento').value = formatExcelDateStr(item['DATA DE NACIMENTO '] || item['DATA DE NASCIMENTO'] || item.Nascimento);
+        document.getElementById('edit-m-nascimento').value = formatExcelDateStr(getMusicoField(item, 'DATA DE NACIMENTO ', 'DATA DE NASCIMENTO', 'Nascimento'));
         document.getElementById('edit-m-rg').value = getVal(item.RG || item.Rg);
-        document.getElementById('edit-m-pis').value = getVal(item['PIS/PASEP'] || item.Pis);
+        document.getElementById('edit-m-pis').value = getVal(getMusicoField(item, 'PIS/PASEP', 'Pis'));
         document.getElementById('edit-m-genero').value = getVal(item.GENERO || item['GÊNERO'] || item.genero || item['Identidade de Gênero'] || item.Genero);
         document.getElementById('edit-m-banco').value = getVal(item['Banco '] || item.Banco);
         document.getElementById('edit-m-agencia').value = getVal(item['Agencia '] || item.Agencia);
         document.getElementById('edit-m-conta').value = getVal(item['Conta Corrente '] || item['Conta Corrente']);
         document.getElementById('edit-m-endereco').value = getVal(item['Endereço'] || item['Endereço ']);
         document.getElementById('edit-m-cep').value = getVal(item.CEP || item.Cep);
-        document.getElementById('edit-m-restricao').value = getVal(item['Restrição Alimentar'] || item['Restrição Alimentar ']);
-        document.getElementById('edit-m-carro').value = getVal(item['Dados Carro']);
+        document.getElementById('edit-m-restricao').value = getVal(getMusicoField(item, 'Restrição Alimentar', 'Restrição Alimentar '));
+        document.getElementById('edit-m-carro').value = getVal(getMusicoField(item, 'Dados Carro', 'Dados\nCarro'));
     };
 
     // Abertura da gaveta para Edição Direta no Banco Firestore
@@ -9384,11 +9591,60 @@ function initMusiciansManagement() {
                     }
 
                     const sheetAtivos = workbook.Sheets[sheetNameAtivos];
-                    const rowsAtivos = XLSX.utils.sheet_to_json(sheetAtivos, { defval: "" });
+                    const rawRowsAtivos = XLSX.utils.sheet_to_json(sheetAtivos, { defval: "" });
 
-                    if (rowsAtivos.length === 0) {
+                    if (rawRowsAtivos.length === 0) {
                         throw new Error(`A aba "${sheetNameAtivos}" está vazia.`);
                     }
+
+                    // Normalizar nomes das colunas de cada linha (removendo quebras de linha \r\n, espaços duplicados e mapeando chaves canônicas)
+                    const normalizeRowHeaders = (row) => {
+                        const cleanRow = {};
+                        for (let [key, val] of Object.entries(row)) {
+                            if (!key) continue;
+                            let cleanKey = key.toString().replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+                            const lowerKey = cleanKey.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+                            if (lowerKey === 'inicio oer contrato' || lowerKey.startsWith('inicio oer') || lowerKey === 'inicio contrato') {
+                                cleanKey = 'INICIO OER Contrato';
+                            } else if (lowerKey === 'termino oer contrato' || lowerKey.startsWith('termino oer') || lowerKey === 'termino contrato') {
+                                cleanKey = 'TERMINO OER Contrato';
+                            } else if (lowerKey.includes('tipo contrato') && lowerKey.includes('prorrog')) {
+                                cleanKey = 'Tipo Contrato Prorrogáveis por igual prazo';
+                            } else if (lowerKey.includes('caderno') && (lowerKey.includes('exceros') || lowerKey.includes('excertos'))) {
+                                cleanKey = 'Data de Envio Caderno de Exceros';
+                            } else if (lowerKey === 'dados carro' || lowerKey.startsWith('dados carro')) {
+                                cleanKey = 'Dados Carro';
+                            } else if (lowerKey === 'restricao alimentar') {
+                                cleanKey = 'Restrição Alimentar';
+                            } else if (lowerKey === 'data de nascimento' || lowerKey === 'data de nacimento') {
+                                cleanKey = 'DATA DE NACIMENTO ';
+                            } else if (lowerKey === 'nome registro') {
+                                cleanKey = 'NOME REGISTRO';
+                            } else if (lowerKey === 'nomeartistico' || lowerKey === 'nome artistico') {
+                                cleanKey = 'NOMEARTISTICO';
+                            } else if (lowerKey === 'instrumentos' || lowerKey === 'instrumento') {
+                                cleanKey = 'INSTRUMENTOS';
+                            } else if (lowerKey === 'tempo na oer') {
+                                cleanKey = 'TEMPO NA OER';
+                            } else if (lowerKey === 'anos na oer') {
+                                cleanKey = 'ANOS NA OER';
+                            }
+
+                            // Formatar número serial do Excel para data DD/MM/AAAA nos campos de data se aplicável
+                            if ((cleanKey === 'INICIO OER Contrato' || cleanKey === 'TERMINO OER Contrato') && val) {
+                                const num = Number(val);
+                                if (!isNaN(num) && num > 20000 && num < 70000) {
+                                    val = formatExcelDate(num);
+                                }
+                            }
+
+                            cleanRow[cleanKey] = val;
+                        }
+                        return cleanRow;
+                    };
+
+                    const rowsAtivos = rawRowsAtivos.map(normalizeRowHeaders);
 
                     // 2. Procurar aba de músicos cancelados / desligados para capturar a DATA DE SAÍDA
                     let sheetNameCancelados = workbook.SheetNames.find(name => {
@@ -9401,7 +9657,8 @@ function initMusiciansManagement() {
 
                     if (sheetNameCancelados) {
                         const sheetCancelados = workbook.Sheets[sheetNameCancelados];
-                        const rowsCancelados = XLSX.utils.sheet_to_json(sheetCancelados, { defval: "" });
+                        const rawRowsCancelados = XLSX.utils.sheet_to_json(sheetCancelados, { defval: "" });
+                        const rowsCancelados = rawRowsCancelados.map(normalizeRowHeaders);
                         
                         rowsCancelados.forEach(row => {
                             let rawCpf = (row.CPF || row['CPF MÚSICO'] || row['CPF MUSICO'] || "").toString().trim();
@@ -12416,7 +12673,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                                     if (isFaltaPassagemSom) {
                                         bInfo.faltas.push({ dia, obs: ' (Falta Passagem de Som)' });
                                     } else if (isFalta) {
-                                        let labelObs = '';
+                                        let labelObs = ' (Ensaio)';
                                         if (pres.tipo === 'ensaio_naipe' && pres.naipe) {
                                             const naipeStr = Array.isArray(pres.naipe) ? pres.naipe.join(' + ') : pres.naipe;
                                             labelObs = ` (Ensaio de Naipe - ${naipeStr})`;
@@ -12425,7 +12682,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                                         }
                                         bInfo.faltas.push({ dia, obs: labelObs });
                                     } else if (isPendente) {
-                                        let labelObs = '';
+                                        let labelObs = ' (Ensaio)';
                                         if (pres.tipo === 'ensaio_naipe' && pres.naipe) {
                                             const naipeStr = Array.isArray(pres.naipe) ? pres.naipe.join(' + ') : pres.naipe;
                                             labelObs = ` (Ensaio de Naipe - ${naipeStr})`;

@@ -2531,12 +2531,31 @@
             btnCopyReportText.addEventListener("click", async () => {
                 if (!activeMusician) return;
                 const m = activeMusician;
+                let tempoStr = "";
+                if (m.inicioContrato && m.inicioContrato !== '-') {
+                    const partes = m.inicioContrato.split('/');
+                    if (partes.length === 3) {
+                        const dIni = new Date(parseInt(partes[2], 10), parseInt(partes[1], 10) - 1, parseInt(partes[0], 10));
+                        const dFim = new Date();
+                        let dy = dFim.getFullYear() - dIni.getFullYear();
+                        let dm = dFim.getMonth() - dIni.getMonth();
+                        if (dFim.getDate() < dIni.getDate()) dm--;
+                        if (dm < 0) { dy--; dm += 12; }
+                        const aStr = dy > 0 ? `${dy} ${dy === 1 ? 'ano' : 'anos'}` : '';
+                        const mStr = dm > 0 ? `${dm} ${dm === 1 ? 'mês' : 'meses'}` : '';
+                        tempoStr = (aStr && mStr) ? `${aStr} e ${mStr}` : (aStr || mStr);
+                    }
+                }
+                const vinculoExtra = [
+                    (m.inicioContrato && m.inicioContrato !== '-') ? `Desde ${m.inicioContrato}` : '',
+                    tempoStr ? `${tempoStr} na OER` : ''
+                ].filter(Boolean).join(' · ');
 
                 let relatorio = `🎼 *RELATÓRIO DO INTEGRANTE - OER*\n`;
                 relatorio += `━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
                 relatorio += `👤 *Nome:* ${m.nomeArtistico} (${m.nomeRegistro})\n`;
                 relatorio += `🎻 *Instrumento:* ${m.instrumento}\n`;
-                relatorio += `🏷️ *Vínculo:* ${m.status.toUpperCase()} (Desde ${m.inicioContrato})\n`;
+                relatorio += `🏷️ *Vínculo:* ${m.status.toUpperCase()}${vinculoExtra ? ` (${vinculoExtra})` : ''}\n`;
                 relatorio += `📊 *Frequência no Mês:* ${m.frequenciaMes.porcentagem}% (${m.frequenciaMes.presentes}/${m.frequenciaMes.totalChamadasAteHoje} chamadas)\n\n`;
 
                 relatorio += `📋 *RESUMO DE OCORRÊNCIAS:*\n`;
@@ -2586,9 +2605,25 @@
         }
 
         function populatePrintableReport(m) {
+            let tempoStr = "";
+            if (m.inicioContrato && m.inicioContrato !== '-') {
+                const partes = m.inicioContrato.split('/');
+                if (partes.length === 3) {
+                    const dIni = new Date(parseInt(partes[2], 10), parseInt(partes[1], 10) - 1, parseInt(partes[0], 10));
+                    const dFim = new Date();
+                    let dy = dFim.getFullYear() - dIni.getFullYear();
+                    let dm = dFim.getMonth() - dIni.getMonth();
+                    if (dFim.getDate() < dIni.getDate()) dm--;
+                    if (dm < 0) { dy--; dm += 12; }
+                    const aStr = dy > 0 ? `${dy} ${dy === 1 ? 'ano' : 'anos'}` : '';
+                    const mStr = dm > 0 ? `${dm} ${dm === 1 ? 'mês' : 'meses'}` : '';
+                    tempoStr = (aStr && mStr) ? `${aStr} e ${mStr}` : (aStr || mStr);
+                }
+            }
+
             document.getElementById("pr-nome-artistico").textContent = m.nomeArtistico;
             document.getElementById("pr-instrumento").textContent = m.instrumento;
-            document.getElementById("pr-status").textContent = m.status.toUpperCase();
+            document.getElementById("pr-status").textContent = tempoStr ? `${m.status.toUpperCase()} (${tempoStr} na OER)` : m.status.toUpperCase();
             document.getElementById("pr-frequencia").textContent = `${m.frequenciaMes.porcentagem}% (${m.frequenciaMes.presentes}/${m.frequenciaMes.totalChamadasAteHoje} ensaios)`;
 
             document.getElementById("pr-nome-registro").textContent = m.nomeRegistro;
