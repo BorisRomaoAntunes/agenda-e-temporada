@@ -8596,17 +8596,41 @@ function initMusiciansManagement() {
         return [];
     }
 
-    // Helper: Atualiza contador e resumo abaixo do campo de texto
+    // Helper: Atualiza contador e resumo abaixo do campo de texto de forma compacta e discreta
     function updateNotesStatusDisplay(musico) {
         if (!notesTimestampDisplay) return;
         const notes = getAdminNotesList(musico);
         if (notes.length === 0) {
             notesTimestampDisplay.textContent = 'Nenhuma anotação registrada ainda';
+            notesTimestampDisplay.removeAttribute('title');
         } else {
-            const countLabel = notes.length === 1 ? '1 anotação registrada' : `${notes.length} anotações registradas`;
+            const countLabel = notes.length === 1 ? '1 anotação' : `${notes.length} anotações`;
             const last = notes[notes.length - 1];
-            const dataUltima = last.criadoEmFormatado || 'Salva no sistema';
-            notesTimestampDisplay.textContent = `${countLabel} • Última: ${dataUltima}`;
+
+            // Extrai data/hora curta (ex: "16/09 às 22:18")
+            let dataCurta = '';
+            if (last.criadoEm) {
+                try {
+                    const d = new Date(last.criadoEm);
+                    if (!isNaN(d.getTime())) {
+                        const diaMes = d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+                        const horaMin = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                        dataCurta = `${diaMes} às ${horaMin}`;
+                    }
+                } catch (e) {}
+            }
+            if (!dataCurta && last.criadoEmFormatado) {
+                const m = last.criadoEmFormatado.match(/(\d{2}\/\d{2}(?:\/\d{4})?\s+às\s+\d{2}:\d{2})/);
+                if (m) {
+                    dataCurta = m[1].replace(/\/\d{4}/, '');
+                } else {
+                    dataCurta = last.criadoEmFormatado.split(' por ')[0].replace('Salvo em ', '');
+                }
+            }
+            if (!dataCurta) dataCurta = 'recente';
+
+            notesTimestampDisplay.textContent = `${countLabel} • Última: ${dataCurta}`;
+            notesTimestampDisplay.setAttribute('title', last.criadoEmFormatado || `Última anotação por ${last.autor || 'Coordenação OER'}`);
         }
     }
 
