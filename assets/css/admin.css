@@ -6743,6 +6743,20 @@ input:checked + .slider:before {
     background: #fee2e2;
 }
 
+.notes-timestamp {
+    font-size: 0.72rem;
+    color: #94a3b8;
+    font-weight: 500;
+    line-height: 1.3;
+    display: inline-flex;
+    align-items: center;
+    cursor: default;
+    transition: color 0.2s;
+}
+.notes-timestamp:hover {
+    color: #64748b;
+}
+
 /* Modal de Exportação */
 .export-option-card {
     border: 1.5px solid #e2e8f0;
