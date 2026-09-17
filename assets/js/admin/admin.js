@@ -9061,12 +9061,53 @@ function initMusiciansManagement() {
         });
     }
 
+    const btnEditCurrentMusicoMobile = document.getElementById('btn-edit-current-musico-mobile');
+
+    const handleOpenEditMusico = () => {
+        if (currentSelectedMusico) {
+            openEditMusicoDrawerDirect(currentSelectedMusico);
+        }
+    };
+
     if (btnEditCurrentMusico) {
-        btnEditCurrentMusico.addEventListener('click', () => {
-            if (currentSelectedMusico) {
-                openEditMusicoDrawerDirect(currentSelectedMusico);
+        btnEditCurrentMusico.addEventListener('click', handleOpenEditMusico);
+    }
+    if (btnEditCurrentMusicoMobile) {
+        btnEditCurrentMusicoMobile.addEventListener('click', handleOpenEditMusico);
+    }
+
+    // Suporte a gesto de arrastar para a direita para fechar a gaveta no mobile (Swipe-to-Close)
+    if (drawer) {
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchEndX = 0;
+        let touchEndY = 0;
+
+        drawer.addEventListener('touchstart', (e) => {
+            if (e.touches && e.touches.length === 1) {
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+                touchEndX = touchStartX;
+                touchEndY = touchStartY;
             }
-        });
+        }, { passive: true });
+
+        drawer.addEventListener('touchmove', (e) => {
+            if (e.touches && e.touches.length === 1) {
+                touchEndX = e.touches[0].clientX;
+                touchEndY = e.touches[0].clientY;
+            }
+        }, { passive: true });
+
+        drawer.addEventListener('touchend', (e) => {
+            const diffX = touchEndX - touchStartX;
+            const diffY = Math.abs(touchEndY - touchStartY);
+
+            // Se arrastou mais de 75px para a direita com movimento predominantemente horizontal
+            if (diffX > 75 && diffX > diffY * 1.4) {
+                closeMusicoDrawer();
+            }
+        }, { passive: true });
     }
 
     // Tecla Escape fecha Drawer e Modais
@@ -13504,8 +13545,8 @@ function initCopyableFields() {
             field.classList.add('copyable-area');
         }
         
-        // Garante ícone se ainda não existir
-        if (!field.querySelector('.copy-icon-indicator')) {
+        // Garante ícone nos campos de dados (exceto no header-info para preservar layout vertical do cabeçalho)
+        if (!field.classList.contains('drawer-header-info') && !field.querySelector('.copy-icon-indicator')) {
             const iconHTML = `<i data-lucide="copy" class="copy-icon-indicator"></i>`;
             field.insertAdjacentHTML('beforeend', iconHTML);
         }
