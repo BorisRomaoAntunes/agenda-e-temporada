@@ -2494,7 +2494,10 @@
                 btnSaveNotes.classList.add("saved");
                 btnSaveNotes.innerHTML = `<i data-lucide="check" style="width: 14px; height: 14px;"></i> <span>Salvo!</span>`;
                 const totalAdmin = activeMusician.historicoNotasEJustificativas.filter(n => n.origem === 'admin').length;
-                notesTimestampDisplay.textContent = `${totalAdmin} anotação(ões) • Última: ${newNote.data}`;
+                const countLbl = totalAdmin === 1 ? '1 anotação' : `${totalAdmin} anotações`;
+                const dataCurta = (newNote.data || '').replace(/\/\d{4}/, '');
+                notesTimestampDisplay.textContent = `${countLbl} • Última: ${dataCurta}`;
+                notesTimestampDisplay.setAttribute('title', `Salvo em ${newNote.data} por Coordenação OER`);
                 if (typeof lucide !== 'undefined') lucide.createIcons();
 
                 setTimeout(() => {
@@ -2510,8 +2513,12 @@
             const notes = activeMusician?.historicoNotasEJustificativas?.filter(n => n.origem === 'admin') || [];
             if (notes.length === 0) {
                 notesTimestampDisplay.textContent = "Nenhuma anotação registrada ainda";
+                notesTimestampDisplay.removeAttribute('title');
             } else {
-                notesTimestampDisplay.textContent = `${notes.length} anotação(ões) • Última: ${notes[0].data}`;
+                const countLbl = notes.length === 1 ? '1 anotação' : `${notes.length} anotações`;
+                const dataCurta = (notes[0].data || '').replace(/\/\d{4}/, '');
+                notesTimestampDisplay.textContent = `${countLbl} • Última: ${dataCurta}`;
+                notesTimestampDisplay.setAttribute('title', `Salvo em ${notes[0].data} por Coordenação OER`);
             }
         }
 
