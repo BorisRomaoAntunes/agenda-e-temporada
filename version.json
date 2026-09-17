@@ -1,17 +1,35 @@
 {
-  "hash": "25ae0cb+mod",
-  "date": "16/09/2026, 22:14:37",
-  "buildAt": "2026-09-17T01:14:37.149Z",
+  "hash": "4ddee16+mod",
+  "date": "16/09/2026, 22:16:36",
+  "buildAt": "2026-09-17T01:16:36.240Z",
   "history": [
     {
-      "hash": "25ae0cb+mod",
-      "date": "16/09/2026, 22:14:37",
+      "hash": "4ddee16+mod",
+      "date": "16/09/2026, 22:16:36",
       "author": "Deploy Local",
       "subject": "Atualização implantada (1 arquivos modificados)"
     },
     {
-      "hash": "25ae0cb",
-      "date": "16/09/2026 22:13",
+      "hash": "4ddee16",
+      "date": "16/09/2026 22:16",
+      "author": "Boris Romão Antunes",
+      "subject": "fix(preview): alinha texto de frequencia anual"
+    },
+    {
+      "hash": "08a528a",
+      "date": "16/09/2026 22:15",
+      "author": "Boris Romão Antunes",
+      "subject": "fix(presenca): exibe atraso como 'P' com nota detalhada para correta contagem na planilha e relatórios"
+    },
+    {
+      "hash": "93efcfb",
+      "date": "16/09/2026 22:15",
+      "author": "Boris Romão Antunes",
+      "subject": "fix(presenca): legenda e marcacao de presenca em atrasos no relatorio"
+    },
+    {
+      "hash": "149d1db",
+      "date": "16/09/2026 22:14",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualiza version.json pós-commit vebf81cf"
     },
@@ -104,24 +122,6 @@
       "date": "15/09/2026 18:43",
       "author": "Boris Romão Antunes",
       "subject": "feat: busca preditiva estilo Google na aba historico e gaveta completa do musico"
-    },
-    {
-      "hash": "21a2f2f",
-      "date": "15/09/2026 18:35",
-      "author": "Boris Romão Antunes",
-      "subject": "fix(presenca): remover pendencias residuais de integrantes desligados"
-    },
-    {
-      "hash": "911bada",
-      "date": "15/09/2026 17:45",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json"
-    },
-    {
-      "hash": "6ba04fb",
-      "date": "15/09/2026 17:40",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json pós-deploy vd4aa771"
     }
   ]
 }
