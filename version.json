@@ -1,8 +1,20 @@
 {
-  "hash": "bb12541",
-  "date": "16/09/2026 10:19",
-  "buildAt": "2026-09-16T13:29:29.594Z",
+  "hash": "98fee28",
+  "date": "16/09/2026 21:19",
+  "buildAt": "2026-09-17T00:19:31.413Z",
   "history": [
+    {
+      "hash": "98fee28",
+      "date": "16/09/2026 21:19",
+      "author": "Boris Romão Antunes",
+      "subject": "fix(mobile): corrige layout da gaveta de dados dos musicos e botao fechar"
+    },
+    {
+      "hash": "62becfd",
+      "date": "16/09/2026 10:30",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pós-deploy"
+    },
     {
       "hash": "bb12541",
       "date": "16/09/2026 10:19",
@@ -110,18 +122,6 @@
       "date": "11/09/2026 18:20",
       "author": "Boris Romão Antunes",
       "subject": "style(ui): aumentar botoes e corrigir alinhamento do letreiro no mobile"
-    },
-    {
-      "hash": "2fae4f8",
-      "date": "11/09/2026 17:52",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json pós-deploy v366b194"
-    },
-    {
-      "hash": "366b194",
-      "date": "11/09/2026 17:51",
-      "author": "Boris Romão Antunes",
-      "subject": "fix(ui): exibir badge de versao e historico no layout mobile"
     }
   ]
 }
