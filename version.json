@@ -1,8 +1,26 @@
 {
-  "hash": "9418372",
-  "date": "16/09/2026 22:21",
-  "buildAt": "2026-09-17T01:21:20.989Z",
+  "hash": "4d5c915+mod",
+  "date": "16/09/2026, 22:22:55",
+  "buildAt": "2026-09-17T01:22:55.150Z",
   "history": [
+    {
+      "hash": "4d5c915+mod",
+      "date": "16/09/2026, 22:22:55",
+      "author": "Deploy Local",
+      "subject": "Atualização implantada (1 arquivos modificados)"
+    },
+    {
+      "hash": "4d5c915",
+      "date": "16/09/2026 22:22",
+      "author": "Boris Romão Antunes",
+      "subject": "style(admin): adiciona estilo de timestamp para notas"
+    },
+    {
+      "hash": "2d4b678",
+      "date": "16/09/2026 22:21",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pós-commit v9418372"
+    },
     {
       "hash": "9418372",
       "date": "16/09/2026 22:21",
@@ -104,24 +122,6 @@
       "date": "16/09/2026 09:59",
       "author": "Boris Romão Antunes",
       "subject": "fix(admin): aprimora calculo de tempo na OER e atualiza version.json"
-    },
-    {
-      "hash": "3892b66",
-      "date": "16/09/2026 09:52",
-      "author": "Boris Romão Antunes",
-      "subject": "fix(musicos): normaliza cabecalhos da planilha e sincroniza datas contratuais no Firestore"
-    },
-    {
-      "hash": "6c7b38e",
-      "date": "16/09/2026 09:16",
-      "author": "Boris Romão Antunes",
-      "subject": "fix(admin): ajustar layout e evitar compressao no card de participacao mensal na gaveta do musico"
-    },
-    {
-      "hash": "3d7b604",
-      "date": "16/09/2026 08:37",
-      "author": "Boris Romão Antunes",
-      "subject": "fix: desativar autofill no campo de busca e estilizar cards de KPIs e filtros da gaveta"
     }
   ]
 }
