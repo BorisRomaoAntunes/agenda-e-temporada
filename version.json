@@ -1,8 +1,38 @@
 {
-  "hash": "98fee28",
-  "date": "16/09/2026 21:19",
-  "buildAt": "2026-09-17T00:19:31.413Z",
+  "hash": "25ae0cb+mod",
+  "date": "16/09/2026, 22:14:37",
+  "buildAt": "2026-09-17T01:14:37.149Z",
   "history": [
+    {
+      "hash": "25ae0cb+mod",
+      "date": "16/09/2026, 22:14:37",
+      "author": "Deploy Local",
+      "subject": "Atualização implantada (1 arquivos modificados)"
+    },
+    {
+      "hash": "25ae0cb",
+      "date": "16/09/2026 22:13",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pós-commit vebf81cf"
+    },
+    {
+      "hash": "ebf81cf",
+      "date": "16/09/2026 22:13",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(presenca): registra usuario logado nas justificativas e notas da lista de presenca"
+    },
+    {
+      "hash": "e5bac1f",
+      "date": "16/09/2026 22:11",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(admin): novo fluxo de observacoes dinamicas e historico unificado"
+    },
+    {
+      "hash": "4723c3b",
+      "date": "16/09/2026 21:19",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json para v98fee28"
+    },
     {
       "hash": "98fee28",
       "date": "16/09/2026 21:19",
@@ -92,36 +122,6 @@
       "date": "15/09/2026 17:40",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualizar version.json pós-deploy vd4aa771"
-    },
-    {
-      "hash": "d4aa771",
-      "date": "15/09/2026 17:39",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(presenca): manter bolsista cancelado ate data de saida e exibir nos relatorios do mes"
-    },
-    {
-      "hash": "a36258e",
-      "date": "15/09/2026 10:29",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json v91ac3b5"
-    },
-    {
-      "hash": "91ac3b5",
-      "date": "15/09/2026 10:27",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(atestados): trava de validacao de musico na homologacao de atestados e integracao de cadastros pendentes"
-    },
-    {
-      "hash": "3d36da7",
-      "date": "11/09/2026 18:22",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json pós-deploy v2a9b8a0"
-    },
-    {
-      "hash": "2a9b8a0",
-      "date": "11/09/2026 18:20",
-      "author": "Boris Romão Antunes",
-      "subject": "style(ui): aumentar botoes e corrigir alinhamento do letreiro no mobile"
     }
   ]
 }
