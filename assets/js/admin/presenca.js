@@ -1435,7 +1435,9 @@ function selectJustificadoStatus() {
     attendanceData[activeMusicianId] = {
         status: "justificado",
         minutes: 0,
-        justificativa: currentJustificativa
+        justificativa: currentJustificativa,
+        registradoPor: currentUserEmail || "Admin",
+        atualizadoEm: new Date().toISOString()
     };
 
     updateDrawerButtonsVisuals();
@@ -1463,7 +1465,9 @@ function selectFaltaStatus(status = "falta") {
     attendanceData[activeMusicianId] = {
         status: status,
         minutes: 0,
-        justificativa: currentNota
+        justificativa: currentNota,
+        registradoPor: currentUserEmail || "Admin",
+        atualizadoEm: new Date().toISOString()
     };
 
     updateDrawerButtonsVisuals();
@@ -1489,6 +1493,8 @@ function handleJustificationInput(e) {
     const cur = attendanceData[activeMusicianId];
     if (cur && (cur.status === "justificado" || cur.status === "falta" || cur.status === "falta_passagem_som")) {
         cur.justificativa = e.target.value;
+        cur.registradoPor = currentUserEmail || "Admin";
+        cur.atualizadoEm = new Date().toISOString();
         saveDraft();
         renderMusicians();
     }
@@ -1500,7 +1506,9 @@ function applyQuickDelay(minutes) {
 
     attendanceData[activeMusicianId] = {
         status: "atraso",
-        minutes: minutes
+        minutes: minutes,
+        registradoPor: currentUserEmail || "Admin",
+        atualizadoEm: new Date().toISOString()
     };
 
     saveDraft();
@@ -1522,7 +1530,9 @@ function saveJustificationAndClose() {
             attendanceData[activeMusicianId] = {
                 status: "justificado",
                 minutes: 0,
-                justificativa: text
+                justificativa: text,
+                registradoPor: currentUserEmail || "Admin",
+                atualizadoEm: new Date().toISOString()
             };
             showToast("Justificativa salva!");
         }
@@ -1530,7 +1540,9 @@ function saveJustificationAndClose() {
         attendanceData[activeMusicianId] = {
             status: selectedStatusTemp,
             minutes: 0,
-            justificativa: text
+            justificativa: text,
+            registradoPor: currentUserEmail || "Admin",
+            atualizadoEm: new Date().toISOString()
         };
         showToast(text !== "" ? "Anotação da falta salva!" : "Falta registrada!");
     }
@@ -1930,6 +1942,15 @@ async function saveOfficialData() {
         const item = attendanceData[mId];
         if (item && item.status === 'justificado' && (!item.justificativa || item.justificativa.trim() === '')) {
             attendanceData[mId] = { status: 'none', minutes: 0 };
+        }
+    });
+
+    // Garantir que registros com justificativa ou notas possuam o usuário responsável associado
+    Object.keys(attendanceData).forEach(mId => {
+        const item = attendanceData[mId];
+        if (item && item.justificativa && !item.registradoPor) {
+            item.registradoPor = currentUserEmail || "Admin";
+            if (!item.atualizadoEm) item.atualizadoEm = new Date().toISOString();
         }
     });
 
