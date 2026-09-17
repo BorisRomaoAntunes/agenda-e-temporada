@@ -8160,11 +8160,13 @@ function initMusiciansManagement() {
                         rotuloOrigem = `Falta Passagem de Som - Lista de Presença (${formatDataBR(dataDoc)})`;
                     }
 
+                    const autorJustificativa = reg.registradoPor || presData.usuarioResponsavel || 'Coordenação OER';
+
                     justificativasList.push({
                         origem: isFaltaReg ? 'falta' : 'presenca',
                         origemLabel: rotuloOrigem,
                         data: formatDataBR(dataDoc),
-                        autor: 'Lista de Presença / Coordenação',
+                        autor: autorJustificativa,
                         texto: reg.justificativa.trim(),
                         dataSort: dataDoc
                     });
@@ -8545,30 +8547,170 @@ function initMusiciansManagement() {
     const btnCloseNotesModal = document.getElementById('btn-close-admin-notes-modal');
     const unifiedNotesList = document.getElementById('admin-unified-notes-list');
 
-    function loadNotesForMusician(musico) {
-        if (!notesInput || !notesTimestampDisplay) return;
-
-        // 1. Tenta carregar do objeto Firestore
-        if (musico.anotacoesAdmin && musico.anotacoesAdmin.texto !== undefined) {
-            notesInput.value = musico.anotacoesAdmin.texto || '';
-            notesTimestampDisplay.textContent = musico.anotacoesAdmin.atualizadoEmFormatado || 'Anotação salva no sistema';
-            return;
+    // Helper: Extrai lista de anotações administrativas garantindo compatibilidade com formato legado
+    function getAdminNotesList(musico) {
+        if (!musico) return [];
+        if (Array.isArray(musico.anotacoesAdmin)) {
+            return musico.anotacoesAdmin;
         }
-
-        // 2. Fallback: localStorage
+        // Suporte retrocompatível para formato legado (objeto com campo 'texto')
+        if (musico.anotacoesAdmin && typeof musico.anotacoesAdmin === 'object' && musico.anotacoesAdmin.texto) {
+            return [{
+                id: 'legacy_' + (musico.id || 'admin'),
+                texto: musico.anotacoesAdmin.texto,
+                criadoEm: musico.anotacoesAdmin.atualizadoEm || null,
+                criadoEmFormatado: musico.anotacoesAdmin.atualizadoEmFormatado || 'Anotação salva anteriormente',
+                autor: musico.anotacoesAdmin.atualizadoPor || 'Coordenação OER'
+            }];
+        }
+        // Fallback para localStorage
         const stored = localStorage.getItem(`oer_notes_${musico.id}`);
         if (stored) {
             try {
                 const data = JSON.parse(stored);
-                notesInput.value = data.text || '';
-                notesTimestampDisplay.textContent = data.timestamp || 'Última edição salva';
-                return;
+                if (Array.isArray(data)) return data;
+                if (data && data.text) {
+                    return [{
+                        id: 'local_' + (musico.id || 'admin'),
+                        texto: data.text,
+                        criadoEmFormatado: data.timestamp || 'Salvo localmente',
+                        autor: 'Coordenação OER'
+                    }];
+                }
             } catch (e) {}
         }
+        return [];
+    }
 
-        // 3. Em branco
-        notesInput.value = '';
-        notesTimestampDisplay.textContent = 'Nenhuma anotação registrada ainda';
+    // Helper: Atualiza contador e resumo abaixo do campo de texto
+    function updateNotesStatusDisplay(musico) {
+        if (!notesTimestampDisplay) return;
+        const notes = getAdminNotesList(musico);
+        if (notes.length === 0) {
+            notesTimestampDisplay.textContent = 'Nenhuma anotação registrada ainda';
+        } else {
+            const countLabel = notes.length === 1 ? '1 anotação registrada' : `${notes.length} anotações registradas`;
+            const last = notes[notes.length - 1];
+            const dataUltima = last.criadoEmFormatado || 'Salva no sistema';
+            notesTimestampDisplay.textContent = `${countLabel} • Última: ${dataUltima}`;
+        }
+    }
+
+    // Carrega gaveta: limpa a caixa de texto para nova entrada e atualiza contador
+    function loadNotesForMusician(musico) {
+        if (notesInput) {
+            notesInput.value = '';
+        }
+        updateNotesStatusDisplay(musico);
+    }
+
+    // Exclusão individual de anotação administrativa
+    async function deleteAdminNote(noteId) {
+        if (!currentSelectedMusico) return;
+        const currentList = getAdminNotesList(currentSelectedMusico);
+        const updatedList = currentList.filter(n => n.id !== noteId);
+
+        try {
+            await updateDoc(doc(db, "musicos", currentSelectedMusico.id), {
+                anotacoesAdmin: updatedList
+            });
+
+            currentSelectedMusico.anotacoesAdmin = updatedList;
+            const musicoInList = allMusicians.find(m => m.id === currentSelectedMusico.id);
+            if (musicoInList) {
+                musicoInList.anotacoesAdmin = updatedList;
+            }
+            localStorage.setItem(`oer_notes_${currentSelectedMusico.id}`, JSON.stringify(updatedList));
+
+            updateNotesStatusDisplay(currentSelectedMusico);
+            renderUnifiedNotesModal();
+            showNotification("Anotação excluída com sucesso.", "info");
+        } catch (err) {
+            console.error("Erro ao excluir anotação:", err);
+            showNotification("Erro ao excluir anotação do banco.", "error");
+        }
+    }
+
+    // Renderização do Histórico Unificado (Anotações Administrativas + Justificativas)
+    function renderUnifiedNotesModal() {
+        if (!currentSelectedMusico || !unifiedNotesList) return;
+
+        const allNotes = [];
+
+        // 1. Todas as anotações administrativas registradas
+        const adminNotes = getAdminNotesList(currentSelectedMusico);
+        adminNotes.forEach(an => {
+            allNotes.push({
+                id: an.id,
+                origem: 'admin',
+                origemLabel: 'Observações da Administração',
+                data: an.criadoEmFormatado || 'Salvo no sistema',
+                autor: an.autor || 'Coordenação OER',
+                texto: an.texto,
+                dataSort: an.criadoEm || an.criadoEmFormatado || ''
+            });
+        });
+
+        // 2. Justificativas das listas de presença
+        if (currentMusicoJustificativas && currentMusicoJustificativas.length > 0) {
+            currentMusicoJustificativas.forEach(j => allNotes.push(j));
+        }
+
+        // Ordenar do mais novo para o mais antigo
+        allNotes.sort((a, b) => {
+            const da = a.dataSort || a.data || '';
+            const db = b.dataSort || b.data || '';
+            return db.localeCompare(da);
+        });
+
+        unifiedNotesList.innerHTML = '';
+
+        if (allNotes.length === 0) {
+            unifiedNotesList.innerHTML = `
+                <div style="padding: 2.5rem; text-align: center; color: #94a3b8;">
+                    <i data-lucide="check-circle" style="width: 32px; height: 32px; color: #16a34a; margin-bottom: 0.5rem;"></i>
+                    <p style="margin: 0; font-weight: 600;">Nenhuma nota interna ou justificativa anterior registrada</p>
+                </div>
+            `;
+        } else {
+            allNotes.forEach(n => {
+                const item = document.createElement('div');
+                const classeOrigem = n.origem === 'falta' ? 'origem-falta' : (n.origem === 'presenca' ? 'origem-presenca' : 'origem-admin');
+                item.className = `unified-note-item ${classeOrigem}`;
+
+                const deleteBtnHtml = (n.origem === 'admin' && n.id) ? `
+                    <button type="button" class="btn-delete-note" data-note-id="${n.id}" title="Excluir esta anotação">
+                        <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                    </button>
+                ` : '';
+
+                item.innerHTML = `
+                    <div class="note-item-header">
+                        <span class="note-origem-badge">${n.origemLabel}</span>
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span class="note-item-meta">${n.data}</span>
+                            ${deleteBtnHtml}
+                        </div>
+                    </div>
+                    <p class="note-item-text">${n.texto}</p>
+                    <span class="note-item-meta">Registrado por: <strong>${n.autor}</strong></span>
+                `;
+                unifiedNotesList.appendChild(item);
+            });
+
+            // Atribuir cliques nos botões de exclusão
+            unifiedNotesList.querySelectorAll('.btn-delete-note').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const noteId = btn.getAttribute('data-note-id');
+                    if (confirm("Tem certeza que deseja excluir esta anotação da administração? Esta ação não pode ser desfeita.")) {
+                        deleteAdminNote(noteId);
+                    }
+                });
+            });
+        }
+
+        if (window.lucide) lucide.createIcons();
     }
 
     if (btnSaveNotes) {
@@ -8576,64 +8718,73 @@ function initMusiciansManagement() {
             if (!currentSelectedMusico) return;
 
             const text = notesInput.value.trim();
+            if (!text) {
+                showNotification("Por favor, digite uma anotação antes de salvar.", "warning");
+                notesInput.focus();
+                return;
+            }
+
             const now = new Date();
             const timestampStr = `Salvo em ${now.toLocaleDateString('pt-BR')} às ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} por ${auth.currentUser?.email || 'Coordenação OER'}`;
+
+            const newNote = {
+                id: 'note_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+                texto: text,
+                criadoEm: now.toISOString(),
+                criadoEmFormatado: timestampStr,
+                autor: auth.currentUser?.email || 'Coordenação OER'
+            };
 
             btnSaveNotes.disabled = true;
             btnSaveNotes.innerHTML = `<i data-lucide="loader-2" class="spin" style="width: 14px; height: 14px;"></i> <span>Salvando...</span>`;
             if (window.lucide) lucide.createIcons();
 
             try {
+                const currentList = [...getAdminNotesList(currentSelectedMusico)];
+                currentList.push(newNote);
+
                 // Atualiza Firestore
                 await updateDoc(doc(db, "musicos", currentSelectedMusico.id), {
-                    anotacoesAdmin: {
-                        texto: text,
-                        atualizadoEm: serverTimestamp(),
-                        atualizadoEmFormatado: timestampStr,
-                        atualizadoPor: auth.currentUser?.email || 'Coordenação OER'
-                    }
+                    anotacoesAdmin: currentList
                 });
 
                 // Atualiza cache em memória
-                currentSelectedMusico.anotacoesAdmin = {
-                    texto: text,
-                    atualizadoEmFormatado: timestampStr,
-                    atualizadoPor: auth.currentUser?.email || 'Coordenação OER'
-                };
+                currentSelectedMusico.anotacoesAdmin = currentList;
 
                 // Espelha no objeto do allMusicians
                 const musicoInList = allMusicians.find(m => m.id === currentSelectedMusico.id);
                 if (musicoInList) {
-                    musicoInList.anotacoesAdmin = currentSelectedMusico.anotacoesAdmin;
+                    musicoInList.anotacoesAdmin = currentList;
                 }
 
                 // Salva no localStorage como cache imediato
-                localStorage.setItem(`oer_notes_${currentSelectedMusico.id}`, JSON.stringify({
-                    text: text,
-                    timestamp: timestampStr
-                }));
+                localStorage.setItem(`oer_notes_${currentSelectedMusico.id}`, JSON.stringify(currentList));
 
-                notesTimestampDisplay.textContent = timestampStr;
+                // Limpa o campo para a próxima anotação
+                notesInput.value = '';
+
+                // Atualiza o indicador de anotações
+                updateNotesStatusDisplay(currentSelectedMusico);
 
                 btnSaveNotes.classList.add('saved');
                 btnSaveNotes.innerHTML = `<i data-lucide="check" style="width: 14px; height: 14px;"></i> <span>Salvo!</span>`;
                 if (window.lucide) lucide.createIcons();
 
-                showNotification("Anotação do integrante salva com sucesso!", "success");
+                showNotification("Anotação adicionada ao histórico com sucesso!", "success");
 
                 setTimeout(() => {
                     btnSaveNotes.classList.remove('saved');
                     btnSaveNotes.disabled = false;
                     btnSaveNotes.innerHTML = `<i data-lucide="save" style="width: 14px; height: 14px;"></i> <span>Salvar Anotação</span>`;
                     if (window.lucide) lucide.createIcons();
-                }, 2000);
+                }, 1800);
 
             } catch (err) {
                 console.error("Erro ao salvar anotação:", err);
                 btnSaveNotes.disabled = false;
                 btnSaveNotes.innerHTML = `<i data-lucide="save" style="width: 14px; height: 14px;"></i> <span>Salvar Anotação</span>`;
                 if (window.lucide) lucide.createIcons();
-                showNotification("Erro ao salvar no banco. Guardado localmente.", "warning");
+                showNotification("Erro ao salvar no banco. Verifique sua conexão.", "warning");
             }
         });
     }
@@ -8642,54 +8793,9 @@ function initMusiciansManagement() {
     if (btnOpenNotesHistory && notesHistoryModal) {
         btnOpenNotesHistory.addEventListener('click', () => {
             if (!currentSelectedMusico) return;
-
-            const allNotes = [];
-
-            // 1. Anotação administrativa
-            if (currentSelectedMusico.anotacoesAdmin && currentSelectedMusico.anotacoesAdmin.texto) {
-                allNotes.push({
-                    origem: 'admin',
-                    origemLabel: 'Observações da Administração',
-                    data: currentSelectedMusico.anotacoesAdmin.atualizadoEmFormatado || 'Salvo no sistema',
-                    autor: currentSelectedMusico.anotacoesAdmin.atualizadoPor || 'Coordenação OER',
-                    texto: currentSelectedMusico.anotacoesAdmin.texto
-                });
-            }
-
-            // 2. Justificativas das listas de presença
-            if (currentMusicoJustificativas && currentMusicoJustificativas.length > 0) {
-                currentMusicoJustificativas.forEach(j => allNotes.push(j));
-            }
-
-            unifiedNotesList.innerHTML = '';
-
-            if (allNotes.length === 0) {
-                unifiedNotesList.innerHTML = `
-                    <div style="padding: 2.5rem; text-align: center; color: #94a3b8;">
-                        <i data-lucide="check-circle" style="width: 32px; height: 32px; color: #16a34a; margin-bottom: 0.5rem;"></i>
-                        <p style="margin: 0; font-weight: 600;">Nenhuma nota interna ou justificativa anterior registrada</p>
-                    </div>
-                `;
-            } else {
-                allNotes.forEach(n => {
-                    const item = document.createElement('div');
-                    const classeOrigem = n.origem === 'falta' ? 'origem-falta' : (n.origem === 'presenca' ? 'origem-presenca' : 'origem-admin');
-                    item.className = `unified-note-item ${classeOrigem}`;
-                    item.innerHTML = `
-                        <div class="note-item-header">
-                            <span class="note-origem-badge">${n.origemLabel}</span>
-                            <span class="note-item-meta">${n.data}</span>
-                        </div>
-                        <p class="note-item-text">${n.texto}</p>
-                        <span class="note-item-meta">Registrado por: <strong>${n.autor}</strong></span>
-                    `;
-                    unifiedNotesList.appendChild(item);
-                });
-            }
-
+            renderUnifiedNotesModal();
             notesHistoryModal.style.display = 'flex';
             notesHistoryModal.classList.add('active');
-            if (window.lucide) lucide.createIcons();
         });
 
         if (btnCloseNotesModal) {
@@ -8793,10 +8899,13 @@ function initMusiciansManagement() {
                     txt += `\n`;
                 }
 
-                const obsText = notesInput?.value?.trim() || m.anotacoesAdmin?.texto;
-                if (obsText) {
-                    txt += `📝 *OBSERVAÇÕES DA ADMINISTRAÇÃO:*\n`;
-                    txt += `"${obsText}"\n\n`;
+                const adminNotes = getAdminNotesList(m);
+                if (adminNotes.length > 0) {
+                    txt += `📝 *OBSERVAÇÕES DA ADMINISTRAÇÃO (${adminNotes.length}):*\n`;
+                    adminNotes.forEach(an => {
+                        txt += `• [${an.criadoEmFormatado || 'Registro'}] "${an.texto}"\n`;
+                    });
+                    txt += `\n`;
                 }
 
                 txt += `📞 *Contato:* ${m.TELEFONE || '-'} | ${m.EMAIL || '-'}\n`;
@@ -8900,8 +9009,22 @@ function initMusiciansManagement() {
             }
         }
 
-        const obsVal = notesInput?.value?.trim() || m.anotacoesAdmin?.texto;
-        document.getElementById("pr-observacoes").textContent = obsVal || "Nenhuma observação interna registrada.";
+        const adminNotes = getAdminNotesList(m);
+        const obsEl = document.getElementById("pr-observacoes");
+        if (obsEl) {
+            if (adminNotes.length > 0) {
+                obsEl.innerHTML = adminNotes.map(an => `
+                    <div style="margin-bottom: 0.5rem; padding-bottom: 0.4rem; border-bottom: 1px dashed #e2e8f0;">
+                        <div style="font-size: 0.72rem; color: #64748b; margin-bottom: 2px;">
+                            <strong>${an.criadoEmFormatado || 'Registro'}</strong> · ${an.autor || 'Coordenação OER'}
+                        </div>
+                        <div style="font-size: 0.85rem; color: #1e293b; white-space: pre-wrap;">${an.texto}</div>
+                    </div>
+                `).join('');
+            } else {
+                obsEl.textContent = "Nenhuma observação interna registrada.";
+            }
+        }
         document.getElementById("pr-data-emissao").textContent = new Date().toLocaleString('pt-BR');
     }
 

@@ -2463,53 +2463,56 @@
                 const now = new Date();
                 const timestamp = `Salvo em ${now.toLocaleDateString('pt-BR')} às ${now.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})} por Coordenação OER`;
 
+                if (!text) {
+                    alert("Por favor, digite uma anotação antes de salvar.");
+                    notesInput.focus();
+                    return;
+                }
+
+                const newNote = {
+                    id: "note_" + Date.now(),
+                    origem: "admin",
+                    origemLabel: "Observações da Administração",
+                    data: `${now.toLocaleDateString('pt-BR')} às ${now.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}`,
+                    autor: "Coordenação OER",
+                    texto: text
+                };
+
+                if (!activeMusician.historicoNotasEJustificativas) {
+                    activeMusician.historicoNotasEJustificativas = [];
+                }
+                activeMusician.historicoNotasEJustificativas.unshift(newNote);
+
                 // Salva no localStorage local
                 const key = `oer_notes_${activeMusician.id}`;
-                localStorage.setItem(key, JSON.stringify({ text, timestamp }));
+                localStorage.setItem(key, JSON.stringify(activeMusician.historicoNotasEJustificativas));
 
-                // Atualiza objeto em memória
-                activeMusician.observacoes = text;
-
-                // Se houver texto, adiciona ao histórico unificado
-                if (text) {
-                    activeMusician.historicoNotasEJustificativas.unshift({
-                        origem: "admin",
-                        origemLabel: "Observações da Administração",
-                        data: `${now.toLocaleDateString('pt-BR')} às ${now.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}`,
-                        autor: "Coordenação OER",
-                        texto: text
-                    });
-                }
+                // Limpa o textarea
+                notesInput.value = "";
 
                 // Feedback visual
                 btnSaveNotes.classList.add("saved");
                 btnSaveNotes.innerHTML = `<i data-lucide="check" style="width: 14px; height: 14px;"></i> <span>Salvo!</span>`;
-                notesTimestampDisplay.textContent = timestamp;
+                const totalAdmin = activeMusician.historicoNotasEJustificativas.filter(n => n.origem === 'admin').length;
+                notesTimestampDisplay.textContent = `${totalAdmin} anotação(ões) • Última: ${newNote.data}`;
                 if (typeof lucide !== 'undefined') lucide.createIcons();
 
                 setTimeout(() => {
                     btnSaveNotes.classList.remove("saved");
                     btnSaveNotes.innerHTML = `<i data-lucide="save" style="width: 14px; height: 14px;"></i> <span>Salvar Anotação</span>`;
                     if (typeof lucide !== 'undefined') lucide.createIcons();
-                }, 2000);
+                }, 1800);
             });
         }
 
-        function loadNotesForMusician(musicianId, defaultText) {
-            const key = `oer_notes_${musicianId}`;
-            const stored = localStorage.getItem(key);
-
-            if (stored) {
-                try {
-                    const data = JSON.parse(stored);
-                    notesInput.value = data.text || "";
-                    notesTimestampDisplay.textContent = data.timestamp || "Última edição salva";
-                    return;
-                } catch(e) { }
+        function loadNotesForMusician(musicianId) {
+            notesInput.value = "";
+            const notes = activeMusician?.historicoNotasEJustificativas?.filter(n => n.origem === 'admin') || [];
+            if (notes.length === 0) {
+                notesTimestampDisplay.textContent = "Nenhuma anotação registrada ainda";
+            } else {
+                notesTimestampDisplay.textContent = `${notes.length} anotação(ões) • Última: ${notes[0].data}`;
             }
-
-            notesInput.value = defaultText || "";
-            notesTimestampDisplay.textContent = defaultText ? "Anotação salva no sistema" : "Nenhuma anotação registrada ainda";
         }
 
         // ====================================================================
@@ -2686,15 +2689,37 @@
                     notes.forEach(n => {
                         const item = document.createElement("div");
                         item.className = `unified-note-item ${n.origem === 'presenca' ? 'origem-presenca' : 'origem-admin'}`;
+                        const deleteBtnHtml = n.origem === 'admin' ? `
+                            <button type="button" class="btn-delete-note" data-note-id="${n.id}" title="Excluir anotação" style="background:none;border:none;color:#94a3b8;cursor:pointer;padding:2px 6px;">
+                                <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                            </button>
+                        ` : '';
+
                         item.innerHTML = `
-                            <div class="note-item-header">
+                            <div class="note-item-header" style="display:flex;align-items:center;justify-content:space-between;">
                                 <span class="note-origem-badge">${n.origemLabel}</span>
-                                <span class="note-item-meta">${n.data}</span>
+                                <div style="display:flex;align-items:center;gap:0.5rem;">
+                                    <span class="note-item-meta">${n.data}</span>
+                                    ${deleteBtnHtml}
+                                </div>
                             </div>
                             <p class="note-item-text">${n.texto}</p>
                             <span class="note-item-meta">Registrado por: <strong>${n.autor}</strong></span>
                         `;
                         unifiedNotesList.appendChild(item);
+                    });
+
+                    unifiedNotesList.querySelectorAll('.btn-delete-note').forEach(btn => {
+                        btn.addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            const noteId = btn.getAttribute('data-note-id');
+                            if (confirm("Tem certeza que deseja excluir esta anotação?")) {
+                                activeMusician.historicoNotasEJustificativas = activeMusician.historicoNotasEJustificativas.filter(x => x.id !== noteId);
+                                localStorage.setItem(`oer_notes_${activeMusician.id}`, JSON.stringify(activeMusician.historicoNotasEJustificativas));
+                                loadNotesForMusician(activeMusician.id);
+                                btnOpenNotesHistory.click();
+                            }
+                        });
                     });
                 }
 

@@ -6725,6 +6725,23 @@ input:checked + .slider:before {
     font-size: 0.76rem;
     color: #64748b;
 }
+.btn-delete-note {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    padding: 3px 6px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    transition: all 0.2s;
+}
+.btn-delete-note:hover {
+    color: #ef4444;
+    background: #fee2e2;
+}
 
 /* Modal de Exportação */
 .export-option-card {
