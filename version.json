@@ -1,13 +1,25 @@
 {
-  "hash": "4ddee16+mod",
-  "date": "16/09/2026, 22:16:36",
-  "buildAt": "2026-09-17T01:16:36.240Z",
+  "hash": "9418372",
+  "date": "16/09/2026 22:21",
+  "buildAt": "2026-09-17T01:21:20.989Z",
   "history": [
     {
-      "hash": "4ddee16+mod",
-      "date": "16/09/2026, 22:16:36",
-      "author": "Deploy Local",
-      "subject": "Atualização implantada (1 arquivos modificados)"
+      "hash": "9418372",
+      "date": "16/09/2026 22:21",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(admin): frequencia anual no card de perfil e ajuste de historico por mes"
+    },
+    {
+      "hash": "193f276",
+      "date": "16/09/2026 22:16",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pós-deploy"
+    },
+    {
+      "hash": "ad8c76e",
+      "date": "16/09/2026 22:16",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pós-commit v4ddee16"
     },
     {
       "hash": "4ddee16",
@@ -110,18 +122,6 @@
       "date": "16/09/2026 08:37",
       "author": "Boris Romão Antunes",
       "subject": "fix: desativar autofill no campo de busca e estilizar cards de KPIs e filtros da gaveta"
-    },
-    {
-      "hash": "ef357d5",
-      "date": "15/09/2026 18:44",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pós-deploy"
-    },
-    {
-      "hash": "0287fb2",
-      "date": "15/09/2026 18:43",
-      "author": "Boris Romão Antunes",
-      "subject": "feat: busca preditiva estilo Google na aba historico e gaveta completa do musico"
     }
   ]
 }
