@@ -11756,7 +11756,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
             if (st === 'atestado') return { symbol: 'A', status: 'atestado', incP: 0, incF: 0, excelSym: 'A' };
             if (st === 'dispensa') return { symbol: 'D', status: 'dispensa', incP: 0, incF: 0, excelSym: 'D' };
             if (st === 'justificado') return { symbol: 'J', status: 'justificado', incP: 0, incF: 0, excelSym: 'J' };
-            if (st === 'atraso') return { symbol: reg.minutes ? `${reg.minutes}m` : 'At', status: 'atraso', incP: 1, incF: 0, excelSym: 'P' };
+            if (st === 'atraso') return { symbol: 'P', status: 'atraso', incP: 1, incF: 0, excelSym: 'P' };
             if (st === 'nao_escalado') return { symbol: '-', status: 'nao_escalado', incP: 0, incF: 0, excelSym: '-' };
             if (isDispensadoGlobal) return { symbol: 'D', status: 'dispensa', incP: 0, incF: 0, excelSym: 'D' };
             if (isAtestadoGlobal) return { symbol: 'A', status: 'atestado', incP: 0, incF: 0, excelSym: 'A' };
@@ -12014,10 +12014,17 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                     const pres = presencasPorData[dataStr];
                     if (pres && pres.registros) {
                         Object.entries(pres.registros).forEach(([musicoId, registro]) => {
-                            if (registro.justificativa && registro.justificativa.trim() !== '') {
-                                const musico = allMusicians.find(m => m.id === musicoId);
-                                const nomeMusico = musico ? (musico.NOMEARTISTICO || musico['NOME REGISTRO']) : 'Músico Desconhecido';
-                                const dataFormatada = `${String(dia).padStart(2, '0')}/${mesStr}`;
+                            const musico = allMusicians.find(m => m.id === musicoId);
+                            const nomeMusico = musico ? (musico.NOMEARTISTICO || musico['NOME REGISTRO']) : 'Músico Desconhecido';
+                            const dataFormatada = `${String(dia).padStart(2, '0')}/${mesStr}`;
+
+                            if (registro.status === 'atraso') {
+                                const minTexto = registro.minutes ? `${registro.minutes} min` : 'atraso registrado';
+                                const justTexto = (registro.justificativa && registro.justificativa.trim() !== '') ? `: ${registro.justificativa.trim()}` : '';
+                                justificativas.push({
+                                    texto: `${dataFormatada} - ${nomeMusico} (Atraso de ${minTexto})${justTexto}`
+                                });
+                            } else if (registro.justificativa && registro.justificativa.trim() !== '') {
                                 const tipoLabel = registro.status === 'falta' ? ' (Falta)' : (registro.status === 'falta_passagem_som' ? ' (Falta PS)' : '');
                                 justificativas.push({
                                     texto: `${dataFormatada} - ${nomeMusico}${tipoLabel}: ${registro.justificativa.trim()}`
@@ -12558,7 +12565,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                     if (st === 'atestado') return 'A';
                     if (st === 'dispensa') return 'D';
                     if (st === 'justificado') return 'J';
-                    if (st === 'atraso') return reg.minutes ? `${reg.minutes}m` : 'P';
+                    if (st === 'atraso') return 'P';
                     if (st === 'nao_escalado') return '-';
                     if (isDispensado) return 'D';
                     if (isAtestado) return 'A';
@@ -12586,9 +12593,18 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                                 else if (sym === 'A') cellCommentsMap[cellRef] = "Atestado Médico Homologado";
 
                                 const regDoc = (col.subCol.doc && col.subCol.doc.registros) ? col.subCol.doc.registros[musico.id] : null;
-                                if (regDoc && regDoc.justificativa && regDoc.justificativa.trim() !== '') {
-                                    const prefixo = (regDoc.status === 'falta' || regDoc.status === 'falta_passagem_som') ? 'Anotação / Motivo da Falta: ' : 'Justificativa: ';
-                                    cellCommentsMap[cellRef] = `${prefixo}"${regDoc.justificativa.trim()}"`;
+                                if (regDoc) {
+                                    if (regDoc.status === 'atraso') {
+                                        const minTexto = regDoc.minutes ? `Atraso de ${regDoc.minutes} minutos` : 'Atraso registrado';
+                                        if (regDoc.justificativa && regDoc.justificativa.trim() !== '') {
+                                            cellCommentsMap[cellRef] = `${minTexto}\nJustificativa: "${regDoc.justificativa.trim()}"`;
+                                        } else {
+                                            cellCommentsMap[cellRef] = minTexto;
+                                        }
+                                    } else if (regDoc.justificativa && regDoc.justificativa.trim() !== '') {
+                                        const prefixo = (regDoc.status === 'falta' || regDoc.status === 'falta_passagem_som') ? 'Anotação / Motivo da Falta: ' : 'Justificativa: ';
+                                        cellCommentsMap[cellRef] = `${prefixo}"${regDoc.justificativa.trim()}"`;
+                                    }
                                 }
 
                                 rowMusico.push(sym);
@@ -12664,13 +12680,12 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                     ["LEGENDA DE SIGLAS - LISTA DE PRESENÇA OER"],
                     [],
                     ["Sigla", "Descrição / Status", "Efeito na Frequência"],
-                    ["P", "Presença / Atraso", "Soma no total de Presenças (P)"],
+                    ["P", "Presença / Atraso (com nota)", "Soma no total de Presenças (P)"],
                     ["F", "Falta Não Justificada", "Soma no total de Faltas (F)"],
                     ["PS:F/C:P", "Falta em Passagem de Som", "Soma 1 Falta (PS) e 1 Presença (Concerto)"],
                     ["A", "Atestado Médico", "Não soma como Falta (Isento)"],
                     ["D", "Dispensa Concedida", "Não soma como Falta (Isento)"],
                     ["J", "Ausência Justificada", "Não soma como Falta (Isento)"],
-                    ["At", "Atraso (minutos)", "Soma no total de Presenças (P)"],
                     ["CL", "Contrato Cancelado / Desligado", "Músico inativo a partir desta data"],
                     ["-", "Não Escalado", "Músico não escalado para o ensaio/concerto"],
                     [],
