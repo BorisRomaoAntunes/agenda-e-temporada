@@ -8013,7 +8013,7 @@ function initMusiciansManagement() {
         const occurrencesList = document.getElementById('drawer-occurrences-list');
         const totalOccBadge = document.getElementById('drawer-total-ocorrencias-badge');
         
-        if (freqSubtitle) freqSubtitle.innerHTML = `<i data-lucide="loader-2" class="spin"></i> Calculando registros de chamadas do mês...`;
+        if (freqSubtitle) freqSubtitle.innerHTML = `<i data-lucide="loader-2" class="spin"></i> Calculando registros de chamadas do ano...`;
         if (occurrencesList) {
             occurrencesList.innerHTML = `
                 <div style="padding: 1.5rem; text-align: center; color: #94a3b8; font-size: 0.85rem;">
@@ -8076,6 +8076,9 @@ function initMusiciansManagement() {
             let chamadasMes = 0;
             let presencasMes = 0;
             let faltasMes = 0;
+            let chamadasAno = 0;
+            let presencasAno = 0;
+            let faltasAno = 0;
             let totalFaltasAno = 0;
             let faltasAnoEnsaios = 0;
             let faltasAnoConcertos = 0;
@@ -8174,12 +8177,19 @@ function initMusiciansManagement() {
 
                 const st = (reg.status || '').toLowerCase();
                 const isMesVigente = dataDoc >= dataInicioMes && dataDoc <= dataHoje;
+                const isAnoVigente = dataDoc >= startOfYear && dataDoc <= dataHoje;
 
                 // Se o integrante estava escalado/convocado
                 const isConvocado = st !== 'nao_escalado' && st !== 'dispensa' && st !== 'atestado' && st !== 'none' && st !== 'pendente';
                 const isPresenca = st === 'presenca' || st === 'atraso' || st === 'falta_passagem_som';
                 const isFalta = st === 'falta';
                 const isFaltaPS = st === 'falta_passagem_som';
+
+                if (isAnoVigente && isConvocado) {
+                    chamadasAno++;
+                    if (isPresenca) presencasAno++;
+                    if (isFalta) faltasAno++;
+                }
 
                 if (isMesVigente && isConvocado) {
                     chamadasMes++;
@@ -8244,21 +8254,21 @@ function initMusiciansManagement() {
             currentMusicoOccurrences = ocorrenciasList;
             currentMusicoJustificativas = justificativasList;
 
-            // 4. Calcular % de participação no mês vigente
-            let pct = 100;
+            // 4. Calcular % de participação no ano vigente até hoje
+            let pctAno = 100;
             let statusClass = 'success';
             let statusLabel = 'Excelente';
 
-            if (chamadasMes > 0) {
-                pct = Math.round((presencasMes / chamadasMes) * 100);
+            if (chamadasAno > 0) {
+                pctAno = Math.round((presencasAno / chamadasAno) * 100);
             } else {
-                pct = 100; // Se não houve chamadas ainda, mantém 100% neutro
+                pctAno = 100; // Se não houve chamadas ainda, mantém 100% neutro
             }
 
-            if (pct < 75) {
+            if (pctAno < 75) {
                 statusClass = 'danger';
                 statusLabel = 'Atenção Crítica';
-            } else if (pct < 90) {
+            } else if (pctAno < 90) {
                 statusClass = 'warning';
                 statusLabel = 'Regular';
             } else {
@@ -8266,16 +8276,16 @@ function initMusiciansManagement() {
                 statusLabel = 'Excelente';
             }
 
-            // Atualizar Card de Frequência do Mês
+            // Atualizar Card de Frequência do Ano
             const freqCard = document.getElementById('drawer-frequency-card');
             const pctVal = document.getElementById('drawer-frequency-percentage-val');
             const barFill = document.getElementById('drawer-frequency-bar-fill');
             const statusLabelEl = document.getElementById('drawer-frequency-status-label');
 
             if (freqCard) freqCard.className = `frequency-month-card clickable ${statusClass}`;
-            if (pctVal) pctVal.textContent = `${pct}%`;
+            if (pctVal) pctVal.textContent = `${pctAno}%`;
             if (barFill) {
-                barFill.style.width = `${pct}%`;
+                barFill.style.width = `${pctAno}%`;
                 barFill.style.background = statusClass === 'danger' ? '#dc2626' : (statusClass === 'warning' ? '#f59e0b' : '#10b981');
             }
             if (statusLabelEl) {
@@ -8283,10 +8293,10 @@ function initMusiciansManagement() {
                 statusLabelEl.style.color = statusClass === 'danger' ? '#dc2626' : (statusClass === 'warning' ? '#f59e0b' : '#10b981');
             }
             if (freqSubtitle) {
-                if (chamadasMes === 0) {
-                    freqSubtitle.innerHTML = `Nenhuma chamada convocada registrada no mês de <strong>${mesNomeExtenso}</strong> até hoje.`;
+                if (chamadasAno === 0) {
+                    freqSubtitle.innerHTML = `Nenhuma chamada convocada registrada em <strong>${ano}</strong> até hoje.`;
                 } else {
-                    freqSubtitle.innerHTML = `Compareceu a <strong>${presencasMes} de ${chamadasMes}</strong> chamadas convocadas até hoje`;
+                    freqSubtitle.innerHTML = `Compareceu a <strong>${presencasAno} de ${chamadasAno}</strong> chamadas convocadas em <strong>${ano}</strong> até hoje.`;
                 }
             }
 
@@ -8317,25 +8327,24 @@ function initMusiciansManagement() {
             document.getElementById('drawer-kpi-afastamento').textContent = `${diasAfastamentoTotal}d`;
             document.getElementById('drawer-kpi-dispensas').textContent = dispensasMusico.length;
 
-            // 6. Gerar e Renderizar Histórico Mensal Retroativo Completo
+            // 6. Gerar e Renderizar Histórico Mensal do Ano Corrente (do mês vigente até janeiro)
             const currentYM = `${ano}-${mesStr}`;
-            const oldestYM = (oldestSystemDate && /^\d{4}-\d{2}/.test(oldestSystemDate)) ? oldestSystemDate.substring(0, 7) : currentYM;
-            const monthsRange = [];
-            let [curY, curM] = currentYM.split('-').map(Number);
-            const [minY, minM] = oldestYM.split('-').map(Number);
+            const historyTitleEl = document.getElementById('drawer-frequency-history-title-text');
+            if (historyTitleEl) {
+                historyTitleEl.textContent = `Histórico por Mês (${ano})`;
+            }
 
-            while (curY > minY || (curY === minY && curM >= minM)) {
-                const ymStr = `${curY}-${String(curM).padStart(2, '0')}`;
+            const monthsRange = [];
+            let curM = mesInt;
+
+            while (curM >= 1) {
+                const ymStr = `${ano}-${String(curM).padStart(2, '0')}`;
                 monthsRange.push({
-                    year: curY,
+                    year: ano,
                     month: curM,
                     ym: ymStr
                 });
                 curM--;
-                if (curM < 1) {
-                    curM = 12;
-                    curY--;
-                }
             }
 
             const monthlyHistoryData = monthsRange.map(m => {
@@ -8389,12 +8398,17 @@ function initMusiciansManagement() {
             // 8. Guardar objeto consolidado para emissão de relatório
             currentDrawerReportData = {
                 musico,
-                frequenciaMes: {
-                    porcentagem: pct,
-                    presentes: presencasMes,
-                    totalChamadasAteHoje: chamadasMes,
+                frequenciaAno: {
+                    porcentagem: pctAno,
+                    presentes: presencasAno,
+                    totalChamadasAteHoje: chamadasAno,
                     statusClass,
                     statusLabel
+                },
+                frequenciaMes: {
+                    porcentagem: (chamadasMes > 0 ? Math.round((presencasMes / chamadasMes) * 100) : 100),
+                    presentes: presencasMes,
+                    totalChamadasAteHoje: chamadasMes
                 },
                 historicoMensal: monthlyHistoryData,
                 kpis: {
@@ -8876,7 +8890,8 @@ function initMusiciansManagement() {
                 txt += `👤 *Nome:* ${m.NOMEARTISTICO || '-'} (${m['NOME REGISTRO'] || '-'})\n`;
                 txt += `🎻 *Instrumento:* ${m.INSTRUMENTOS || '-'}\n`;
                 txt += `🏷️ *Vínculo:* ${vinculoDetalhe}\n`;
-                txt += `📊 *Frequência no Mês:* ${rep.frequenciaMes.porcentagem}% (${rep.frequenciaMes.presentes}/${rep.frequenciaMes.totalChamadasAteHoje} chamadas)\n\n`;
+                const freqAnoObj = rep.frequenciaAno || rep.frequenciaMes;
+                txt += `📊 *Frequência no Ano:* ${freqAnoObj.porcentagem}% (${freqAnoObj.presentes}/${freqAnoObj.totalChamadasAteHoje} chamadas)\n\n`;
 
                 let faltasDetalheTxt = [];
                 if (rep.kpis.faltasEnsaios !== undefined) {
@@ -8957,7 +8972,8 @@ function initMusiciansManagement() {
         document.getElementById("pr-nome-artistico").textContent = formatVal(m.NOMEARTISTICO);
         document.getElementById("pr-instrumento").textContent = formatVal(m.INSTRUMENTOS);
         document.getElementById("pr-status").textContent = tempoOER ? `${statusUpper} (${tempoOER} na OER)` : statusUpper;
-        document.getElementById("pr-frequencia").textContent = `${rep.frequenciaMes.porcentagem}% (${rep.frequenciaMes.presentes}/${rep.frequenciaMes.totalChamadasAteHoje} ensaios)`;
+        const freqAnoObj = rep.frequenciaAno || rep.frequenciaMes;
+        document.getElementById("pr-frequencia").textContent = `${freqAnoObj.porcentagem}% (${freqAnoObj.presentes}/${freqAnoObj.totalChamadasAteHoje} chamadas no ano)`;
 
         document.getElementById("pr-nome-registro").textContent = formatVal(m['NOME REGISTRO']);
         document.getElementById("pr-cpf").textContent = formatVal(m.CPF);
