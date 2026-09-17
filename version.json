@@ -1,13 +1,25 @@
 {
-  "hash": "4d5c915+mod",
-  "date": "16/09/2026, 22:22:55",
-  "buildAt": "2026-09-17T01:22:55.150Z",
+  "hash": "d449063+mod",
+  "date": "16/09/2026, 22:23:51",
+  "buildAt": "2026-09-17T01:23:51.633Z",
   "history": [
     {
-      "hash": "4d5c915+mod",
-      "date": "16/09/2026, 22:22:55",
+      "hash": "d449063+mod",
+      "date": "16/09/2026, 22:23:51",
       "author": "Deploy Local",
       "subject": "Atualização implantada (1 arquivos modificados)"
+    },
+    {
+      "hash": "d449063",
+      "date": "16/09/2026 22:23",
+      "author": "Boris Romão Antunes",
+      "subject": "style(admin): compacta timestamp de notas na gaveta do musico"
+    },
+    {
+      "hash": "f805d48",
+      "date": "16/09/2026 22:22",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pós-deploy"
     },
     {
       "hash": "4d5c915",
@@ -110,18 +122,6 @@
       "date": "16/09/2026 10:15",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualiza version.json pós-deploy"
-    },
-    {
-      "hash": "ced08c8",
-      "date": "16/09/2026 10:07",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(presenca): adiciona anotações em faltas com persistencia e integracao nos relatorios e historicos"
-    },
-    {
-      "hash": "6c2e34f",
-      "date": "16/09/2026 09:59",
-      "author": "Boris Romão Antunes",
-      "subject": "fix(admin): aprimora calculo de tempo na OER e atualiza version.json"
     }
   ]
 }
