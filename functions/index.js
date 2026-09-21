@@ -13,10 +13,10 @@ const path = require("path");
 const os = require("os");
 const fs = require("fs");
 
-// Secret Manager: chave da API Gemini, Google Calendar Service Account e Webhook Secret
+// Secret Manager: chave da API Gemini e Google Calendar Service Account
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
 const googleCalendarSaKey = defineSecret("GOOGLE_CALENDAR_SA_KEY");
-const webhookSecret = defineSecret("WEBHOOK_SECRET");
+const webhookSecret = process.env.WEBHOOK_SECRET;
 
 admin.initializeApp();
 
@@ -1186,6 +1186,83 @@ exports.onAtestadoUpload = onObjectFinalized({
 });
 
 /**
+ * Utilitário resiliente para parse e reparo de JSON retornado pela IA.
+ * Se a resposta foi truncada abruptamente pelo limite de tokens ou gerada com markdown,
+ * reconstrói e fecha os delimitadores para recuperar todos os itens completos.
+ */
+function safeParseOrRepairJson(rawText) {
+    if (!rawText || typeof rawText !== "string") {
+        throw new Error("Texto vazio fornecido para parsing de JSON.");
+    }
+
+    let cleaned = rawText.trim();
+    if (cleaned.startsWith("```json")) {
+        cleaned = cleaned.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
+    } else if (cleaned.startsWith("```")) {
+        cleaned = cleaned.replace(/^```\s*/i, "").replace(/```\s*$/i, "").trim();
+    }
+
+    // 1. Tentar parse direto
+    try {
+        return JSON.parse(cleaned);
+    } catch (directErr) {
+        console.warn(`[safeParseOrRepairJson] Parse direto falhou (${directErr.message}). Iniciando reparo de JSON truncado...`);
+    }
+
+    // 2. Reparo de truncamento (quando a resposta é cortada abruptamente pelo limite de saída)
+    try {
+        const lastBraceIdx = cleaned.lastIndexOf('}');
+        if (lastBraceIdx !== -1) {
+            let candidate = cleaned.substring(0, lastBraceIdx + 1);
+
+            const countOpenArrays = (candidate.match(/\[/g) || []).length;
+            const countCloseArrays = (candidate.match(/\]/g) || []).length;
+            if (countOpenArrays > countCloseArrays) {
+                candidate += "\n  " + "]".repeat(countOpenArrays - countCloseArrays);
+            }
+
+            const countOpenBraces = (candidate.match(/\{/g) || []).length;
+            const countCloseBraces = (candidate.match(/\}/g) || []).length;
+            if (countOpenBraces > countCloseBraces) {
+                candidate += "\n" + "}".repeat(countOpenBraces - countCloseBraces);
+            }
+
+            const repairedData = JSON.parse(candidate);
+            console.log(`[safeParseOrRepairJson] Sucesso no reparo! Eventos recuperados: ${repairedData.eventos?.length || 0}`);
+            return repairedData;
+        }
+    } catch (repairErr) {
+        console.warn(`[safeParseOrRepairJson] Falha na tentativa de reparo por contagem de delimitadores: ${repairErr.message}`);
+    }
+
+    // 3. Fallback regex tradicional
+    const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+        try {
+            return JSON.parse(jsonMatch[0]);
+        } catch (mErr) {
+            const lastBrace = jsonMatch[0].lastIndexOf('}');
+            if (lastBrace !== -1) {
+                let candidate = jsonMatch[0].substring(0, lastBrace + 1);
+                const countOpenArrays = (candidate.match(/\[/g) || []).length;
+                const countCloseArrays = (candidate.match(/\]/g) || []).length;
+                if (countOpenArrays > countCloseArrays) {
+                    candidate += "\n" + "]".repeat(countOpenArrays - countCloseArrays);
+                }
+                const countOpenBraces = (candidate.match(/\{/g) || []).length;
+                const countCloseBraces = (candidate.match(/\}/g) || []).length;
+                if (countOpenBraces > countCloseBraces) {
+                    candidate += "\n" + "}".repeat(countOpenBraces - countCloseBraces);
+                }
+                return JSON.parse(candidate);
+            }
+        }
+    }
+
+    throw new Error(`A IA retornou um JSON incompleto que não pôde ser reparado automaticamente. Amostra: ${cleaned.substring(0, 300)}`);
+}
+
+/**
  * Módulo de Calendário: Processa cronograma em texto ou PDF para JSON
  */
 exports.parseScheduleWithGemini = onCall({
@@ -1246,6 +1323,7 @@ REGRAS:
 - "Cronograma sujeito a alterações." ou "Sujeito a alteração." → IGNORAR de avisos e repertórios do evento (o sistema visual já possui aviso padrão).
 - Datas no formato YYYY-MM-DD.
 - Folga: Se o cronograma indicar que não haverá ensaio/atividade em determinada data (ex: "Folga", "Sem ensaio", "Dispensado", "Folgas programadas"), crie um evento com tipo "folga" e descricaoEnsaio "Folga" ou "Folga Programada". Todos os outros campos do evento podem ser nulos ou conter valores padrão.
+- COMPACIDADE: Para otimizar o tamanho do JSON e evitar cortes, omita propriedades que tenham valor null ou array vazio.
 
 REGRAS DE INFERÊNCIA DE DADOS (EM CASO DE OMISSÃO):
 1. STATUS:
@@ -1289,17 +1367,18 @@ Texto do e-mail: ${text ? text : "Veja o documento PDF anexo."}`;
                     role: "user",
                     parts: parts
                 }
-            ]
+            ],
+            config: {
+                maxOutputTokens: 65536,
+                responseMimeType: "application/json"
+            }
         });
 
         // SDK @google/genai v2.x: response.text() é método, não propriedade
         const resultText = (typeof response.text === "function") ? response.text() : (response.text || "");
-        console.log("[parseSchedule] Resposta bruta da IA:", resultText.substring(0, 500));
+        console.log("[parseSchedule] Resposta bruta da IA recebida. Tamanho:", resultText.length);
 
-        const jsonMatch = resultText.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) throw new Error("A IA não retornou um JSON válido. Resposta: " + resultText.substring(0, 300));
-        
-        return JSON.parse(jsonMatch[0]);
+        return safeParseOrRepairJson(resultText);
 
     } catch (error) {
         console.error("Erro ao processar cronograma:", error.message, error.stack);
@@ -1531,6 +1610,7 @@ REGRAS:
 - "Cronograma sujeito a alterações." ou "Sujeito a alteração." → IGNORAR de avisos e repertórios do evento (o sistema visual já possui aviso padrão).
 - Datas no formato YYYY-MM-DD.
 - Folga: Se o cronograma indicar que não haverá ensaio/atividade em determinada data (ex: "Folga", "Sem ensaio", "Dispensado", "Folgas programadas"), crie um evento com tipo "folga" e descricaoEnsaio "Folga" ou "Folga Programada". Todos os outros campos do evento podem ser nulos ou conter valores padrão.
+- COMPACIDADE: Para otimizar o tamanho do JSON e evitar cortes, omita propriedades que tenham valor null ou array vazio.
 
 REGRAS DE INFERÊNCIA DE DADOS (EM CASO DE OMISSÃO):
 1. STATUS:
@@ -1574,16 +1654,17 @@ Texto do e-mail: Veja o documento PDF anexo.`;
                 role: "user",
                 parts: parts
             }
-        ]
+        ],
+        config: {
+            maxOutputTokens: 65536,
+            responseMimeType: "application/json"
+        }
     });
 
     const resultText = (typeof responseGenAI.text === "function") ? responseGenAI.text() : (responseGenAI.text || "");
-    const jsonMatch = resultText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-        throw new Error("A IA não retornou um JSON válido. Resposta: " + resultText.substring(0, 300));
-    }
+    console.log(`[processAndSyncSchedule] Resposta bruta da IA recebida. Tamanho: ${resultText.length} caracteres.`);
 
-    const data = JSON.parse(jsonMatch[0]);
+    const data = safeParseOrRepairJson(resultText);
     const eventosNovos = data.eventos || [];
     const avisosSemana = data.avisos_semana || [];
 
@@ -1693,6 +1774,11 @@ Texto do e-mail: Veja o documento PDF anexo.`;
 
     // Ações de exclusão: eventos existentes que NÃO estão nos novos eventos
     for (const existente of eventosExistentes) {
+        // Se estiver sincronizando a Temporada, NUNCA exclua ensaios (tutti ou naipe), pois a temporada lista apenas concertos!
+        if (type === "temporada" && existente.tipo !== "concerto") {
+            continue;
+        }
+
         const match = eventosNovos.find(novo => 
             novo.date === existente.date && 
             novo.tipo === existente.tipo && 
@@ -1760,18 +1846,37 @@ function getCalendarClient() {
     let credentials;
     if (typeof rawKey === "string") {
         try {
-            credentials = JSON.parse(rawKey);
+            credentials = JSON.parse(rawKey.trim());
         } catch (err) {
-            const decoded = Buffer.from(rawKey, "base64").toString("utf8");
-            credentials = JSON.parse(decoded);
+            try {
+                const decoded = Buffer.from(rawKey.trim(), "base64").toString("utf8");
+                credentials = JSON.parse(decoded);
+            } catch (b64Err) {
+                throw new Error("GOOGLE_CALENDAR_SA_KEY não é um JSON válido nem base64 válido.");
+            }
         }
     } else {
         credentials = rawKey;
     }
 
+    const clientEmail = credentials.client_email || credentials.clientEmail;
+    let privateKey = credentials.private_key || credentials.privateKey;
+
+    if (privateKey && typeof privateKey === "string") {
+        // Normaliza quebras de linha que possam ter sido escapadas como literal '\n' no Secret Manager
+        privateKey = privateKey.replace(/\\n/g, "\n");
+    }
+
+    if (!clientEmail || !privateKey) {
+        const availableKeys = (credentials && typeof credentials === "object") ? Object.keys(credentials).join(", ") : typeof credentials;
+        const msg = `GOOGLE_CALENDAR_SA_KEY incompleta: ${!clientEmail ? 'client_email ausente; ' : ''}${!privateKey ? 'private_key ausente; ' : ''}Campos encontrados: [${availableKeys}]`;
+        console.error(`[getCalendarClient] ${msg}`);
+        throw new Error(msg);
+    }
+
     const auth = new google.auth.JWT({
-        email: credentials.client_email,
-        key: credentials.private_key,
+        email: clientEmail,
+        key: privateKey,
         scopes: [
             "https://www.googleapis.com/auth/calendar",
             "https://www.googleapis.com/auth/calendar.events"
@@ -1911,7 +2016,13 @@ async function syncConcertosToGoogleCalendar(eventosNovos, eventosExistentes, mi
             const localStr = [novo.local, novo.localComplemento ? `(${novo.localComplemento})` : null].filter(Boolean).join(" ");
 
             const hInicio = (novo.horarioInicio && novo.horarioInicio.includes(":")) ? novo.horarioInicio : "11:00";
-            const hFim = (novo.horarioFim && novo.horarioFim.includes(":")) ? novo.horarioFim : "13:00";
+            let hFim = (novo.horarioFim && novo.horarioFim.includes(":")) ? novo.horarioFim : "";
+            if (!hFim || hFim <= hInicio) {
+                const [h, m] = hInicio.split(":").map(Number);
+                const endH = String((h + 2) % 24).padStart(2, "0");
+                const endM = String(m || 0).padStart(2, "0");
+                hFim = `${endH}:${endM}`;
+            }
 
             const startDateTime = `${novo.date}T${hInicio}:00-03:00`;
             const endDateTime = `${novo.date}T${hFim}:00-03:00`;
@@ -1933,49 +2044,55 @@ async function syncConcertosToGoogleCalendar(eventosNovos, eventosExistentes, mi
 
             let gEventId = match ? match.googleCalendarEventId : null;
 
-            if (gEventId) {
-                try {
-                    await calendar.events.update({
-                        calendarId: calendarId,
-                        eventId: gEventId,
-                        requestBody: eventBody
-                    });
-                    gUpdated++;
-                    console.log(`[syncConcertosToGoogleCalendar] Concerto atualizado no Google Calendar: ${novo.date} (${gEventId})`);
-                } catch (errUpdate) {
-                    if (errUpdate.code === 404 || errUpdate.status === 404) {
-                        const created = await calendar.events.insert({
+            try {
+                if (gEventId) {
+                    try {
+                        await calendar.events.update({
                             calendarId: calendarId,
+                            eventId: gEventId,
                             requestBody: eventBody
                         });
-                        gEventId = created.data.id;
-                        gAdded++;
-                        console.log(`[syncConcertosToGoogleCalendar] Concerto recriado no Google Calendar: ${novo.date} (${gEventId})`);
-                    } else {
-                        throw errUpdate;
+                        gUpdated++;
+                        console.log(`[syncConcertosToGoogleCalendar] Concerto atualizado no Google Calendar: ${novo.date} (${gEventId})`);
+                    } catch (errUpdate) {
+                        if (errUpdate.code === 404 || errUpdate.status === 404) {
+                            const created = await calendar.events.insert({
+                                calendarId: calendarId,
+                                requestBody: eventBody
+                            });
+                            gEventId = created.data.id;
+                            gAdded++;
+                            console.log(`[syncConcertosToGoogleCalendar] Concerto recriado no Google Calendar: ${novo.date} (${gEventId})`);
+                        } else {
+                            throw errUpdate;
+                        }
+                    }
+                } else {
+                    const created = await calendar.events.insert({
+                        calendarId: calendarId,
+                        requestBody: eventBody
+                    });
+                    gEventId = created.data.id;
+                    gAdded++;
+                    console.log(`[syncConcertosToGoogleCalendar] Concerto criado no Google Calendar: ${novo.date} (${gEventId})`);
+                }
+
+                // Atualiza doc no Firestore com googleCalendarEventId
+                if (gEventId) {
+                    const snap = await db.collection("eventos")
+                        .where("date", "==", novo.date)
+                        .where("tipo", "==", "concerto")
+                        .limit(1)
+                        .get();
+                    if (!snap.empty) {
+                        await snap.docs[0].ref.update({ googleCalendarEventId: gEventId });
                     }
                 }
-            } else {
-                const created = await calendar.events.insert({
-                    calendarId: calendarId,
-                    requestBody: eventBody
-                });
-                gEventId = created.data.id;
-                gAdded++;
-                console.log(`[syncConcertosToGoogleCalendar] Concerto criado no Google Calendar: ${novo.date} (${gEventId})`);
+            } catch (eventErr) {
+                console.warn(`[syncConcertosToGoogleCalendar] Erro ao sincronizar evento ${novo.date}:`, eventErr.message);
             }
-
-            // Atualiza doc no Firestore com googleCalendarEventId
-            if (gEventId) {
-                const snap = await db.collection("eventos")
-                    .where("date", "==", novo.date)
-                    .where("tipo", "==", "concerto")
-                    .limit(1)
-                    .get();
-                if (!snap.empty) {
-                    await snap.docs[0].ref.update({ googleCalendarEventId: gEventId });
-                }
-            }
+            // Pequeno intervalo para respeitar as cotas de escrita da Google Calendar API
+            await new Promise(resolve => setTimeout(resolve, 250));
         }
 
         // Concertos excluídos da temporada
@@ -2026,7 +2143,7 @@ exports.syncScheduleOnPDFUpload = onDocumentWritten({
         return;
     }
 
-    const types = ["agenda", "temporada"];
+    const types = ["temporada", "agenda"];
     for (const type of types) {
         const beforePdf = beforeData && beforeData.pdfs ? beforeData.pdfs[type] : null;
         const afterPdf = afterData.pdfs[type];
@@ -2327,7 +2444,6 @@ exports.extractLinkMetadata = onCall({
 // WEBHOOK HTTP: Recebimento de Novos Cadastros de Bolsistas / Monitores (Power Automate)
 // ============================================================================
 exports.webhookCadastroBolsista = onRequest({
-    secrets: [webhookSecret],
     cors: true
 }, async (req, res) => {
     // 1. Apenas aceita requisições POST
