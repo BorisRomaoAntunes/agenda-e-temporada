@@ -1,8 +1,20 @@
 {
-  "hash": "398e318",
-  "date": "16/09/2026 22:26",
-  "buildAt": "2026-09-17T01:31:43.550Z",
+  "hash": "007a4b8",
+  "date": "21/09/2026 14:45",
+  "buildAt": "2026-09-21T17:46:13.879Z",
   "history": [
+    {
+      "hash": "007a4b8",
+      "date": "21/09/2026 14:45",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(admin): adiciona acao rapida de conceder dispensa na gaveta do musico"
+    },
+    {
+      "hash": "ec6bd86",
+      "date": "16/09/2026 22:34",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pós-deploy"
+    },
     {
       "hash": "398e318",
       "date": "16/09/2026 22:26",
@@ -110,18 +122,6 @@
       "date": "16/09/2026 10:30",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualiza version.json pós-deploy"
-    },
-    {
-      "hash": "bb12541",
-      "date": "16/09/2026 10:19",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pós-deploy"
-    },
-    {
-      "hash": "8458356",
-      "date": "16/09/2026 10:18",
-      "author": "Boris Romão Antunes",
-      "subject": "chore(deploy): atualiza version.json apos deploy"
     }
   ]
 }
