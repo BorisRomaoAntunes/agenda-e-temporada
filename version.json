@@ -1,8 +1,20 @@
 {
-  "hash": "bfbed4a",
-  "date": "21/09/2026 14:56",
-  "buildAt": "2026-09-21T17:57:07.609Z",
+  "hash": "ee0d486",
+  "date": "21/09/2026 20:43",
+  "buildAt": "2026-09-21T23:43:31.642Z",
   "history": [
+    {
+      "hash": "ee0d486",
+      "date": "21/09/2026 20:43",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(admin): adiciona acao rapida de dispensa na gaveta com blindagem de login"
+    },
+    {
+      "hash": "24427c1",
+      "date": "21/09/2026 14:58",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pós-deploy de rollback"
+    },
     {
       "hash": "bfbed4a",
       "date": "21/09/2026 14:56",
@@ -110,18 +122,6 @@
       "date": "16/09/2026 22:13",
       "author": "Boris Romão Antunes",
       "subject": "feat(presenca): registra usuario logado nas justificativas e notas da lista de presenca"
-    },
-    {
-      "hash": "e5bac1f",
-      "date": "16/09/2026 22:11",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(admin): novo fluxo de observacoes dinamicas e historico unificado"
-    },
-    {
-      "hash": "4723c3b",
-      "date": "16/09/2026 21:19",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json para v98fee28"
     }
   ]
 }
