@@ -154,7 +154,11 @@ onAuthStateChanged(auth, (user) => {
         }
         initCalendarManagement(); // Inicia o módulo de calendário interativo
         initIntervalTimerControls(); // Inicia o controle do cronômetro de intervalo
-        initMusiciansManagement(); // Inicia o gerenciamento de músicos (importação e busca reativa)
+        try {
+            initMusiciansManagement(); // Inicia o gerenciamento de músicos (importação e busca reativa)
+        } catch (musErr) {
+            console.error("⚠️ [Admin] Erro ao inicializar módulo de músicos:", musErr);
+        }
         initCadastrosManagement(); // Inicia o monitoramento de novos cadastros pendentes via Webhook
         initSecuritySection(); // Inicia a seção de segurança da conta
         initRealtimeVersionModule(); // Inicia sincronização e escuta em tempo real da versão
@@ -4689,9 +4693,11 @@ function initDispensasModule() {
     if (!btnOpenModal || !modalDispensa) return;
 
     // Popula select de músicos ativos buscando direto do Firestore
-    async function populateMusiciansSelect() {
+    async function populateMusiciansSelect(selectedIdToKeep = null) {
         if (!selectMusico) return;
-        selectMusico.innerHTML = '<option value="">Carregando músicos...</option>';
+        if (!selectedIdToKeep) {
+            selectMusico.innerHTML = '<option value="">Carregando músicos...</option>';
+        }
         try {
             const snapshot = await getDocs(collection(db, "musicos"));
             const lista = [];
@@ -4722,28 +4728,100 @@ function initDispensasModule() {
                 opt.value = m.id;
                 opt.textContent = m.nome;
                 if (m.instrumento) opt.setAttribute('data-instrumento', m.instrumento);
+                if (selectedIdToKeep && m.id === selectedIdToKeep) {
+                    opt.selected = true;
+                }
                 selectMusico.appendChild(opt);
             });
+            if (selectedIdToKeep) {
+                selectMusico.value = selectedIdToKeep;
+            }
         } catch (err) {
             console.error("Erro ao carregar músicos para dispensa:", err);
-            selectMusico.innerHTML = '<option value="">Erro ao carregar músicos</option>';
+            if (!selectedIdToKeep) {
+                selectMusico.innerHTML = '<option value="">Erro ao carregar músicos</option>';
+            }
         }
     }
 
-    function openDispensaModal() {
+    function openDispensaModal(targetMusico = null) {
         if (formDispensa) formDispensa.reset();
         modalDispensa.style.display = 'flex';
         document.body.style.overflow = 'hidden';
+
+        const lockedBadge = document.getElementById('dispensa-musico-locked-badge');
+        const lockedAvatar = document.getElementById('dispensa-locked-avatar');
+        const lockedNome = document.getElementById('dispensa-locked-nome');
+        const lockedInfo = document.getElementById('dispensa-locked-info');
+        const selectLabel = document.getElementById('dispensa-select-musico-label');
+
+        if (targetMusico) {
+            const targetId = targetMusico.id || targetMusico.docId;
+            const targetNome = targetMusico.NOMEARTISTICO || targetMusico['NOME REGISTRO'] || 'Bolsista';
+            const targetInstrumento = targetMusico.INSTRUMENTOS || targetMusico.Instrumento || '';
+            const targetStatus = targetMusico.Status || 'Bolsista';
+
+            if (selectMusico) {
+                selectMusico.style.display = 'none';
+                selectMusico.innerHTML = `<option value="${targetId}" selected data-instrumento="${targetInstrumento}">${targetNome}</option>`;
+                selectMusico.value = targetId;
+            }
+            if (selectLabel) {
+                selectLabel.innerHTML = 'Integrante Selecionado <span style="color: red;">*</span>';
+            }
+            if (lockedBadge) {
+                lockedBadge.style.display = 'flex';
+                if (lockedAvatar) {
+                    const initials = targetNome.split(' ').map(n => n[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'MO';
+                    lockedAvatar.textContent = initials;
+                }
+                if (lockedNome) lockedNome.textContent = targetNome;
+                if (lockedInfo) lockedInfo.textContent = `${targetStatus} • ${targetInstrumento || 'Instrumento'}`;
+            }
+
+            populateMusiciansSelect(targetId);
+
+            if (inputInicio) {
+                setTimeout(() => inputInicio.focus(), 150);
+            }
+        } else {
+            if (selectMusico) {
+                selectMusico.style.display = 'block';
+            }
+            if (selectLabel) {
+                selectLabel.innerHTML = 'Selecione o Músico (Ativo) <span style="color: red;">*</span>';
+            }
+            if (lockedBadge) {
+                lockedBadge.style.display = 'none';
+            }
+            populateMusiciansSelect();
+            if (selectMusico) {
+                setTimeout(() => selectMusico.focus(), 150);
+            }
+        }
+
         if (window.lucide) lucide.createIcons();
-        populateMusiciansSelect();
     }
 
     function closeDispensaModal() {
         modalDispensa.style.display = 'none';
         document.body.style.overflow = 'auto';
+        if (selectMusico) {
+            selectMusico.style.display = 'block';
+        }
+        const selectLabel = document.getElementById('dispensa-select-musico-label');
+        if (selectLabel) {
+            selectLabel.innerHTML = 'Selecione o Músico (Ativo) <span style="color: red;">*</span>';
+        }
+        const lockedBadge = document.getElementById('dispensa-musico-locked-badge');
+        if (lockedBadge) {
+            lockedBadge.style.display = 'none';
+        }
     }
 
-    btnOpenModal.addEventListener('click', openDispensaModal);
+    window.openDispensaModal = openDispensaModal;
+
+    btnOpenModal.addEventListener('click', () => openDispensaModal());
     if (btnCloseModal) btnCloseModal.addEventListener('click', closeDispensaModal);
     if (btnCancel) btnCancel.addEventListener('click', closeDispensaModal);
 
@@ -4857,6 +4935,9 @@ function initDispensasModule() {
                 showNotification(`Dispensa concedida com sucesso! ${updatedCount} lista(s) de presença atualizada(s).`, 'success');
                 closeDispensaModal();
                 loadDispensasTable();
+                if (typeof window.refreshCurrentMusicoDrawer === 'function') {
+                    window.refreshCurrentMusicoDrawer();
+                }
 
             } catch (err) {
                 console.error("Erro ao salvar dispensa:", err);
@@ -9181,6 +9262,14 @@ function initMusiciansManagement() {
             else p.classList.remove('active');
         });
 
+        // Barra de Ações Rápidas (Dispensa para bolsistas/monitores/spalla)
+        const statusLower = (musico.Status || '').toLowerCase();
+        const isBolsistaOrMonitor = statusLower.includes('bolsista') || statusLower.includes('monitor') || statusLower.includes('spalla');
+        const quickActionsBar = document.getElementById('drawer-quick-actions-bar');
+        if (quickActionsBar) {
+            quickActionsBar.style.display = isBolsistaOrMonitor ? 'flex' : 'none';
+        }
+
         // Abrir gaveta
         drawer.classList.add('open', 'active');
         drawerOverlay.classList.add('open', 'active');
@@ -9238,6 +9327,23 @@ function initMusiciansManagement() {
     if (btnEditCurrentMusicoMobile) {
         btnEditCurrentMusicoMobile.addEventListener('click', handleOpenEditMusico);
     }
+
+    // Botão de Ação Rápida: Conceder Dispensa direto da gaveta
+    const btnDrawerQuickDispensa = document.getElementById('btn-drawer-quick-dispensa');
+    if (btnDrawerQuickDispensa && !btnDrawerQuickDispensa._listenerAttached) {
+        btnDrawerQuickDispensa._listenerAttached = true;
+        btnDrawerQuickDispensa.addEventListener('click', () => {
+            if (currentSelectedMusico && typeof window.openDispensaModal === 'function') {
+                window.openDispensaModal(currentSelectedMusico);
+            }
+        });
+    }
+
+    window.refreshCurrentMusicoDrawer = () => {
+        if (currentSelectedMusico && typeof loadMusicianDetailedReport === 'function') {
+            loadMusicianDetailedReport(currentSelectedMusico);
+        }
+    };
 
     // Suporte a gesto de arrastar para a direita para fechar a gaveta no mobile (Swipe-to-Close)
     if (drawer) {
