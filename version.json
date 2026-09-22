@@ -1,13 +1,13 @@
 {
-  "hash": "2d4dcf9+mod",
-  "date": "22/09/2026, 18:01:50",
-  "buildAt": "2026-09-22T21:01:50.449Z",
+  "hash": "4c32f2c",
+  "date": "22/09/2026 18:03",
+  "buildAt": "2026-09-22T21:14:35.588Z",
   "history": [
     {
-      "hash": "2d4dcf9+mod",
-      "date": "22/09/2026, 18:01:50",
-      "author": "Deploy Local",
-      "subject": "Atualização implantada (1 arquivos modificados)"
+      "hash": "4c32f2c",
+      "date": "22/09/2026 18:03",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizacao de versao e build pos-deploy"
     },
     {
       "hash": "2d4dcf9",
