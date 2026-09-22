@@ -1,8 +1,20 @@
 {
-  "hash": "2b14c79",
-  "date": "21/09/2026 21:16",
-  "buildAt": "2026-09-22T00:17:11.579Z",
+  "hash": "a880e2c",
+  "date": "21/09/2026 21:20",
+  "buildAt": "2026-09-22T00:20:57.202Z",
   "history": [
+    {
+      "hash": "a880e2c",
+      "date": "21/09/2026 21:20",
+      "author": "Boris Romão Antunes",
+      "subject": "fix(admin): remove redeclaracao de statusLower que causava SyntaxError no login"
+    },
+    {
+      "hash": "ce9d3be",
+      "date": "21/09/2026 21:17",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pós-deploy v2b14c79"
+    },
     {
       "hash": "2b14c79",
       "date": "21/09/2026 21:16",
@@ -110,18 +122,6 @@
       "date": "16/09/2026 22:16",
       "author": "Boris Romão Antunes",
       "subject": "fix(preview): alinha texto de frequencia anual"
-    },
-    {
-      "hash": "08a528a",
-      "date": "16/09/2026 22:15",
-      "author": "Boris Romão Antunes",
-      "subject": "fix(presenca): exibe atraso como 'P' com nota detalhada para correta contagem na planilha e relatórios"
-    },
-    {
-      "hash": "93efcfb",
-      "date": "16/09/2026 22:15",
-      "author": "Boris Romão Antunes",
-      "subject": "fix(presenca): legenda e marcacao de presenca em atrasos no relatorio"
     }
   ]
 }
