@@ -1,8 +1,20 @@
 {
-  "hash": "a880e2c",
-  "date": "21/09/2026 21:20",
-  "buildAt": "2026-09-22T00:20:57.202Z",
+  "hash": "719f064",
+  "date": "22/09/2026 11:51",
+  "buildAt": "2026-09-22T14:53:38.819Z",
   "history": [
+    {
+      "hash": "719f064",
+      "date": "22/09/2026 11:51",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(agendamento): adiciona modulo de agendamento de salas com regras de disponibilidade, visualizacao em lista/grade, integracao com whatsapp e design responsivo mobile"
+    },
+    {
+      "hash": "bcba0ad",
+      "date": "21/09/2026 21:21",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pós-deploy va880e2c"
+    },
     {
       "hash": "a880e2c",
       "date": "21/09/2026 21:20",
@@ -110,18 +122,6 @@
       "date": "16/09/2026 22:16",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualiza version.json pós-deploy"
-    },
-    {
-      "hash": "ad8c76e",
-      "date": "16/09/2026 22:16",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pós-commit v4ddee16"
-    },
-    {
-      "hash": "4ddee16",
-      "date": "16/09/2026 22:16",
-      "author": "Boris Romão Antunes",
-      "subject": "fix(preview): alinha texto de frequencia anual"
     }
   ]
 }
