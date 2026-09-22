@@ -178,7 +178,12 @@ async function initApp() {
         btnCloseSearch.addEventListener("click", () => {
             bottomBar.classList.remove("search-active");
             searchInput.value = "";
+            searchInput.blur();
             renderMusicians();
+            if (bottomBar) {
+                bottomBar.style.bottom = "0px";
+                bottomBar.style.transform = "translate3d(0, 0, 0)";
+            }
         });
     }
 
@@ -264,10 +269,54 @@ async function initApp() {
         }, 200);
     });
 
+    // Sincronização da barra inferior com teclado e viewport (correção iOS Safari)
+    setupBottomBarViewportSync();
+
     // Inicializar ícones Lucide
     if (window.lucide) {
         window.lucide.createIcons();
     }
+}
+
+// Sincronização inteligente da barra inferior com a viewport e teclado virtual (iOS/Android)
+function setupBottomBarViewportSync() {
+    if (!bottomBar) return;
+
+    const resetBottomBar = () => {
+        bottomBar.style.bottom = "0px";
+        bottomBar.style.transform = "translate3d(0, 0, 0)";
+    };
+
+    if (window.visualViewport) {
+        const handleViewportChange = () => {
+            const vv = window.visualViewport;
+            const keyboardHeight = window.innerHeight - vv.height;
+            if (keyboardHeight > 100) {
+                const offset = Math.max(0, window.innerHeight - vv.height - (vv.offsetTop || 0));
+                bottomBar.style.bottom = `${offset}px`;
+            } else {
+                resetBottomBar();
+            }
+        };
+
+        window.visualViewport.addEventListener("resize", handleViewportChange);
+        window.visualViewport.addEventListener("scroll", handleViewportChange);
+    }
+
+    // Ao perder o foco de qualquer campo de texto, força recomposição no rodapé
+    window.addEventListener("focusout", (e) => {
+        if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) {
+            setTimeout(() => {
+                resetBottomBar();
+                window.scrollTo(window.scrollX, window.scrollY);
+            }, 80);
+        }
+    });
+
+    // Ao girar a tela ou redimensionar janela
+    window.addEventListener("orientationchange", () => {
+        setTimeout(resetBottomBar, 200);
+    });
 }
 
 // Obter string local YYYY-MM-DD
@@ -1643,6 +1692,11 @@ function updateDrawerButtonsVisuals() {
 
 // Fechar Qualquer Drawer
 function closeDrawer() {
+    // Dispensar teclado virtual se ativo
+    if (document.activeElement && typeof document.activeElement.blur === "function") {
+        document.activeElement.blur();
+    }
+
     // Se o Drawer de status estava aberto, verificar se há justificativa vazia
     if (statusDrawer.classList.contains("open") && activeMusicianId) {
         const current = attendanceData[activeMusicianId];
@@ -1661,6 +1715,12 @@ function closeDrawer() {
     overlay.classList.remove("open");
     statusDrawer.classList.remove("open");
     notesDrawer.classList.remove("open");
+
+    // Garantir reposicionamento imediato da barra inferior no rodapé
+    if (bottomBar) {
+        bottomBar.style.bottom = "0px";
+        bottomBar.style.transform = "translate3d(0, 0, 0)";
+    }
 }
 
 // Salvar Rascunho Local

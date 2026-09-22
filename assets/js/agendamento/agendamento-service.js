@@ -489,5 +489,73 @@ export const AgendamentoService = {
         });
 
         return header + blocosSalas.join("\n\n");
+    },
+
+    /**
+     * Gera mensagem padrão individual personalizada para envio no WhatsApp ao clicar no agendamento
+     */
+    generateSingleAppointmentMessage(ag) {
+        if (!ag) return "";
+
+        const primeiroNome = (ag.nomeSolicitante || "Músico").trim().split(/\s+/)[0];
+
+        // Processamento da data
+        const [ano, mes, dia] = (ag.data || "").split("-").map(Number);
+        const dataAgendamento = new Date(ano, mes - 1, dia);
+
+        const agora = new Date();
+        const hojeObj = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate());
+        const amanhaObj = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate() + 1);
+
+        const diasSemanaAbrev = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+        const diaSemana = diasSemanaAbrev[dataAgendamento.getDay()] || "Dia";
+
+        const diaFormatado = String(dia).padStart(2, "0");
+        const mesFormatado = String(mes).padStart(2, "0");
+        const dataTexto = `(${diaSemana}, ${diaFormatado}/${mesFormatado})`;
+
+        let textoTemporal;
+        if (dataAgendamento.getTime() === hojeObj.getTime()) {
+            textoTemporal = `hoje ${dataTexto}`;
+        } else if (dataAgendamento.getTime() === amanhaObj.getTime()) {
+            textoTemporal = `amanhã ${dataTexto}`;
+        } else {
+            textoTemporal = `para o dia ${dataTexto}`;
+        }
+
+        // Identificação da sala (ex: extrai "sala 504" de "Sala de Ensaio - 504")
+        let idSala = "";
+        const matchNum = (ag.salaNome || "").match(/\d+/);
+        if (matchNum) {
+            idSala = `sala ${matchNum[0]}`;
+        } else {
+            const nomeLimpo = (ag.salaNome || "Ensaio").replace(/^(sala\s*(de\s*ensaio)?\s*[-–:]?\s*)/i, "").trim();
+            idSala = `sala ${nomeLimpo || "Ensaio"}`;
+        }
+
+        const nomeSalaCompleto = (ag.salaNome || "SALA DE ENSAIO").toUpperCase();
+
+        // Linha do agendamento (somente o horário inicial em itálico WhatsApp)
+        let linha = `• _${ag.horaInicio || "00:00"}_: ${ag.nomeSolicitante || "Músico"}`;
+        if (ag.instrumento && ag.instrumento.trim()) {
+            linha += `  (${ag.instrumento.trim()})`;
+        }
+
+        const detalhes = [];
+        if (ag.necessidades && ag.necessidades.trim() !== "") {
+            detalhes.push(ag.necessidades.trim());
+        }
+        if (ag.precisaPartitura && ag.qualPartitura && ag.qualPartitura.trim() !== "") {
+            detalhes.push(`Partitura: ${ag.qualPartitura.trim()}`);
+        }
+        if (detalhes.length > 0) {
+            linha += `  [${detalhes.join(" • ")}]`;
+        }
+
+        return `Olá ${primeiroNome},\n` +
+               `Conforme agendado ${textoTemporal} a sala de ensaios (${idSala})\n\n` +
+               `📍  *${nomeSalaCompleto}*\n` +
+               `${linha}\n\n` +
+               `Qualquer dúvida, estou à disposição`;
     }
 };

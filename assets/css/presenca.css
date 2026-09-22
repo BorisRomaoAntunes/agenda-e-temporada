@@ -37,6 +37,7 @@
 }
 
 body {
+    display: block !important;
     background-color: var(--bg-primary);
     color: var(--text-primary);
     padding-bottom: calc(95px + env(safe-area-inset-bottom));
@@ -1005,12 +1006,18 @@ body {
     bottom: 0;
     left: 0;
     right: 0;
+    width: 100%;
     background: #ffffff;
     border-top: 1px solid var(--border-color);
     padding: 0.8rem 1rem;
     padding-bottom: calc(0.8rem + env(safe-area-inset-bottom));
     z-index: 90;
     box-shadow: 0 -4px 12px rgba(0,0,0,0.05);
+    -webkit-transform: translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0);
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    will-change: transform;
 }
 
 .bottom-bar-actions {

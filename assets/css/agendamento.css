@@ -655,6 +655,39 @@ body {
     background: #f8fafc;
 }
 
+.agendamento-row {
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+
+.agendamento-row:hover {
+    background: #f1f5f9 !important;
+}
+
+.agendamento-row:active {
+    background: #e2e8f0 !important;
+}
+
+.btn-copy-single {
+    padding: 0.35rem 0.55rem;
+    color: #475569;
+    border: 1px solid #cbd5e1;
+    background: #ffffff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.btn-copy-single:hover {
+    background: var(--oer-accent-light);
+    border-color: var(--oer-primary);
+    color: var(--oer-primary);
+    transform: scale(1.05);
+}
+
 .mobile-td-label {
     display: none;
 }

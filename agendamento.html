@@ -755,6 +755,24 @@
             });
         }
 
+        // Cópia da Mensagem Individual Personalizada de um Agendamento
+        function copiarMensagemIndividual(ag) {
+            if (!ag) return;
+            const texto = AgendamentoService.generateSingleAppointmentMessage(ag);
+            const primeiroNome = (ag.nomeSolicitante || "Músico").trim().split(/\s+/)[0];
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(texto).then(() => {
+                    showToast(`Mensagem de ${primeiroNome} copiada para o WhatsApp!`, "success");
+                }).catch(err => {
+                    console.error("Erro ao copiar via clipboard:", err);
+                    promptFallback(texto);
+                });
+            } else {
+                promptFallback(texto);
+            }
+        }
+
         // 4. Renderização Admin de Agendamentos
         function renderAdminAgendamentos() {
             const dataFiltro = adminDataFiltro.value;
@@ -775,7 +793,7 @@
                 const salaObj = allSalas.find(s => s.id === ag.salaId);
                 const corSala = salaObj?.cor || "#ea580c";
                 return `
-                <tr>
+                <tr class="agendamento-row" data-id="${ag.id}" title="Clique para copiar mensagem de confirmação para o WhatsApp">
                     <td class="cell-horario" style="font-weight: 700; color: var(--oer-accent);">
                         ${ag.horaInicio} - ${ag.horaFim}
                     </td>
@@ -799,9 +817,14 @@
                             : "<span style='color:#94a3b8; font-size: 0.85rem;'>Não</span>"}
                     </td>
                     <td class="cell-acoes" style="text-align: right;">
-                        <button class="btn btn-danger btn-sm btn-cancel-agendamento" data-id="${ag.id}" title="Cancelar agendamento e liberar horário">
-                            <i data-lucide="x" style="width: 14px; height: 14px;"></i> Liberar
-                        </button>
+                        <div style="display: inline-flex; gap: 0.35rem; align-items: center; justify-content: flex-end;">
+                            <button class="btn btn-outline btn-sm btn-copy-single" data-id="${ag.id}" title="Copiar mensagem individual para WhatsApp">
+                                <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
+                            </button>
+                            <button class="btn btn-danger btn-sm btn-cancel-agendamento" data-id="${ag.id}" title="Cancelar agendamento e liberar horário">
+                                <i data-lucide="x" style="width: 14px; height: 14px;"></i> Liberar
+                            </button>
+                        </div>
                     </td>
                 </tr>
                 `;
@@ -809,8 +832,30 @@
 
             lucide.createIcons();
 
+            // Evento de clique na linha para copiar a mensagem individual
+            adminAgendamentosTbody.querySelectorAll(".agendamento-row").forEach(row => {
+                row.addEventListener("click", (e) => {
+                    if (e.target.closest(".btn-cancel-agendamento")) return;
+                    const id = row.getAttribute("data-id");
+                    const ag = allAgendamentos.find(a => a.id === id);
+                    if (ag) copiarMensagemIndividual(ag);
+                });
+            });
+
+            // Evento do botão de cópia rápida
+            adminAgendamentosTbody.querySelectorAll(".btn-copy-single").forEach(btn => {
+                btn.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    const id = btn.getAttribute("data-id");
+                    const ag = allAgendamentos.find(a => a.id === id);
+                    if (ag) copiarMensagemIndividual(ag);
+                });
+            });
+
+            // Evento do botão cancelar/liberar
             document.querySelectorAll(".btn-cancel-agendamento").forEach(btn => {
-                btn.addEventListener("click", async () => {
+                btn.addEventListener("click", async (e) => {
+                    e.stopPropagation();
                     const id = btn.getAttribute("data-id");
                     const ag = allAgendamentos.find(a => a.id === id);
                     if (confirm("Deseja realmente cancelar este agendamento e liberar o horário imediatamente?")) {
@@ -1010,7 +1055,7 @@
                     bodyHTML += `
                         <div class="booking-event-card" 
                              style="top: ${topPx}px; height: ${heightPx}px; left: ${leftCalc}; width: ${widthCalc}; background: ${corSala}1f; border-left: 3px solid ${corSala}; color: #1e293b;"
-                             title="${ag.salaNome} | ${ag.horaInicio} - ${ag.horaFim}\nSolicitante: ${ag.nomeSolicitante}${ag.instrumento ? ` (${ag.instrumento})` : ''}\nClique para opções"
+                             title="${ag.salaNome} | ${ag.horaInicio} - ${ag.horaFim}\nSolicitante: ${ag.nomeSolicitante}${ag.instrumento ? ` (${ag.instrumento})` : ''}\nClique para copiar mensagem de confirmação para o WhatsApp"
                              data-ag-id="${ag.id}">
                             <div class="booking-event-title" style="color: ${corSala};">${ag.salaNome}</div>
                             <div class="booking-event-subtitle">${ag.nomeSolicitante}${instText}${obsText}</div>
@@ -1023,18 +1068,13 @@
 
             weeklyGridBody.innerHTML = bodyHTML;
 
-            // Evento de clique no card da grade para liberar/cancelar
+            // Evento de clique no card da grade para copiar mensagem de confirmação para WhatsApp
             weeklyGridBody.querySelectorAll(".booking-event-card").forEach(card => {
-                card.addEventListener("click", async () => {
+                card.addEventListener("click", () => {
                     const id = card.getAttribute("data-ag-id");
                     const ag = allAgendamentos.find(a => a.id === id);
-                    if (!ag) return;
-
-                    const detalhes = `Agendamento:\n• Sala: ${ag.salaNome}\n• Data: ${ag.data}\n• Horário: ${ag.horaInicio} às ${ag.horaFim}\n• Solicitante: ${ag.nomeSolicitante} (${ag.vinculo || 'Bolsista'})\n\nDeseja cancelar e liberar este horário?`;
-                    if (confirm(detalhes)) {
-                        const adminUser = (auth.currentUser && auth.currentUser.email) ? auth.currentUser.email : "Administrador";
-                        await AgendamentoService.cancelAgendamento(id, adminUser, ag);
-                        showToast("Horário liberado imediatamente.");
+                    if (ag) {
+                        copiarMensagemIndividual(ag);
                     }
                 });
             });
