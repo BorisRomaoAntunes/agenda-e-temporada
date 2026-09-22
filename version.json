@@ -1,8 +1,20 @@
 {
-  "hash": "719f064",
-  "date": "22/09/2026 11:51",
-  "buildAt": "2026-09-22T14:53:38.819Z",
+  "hash": "5cfe628",
+  "date": "22/09/2026 12:04",
+  "buildAt": "2026-09-22T15:05:11.541Z",
   "history": [
+    {
+      "hash": "5cfe628",
+      "date": "22/09/2026 12:04",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(admin): adiciona botao de acesso rapido ao agendamento de salas ao lado da presenca e publica agendamento.html"
+    },
+    {
+      "hash": "ed94566",
+      "date": "22/09/2026 11:54",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pós-deploy v719f064"
+    },
     {
       "hash": "719f064",
       "date": "22/09/2026 11:51",
@@ -110,18 +122,6 @@
       "date": "16/09/2026 22:21",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualiza version.json pós-commit v9418372"
-    },
-    {
-      "hash": "9418372",
-      "date": "16/09/2026 22:21",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(admin): frequencia anual no card de perfil e ajuste de historico por mes"
-    },
-    {
-      "hash": "193f276",
-      "date": "16/09/2026 22:16",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pós-deploy"
     }
   ]
 }
