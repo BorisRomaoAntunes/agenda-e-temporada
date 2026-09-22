@@ -1,8 +1,20 @@
 {
-  "hash": "5cfe628",
-  "date": "22/09/2026 12:04",
-  "buildAt": "2026-09-22T15:05:11.541Z",
+  "hash": "36ac0d4",
+  "date": "22/09/2026 12:21",
+  "buildAt": "2026-09-22T15:21:32.984Z",
   "history": [
+    {
+      "hash": "36ac0d4",
+      "date": "22/09/2026 12:21",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(agendamento): modo lado a lado nativo, auth estilo presenca, botao copiar link e pagina publica reserva.html"
+    },
+    {
+      "hash": "1eae913",
+      "date": "22/09/2026 12:05",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pós-deploy v5cfe628"
+    },
     {
       "hash": "5cfe628",
       "date": "22/09/2026 12:04",
@@ -110,18 +122,6 @@
       "date": "16/09/2026 22:22",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualiza version.json pós-deploy"
-    },
-    {
-      "hash": "4d5c915",
-      "date": "16/09/2026 22:22",
-      "author": "Boris Romão Antunes",
-      "subject": "style(admin): adiciona estilo de timestamp para notas"
-    },
-    {
-      "hash": "2d4b678",
-      "date": "16/09/2026 22:21",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pós-commit v9418372"
     }
   ]
 }
