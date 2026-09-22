@@ -261,8 +261,12 @@
                         </div>
                         <form id="publicBookingForm" class="booking-form">
                             <div class="form-group">
-                                <label class="form-label" for="inputNome">Nome Completo: *</label>
-                                <input type="text" id="inputNome" class="form-input" placeholder="Digite seu nome completo" required>
+                                <label class="form-label" for="inputNome">
+                                    <i data-lucide="user" style="width: 14px; height: 14px; color: var(--oer-primary);"></i> Músico / Monitor: *
+                                </label>
+                                <select id="inputNome" class="form-select" required>
+                                    <option value="" disabled selected>-- Selecione o Músico / Monitor --</option>
+                                </select>
                             </div>
 
                             <div class="form-group">
@@ -568,9 +572,14 @@
         const publicSlotsContainer = document.getElementById("publicSlotsContainer");
         const publicSalaDisponibilidadeInfo = document.getElementById("publicSalaDisponibilidadeInfo");
         const publicBookingForm = document.getElementById("publicBookingForm");
+        const inputNome = document.getElementById("inputNome");
+        const selectInstrumento = document.getElementById("selectInstrumento");
+        const selectVinculo = document.getElementById("selectVinculo");
         const radioPartituraList = document.querySelectorAll('input[name="radioPartitura"]');
         const groupQualPartitura = document.getElementById("groupQualPartitura");
         const inputQualPartitura = document.getElementById("inputQualPartitura");
+
+        let allMusicosAtivos = [];
 
         // Calendário Visual Bookings DOM & Estado
         const calMonthYearTitle = document.getElementById("calMonthYearTitle");
@@ -656,6 +665,69 @@
                     renderAdminAgendamentos();
                 });
             }
+
+            // Carregar Músicos Ativos para o Select do Admin
+            carregarMusicosSelect();
+        }
+
+        // Carregar Músicos e Monitores Ativos no Select do Admin
+        async function carregarMusicosSelect() {
+            if (!inputNome) return;
+            inputNome.innerHTML = '<option value="" disabled selected>Carregando músicos...</option>';
+            try {
+                allMusicosAtivos = await AgendamentoService.getMusicosAtivos();
+                if (allMusicosAtivos.length === 0) {
+                    inputNome.innerHTML = '<option value="" disabled selected>Nenhum integrante ativo encontrado</option>';
+                    return;
+                }
+                let optionsHtml = '<option value="" disabled selected>-- Selecione o Músico / Monitor --</option>';
+                allMusicosAtivos.forEach(m => {
+                    optionsHtml += `<option value="${m.nome}">${m.nome}</option>`;
+                });
+                inputNome.innerHTML = optionsHtml;
+            } catch (err) {
+                console.error("Erro ao carregar músicos para agendamento:", err);
+                inputNome.innerHTML = '<option value="" disabled selected>Erro ao carregar integrantes</option>';
+            }
+        }
+
+        // Listener de Seleção do Músico (Autopreenchimento e Bloqueio)
+        if (inputNome) {
+            inputNome.addEventListener("change", () => {
+                const selectedNome = inputNome.value;
+                if (!selectedNome) {
+                    if (selectInstrumento) {
+                        selectInstrumento.value = "";
+                        selectInstrumento.disabled = false;
+                    }
+                    if (selectVinculo) {
+                        selectVinculo.value = "";
+                        selectVinculo.disabled = false;
+                    }
+                    return;
+                }
+
+                const musico = allMusicosAtivos.find(m => m.nome === selectedNome);
+                if (musico) {
+                    if (selectInstrumento) {
+                        if (musico.instrumento) {
+                            selectInstrumento.value = musico.instrumento;
+                        } else {
+                            selectInstrumento.value = "";
+                        }
+                        selectInstrumento.disabled = true;
+                    }
+
+                    if (selectVinculo) {
+                        if (musico.vinculo) {
+                            selectVinculo.value = musico.vinculo;
+                        } else {
+                            selectVinculo.value = "";
+                        }
+                        selectVinculo.disabled = true;
+                    }
+                }
+            });
         }
 
         // 3. Renderização Admin de Salas
@@ -1503,6 +1575,8 @@
                 await AgendamentoService.createAgendamento(payload);
                 showToast("Agendamento confirmado com sucesso!");
                 publicBookingForm.reset();
+                if (selectInstrumento) selectInstrumento.disabled = false;
+                if (selectVinculo) selectVinculo.disabled = false;
                 groupQualPartitura.style.display = "none";
                 selectedSlot = null;
                 renderVisualCalendar();

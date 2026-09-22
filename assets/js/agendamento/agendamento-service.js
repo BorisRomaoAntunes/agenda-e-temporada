@@ -557,5 +557,116 @@ export const AgendamentoService = {
                `📍  *${nomeSalaCompleto}*\n` +
                `${linha}\n\n` +
                `Qualquer dúvida, estou à disposição`;
+    },
+
+    /**
+     * Obtém a lista de músicos e monitores ativos para o agendamento no Admin
+     */
+    async getMusicosAtivos() {
+        try {
+            const snap = await getDocs(collection(db, "musicos"));
+            const musicos = [];
+            snap.forEach(docSnap => {
+                const data = docSnap.data();
+                const rawStatus = (data.Status || data.status || data.Cargo || data.cargo || '').toString().toLowerCase().trim();
+                
+                // Filtros de integridade OER
+                if (rawStatus.includes('emm')) return;
+                
+                const nomeRegLower = (data['NOME REGISTRO'] || '').toString().toLowerCase();
+                const nomeArtLower = (data.NOMEARTISTICO || '').toString().toLowerCase();
+                if (nomeRegLower.includes('angela de santi') || nomeArtLower.includes('angela de santi')) return;
+
+                // Excluir equipe técnica, administrativa e regentes
+                const isApoioOuAdmin = rawStatus.includes('montagem') ||
+                                       rawStatus.includes('produç') ||
+                                       rawStatus.includes('produc') ||
+                                       rawStatus.includes('coorden') ||
+                                       rawStatus.includes('coo.') ||
+                                       rawStatus.includes('diret') ||
+                                       rawStatus.includes('apoio') ||
+                                       rawStatus.includes('arquiv') ||
+                                       rawStatus.includes('regente') ||
+                                       rawStatus.includes('reg.');
+                if (isApoioOuAdmin) return;
+
+                // Excluir inativos / desligados / cancelados
+                const isDesligado = rawStatus.includes('cancelad') || 
+                                    rawStatus.includes('inativ') || 
+                                    rawStatus.includes('desligad') || 
+                                    data.statusFirebase === 'inativo' || 
+                                    data.statusFirebase === 'desligado';
+                if (isDesligado) return;
+
+                const tipoContrato = (data['Tipo Contrato Prorrogáveis por igual prazo'] || data['Tipo Contrato'] || '').toString().toLowerCase();
+                const isBolsistaOrMonitor = rawStatus.includes("bolsista") || rawStatus.includes("monitor") || rawStatus.includes("spalla") ||
+                                            tipoContrato.includes("bolsista") || tipoContrato.includes("monitor") || tipoContrato.includes("spalla");
+                if (!isBolsistaOrMonitor) return;
+
+                const nomeArtistico = (data.NOMEARTISTICO || '').toString().trim();
+                const nomeCompleto = (data['NOME REGISTRO'] || data.Nome || data.nome || '').toString().trim();
+                const nomeExibicao = nomeArtistico || nomeCompleto;
+                if (!nomeExibicao) return;
+
+                const isMonitor = rawStatus.includes("monitor") || rawStatus.includes("spalla") ||
+                                  tipoContrato.includes("monitor") || tipoContrato.includes("spalla");
+                const vinculo = isMonitor ? "Monitor" : "Bolsista";
+
+                const rawInst = (data.INSTRUMENTOS || data.Instrumento || data.instrumento || '').toString().trim();
+                const instrumentoMapeado = this.normalizarInstrumentoParaSelect(rawInst);
+
+                musicos.push({
+                    id: docSnap.id,
+                    nome: nomeExibicao,
+                    instrumento: instrumentoMapeado,
+                    vinculo: vinculo
+                });
+            });
+
+            musicos.sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+            return musicos;
+        } catch(e) {
+            console.error("Erro ao carregar músicos ativos para agendamento:", e);
+            return [];
+        }
+    },
+
+    /**
+     * Mapeia qualquer nomenclatura de instrumento cadastrada para as opções do select de agendamento
+     */
+    normalizarInstrumentoParaSelect(instStr) {
+        if (!instStr) return "";
+        const s = instStr.toLowerCase().trim().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+        if (s.includes("1") || s.includes("primeir") || s.includes("1o") || s.includes("1º") || s.includes("spalla") || s.includes("violino i")) {
+            if (s.includes("viol")) return "Primeiros Violinos";
+        }
+        if (s.includes("2") || s.includes("segund") || s.includes("2o") || s.includes("2º") || s.includes("violino ii")) {
+            if (s.includes("viol")) return "Segundos Violinos";
+        }
+        if (s.includes("viola")) return "Violas";
+        if (s.includes("violoncel") || s.includes("cello")) return "Violoncelos";
+        if (s.includes("contraba") || s.includes("baixo")) return "Contrabaixos";
+        if (s.includes("flaut") || s.includes("piccolo") || s.includes("flautim")) return "Flautas";
+        if (s.includes("oboe") || s.includes("corne")) return "Oboés";
+        if (s.includes("clari") || s.includes("requinta") || s.includes("clarone")) return "Clarinetes";
+        if (s.includes("fagot") || s.includes("contrafagot")) return "Fagotes";
+        if (s.includes("trompa")) return "Trompas";
+        if (s.includes("trompet") || s.includes("pistao") || s.includes("tromp")) return "Trompetes";
+        if (s.includes("trombon")) return "Trombones";
+        if (s.includes("tuba") || s.includes("eufonio") || s.includes("bombardino")) return "Tuba";
+        if (s.includes("harpa")) return "Harpa";
+        if (s.includes("piano") || s.includes("teclado") || s.includes("celesta") || s.includes("cravo")) return "Piano";
+        if (s.includes("percuss") || s.includes("timpan") || s.includes("bateria")) return "Percussão";
+
+        if (s.includes("violino")) return "Primeiros Violinos";
+
+        const options = [
+            "Primeiros Violinos", "Segundos Violinos", "Violas", "Violoncelos", "Contrabaixos",
+            "Flautas", "Oboés", "Clarinetes", "Fagotes", "Trompas", "Trompetes", "Trombones",
+            "Tuba", "Harpa", "Piano", "Percussão"
+        ];
+        const match = options.find(opt => opt.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") === s);
+        return match || "";
     }
 };

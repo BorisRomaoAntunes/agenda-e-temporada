@@ -606,6 +606,14 @@ body {
     box-shadow: 0 0 0 3px rgba(139, 0, 0, 0.15);
 }
 
+.form-input:disabled, .form-select:disabled, .form-textarea:disabled {
+    background-color: #f8fafc;
+    color: #475569;
+    cursor: not-allowed;
+    border-color: #e2e8f0;
+    opacity: 0.95;
+}
+
 /* Partitura Radio/Switch */
 .partitura-toggle-group {
     display: flex;
