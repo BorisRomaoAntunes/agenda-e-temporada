@@ -1,8 +1,26 @@
 {
-  "hash": "8794bbd",
-  "date": "22/09/2026 17:37",
-  "buildAt": "2026-09-22T20:47:44.899Z",
+  "hash": "2d4dcf9+mod",
+  "date": "22/09/2026, 18:01:50",
+  "buildAt": "2026-09-22T21:01:50.449Z",
   "history": [
+    {
+      "hash": "2d4dcf9+mod",
+      "date": "22/09/2026, 18:01:50",
+      "author": "Deploy Local",
+      "subject": "Atualização implantada (1 arquivos modificados)"
+    },
+    {
+      "hash": "2d4dcf9",
+      "date": "22/09/2026 18:00",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(agendamento): lista suspensa de musicos e monitores com autopreenchimento de instrumento e vinculo"
+    },
+    {
+      "hash": "33f39f9",
+      "date": "22/09/2026 17:48",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pós-deploy da correção de layout"
+    },
     {
       "hash": "8794bbd",
       "date": "22/09/2026 17:37",
@@ -104,24 +122,6 @@
       "date": "21/09/2026 20:44",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualiza version.json pós-deploy vee0d486"
-    },
-    {
-      "hash": "ee0d486",
-      "date": "21/09/2026 20:43",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(admin): adiciona acao rapida de dispensa na gaveta com blindagem de login"
-    },
-    {
-      "hash": "24427c1",
-      "date": "21/09/2026 14:58",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pós-deploy de rollback"
-    },
-    {
-      "hash": "bfbed4a",
-      "date": "21/09/2026 14:56",
-      "author": "Boris Romão Antunes",
-      "subject": "revert: restaura versao anterior a implementacao da acao rapida de dispensa"
     }
   ]
 }

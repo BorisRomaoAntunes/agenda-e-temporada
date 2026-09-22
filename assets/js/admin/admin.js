@@ -10619,15 +10619,14 @@ function initMusiciansManagement() {
         const ordemCargos = ["Coordenador Artístico", "Inspetor", "Produtor de Palco", "Montadores"];
         ordemCargos.forEach(cargo => {
             const list = equipeTecnica[cargo] || [];
-            if (cargo === "Coordenador Artístico") {
-                // Deixa em branco (sem nomes após o cargo)
-                partes.push(`**${cargo}**`);
-            } else if (list.length > 0) {
+            if (list.length > 0) {
                 if (cargo === "Montadores") {
                     partes.push(`Montadores ${formatarGrupoNomesHTML(list)}`);
                 } else {
                     partes.push(`**${cargo}** ${formatarGrupoNomesHTML(list)}`);
                 }
+            } else if (cargo === "Coordenador Artístico") {
+                partes.push(`**${cargo}**`);
             }
         });
 
@@ -10685,15 +10684,14 @@ function initMusiciansManagement() {
         const ordemCargos = ["Coordenador Artístico", "Inspetor", "Produtor de Palco", "Montadores"];
         ordemCargos.forEach(cargo => {
             const list = equipeTecnica[cargo] || [];
-            if (cargo === "Coordenador Artístico") {
-                // Deixa em branco (sem nomes após o cargo)
-                corpoPartes.push(`<strong>${cargo}</strong>`);
-            } else if (list.length > 0) {
+            if (list.length > 0) {
                 if (cargo === "Montadores") {
                     corpoPartes.push(`Montadores ${formatarGrupoNomesHTML(list)}`);
                 } else {
                     corpoPartes.push(`<strong>${cargo}</strong> ${formatarGrupoNomesHTML(list)}`);
                 }
+            } else if (cargo === "Coordenador Artístico") {
+                corpoPartes.push(`<strong>${cargo}</strong>`);
             }
         });
 
@@ -10762,10 +10760,7 @@ function initMusiciansManagement() {
         const ordemCargos = ["Coordenador Artístico", "Inspetor", "Produtor de Palco", "Montadores"];
         ordemCargos.forEach(cargo => {
             const list = equipeTecnica[cargo] || [];
-            if (cargo === "Coordenador Artístico") {
-                // Deixa em branco (sem nomes após o cargo)
-                html += `<strong>${cargo}</strong><br><br>`;
-            } else if (list.length > 0) {
+            if (list.length > 0) {
                 html += `<strong>${cargo}</strong><br>`;
                 if (cargo === "Montadores") {
                     html += `${formatarGrupoNomesHTML(list)}<br><br>`;
@@ -10775,6 +10770,8 @@ function initMusiciansManagement() {
                     });
                     html += '<br>';
                 }
+            } else if (cargo === "Coordenador Artístico") {
+                html += `<strong>${cargo}</strong><br><br>`;
             }
         });
 
