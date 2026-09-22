@@ -1035,6 +1035,19 @@
                     }
                 });
             });
+
+            // No mobile, rolar suavemente para posicionar a visualização a partir do dia de hoje
+            if (window.innerWidth <= 768) {
+                const hojeStr = formatYMD(hoje);
+                setTimeout(() => {
+                    const todayCol = weeklyGridBody.querySelector(`.weekly-day-col[data-ymd="${hojeStr}"]`);
+                    const container = adminViewWeeklyContainer?.querySelector(".weekly-grid-container");
+                    if (todayCol && container) {
+                        const targetLeft = Math.max(0, todayCol.offsetLeft - 46);
+                        container.scrollTo({ left: targetLeft, behavior: "smooth" });
+                    }
+                }, 150);
+            }
         }
 
         // 5. Botões de Ação e Cópia da Mensagem Formatada

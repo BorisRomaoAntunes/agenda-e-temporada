@@ -1211,17 +1211,62 @@ body {
         font-size: 0.88rem;
     }
 
-    /* Grade Semanal Touch no Mobile */
+    /* Grade Semanal Touch no Mobile - 2 Dias Visíveis por Vez + Horas Fixas */
     .weekly-grid-container {
+        container-type: inline-size;
+        container-name: weeklygrid;
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x proximity;
         border-radius: 8px;
+        position: relative;
     }
-    .weekly-grid-header {
-        min-width: 600px;
+
+    .weekly-grid-header,
+    .weekly-grid-body {
+        --weekly-time-w: 46px;
+        /* Fallback de largura por dia baseado na viewport para caber exatamente 2 dias */
+        --weekly-day-w: calc((100vw - 2.5rem - var(--weekly-time-w)) / 2);
+        display: grid;
+        grid-template-columns: var(--weekly-time-w) repeat(7, var(--weekly-day-w));
+        min-width: calc(var(--weekly-time-w) + 7 * var(--weekly-day-w));
+        width: max-content;
     }
+
+    @supports (width: 1cqw) {
+        .weekly-grid-header,
+        .weekly-grid-body {
+            /* Usando largura exata do container para 2 dias perfeitos lado a lado */
+            --weekly-day-w: calc((100cqw - var(--weekly-time-w)) / 2);
+        }
+    }
+
+    /* Coluna de Horários Fixa (Sticky) à esquerda durante o scroll lateral */
+    .weekly-header-cell:first-child {
+        position: sticky;
+        left: 0;
+        z-index: 35;
+        background: #ffffff;
+        border-right: 1px solid var(--oer-border);
+        box-shadow: 2px 0 5px rgba(0, 0, 0, 0.04);
+    }
+
+    .weekly-time-col {
+        position: sticky;
+        left: 0;
+        z-index: 25;
+        background: #fafafa;
+        border-right: 1px solid var(--oer-border);
+        box-shadow: 2px 0 5px rgba(0, 0, 0, 0.04);
+    }
+
     .weekly-day-col {
-        min-width: 78px;
+        min-width: unset;
+        scroll-snap-align: start;
+    }
+
+    .weekly-header-cell:not(:first-child) {
+        scroll-snap-align: start;
     }
 
     /* Modais Otimizados para Celular */
