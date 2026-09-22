@@ -9264,7 +9264,6 @@ function initMusiciansManagement() {
         });
 
         // Barra de Ações Rápidas (Dispensa para bolsistas/monitores/spalla)
-        const statusLower = (musico.Status || '').toLowerCase();
         const isBolsistaOrMonitor = statusLower.includes('bolsista') || statusLower.includes('monitor') || statusLower.includes('spalla');
         const quickActionsBar = document.getElementById('drawer-quick-actions-bar');
         if (quickActionsBar) {
