@@ -812,8 +812,10 @@
             document.querySelectorAll(".btn-cancel-agendamento").forEach(btn => {
                 btn.addEventListener("click", async () => {
                     const id = btn.getAttribute("data-id");
+                    const ag = allAgendamentos.find(a => a.id === id);
                     if (confirm("Deseja realmente cancelar este agendamento e liberar o horário imediatamente?")) {
-                        await AgendamentoService.cancelAgendamento(id);
+                        const adminUser = (auth.currentUser && auth.currentUser.email) ? auth.currentUser.email : "Administrador";
+                        await AgendamentoService.cancelAgendamento(id, adminUser, ag);
                         showToast("Horário liberado imediatamente.");
                     }
                 });
@@ -1030,7 +1032,8 @@
 
                     const detalhes = `Agendamento:\n• Sala: ${ag.salaNome}\n• Data: ${ag.data}\n• Horário: ${ag.horaInicio} às ${ag.horaFim}\n• Solicitante: ${ag.nomeSolicitante} (${ag.vinculo || 'Bolsista'})\n\nDeseja cancelar e liberar este horário?`;
                     if (confirm(detalhes)) {
-                        await AgendamentoService.cancelAgendamento(id);
+                        const adminUser = (auth.currentUser && auth.currentUser.email) ? auth.currentUser.email : "Administrador";
+                        await AgendamentoService.cancelAgendamento(id, adminUser, ag);
                         showToast("Horário liberado imediatamente.");
                     }
                 });

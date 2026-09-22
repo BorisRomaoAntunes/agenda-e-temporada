@@ -2745,12 +2745,19 @@ function buildLogItemElement(data) {
     if (data.type === 'sistema') iconName = 'cpu';
     if (data.type === 'atestado') iconName = 'activity';
     if (data.type === 'erro') iconName = 'alert-triangle';
+    if (data.type === 'agendamento' || data.type === 'agendamento-criado') iconName = 'calendar-check';
+    if (data.type === 'agendamento-cancelado') iconName = 'calendar-x';
     
     let linkHtml = '';
     if (data.link) {
         const isLinkType = data.type && data.type.startsWith('link-');
-        const btnLabel = isLinkType ? 'Acessar Link' : 'Ver Arquivo';
-        const btnIcon = isLinkType ? 'external-link' : 'file-text';
+        const isAgendamentoType = data.type && data.type.startsWith('agendamento');
+        let btnLabel = isLinkType ? 'Acessar Link' : 'Ver Arquivo';
+        let btnIcon = isLinkType ? 'external-link' : 'file-text';
+        if (isAgendamentoType) {
+            btnLabel = 'Ver Agendamentos';
+            btnIcon = 'calendar-clock';
+        }
         linkHtml = `<a href="${data.link}" target="_blank" class="log-link"><i data-lucide="${btnIcon}"></i> ${btnLabel}</a>`;
     }
 
@@ -2835,6 +2842,9 @@ async function loadLogs(filterType = 'all') {
         let q;
         if (filterType === 'all') {
             q = query(logsRef, orderBy('createdAt', 'desc'), limit(10));
+        } else if (filterType === 'agendamento') {
+            // Filtra por agendamentos criados e cancelados
+            q = query(logsRef, where('type', 'in', ['agendamento', 'agendamento-criado', 'agendamento-cancelado']), orderBy('createdAt', 'desc'), limit(10));
         } else if (filterType === 'aviso') {
             // Filtra por aviso OU aviso-removido usando o operador 'in'
             q = query(logsRef, where('type', 'in', ['aviso', 'aviso-removido']), orderBy('createdAt', 'desc'), limit(10));
@@ -2920,6 +2930,8 @@ async function loadMoreLogs() {
         let q;
         if (currentLogFilter === 'all') {
             q = query(logsRef, orderBy('createdAt', 'desc'), startAfter(lastVisibleLog), limit(10));
+        } else if (currentLogFilter === 'agendamento') {
+            q = query(logsRef, where('type', 'in', ['agendamento', 'agendamento-criado', 'agendamento-cancelado']), orderBy('createdAt', 'desc'), startAfter(lastVisibleLog), limit(10));
         } else if (currentLogFilter === 'aviso') {
             q = query(logsRef, where('type', 'in', ['aviso', 'aviso-removido']), orderBy('createdAt', 'desc'), startAfter(lastVisibleLog), limit(10));
         } else if (currentLogFilter === 'links') {
@@ -3071,6 +3083,8 @@ function initLogSearch() {
                     let q;
                     if (currentLogFilter === 'all') {
                         q = query(logsRef, orderBy('createdAt', 'desc'), limit(200));
+                    } else if (currentLogFilter === 'agendamento') {
+                        q = query(logsRef, where('type', 'in', ['agendamento', 'agendamento-criado', 'agendamento-cancelado']), orderBy('createdAt', 'desc'), limit(200));
                     } else if (currentLogFilter === 'aviso') {
                         q = query(logsRef, where('type', 'in', ['aviso', 'aviso-removido']), orderBy('createdAt', 'desc'), limit(200));
                     } else if (currentLogFilter === 'links') {

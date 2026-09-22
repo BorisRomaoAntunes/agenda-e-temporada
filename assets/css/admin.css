@@ -1761,6 +1761,26 @@ button, a, [role="button"], input[type="submit"], input[type="button"], label {
     color: #dc3545;
 }
 
+.log-icon.type-agendamento,
+.log-icon.type-agendamento-criado {
+    background: rgba(22, 163, 74, 0.12);
+    color: #16a34a;
+}
+
+.log-icon.type-agendamento-cancelado {
+    background: rgba(220, 38, 38, 0.12);
+    color: #dc2626;
+}
+
+.log-item.log-type-agendamento {
+    border-left: 4px solid #16a34a;
+}
+
+.log-item.log-type-agendamento-cancelado {
+    border-left: 4px solid #dc2626;
+    background: #fff8f8;
+}
+
 .btn-retry-sync {
     display: inline-flex;
     align-items: center;

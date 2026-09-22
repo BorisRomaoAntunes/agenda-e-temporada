@@ -220,6 +220,23 @@ export const AgendamentoService = {
                 ...payload,
                 createdAt: serverTimestamp()
             });
+
+            // Registrar log de auditoria no Admin (Últimas Atualizações)
+            try {
+                const dataFormatada = (dados.data || "").split('-').reverse().join('/');
+                const logData = {
+                    type: "agendamento",
+                    message: `Novo agendamento: ${payload.nomeSolicitante} - ${payload.salaNome}`,
+                    details: `Data: ${dataFormatada} das ${payload.horaInicio} às ${payload.horaFim}\nInstrumento/Naipe: ${payload.instrumento || 'Não informado'}\nVínculo: ${payload.vinculo || 'Bolsista'}\nNecessidades: ${payload.necessidades || 'Nenhuma'}\nPartitura: ${payload.precisaPartitura ? (payload.qualPartitura || 'Sim') : 'Não'}`,
+                    user: `${payload.nomeSolicitante} (${payload.vinculo || 'Bolsista'})`,
+                    link: "agendamento.html",
+                    createdAt: new Date().toISOString()
+                };
+                await addDoc(collection(db, "adminLogs"), logData);
+            } catch (logErr) {
+                console.warn("Não foi possível gravar log em adminLogs:", logErr.message);
+            }
+
             return docRef.id;
         } catch (err) {
             if (err.message && err.message.includes("Este horário")) {
@@ -240,14 +257,37 @@ export const AgendamentoService = {
     },
 
     /**
-     * Cancela um agendamento liberando o horário imediatamente
+     * Cancela um agendamento liberando o horário imediatamente e registra auditoria no admin
      */
-    async cancelAgendamento(agendamentoId) {
+    async cancelAgendamento(agendamentoId, canceladoPor = "Administrador", agendamentoObj = null) {
+        let agData = agendamentoObj;
         try {
+            if (!agData) {
+                const agSnap = await getDoc(doc(db, AGENDAMENTOS_COLLECTION, agendamentoId));
+                if (agSnap.exists()) {
+                    agData = agSnap.data();
+                }
+            }
+
             await updateDoc(doc(db, AGENDAMENTOS_COLLECTION, agendamentoId), {
                 status: "cancelado",
-                cancelledAt: serverTimestamp()
+                cancelledAt: serverTimestamp(),
+                cancelledBy: canceladoPor
             });
+
+            // Registrar log de cancelamento em adminLogs
+            if (agData) {
+                const dataFormatada = (agData.data || "").split('-').reverse().join('/');
+                const logData = {
+                    type: "agendamento-cancelado",
+                    message: `Agendamento cancelado: ${agData.salaNome || 'Sala'} (${dataFormatada} das ${agData.horaInicio} às ${agData.horaFim})`,
+                    details: `Cancelado por: ${canceladoPor}\nSolicitante original: ${agData.nomeSolicitante || 'Desconhecido'} (${agData.instrumento || 'Instrumento não informado'} - ${agData.vinculo || 'Bolsista'})\nNecessidades originais: ${agData.necessidades || 'Nenhuma'}\nPartitura: ${agData.precisaPartitura ? (agData.qualPartitura || 'Sim') : 'Não'}`,
+                    user: canceladoPor,
+                    link: "agendamento.html",
+                    createdAt: new Date().toISOString()
+                };
+                await addDoc(collection(db, "adminLogs"), logData);
+            }
         } catch(e) {
             console.warn("Cancelando agendamento no modo local:", e.message);
         }

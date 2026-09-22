@@ -37,8 +37,14 @@ service cloud.firestore {
     }
 
     // Coleção "adminLogs" — histórico de auditoria do painel (dados sensíveis)
+    // Administradores têm acesso total; criação de logs de agendamento permitida publicamente
     match /adminLogs/{document} {
-      allow read, write: if isAdmin();
+      allow read: if isAdmin();
+      allow create: if isAdmin() || (
+        request.resource.data.type in ['agendamento', 'agendamento-criado', 'agendamento-cancelado']
+        && request.resource.data.keys().hasAll(['type', 'message', 'createdAt'])
+      );
+      allow update, delete: if isAdmin();
     }
 
     // Coleção "dynamicLinks" — botões temporários
