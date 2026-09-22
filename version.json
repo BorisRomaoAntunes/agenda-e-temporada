@@ -1,8 +1,20 @@
 {
-  "hash": "acd9fca",
-  "date": "22/09/2026 12:28",
-  "buildAt": "2026-09-22T15:29:41.819Z",
+  "hash": "c1e4f52",
+  "date": "22/09/2026 12:42",
+  "buildAt": "2026-09-22T15:43:09.322Z",
   "history": [
+    {
+      "hash": "c1e4f52",
+      "date": "22/09/2026 12:42",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(admin): auditoria de agendamentos e cancelamentos nas ultimas atualizacoes"
+    },
+    {
+      "hash": "56573f1",
+      "date": "22/09/2026 12:31",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pós-deploy vacd9fca"
+    },
     {
       "hash": "acd9fca",
       "date": "22/09/2026 12:28",
@@ -110,18 +122,6 @@
       "date": "16/09/2026 22:34",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualiza version.json pós-deploy"
-    },
-    {
-      "hash": "398e318",
-      "date": "16/09/2026 22:26",
-      "author": "Boris Romão Antunes",
-      "subject": "style(preview): atualiza formato de timestamp de notas"
-    },
-    {
-      "hash": "8c81554",
-      "date": "16/09/2026 22:23",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pós-commit vd449063"
     }
   ]
 }
