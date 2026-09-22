@@ -4703,48 +4703,6 @@ input:checked + .slider:before {
     transform: scale(0.99);
 }
 
-/* Barra de Ações Rápidas da Gaveta do Músico */
-.drawer-quick-actions-bar {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    margin-bottom: 0.85rem;
-    flex-wrap: wrap;
-}
-
-.btn-drawer-quick-action {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.45rem;
-    padding: 0.55rem 0.95rem;
-    border-radius: 9px;
-    font-size: 0.84rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border: none;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
-    font-family: inherit;
-}
-
-.btn-drawer-quick-action.btn-quick-dispensa {
-    background: linear-gradient(135deg, #7c3aed, #6b21a8);
-    color: #ffffff;
-    box-shadow: 0 3px 10px rgba(107, 33, 168, 0.22);
-}
-
-.btn-drawer-quick-action.btn-quick-dispensa:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 5px 14px rgba(107, 33, 168, 0.35);
-    filter: brightness(1.06);
-}
-
-.btn-drawer-quick-action.btn-quick-dispensa:active {
-    transform: translateY(0);
-    filter: brightness(0.95);
-}
-
 .drawer-field.copyable-area {
     display: flex;
     flex-direction: column;
@@ -6906,5 +6864,47 @@ input:checked + .slider:before {
     font-weight: 700;
 }
 
+
+/* =============================== */
+/* BARRA DE AÇÕES RÁPIDAS NA GAVETA */
+/* =============================== */
+.drawer-quick-actions-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    margin: 0 -1rem;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.btn-drawer-quick-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-drawer-quick-action.btn-quick-dispensa {
+    background: linear-gradient(135deg, #7c3aed, #6b21a8);
+    color: white;
+    box-shadow: 0 2px 8px rgba(124, 58, 237, 0.25);
+}
+
+.btn-drawer-quick-action.btn-quick-dispensa:hover {
+    background: linear-gradient(135deg, #6d28d9, #581c87);
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.35);
+    transform: translateY(-1px);
+}
+
+.btn-drawer-quick-action.btn-quick-dispensa:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 4px rgba(124, 58, 237, 0.2);
+}
 
 

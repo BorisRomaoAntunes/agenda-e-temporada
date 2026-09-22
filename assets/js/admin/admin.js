@@ -247,6 +247,7 @@ function startCountdown(seconds) {
 }
 
 // Submit de Login (com proteção anti brute-force e mensagens PT-BR)
+loginForm._moduleLoaded = true; // Flag para o fallback de detecção saber que o módulo carregou
 loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     

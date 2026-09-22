@@ -2543,6 +2543,46 @@ Intervalo
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Biblioteca SheetJS (XLSX) CDN para ler planilhas Excel no navegador -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Interceptador Global de Erros — Executa ANTES de qualquer módulo -->
+    <script>
+        window.__adminErrors = [];
+        window.onerror = function(msg, source, line, col, error) {
+            var entry = '❌ ' + msg + ' | ' + (source || '?') + ':' + (line || '?') + ':' + (col || '?');
+            window.__adminErrors.push(entry);
+            window.__showErrorOverlay(entry);
+            return false;
+        };
+        window.addEventListener('unhandledrejection', function(event) {
+            var entry = '❌ Promise: ' + (event.reason && event.reason.message ? event.reason.message : event.reason);
+            window.__adminErrors.push(entry);
+            window.__showErrorOverlay(entry);
+        });
+        window.__showErrorOverlay = function(msg) {
+            var panel = document.getElementById('debug-error-panel');
+            if (!panel) {
+                panel = document.createElement('div');
+                panel.id = 'debug-error-panel';
+                panel.style.cssText = 'position:fixed;bottom:0;left:0;right:0;max-height:40vh;overflow-y:auto;background:#1e1b4b;color:#f87171;font-family:monospace;font-size:12px;padding:12px;z-index:99999;border-top:3px solid #ef4444;';
+                var header = document.createElement('div');
+                header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;color:#fbbf24;font-weight:bold;';
+                header.innerHTML = '🐛 Painel de Debug — Copie e envie para a IA <button onclick="this.parentElement.parentElement.remove()" style="background:#ef4444;color:white;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:11px;">Fechar</button>';
+                panel.appendChild(header);
+                document.body.appendChild(panel);
+            }
+            var line = document.createElement('div');
+            line.style.cssText = 'padding:4px 0;border-bottom:1px solid #374151;word-break:break-all;';
+            line.textContent = msg;
+            panel.appendChild(line);
+        };
+        // Fallback: detecta se o módulo admin.js carregou o handler de login
+        setTimeout(function() {
+            var form = document.getElementById('login-form');
+            if (form && !form._moduleLoaded) {
+                window.__showErrorOverlay('⚠️ Módulo admin.js não registrou o handler de login em 5s. Possível erro de carregamento do módulo.');
+                console.warn('[Admin] Fallback: admin.js não inicializou o login handler a tempo.');
+            }
+        }, 5000);
+    </script>
     <script type="module" src="assets/js/admin/admin.js?v=21"></script>
     <script>
         // Registro do Service Worker
