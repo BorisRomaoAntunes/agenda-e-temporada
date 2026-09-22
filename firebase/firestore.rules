@@ -107,6 +107,23 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    // ==========================================
+    // MÓDULO DE AGENDAMENTO DE SALAS
+    // ==========================================
+    // Coleção "salas_agendamento": públicas para leitura, escrita apenas admin
+    match /salas_agendamento/{document} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Coleção "agendamentos_salas": leitura para todos (para verificar horários ocupados), criação pública com validação, atualização/exclusão pelo admin
+    match /agendamentos_salas/{document} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasAll(['salaId', 'data', 'horaInicio', 'horaFim', 'nomeSolicitante', 'vinculo'])
+                    && request.resource.data.nomeSolicitante is string;
+      allow update, delete: if isAdmin();
+    }
+
     // Regra padrão de segurança (nega tudo por padrão)
     match /{document=**} {
       allow read, write: if false;

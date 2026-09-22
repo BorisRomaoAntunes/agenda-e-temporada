@@ -1,0 +1,1247 @@
+/* ==========================================================================
+   Módulo de Agendamento de Salas - OER Design System
+   Inspirado no Microsoft Bookings com a identidade visual da OER
+   ========================================================================== */
+
+:root {
+    --oer-primary: #8B0000;
+    --oer-primary-hover: #700000;
+    --oer-accent: #8B0000;
+    --oer-accent-light: #fff1f2;
+    --oer-accent-border: #fecdd3;
+    --oer-secondary: #A52A2A;
+    --oer-bg: #f8f9fa;
+    --oer-card: #ffffff;
+    --oer-text-main: #1e293b;
+    --oer-text-muted: #64748b;
+    --oer-border: #e2e8f0;
+    --oer-success: #16a34a;
+    --oer-success-bg: #dcfce7;
+    --oer-danger: #dc2626;
+    --oer-danger-bg: #fee2e2;
+    --oer-warning: #d97706;
+    --oer-warning-bg: #fef3c7;
+    --oer-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.06);
+    --oer-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.08);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--oer-bg);
+    color: var(--oer-text-main);
+    line-height: 1.5;
+}
+
+/* Switcher de Visão para o Ambiente de Teste */
+.test-env-bar {
+    background: #0f172a;
+    color: #fff;
+    padding: 0.75rem 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    border-bottom: 1px solid #334155;
+}
+
+.test-env-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: #e0f2fe;
+    color: #0369a1;
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.25rem 0.6rem;
+    border-radius: 9999px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.test-view-toggle {
+    display: flex;
+    background: #1e293b;
+    border-radius: 8px;
+    padding: 3px;
+    gap: 2px;
+}
+
+.test-view-btn {
+    border: none;
+    background: transparent;
+    color: #94a3b8;
+    padding: 0.45rem 0.9rem;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: all 0.2s;
+}
+
+.test-view-btn.active {
+    background: var(--oer-primary);
+    color: #fff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+/* Layout Container */
+.app-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 1.5rem 1rem;
+}
+
+/* Header Geral */
+.header-card {
+    background: var(--oer-card);
+    border: 1px solid var(--oer-border);
+    border-radius: 12px;
+    padding: 1.25rem 1.5rem;
+    margin-bottom: 1.5rem;
+    box-shadow: var(--oer-shadow);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.header-title-group h1 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--oer-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.header-title-group p {
+    font-size: 0.9rem;
+    color: var(--oer-text-muted);
+}
+
+/* Botões */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.6rem 1rem;
+    border-radius: 8px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: all 0.2s ease;
+    text-decoration: none;
+}
+
+.btn-primary {
+    background-color: var(--oer-primary);
+    color: #fff;
+}
+.btn-primary:hover {
+    background-color: var(--oer-primary-hover);
+}
+
+.btn-accent {
+    background-color: var(--oer-accent);
+    color: #fff;
+}
+.btn-accent:hover {
+    background-color: var(--oer-primary-hover);
+}
+
+.btn-outline {
+    background-color: transparent;
+    border-color: var(--oer-border);
+    color: var(--oer-text-main);
+}
+.btn-outline:hover {
+    background-color: #f1f5f9;
+}
+
+.btn-danger {
+    background-color: var(--oer-danger-bg);
+    color: var(--oer-danger);
+    border-color: #fca5a5;
+}
+.btn-danger:hover {
+    background-color: var(--oer-danger);
+    color: #fff;
+}
+
+.btn-sm {
+    padding: 0.35rem 0.7rem;
+    font-size: 0.8rem;
+}
+
+/* Grid Lado a Lado (Modo Split View) */
+.split-view-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+@media (max-width: 1024px) {
+    .split-view-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Cartões do Módulo */
+.section-card {
+    background: var(--oer-card);
+    border: 1px solid var(--oer-border);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1.25rem;
+    box-shadow: var(--oer-shadow);
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--oer-border);
+}
+
+.section-header h2, .section-header h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--oer-text-main);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* Painel de Salas no Admin */
+.salas-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.sala-card {
+    border: 1px solid var(--oer-border);
+    border-radius: 10px;
+    padding: 1rem;
+    background: #fff;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.sala-card:hover {
+    border-color: var(--oer-accent);
+    box-shadow: var(--oer-shadow);
+}
+
+.sala-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 0.5rem;
+}
+
+.sala-badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    background: var(--oer-accent-light);
+    color: var(--oer-accent);
+}
+
+.sala-card p {
+    font-size: 0.85rem;
+    color: var(--oer-text-muted);
+    margin-bottom: 0.5rem;
+}
+
+.sala-meta {
+    font-size: 0.8rem;
+    color: #475569;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-bottom: 0.25rem;
+}
+
+/* Bookings Public Flow (Usuário Final) */
+.booking-steps-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.step-box {
+    border: 1px solid var(--oer-border);
+    border-radius: 10px;
+    padding: 1.25rem;
+    background: #fff;
+}
+
+.step-label {
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--oer-accent);
+    letter-spacing: 0.05em;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+/* Seletores de Sala (Público) */
+.booking-room-select-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.75rem;
+}
+
+.room-radio-card {
+    border: 2px solid var(--oer-border);
+    border-radius: 8px;
+    padding: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    background: #fff;
+}
+
+.room-radio-card:hover {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+}
+
+.room-radio-card.selected {
+    border-color: var(--oer-accent);
+    background: var(--oer-accent-light);
+}
+
+.room-radio-card h4 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--oer-primary);
+}
+
+.room-radio-card span {
+    font-size: 0.8rem;
+    color: var(--oer-text-muted);
+}
+
+/* Calendário e Horários */
+.booking-schedule-layout {
+    display: grid;
+    grid-template-columns: minmax(320px, 380px) 1fr;
+    gap: 1.5rem;
+    align-items: start;
+}
+
+@media (max-width: 768px) {
+    .booking-schedule-layout {
+        grid-template-columns: 1fr;
+        gap: 1.25rem;
+    }
+}
+
+/* Painel de Calendário Bookings */
+.bookings-calendar-card {
+    background: #ffffff;
+    border: 1px solid var(--oer-border);
+    border-radius: 14px;
+    padding: 1.25rem;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+    max-width: 380px;
+    width: 100%;
+}
+
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.65rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.calendar-month-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--oer-primary);
+    text-transform: capitalize;
+}
+
+.calendar-nav-buttons {
+    display: flex;
+    gap: 0.35rem;
+}
+
+.btn-cal-nav {
+    background: #f8fafc;
+    border: 1px solid var(--oer-border);
+    border-radius: 8px;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--oer-primary);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-cal-nav:hover:not(:disabled) {
+    background: var(--oer-accent-light);
+    color: var(--oer-primary);
+    border-color: var(--oer-accent-border);
+    transform: scale(1.05);
+}
+
+.btn-cal-nav:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+/* Grade da Semana */
+.calendar-weekdays-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    margin-bottom: 0.65rem;
+}
+
+.cal-weekday {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #94a3b8;
+    padding: 0.25rem 0;
+}
+
+/* Grade de Dias */
+.calendar-days-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 5px;
+    justify-items: center;
+}
+
+.cal-day-cell {
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.88rem;
+    font-weight: 600;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 1.5px solid transparent;
+    background: transparent;
+    color: var(--oer-text-main);
+    transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+    user-select: none;
+}
+
+.cal-day-cell.empty {
+    cursor: default;
+    background: transparent !important;
+}
+
+.cal-day-cell:hover:not(.disabled):not(.selected) {
+    background-color: var(--oer-accent-light);
+    color: var(--oer-primary);
+    border-color: var(--oer-accent-border);
+    transform: scale(1.06);
+}
+
+.cal-day-cell.selected {
+    background-color: var(--oer-primary) !important;
+    color: #ffffff !important;
+    font-weight: 700;
+    border-color: var(--oer-primary) !important;
+    box-shadow: 0 4px 10px rgba(139, 0, 0, 0.35);
+    transform: scale(1.06);
+}
+
+.cal-day-cell.today:not(.selected) {
+    border: 1.5px solid var(--oer-primary);
+    color: var(--oer-primary);
+    font-weight: 700;
+    background: #fff8f8;
+}
+
+.cal-day-cell.disabled {
+    color: #cbd5e1;
+    cursor: not-allowed;
+    background: transparent !important;
+    text-decoration: none;
+    opacity: 0.4;
+}
+
+/* Painel de Horários ("TEMPO") */
+.bookings-time-card {
+    background: #ffffff;
+    border: 1px solid var(--oer-border);
+    border-radius: 14px;
+    padding: 1.25rem;
+    min-height: 280px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+}
+
+.bookings-time-header {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--oer-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+/* Slots de Horários */
+.slots-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));
+    gap: 0.6rem;
+    max-height: 230px;
+    overflow-y: auto;
+    padding: 0.25rem;
+}
+
+.slot-pill {
+    padding: 0.65rem 0.45rem;
+    border: 1.5px solid var(--oer-border);
+    border-radius: 8px;
+    background: #fff;
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.18s ease;
+}
+
+.slot-pill:hover:not(.disabled) {
+    border-color: var(--oer-primary);
+    color: var(--oer-primary);
+    background: var(--oer-accent-light);
+    transform: translateY(-1px);
+}
+
+.slot-pill.selected {
+    background: var(--oer-primary);
+    color: #fff;
+    border-color: var(--oer-primary);
+    box-shadow: 0 3px 8px rgba(139, 0, 0, 0.3);
+    transform: translateY(-1px);
+}
+
+.slot-pill.disabled {
+    background: #f1f5f9;
+    color: #94a3b8;
+    cursor: not-allowed;
+    text-decoration: line-through;
+    border-color: #e2e8f0;
+}
+
+/* Formulário de Identificação */
+.booking-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.form-label {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #334155;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.form-input, .form-select, .form-textarea {
+    width: 100%;
+    padding: 0.65rem 0.85rem;
+    border: 1px solid var(--oer-border);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-family: inherit;
+    background: #fff;
+    color: var(--oer-text-main);
+    transition: border-color 0.2s;
+}
+
+.form-input:focus, .form-select:focus, .form-textarea:focus {
+    outline: none;
+    border-color: var(--oer-primary);
+    box-shadow: 0 0 0 3px rgba(139, 0, 0, 0.15);
+}
+
+/* Partitura Radio/Switch */
+.partitura-toggle-group {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.25rem;
+}
+
+.radio-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+/* Agendamentos no Admin (Tabela/Cards) */
+.agendamentos-table-wrapper {
+    overflow-x: auto;
+    border: 1px solid var(--oer-border);
+    border-radius: 8px;
+}
+
+.agendamentos-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+    text-align: left;
+    min-width: 650px;
+}
+
+.agendamentos-table th {
+    background: #f8fafc;
+    padding: 0.75rem 1rem;
+    font-weight: 600;
+    color: #475569;
+    border-bottom: 1px solid var(--oer-border);
+}
+
+.agendamentos-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--oer-border);
+    vertical-align: middle;
+}
+
+.agendamentos-table tr:hover {
+    background: #f8fafc;
+}
+
+.mobile-td-label {
+    display: none;
+}
+
+.badge-vinculo {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    display: inline-block;
+}
+
+.badge-vinculo.bolsista {
+    background: #e0f2fe;
+    color: #0369a1;
+}
+
+.badge-vinculo.monitor {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.badge-partitura {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.2rem 0.45rem;
+    border-radius: 4px;
+    background: #f1f5f9;
+    color: #334155;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+/* Modal e Toast */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1100;
+    padding: 1rem;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s ease;
+}
+
+.modal-overlay.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.modal-box {
+    background: #fff;
+    border-radius: 12px;
+    max-width: 520px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: var(--oer-shadow-lg);
+    display: flex;
+    flex-direction: column;
+}
+
+.modal-header {
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--oer-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-body {
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.modal-footer {
+    padding: 0.85rem 1.25rem;
+    border-top: 1px solid var(--oer-border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    background: #f8fafc;
+}
+
+/* Toast */
+.toast-msg {
+    position: fixed;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    padding: 0.75rem 1.25rem;
+    border-radius: 8px;
+    background: #0f172a;
+    color: #fff;
+    font-size: 0.875rem;
+    font-weight: 600;
+    box-shadow: var(--oer-shadow-lg);
+    z-index: 1200;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transform: translateY(100px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.toast-msg.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+.toast-msg.success {
+    background: var(--oer-success);
+}
+
+.toast-msg.error {
+    background: var(--oer-danger);
+}
+
+/* ========================================================
+   Grade Semanal de Agendamentos (Admin Calendar View)
+   ======================================================== */
+.admin-view-switcher {
+    display: inline-flex;
+    background: #f1f5f9;
+    border-radius: 6px;
+    padding: 2px;
+    border: 1px solid var(--oer-border);
+}
+
+.admin-view-toggle-btn {
+    border: none;
+    background: transparent;
+    padding: 0.35rem 0.65rem;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--oer-text-muted);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    transition: all 0.15s;
+}
+
+.admin-view-toggle-btn.active {
+    background: #ffffff;
+    color: var(--oer-primary);
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.weekly-grid-container {
+    background: #ffffff;
+    border: 1px solid var(--oer-border);
+    border-radius: 8px;
+    overflow-x: auto;
+    position: relative;
+}
+
+.weekly-grid-header {
+    display: grid;
+    grid-template-columns: 50px repeat(7, 1fr);
+    border-bottom: 1px solid var(--oer-border);
+    background: #ffffff;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    min-width: 750px;
+}
+
+.weekly-header-cell {
+    padding: 0.6rem 0.3rem;
+    text-align: center;
+    border-left: 1px solid var(--oer-border);
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #475569;
+}
+
+.weekly-header-cell:first-child {
+    border-left: none;
+}
+
+.weekly-header-cell .day-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    margin-top: 0.2rem;
+    font-weight: 700;
+}
+
+.weekly-header-cell.today .day-number {
+    background: var(--oer-primary);
+    color: #ffffff;
+}
+
+/* Corpo da Grade */
+.weekly-grid-body {
+    display: grid;
+    grid-template-columns: 50px repeat(7, 1fr);
+    position: relative;
+    min-width: 750px;
+    height: 720px; /* 16 horas x 45px */
+}
+
+.weekly-time-col {
+    position: relative;
+    border-right: 1px solid var(--oer-border);
+    background: #fafafa;
+}
+
+.weekly-time-label {
+    position: absolute;
+    width: 100%;
+    text-align: right;
+    padding-right: 8px;
+    font-size: 0.72rem;
+    color: #94a3b8;
+    transform: translateY(-50%);
+}
+
+.weekly-day-col {
+    position: relative;
+    border-left: 1px solid var(--oer-border);
+    background: #ffffff;
+}
+
+/* Linhas horizontais de hora */
+.weekly-hour-line {
+    position: absolute;
+    left: 0;
+    right: 0;
+    border-top: 1px solid #f1f5f9;
+    height: 45px;
+    box-sizing: border-box;
+}
+
+/* Card de Agendamento na Grade (Estilo Microsoft Bookings/Outlook) */
+.booking-event-card {
+    position: absolute;
+    border-radius: 4px;
+    padding: 4px 6px;
+    font-size: 0.75rem;
+    line-height: 1.25;
+    overflow: hidden;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-sizing: border-box;
+    z-index: 10;
+}
+
+.booking-event-card:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    z-index: 25 !important;
+}
+
+.booking-event-title {
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.booking-event-subtitle {
+    font-size: 0.7rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 1px;
+}
+
+/* Badge de Sala na Tabela / Lista */
+.badge-sala-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.badge-sala-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+/* ========================================================
+   Área de Ações & Relatórios Específicos (Padrão Admin)
+   ======================================================== */
+.reports-buttons-grid {
+    display: flex;
+    gap: 1.2rem;
+    flex-wrap: wrap;
+}
+
+.btn-report-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 1.15rem 1rem;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+    flex: 0 1 150px;
+    width: 150px;
+    aspect-ratio: 1 / 1;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+    user-select: none;
+}
+
+.btn-report-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.15), 0 4px 6px -2px rgba(0, 0, 0, 0.08);
+    filter: brightness(1.08);
+}
+
+.btn-report-card svg {
+    width: 28px !important;
+    height: 28px !important;
+    margin-bottom: 0.75rem;
+}
+
+/* ========================================================
+   RESPONSIVIDADE MOBILE (ESPECIAL PARA TELAS DE CELULAR)
+   ======================================================== */
+@media (max-width: 640px) {
+    /* Barra Superior de Teste */
+    .test-env-bar {
+        padding: 0.5rem 0.6rem;
+        gap: 0.45rem;
+    }
+    .test-env-subtitle {
+        display: none;
+    }
+    .test-view-toggle {
+        width: 100%;
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 2px;
+    }
+    .test-view-btn {
+        padding: 0.4rem 0.2rem;
+        font-size: 0.72rem;
+        justify-content: center;
+        text-align: center;
+        gap: 0.25rem;
+    }
+    .test-view-btn svg {
+        width: 13px !important;
+        height: 13px !important;
+    }
+
+    /* Container Principal e Cartões */
+    .app-container {
+        padding: 0.65rem 0.45rem;
+    }
+    .section-card {
+        padding: 0.85rem;
+        border-radius: 10px;
+        margin-bottom: 0.85rem;
+    }
+    .section-header {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 0.65rem;
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.6rem;
+    }
+    .section-header h2, .section-header h3 {
+        font-size: 1.05rem;
+    }
+
+    /* Cabeçalho do Admin */
+    .header-card {
+        padding: 0.85rem;
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 0.75rem;
+    }
+    .header-card img {
+        height: 40px !important;
+    }
+    .header-card h1 {
+        font-size: 1.15rem !important;
+    }
+    .header-card > div:last-child {
+        width: 100%;
+    }
+    #btnOpenNovaSalaModal {
+        width: 100%;
+        justify-content: center;
+        padding: 0.65rem;
+        font-size: 0.9rem;
+    }
+
+    /* Salas Cadastradas: 1 Coluna 100% Fluida sem Cortes */
+    .salas-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem;
+    }
+    .sala-card {
+        padding: 0.85rem;
+    }
+    .sala-card-header h4 {
+        font-size: 0.95rem;
+    }
+
+    /* Botões de Ações e Relatórios Rápidos no Mobile */
+    .reports-buttons-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.6rem;
+        width: 100%;
+    }
+    .btn-report-card {
+        width: 100%;
+        flex: 1 1 auto;
+        aspect-ratio: auto;
+        min-height: 82px;
+        padding: 0.75rem 0.5rem;
+        font-size: 0.78rem;
+        border-radius: 10px;
+    }
+    .btn-report-card svg {
+        width: 22px !important;
+        height: 22px !important;
+        margin-bottom: 0.35rem;
+    }
+
+    /* Seção de Agendamentos e Controles */
+    .admin-agendamentos-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        width: 100%;
+    }
+    .admin-agendamentos-controls-row {
+        display: flex;
+        gap: 0.4rem;
+        width: 100%;
+        align-items: center;
+    }
+    .admin-agendamentos-controls-row input[type="date"] {
+        flex: 1;
+        width: 100% !important;
+    }
+    .admin-agendamentos-controls-row button {
+        flex: 1;
+        justify-content: center;
+    }
+
+    /* Tabela de Agendamentos Convertida para Cards Verticais no Mobile */
+    .agendamentos-table-wrapper {
+        border: none;
+        overflow: visible;
+        background: transparent;
+    }
+    .agendamentos-table, 
+    .agendamentos-table tbody, 
+    .agendamentos-table tr, 
+    .agendamentos-table td {
+        display: block;
+        width: 100%;
+        min-width: 0;
+    }
+    .agendamentos-table thead {
+        display: none;
+    }
+    .agendamentos-table tr {
+        background: #ffffff;
+        border: 1px solid var(--oer-border);
+        border-left: 4px solid var(--oer-primary);
+        border-radius: 12px;
+        padding: 0.85rem;
+        margin-bottom: 0.85rem;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+    }
+    .agendamentos-table tr:hover {
+        background: #ffffff;
+    }
+    .agendamentos-table td {
+        padding: 0.25rem 0;
+        border-bottom: none;
+    }
+    .mobile-td-label {
+        display: inline-block;
+        font-weight: 700;
+        color: #64748b;
+        font-size: 0.8rem;
+        margin-right: 0.3rem;
+    }
+    .cell-horario {
+        font-size: 1.05rem !important;
+        font-weight: 700 !important;
+        color: var(--oer-primary) !important;
+        margin-bottom: 0.35rem;
+        border-bottom: 1px solid #f1f5f9 !important;
+        padding-bottom: 0.4rem !important;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .cell-sala {
+        margin-bottom: 0.4rem;
+    }
+    .cell-solicitante {
+        margin-bottom: 0.4rem;
+        background: #f8fafc;
+        padding: 0.5rem 0.65rem !important;
+        border-radius: 8px;
+        border: 1px solid #edf2f7;
+    }
+    .cell-necessidades, .cell-partitura {
+        font-size: 0.85rem;
+        color: #475569;
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        margin-bottom: 0.2rem;
+    }
+    .cell-acoes {
+        margin-top: 0.5rem;
+        padding-top: 0.5rem !important;
+        border-top: 1px dashed var(--oer-border) !important;
+    }
+    .cell-acoes button {
+        width: 100%;
+        justify-content: center;
+        padding: 0.55rem;
+        font-size: 0.88rem;
+    }
+
+    /* Grade Semanal Touch no Mobile */
+    .weekly-grid-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border-radius: 8px;
+    }
+    .weekly-grid-header {
+        min-width: 600px;
+    }
+    .weekly-day-col {
+        min-width: 78px;
+    }
+
+    /* Modais Otimizados para Celular */
+    .modal-overlay {
+        padding: 0.5rem;
+    }
+    .modal-box {
+        max-width: 100%;
+        max-height: 94vh;
+        margin: auto;
+        border-radius: 12px;
+    }
+    .modal-header {
+        padding: 0.85rem 1rem;
+    }
+    .modal-body {
+        padding: 0.85rem;
+        gap: 0.75rem;
+    }
+    .modal-footer {
+        padding: 0.75rem 1rem;
+    }
+}

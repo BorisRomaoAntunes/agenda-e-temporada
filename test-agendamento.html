@@ -1,0 +1,1440 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Validação de Agendamento de Salas - OER</title>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- CSS Base & Agendamento -->
+    <link rel="stylesheet" href="assets/css/agendamento.css">
+</head>
+<body>
+
+    <!-- Barra de Controle do Ambiente de Teste Local -->
+    <div class="test-env-bar">
+        <div class="test-env-title-group" style="display: flex; align-items: center; gap: 0.5rem;">
+            <span class="test-env-badge">
+                <i data-lucide="flask-conical" style="width: 14px; height: 14px;"></i> Teste Local
+            </span>
+            <span class="test-env-subtitle" style="font-size: 0.85rem; color: #cbd5e1;">Agendamento de Salas (Tempo Real)</span>
+        </div>
+
+        <div class="test-view-toggle">
+            <button class="test-view-btn" id="btnViewAdmin" title="Painel Administrativo">
+                <i data-lucide="shield" style="width: 14px; height: 14px;"></i> <span>Admin</span>
+            </button>
+            <button class="test-view-btn active" id="btnViewSplit" title="Visão Dividida (Split)">
+                <i data-lucide="columns" style="width: 14px; height: 14px;"></i> <span>Lado a Lado</span>
+            </button>
+            <button class="test-view-btn" id="btnViewPublic" title="Página Pública de Reservas">
+                <i data-lucide="calendar" style="width: 14px; height: 14px;"></i> <span>Músicos</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Container Principal com Modo Split View -->
+    <div class="app-container">
+        <div class="split-view-container" id="mainContainer">
+
+            <!-- ======================================================== -->
+            <!-- COLUNA 1: PAINEL DO ADMINISTRADOR -->
+            <!-- ======================================================== -->
+            <div id="colAdmin">
+                <div class="header-card" style="border-top: 4px solid var(--oer-primary); display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <img src="assets/img/logo_oer.png" alt="OER Logo" style="height: 48px; width: auto; object-fit: contain;">
+                        <div class="header-title-group">
+                            <h1 style="color: var(--oer-primary); margin: 0; font-size: 1.35rem; display: flex; align-items: center; gap: 0.5rem;">
+                                <i data-lucide="shield-check" style="color: var(--oer-primary); width: 24px; height: 24px;"></i> Painel de Gestão de Salas
+                            </h1>
+                            <p style="margin: 0.2rem 0 0 0; color: var(--oer-text-muted); font-size: 0.85rem;">Configure salas, horários de funcionamento e monitore os agendamentos.</p>
+                        </div>
+                    </div>
+                    <div>
+                        <button class="btn btn-primary" id="btnOpenNovaSalaModal" onclick="window.abrirModalNovaSala && window.abrirModalNovaSala()">
+                            <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i> Nova Sala
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Lista de Salas Cadastradas -->
+                <div class="section-card">
+                    <div class="section-header">
+                        <h2><i data-lucide="door-open" style="width: 20px; height: 20px; color: var(--oer-primary);"></i> Salas Cadastradas</h2>
+                        <span id="salasCountBadge" class="sala-badge" style="background: var(--oer-accent-light); color: var(--oer-primary);">0 salas</span>
+                    </div>
+                    <div class="salas-grid" id="adminSalasList">
+                        <div style="grid-column: 1/-1; text-align: center; color: var(--oer-text-muted); padding: 1.5rem;">
+                            Carregando salas...
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Área de Ações & Relatórios Rápidos (Padrão Admin - Relatórios Específicos) -->
+                <div class="section-card" style="border-left: 4px solid var(--oer-primary);">
+                    <div class="section-header" style="margin-bottom: 0.75rem;">
+                        <h2>
+                            <i data-lucide="file-text" style="color: var(--oer-primary); width: 20px; height: 20px;"></i> Ações & Relatórios Rápidos
+                        </h2>
+                    </div>
+                    <p style="font-size: 0.85rem; color: var(--oer-text-muted); margin-bottom: 1rem;">
+                        Acesso rápido para cópia de dados e relatórios da orquestra:
+                    </p>
+                    <div class="reports-buttons-grid">
+                        <button type="button" id="btnReportAgendamentoAtual" class="btn-report-card" title="Clique para copiar a lista formatada dos agendamentos para o WhatsApp" style="background: linear-gradient(135deg, #16a34a, #15803d);">
+                            <i data-lucide="message-square-text"></i>
+                            <span>Agendamento (atual)</span>
+                        </button>
+                        <button type="button" id="btnReportHorariosDisponiveis" class="btn-report-card" title="Clique para copiar a lista de horários livres da data selecionada (ou de hoje) para o WhatsApp" style="background: linear-gradient(135deg, #8B0000, #5c0000);">
+                            <i data-lucide="calendar-check-2"></i>
+                            <span>Horários Disponíveis</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Reservas e Relatório em Tempo Real -->
+                <div class="section-card">
+                    <div class="section-header" style="flex-wrap: wrap; gap: 0.75rem;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 0.5rem; flex-wrap: wrap;">
+                            <h2><i data-lucide="list-checks" style="width: 20px; height: 20px; color: var(--oer-success);"></i> Agendamentos</h2>
+                            <!-- Switcher de Visualização: Tabela vs. Grade Semanal -->
+                            <div class="admin-view-switcher">
+                                <button type="button" class="admin-view-toggle-btn active" id="btnAdminViewTable" title="Visualização em Lista">
+                                    <i data-lucide="table" style="width: 14px; height: 14px;"></i> Lista
+                                </button>
+                                <button type="button" class="admin-view-toggle-btn" id="btnAdminViewWeekly" title="Visualização em Grade Semanal (Calendário)">
+                                    <i data-lucide="calendar-days" style="width: 14px; height: 14px;"></i> Grade Semanal
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="admin-agendamentos-controls-row" style="display: flex; gap: 0.5rem; align-items: center; width: 100%;">
+                            <div id="wrapperDataFiltro" style="display: flex; gap: 0.35rem; align-items: center; flex: 1;">
+                                <input type="date" id="adminDataFiltro" class="form-input" style="padding: 0.4rem 0.6rem; font-size: 0.85rem; width: 100%;">
+                            </div>
+                            <!-- Navegação da Grade Semanal -->
+                            <div id="wrapperNavSemana" style="display: none; align-items: center; gap: 0.35rem; flex: 1; justify-content: center;">
+                                <button type="button" class="btn btn-outline btn-sm" id="btnPrevSemana" title="Semana Anterior">
+                                    <i data-lucide="chevron-left" style="width: 14px; height: 14px;"></i>
+                                </button>
+                                <span id="labelSemanaAtual" style="font-size: 0.85rem; font-weight: 600; color: var(--oer-text-main); min-width: 95px; text-align: center;">Semana</span>
+                                <button type="button" class="btn btn-outline btn-sm" id="btnNextSemana" title="Próxima Semana">
+                                    <i data-lucide="chevron-right" style="width: 14px; height: 14px;"></i>
+                                </button>
+                            </div>
+                            <button class="btn btn-accent btn-sm" id="btnCopiarMensagem" title="Copiar mensagem para WhatsApp" style="white-space: nowrap;">
+                                <i data-lucide="copy" style="width: 14px; height: 14px;"></i> Copiar p/ WhatsApp
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Visualização 1: Tabela Detalhada -->
+                    <div class="agendamentos-table-wrapper" id="adminViewTableContainer">
+                        <table class="agendamentos-table">
+                            <thead>
+                                <tr>
+                                    <th>Horário</th>
+                                    <th>Sala</th>
+                                    <th>Solicitante</th>
+                                    <th>Necessidades</th>
+                                    <th>Partitura</th>
+                                    <th style="text-align: right;">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminAgendamentosTbody">
+                                <tr>
+                                    <td colspan="6" style="text-align: center; color: var(--oer-text-muted); padding: 1.5rem;">
+                                        Nenhum agendamento para esta data.
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Visualização 2: Grade Semanal de Horários (Estilo Imagem do Usuário) -->
+                    <div class="weekly-grid-container" id="adminViewWeeklyContainer" style="display: none;">
+                        <div class="weekly-grid-header" id="weeklyGridHeader">
+                            <!-- Preenchido via JavaScript -->
+                        </div>
+                        <div class="weekly-grid-body" id="weeklyGridBody">
+                            <!-- Preenchido via JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ======================================================== -->
+            <!-- COLUNA 2: PÁGINA PÚBLICA (VISÃO DO MÚSICO / SOLICITANTE) -->
+            <!-- ======================================================== -->
+            <div id="colPublic">
+                <div class="header-card" style="border-top: 4px solid var(--oer-primary); display: flex; align-items: center; gap: 1rem;">
+                    <img src="assets/img/logo_oer.png" alt="OER Logo" style="height: 48px; width: auto; object-fit: contain;">
+                    <div class="header-title-group">
+                        <h1 style="color: var(--oer-primary); margin: 0; font-size: 1.35rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <i data-lucide="calendar-range" style="color: var(--oer-primary); width: 24px; height: 24px;"></i> Reserva de Salas OER
+                        </h1>
+                        <p style="margin: 0.2rem 0 0 0; color: var(--oer-text-muted); font-size: 0.85rem;">Selecione a sala, escolha o dia e horário e preencha seus dados para reservar.</p>
+                    </div>
+                </div>
+
+                <div class="booking-steps-wrapper">
+                    
+                    <!-- Passo 1: Escolher Sala -->
+                    <div class="step-box">
+                        <div class="step-label">
+                            <i data-lucide="check-circle" style="width: 16px; height: 16px;"></i> 1. Escolha a Sala
+                        </div>
+                        <div class="booking-room-select-grid" id="publicSalasGrid">
+                            <div style="grid-column: 1/-1; text-align: center; color: var(--oer-text-muted); padding: 1rem;">
+                                Carregando opções de salas...
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Passo 2: Escolher Data e Horário -->
+                    <div class="step-box">
+                        <div class="step-label">
+                            <i data-lucide="clock" style="width: 16px; height: 16px;"></i> 2. Escolha Data e Horário Disponível
+                        </div>
+                        <div class="booking-schedule-layout">
+                            <!-- Coluna Esquerda: Calendário Visual (DATA) -->
+                            <div class="bookings-calendar-card">
+                                <div class="calendar-header">
+                                    <span class="bookings-time-header" style="margin: 0;">
+                                        <i data-lucide="calendar" style="width: 14px; height: 14px;"></i> DATA
+                                    </span>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                        <div class="calendar-nav-buttons">
+                                            <button type="button" class="btn-cal-nav" id="btnPrevMonth" title="Mês anterior">
+                                                <i data-lucide="chevron-left" style="width: 16px; height: 16px;"></i>
+                                            </button>
+                                            <button type="button" class="btn-cal-nav" id="btnNextMonth" title="Próximo mês">
+                                                <i data-lucide="chevron-right" style="width: 16px; height: 16px;"></i>
+                                            </button>
+                                        </div>
+                                        <span class="calendar-month-title" id="calMonthYearTitle">Mês Ano</span>
+                                    </div>
+                                </div>
+
+                                <!-- Dias da Semana (D, S, T, Q, Q, S, S) -->
+                                <div class="calendar-weekdays-grid">
+                                    <div class="cal-weekday">D</div>
+                                    <div class="cal-weekday">S</div>
+                                    <div class="cal-weekday">T</div>
+                                    <div class="cal-weekday">Q</div>
+                                    <div class="cal-weekday">Q</div>
+                                    <div class="cal-weekday">S</div>
+                                    <div class="cal-weekday">S</div>
+                                </div>
+
+                                <!-- Grade com os dias do mês -->
+                                <div class="calendar-days-grid" id="calDaysGrid"></div>
+
+                                <!-- Input oculto para manter compatibilidade com o resto do código -->
+                                <input type="hidden" id="publicDataInput">
+                                
+                                <small style="display: block; color: var(--oer-text-muted); margin-top: 0.75rem; font-size: 0.8rem;" id="publicSalaDisponibilidadeInfo">
+                                    Selecione uma sala acima para ver a disponibilidade.
+                                </small>
+                            </div>
+
+                            <!-- Coluna Direita: Horários Disponíveis (TEMPO) -->
+                            <div class="bookings-time-card">
+                                <div class="bookings-time-header">
+                                    <i data-lucide="clock" style="width: 14px; height: 14px;"></i> TEMPO
+                                </div>
+                                <div class="slots-container" id="publicSlotsContainer">
+                                    <p style="grid-column: 1/-1; font-size: 0.85rem; color: var(--oer-text-muted); padding: 2rem 0; text-align: center;">
+                                        Selecione um serviço e a data para ver os horários disponíveis.
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Passo 3: Dados do Solicitante -->
+                    <div class="step-box">
+                        <div class="step-label">
+                            <i data-lucide="user-plus" style="width: 16px; height: 16px;"></i> 3. Dados do Solicitante & Necessidades
+                        </div>
+                        <form id="publicBookingForm" class="booking-form">
+                            <div class="form-group">
+                                <label class="form-label" for="inputNome">Nome Completo: *</label>
+                                <input type="text" id="inputNome" class="form-input" placeholder="Digite seu nome completo" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="selectInstrumento">
+                                    <i data-lucide="music-2" style="width: 14px; height: 14px; color: var(--oer-primary);"></i> Instrumento / Naipe: *
+                                </label>
+                                <select id="selectInstrumento" class="form-select" required>
+                                    <option value="" disabled selected>Selecione seu instrumento...</option>
+                                    <option value="Primeiros Violinos">Primeiros Violinos</option>
+                                    <option value="Segundos Violinos">Segundos Violinos</option>
+                                    <option value="Violas">Violas</option>
+                                    <option value="Violoncelos">Violoncelos</option>
+                                    <option value="Contrabaixos">Contrabaixos</option>
+                                    <option value="Flautas">Flautas</option>
+                                    <option value="Oboés">Oboés</option>
+                                    <option value="Clarinetes">Clarinetes</option>
+                                    <option value="Fagotes">Fagotes</option>
+                                    <option value="Trompas">Trompas</option>
+                                    <option value="Trompetes">Trompetes</option>
+                                    <option value="Trombones">Trombones</option>
+                                    <option value="Tuba">Tuba</option>
+                                    <option value="Harpa">Harpa</option>
+                                    <option value="Piano">Piano</option>
+                                    <option value="Percussão">Percussão</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="selectVinculo">Vínculo: *</label>
+                                <select id="selectVinculo" class="form-select" required>
+                                    <option value="" disabled selected>Selecione seu vínculo...</option>
+                                    <option value="Bolsista">Bolsista</option>
+                                    <option value="Monitor">Monitor</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="inputNecessidades">Necessidades da Sala / Observações:</label>
+                                <input type="text" id="inputNecessidades" class="form-input" placeholder="Ex: 2 estantes de partitura, afinador, cadeiras extras...">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Irá precisar de partitura?</label>
+                                <div class="partitura-toggle-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="radioPartitura" value="nao" checked> Não
+                                    </label>
+                                    <label class="radio-label">
+                                        <input type="radio" name="radioPartitura" value="sim"> Sim
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="form-group" id="groupQualPartitura" style="display: none;">
+                                <label class="form-label" for="inputQualPartitura" style="color: var(--oer-accent);">
+                                    <i data-lucide="music" style="width: 14px; height: 14px;"></i> Qual partitura você irá precisar? *
+                                </label>
+                                <input type="text" id="inputQualPartitura" class="form-input" placeholder="Informe a obra, compositor e instrumento (ex: Sinfonia nº 5 - Trompete 1)">
+                            </div>
+
+                            <div style="margin-top: 0.5rem;">
+                                <button type="submit" class="btn btn-accent" style="width: 100%; padding: 0.85rem; font-size: 1rem;" id="btnConfirmarReserva">
+                                    <i data-lucide="calendar-check" style="width: 20px; height: 20px;"></i> Confirmar Agendamento em Tempo Real
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ======================================================== -->
+    <!-- MODAL: NOVA / EDITAR SALA (ADMIN) -->
+    <!-- ======================================================== -->
+    <div class="modal-overlay" id="modalSalaOverlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 id="modalSalaTitle"><i data-lucide="door-open" style="color: var(--oer-accent);"></i> Cadastrar Nova Sala</h3>
+                <button class="btn btn-outline btn-sm" id="btnCloseSalaModal" style="border: none; padding: 0.25rem 0.5rem;">
+                    <i data-lucide="x" style="width: 18px; height: 18px;"></i>
+                </button>
+            </div>
+            <form id="formCadastrarSala">
+                <input type="hidden" id="editSalaId">
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="form-label">Nome da Sala: *</label>
+                        <input type="text" id="salaNome" class="form-input" placeholder="Ex: Sala de Ensaio 01" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Descrição / Recursos:</label>
+                        <input type="text" id="salaDescricao" class="form-input" placeholder="Ex: Com piano, ar-condicionado e até 6 lugares">
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                        <div class="form-group">
+                            <label class="form-label">Duração de cada Slot: *</label>
+                            <select id="salaSlotDuration" class="form-select" required>
+                                <option value="30">30 minutos</option>
+                                <option value="45">45 minutos</option>
+                                <option value="60" selected>60 minutos (1 hora)</option>
+                                <option value="120">120 minutos (2 horas)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Capacidade (Pessoas):</label>
+                            <input type="number" id="salaCapacidade" class="form-input" value="4" min="1" max="50">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Horário de Funcionamento Padrão: *</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                            <div>
+                                <small style="color: var(--oer-text-muted);">Início:</small>
+                                <input type="time" id="salaHoraInicio" class="form-input" value="09:00" required>
+                            </div>
+                            <div>
+                                <small style="color: var(--oer-text-muted);">Término:</small>
+                                <input type="time" id="salaHoraFim" class="form-input" value="18:00" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Dias de Funcionamento na Semana:</label>
+                        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.25rem;">
+                            <label class="radio-label"><input type="checkbox" name="diasSemana" value="1" checked> Seg</label>
+                            <label class="radio-label"><input type="checkbox" name="diasSemana" value="2" checked> Ter</label>
+                            <label class="radio-label"><input type="checkbox" name="diasSemana" value="3" checked> Qua</label>
+                            <label class="radio-label"><input type="checkbox" name="diasSemana" value="4" checked> Qui</label>
+                            <label class="radio-label"><input type="checkbox" name="diasSemana" value="5" checked> Sex</label>
+                            <label class="radio-label"><input type="checkbox" name="diasSemana" value="6"> Sáb</label>
+                            <label class="radio-label"><input type="checkbox" name="diasSemana" value="0"> Dom</label>
+                        </div>
+                    </div>
+
+                    <!-- Período de Disponibilidade (Grade de Datas) -->
+                    <div class="form-group" style="background: #f8fafc; padding: 0.85rem; border-radius: 8px; border: 1px solid var(--oer-border);">
+                        <label class="form-label" style="color: var(--oer-accent); margin-bottom: 0.25rem;">
+                            <i data-lucide="calendar-range" style="width: 16px; height: 16px;"></i> Grade de Período Disponível:
+                        </label>
+                        <p style="font-size: 0.75rem; color: var(--oer-text-muted); margin-bottom: 0.5rem;">
+                            Defina a data inicial e final para limitar os agendamentos públicos a este intervalo:
+                        </p>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                            <div>
+                                <small style="color: var(--oer-text-muted); font-weight: 600;">Data Inicial:</small>
+                                <input type="date" id="salaDataInicioPeriodo" class="form-input" style="font-size: 0.85rem;">
+                            </div>
+                            <div>
+                                <small style="color: var(--oer-text-muted); font-weight: 600;">Data Final:</small>
+                                <input type="date" id="salaDataFimPeriodo" class="form-input" style="font-size: 0.85rem;">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cor de Identificação da Sala -->
+                    <div class="form-group" style="background: #ffffff; padding: 0.85rem; border-radius: 8px; border: 1px solid var(--oer-border);">
+                        <label class="form-label" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.4rem;">
+                            <span style="display: flex; align-items: center; gap: 0.4rem;">
+                                <i data-lucide="palette" style="width: 16px; height: 16px; color: var(--oer-accent);"></i> Cor de Destaque da Sala:
+                            </span>
+                            <span id="salaCorPreview" style="display: inline-block; width: 18px; height: 18px; border-radius: 50%; background: #ea580c; border: 2px solid #fff; box-shadow: 0 0 0 1px #cbd5e1;"></span>
+                        </label>
+                        <p style="font-size: 0.75rem; color: var(--oer-text-muted); margin-bottom: 0.5rem;">
+                            Usada para diferenciar os blocos na grade semanal e na lista de agendamentos:
+                        </p>
+                        <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                            <button type="button" class="btn-color-pick" data-color="#ea580c" style="width: 28px; height: 28px; border-radius: 50%; background: #ea580c; border: 2px solid transparent; cursor: pointer;" title="Laranja"></button>
+                            <button type="button" class="btn-color-pick" data-color="#0284c7" style="width: 28px; height: 28px; border-radius: 50%; background: #0284c7; border: 2px solid transparent; cursor: pointer;" title="Azul"></button>
+                            <button type="button" class="btn-color-pick" data-color="#16a34a" style="width: 28px; height: 28px; border-radius: 50%; background: #16a34a; border: 2px solid transparent; cursor: pointer;" title="Verde"></button>
+                            <button type="button" class="btn-color-pick" data-color="#9333ea" style="width: 28px; height: 28px; border-radius: 50%; background: #9333ea; border: 2px solid transparent; cursor: pointer;" title="Roxo"></button>
+                            <button type="button" class="btn-color-pick" data-color="#8b0000" style="width: 28px; height: 28px; border-radius: 50%; background: #8b0000; border: 2px solid transparent; cursor: pointer;" title="Vinho / Bordeaux"></button>
+                            <button type="button" class="btn-color-pick" data-color="#d97706" style="width: 28px; height: 28px; border-radius: 50%; background: #d97706; border: 2px solid transparent; cursor: pointer;" title="Âmbar"></button>
+                            <button type="button" class="btn-color-pick" data-color="#db2777" style="width: 28px; height: 28px; border-radius: 50%; background: #db2777; border: 2px solid transparent; cursor: pointer;" title="Rosa"></button>
+                            <button type="button" class="btn-color-pick" data-color="#0891b2" style="width: 28px; height: 28px; border-radius: 50%; background: #0891b2; border: 2px solid transparent; cursor: pointer;" title="Ciano"></button>
+                            <input type="color" id="salaCorInput" value="#ea580c" style="width: 32px; height: 32px; padding: 0; border: none; border-radius: 6px; cursor: pointer; background: transparent;" title="Personalizar outra cor">
+                        </div>
+                    </div>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" id="btnCancelSalaModal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btnSaveSala">Salvar Sala</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast-msg" id="toastMsg"></div>
+
+    <!-- Script Básico Não-Módulo (Garante UI ativa mesmo se aberto como file://) -->
+    <script>
+        window.abrirModalNovaSala = function() {
+            const modal = document.getElementById("modalSalaOverlay");
+            if (modal) modal.classList.add("active");
+            if (window.lucide) lucide.createIcons();
+        };
+        window.fecharModalSala = function() {
+            const modal = document.getElementById("modalSalaOverlay");
+            if (modal) modal.classList.remove("active");
+        };
+        document.addEventListener("DOMContentLoaded", () => {
+            const btn = document.getElementById("btnOpenNovaSalaModal");
+            const close = document.getElementById("btnCloseSalaModal");
+            const cancel = document.getElementById("btnCancelSalaModal");
+            if (btn) btn.onclick = window.abrirModalNovaSala;
+            if (close) close.onclick = window.fecharModalSala;
+            if (cancel) cancel.onclick = window.fecharModalSala;
+            if (window.lucide) lucide.createIcons();
+        });
+    </script>
+
+    <!-- Script de Inicialização da Interface de Teste -->
+    <script type="module">
+        import { AgendamentoService } from "./assets/js/agendamento/agendamento-service.js";
+
+        // Estado local da aplicação
+        let allSalas = [];
+        let allAgendamentos = [];
+        let selectedSalaId = null;
+        let selectedSlot = null; // { horaInicio, horaFim }
+        
+        // Elementos DOM principais
+        const btnViewAdmin = document.getElementById("btnViewAdmin");
+        const btnViewSplit = document.getElementById("btnViewSplit");
+        const btnViewPublic = document.getElementById("btnViewPublic");
+        const colAdmin = document.getElementById("colAdmin");
+        const colPublic = document.getElementById("colPublic");
+        const mainContainer = document.getElementById("mainContainer");
+
+        // Admin DOM
+        const adminSalasList = document.getElementById("adminSalasList");
+        const salasCountBadge = document.getElementById("salasCountBadge");
+        const adminDataFiltro = document.getElementById("adminDataFiltro");
+        const adminAgendamentosTbody = document.getElementById("adminAgendamentosTbody");
+        const btnCopiarMensagem = document.getElementById("btnCopiarMensagem");
+        const btnOpenNovaSalaModal = document.getElementById("btnOpenNovaSalaModal");
+        const btnReportAgendamentoAtual = document.getElementById("btnReportAgendamentoAtual");
+        const btnReportHorariosDisponiveis = document.getElementById("btnReportHorariosDisponiveis");
+
+        // Grade Semanal Admin DOM & Estado
+        const btnAdminViewTable = document.getElementById("btnAdminViewTable");
+        const btnAdminViewWeekly = document.getElementById("btnAdminViewWeekly");
+        const adminViewTableContainer = document.getElementById("adminViewTableContainer");
+        const adminViewWeeklyContainer = document.getElementById("adminViewWeeklyContainer");
+        const wrapperDataFiltro = document.getElementById("wrapperDataFiltro");
+        const wrapperNavSemana = document.getElementById("wrapperNavSemana");
+        const btnPrevSemana = document.getElementById("btnPrevSemana");
+        const btnNextSemana = document.getElementById("btnNextSemana");
+        const labelSemanaAtual = document.getElementById("labelSemanaAtual");
+        const weeklyGridHeader = document.getElementById("weeklyGridHeader");
+        const weeklyGridBody = document.getElementById("weeklyGridBody");
+
+        let adminCurrentView = "table"; // 'table' ou 'weekly'
+        let semanaAtualInicio = getStartOfWeek(new Date()); // Domingo da semana corrente
+
+        // Modal Sala
+        const modalSalaOverlay = document.getElementById("modalSalaOverlay");
+        const btnCloseSalaModal = document.getElementById("btnCloseSalaModal");
+        const btnCancelSalaModal = document.getElementById("btnCancelSalaModal");
+        const formCadastrarSala = document.getElementById("formCadastrarSala");
+        const modalSalaTitle = document.getElementById("modalSalaTitle");
+        const editSalaId = document.getElementById("editSalaId");
+
+        // Public DOM
+        const publicSalasGrid = document.getElementById("publicSalasGrid");
+        const publicDataInput = document.getElementById("publicDataInput");
+        const publicSlotsContainer = document.getElementById("publicSlotsContainer");
+        const publicSalaDisponibilidadeInfo = document.getElementById("publicSalaDisponibilidadeInfo");
+        const publicBookingForm = document.getElementById("publicBookingForm");
+        const radioPartituraList = document.querySelectorAll('input[name="radioPartitura"]');
+        const groupQualPartitura = document.getElementById("groupQualPartitura");
+        const inputQualPartitura = document.getElementById("inputQualPartitura");
+
+        // Calendário Visual Bookings DOM & Estado
+        const calMonthYearTitle = document.getElementById("calMonthYearTitle");
+        const calDaysGrid = document.getElementById("calDaysGrid");
+        const btnPrevMonth = document.getElementById("btnPrevMonth");
+        const btnNextMonth = document.getElementById("btnNextMonth");
+
+        const hoje = new Date();
+        let calAnoAtual = hoje.getFullYear();
+        let calMesAtual = hoje.getMonth(); // 0 a 11
+        let selectedDataFormatada = hoje.toISOString().split("T")[0]; // YYYY-MM-DD
+
+        const NOMES_MESES = [
+            "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+            "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+        ];
+
+        // Toast Helper
+        function showToast(text, type = "success") {
+            const toast = document.getElementById("toastMsg");
+            toast.textContent = text;
+            toast.className = `toast-msg show ${type}`;
+            setTimeout(() => {
+                toast.classList.remove("show");
+            }, 3500);
+        }
+
+        // 1. Alternância de Visualizações (Admin, Split, Public)
+        btnViewAdmin.addEventListener("click", () => {
+            colAdmin.style.display = "block";
+            colPublic.style.display = "none";
+            mainContainer.style.gridTemplateColumns = "1fr";
+            setActiveViewBtn(btnViewAdmin);
+        });
+
+        btnViewPublic.addEventListener("click", () => {
+            colAdmin.style.display = "none";
+            colPublic.style.display = "block";
+            mainContainer.style.gridTemplateColumns = "1fr";
+            setActiveViewBtn(btnViewPublic);
+        });
+
+        btnViewSplit.addEventListener("click", () => {
+            colAdmin.style.display = "block";
+            colPublic.style.display = "block";
+            mainContainer.style.gridTemplateColumns = window.innerWidth > 1024 ? "1fr 1fr" : "1fr";
+            setActiveViewBtn(btnViewSplit);
+        });
+
+        function setActiveViewBtn(btn) {
+            [btnViewAdmin, btnViewSplit, btnViewPublic].forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+        }
+
+        // Data de hoje em formato YYYY-MM-DD
+        const todayStr = new Date().toISOString().split("T")[0];
+        adminDataFiltro.value = todayStr;
+        publicDataInput.value = todayStr;
+        publicDataInput.min = todayStr;
+
+        // 2. Ouvintes em Tempo Real
+        AgendamentoService.listenSalas((salas) => {
+            allSalas = salas;
+            renderAdminSalas();
+            renderPublicSalas();
+            renderVisualCalendar();
+            renderPublicSlots();
+        });
+
+        AgendamentoService.listenAgendamentos(null, (agendamentos) => {
+            allAgendamentos = agendamentos;
+            renderAdminAgendamentos();
+            renderWeeklyGrid();
+            renderVisualCalendar();
+            renderPublicSlots();
+        });
+
+        adminDataFiltro.addEventListener("change", () => {
+            renderAdminAgendamentos();
+        });
+
+        // 3. Renderização Admin de Salas
+        function renderAdminSalas() {
+            salasCountBadge.textContent = `${allSalas.length} sala${allSalas.length !== 1 ? 's' : ''}`;
+            if (allSalas.length === 0) {
+                adminSalasList.innerHTML = `
+                    <div style="grid-column: 1/-1; text-align: center; color: var(--oer-text-muted); padding: 1.5rem;">
+                        Nenhuma sala cadastrada ainda. Clique em "+ Nova Sala" para criar a primeira!
+                    </div>`;
+                return;
+            }
+
+            adminSalasList.innerHTML = allSalas.map(sala => {
+                const corSala = sala.cor || '#ea580c';
+                return `
+                <div class="sala-card" style="border-left: 4px solid ${corSala};">
+                    <div class="sala-card-header">
+                        <div style="display: flex; align-items: center; gap: 0.4rem;">
+                            <span style="width: 10px; height: 10px; border-radius: 50%; background: ${corSala};"></span>
+                            <h4 style="font-size: 1rem; color: var(--oer-primary); font-weight: 700; margin: 0;">${sala.nome}</h4>
+                        </div>
+                        <span class="sala-badge">${sala.slotDuration} min / slot</span>
+                    </div>
+                    <p>${sala.descricao || "Sem descrição informada."}</p>
+                    <div class="sala-meta">
+                        <i data-lucide="clock" style="width: 14px; height: 14px;"></i>
+                        <span>${sala.horarioSemanal?.inicio || "09:00"} às ${sala.horarioSemanal?.fim || "18:00"}</span>
+                    </div>
+                    ${sala.dataInicioPeriodo && sala.dataFimPeriodo ? `
+                    <div class="sala-meta" style="color: var(--oer-accent); font-weight: 600;">
+                        <i data-lucide="calendar-range" style="width: 14px; height: 14px;"></i>
+                        <span>Período: ${sala.dataInicioPeriodo.split('-').reverse().join('/')} até ${sala.dataFimPeriodo.split('-').reverse().join('/')}</span>
+                    </div>
+                    ` : ''}
+                    <div class="sala-meta">
+                        <i data-lucide="users" style="width: 14px; height: 14px;"></i>
+                        <span>Capacidade: até ${sala.capacidade || 1} pessoas</span>
+                    </div>
+                    <div style="display: flex; justify-content: flex-end; gap: 0.4rem; margin-top: 0.75rem;">
+                        <button class="btn btn-outline btn-sm btn-edit-sala" data-id="${sala.id}">
+                            <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i> Editar
+                        </button>
+                        <button class="btn btn-danger btn-sm btn-delete-sala" data-id="${sala.id}">
+                            <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                        </button>
+                    </div>
+                </div>
+                `;
+            }).join("");
+
+            lucide.createIcons();
+
+            // Eventos de excluir e editar sala
+            document.querySelectorAll(".btn-delete-sala").forEach(btn => {
+                btn.addEventListener("click", async () => {
+                    const id = btn.getAttribute("data-id");
+                    if (confirm("Deseja realmente remover esta sala?")) {
+                        await AgendamentoService.deleteSala(id);
+                        showToast("Sala excluída com sucesso.");
+                    }
+                });
+            });
+
+            document.querySelectorAll(".btn-edit-sala").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    const id = btn.getAttribute("data-id");
+                    const sala = allSalas.find(s => s.id === id);
+                    if (!sala) return;
+
+                    editSalaId.value = sala.id;
+                    document.getElementById("salaNome").value = sala.nome;
+                    document.getElementById("salaDescricao").value = sala.descricao || "";
+                    document.getElementById("salaSlotDuration").value = sala.slotDuration || "60";
+                    document.getElementById("salaCapacidade").value = sala.capacidade || "4";
+                    document.getElementById("salaHoraInicio").value = sala.horarioSemanal?.inicio || "09:00";
+                    document.getElementById("salaHoraFim").value = sala.horarioSemanal?.fim || "18:00";
+
+                    document.getElementById("salaDataInicioPeriodo").value = sala.dataInicioPeriodo || "";
+                    document.getElementById("salaDataFimPeriodo").value = sala.dataFimPeriodo || "";
+
+                    // Cor da sala
+                    const cor = sala.cor || "#ea580c";
+                    document.getElementById("salaCorInput").value = cor;
+                    document.getElementById("salaCorPreview").style.background = cor;
+
+                    // Checkboxes dias
+                    const dias = sala.horarioSemanal?.dias || [1, 2, 3, 4, 5];
+                    document.querySelectorAll('input[name="diasSemana"]').forEach(chk => {
+                        chk.checked = dias.includes(Number(chk.value));
+                    });
+
+                    modalSalaTitle.innerHTML = `<i data-lucide="edit-3" style="color: var(--oer-accent);"></i> Editar Sala`;
+                    modalSalaOverlay.classList.add("active");
+                    lucide.createIcons();
+                });
+            });
+        }
+
+        // 4. Renderização Admin de Agendamentos
+        function renderAdminAgendamentos() {
+            const dataFiltro = adminDataFiltro.value;
+            const agendamentosFiltrados = allAgendamentos.filter(ag => ag.data === dataFiltro && ag.status === "confirmado");
+
+            if (agendamentosFiltrados.length === 0) {
+                adminAgendamentosTbody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="text-align: center; color: var(--oer-text-muted); padding: 1.5rem;">
+                            Nenhum agendamento para a data selecionada (${dataFiltro}).
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            adminAgendamentosTbody.innerHTML = agendamentosFiltrados.map(ag => {
+                const salaObj = allSalas.find(s => s.id === ag.salaId);
+                const corSala = salaObj?.cor || "#ea580c";
+                return `
+                <tr>
+                    <td class="cell-horario" style="font-weight: 700; color: var(--oer-accent);">
+                        ${ag.horaInicio} - ${ag.horaFim}
+                    </td>
+                    <td class="cell-sala">
+                        <span class="badge-sala-tag" style="background: ${corSala}15; color: ${corSala}; border: 1px solid ${corSala}40;">
+                            <span class="badge-sala-dot" style="background: ${corSala};"></span>
+                            ${ag.salaNome || "Sala"}
+                        </span>
+                    </td>
+                    <td class="cell-solicitante">
+                        <div style="font-weight: 600; color: var(--oer-text-main);">${ag.nomeSolicitante}</div>
+                        ${ag.instrumento ? `<div style="font-size: 0.78rem; color: #475569; display: flex; align-items: center; gap: 0.25rem; margin-top: 0.15rem;"><i data-lucide="music-2" style="width: 12px; height: 12px; color: var(--oer-primary);"></i> ${ag.instrumento}</div>` : ''}
+                        <span class="badge-vinculo ${ag.vinculo === 'Bolsista' ? 'bolsista' : 'monitor'}" style="margin-top: 0.25rem;">${ag.vinculo}</span>
+                    </td>
+                    <td class="cell-necessidades" data-label="Necessidades">
+                        <span class="mobile-td-label">Obs: </span>${ag.necessidades || "<span style='color:#94a3b8;'>Nenhuma</span>"}
+                    </td>
+                    <td class="cell-partitura" data-label="Partitura">
+                        <span class="mobile-td-label">Partitura: </span>${ag.precisaPartitura 
+                            ? `<span class="badge-partitura"><i data-lucide="file-music" style="width: 13px; height: 13px; color: var(--oer-accent);"></i> ${ag.qualPartitura || "Sim"}</span>` 
+                            : "<span style='color:#94a3b8; font-size: 0.85rem;'>Não</span>"}
+                    </td>
+                    <td class="cell-acoes" style="text-align: right;">
+                        <button class="btn btn-danger btn-sm btn-cancel-agendamento" data-id="${ag.id}" title="Cancelar agendamento e liberar horário">
+                            <i data-lucide="x" style="width: 14px; height: 14px;"></i> Liberar
+                        </button>
+                    </td>
+                </tr>
+                `;
+            }).join("");
+
+            lucide.createIcons();
+
+            document.querySelectorAll(".btn-cancel-agendamento").forEach(btn => {
+                btn.addEventListener("click", async () => {
+                    const id = btn.getAttribute("data-id");
+                    if (confirm("Deseja realmente cancelar este agendamento e liberar o horário imediatamente?")) {
+                        await AgendamentoService.cancelAgendamento(id);
+                        showToast("Horário liberado imediatamente.");
+                    }
+                });
+            });
+        }
+
+        // Função auxiliar para obter o domingo da semana
+        function getStartOfWeek(d) {
+            const date = new Date(d);
+            const day = date.getDay(); // 0 = Domingo
+            const diff = date.getDate() - day;
+            return new Date(date.setDate(diff));
+        }
+
+        // Formata data YYYY-MM-DD
+        function formatYMD(d) {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${y}-${m}-${day}`;
+        }
+
+        // 4.1. Alternância de Visão do Admin (Tabela vs. Grade Semanal)
+        btnAdminViewTable.addEventListener("click", () => {
+            adminCurrentView = "table";
+            btnAdminViewTable.classList.add("active");
+            btnAdminViewWeekly.classList.remove("active");
+            adminViewTableContainer.style.display = "block";
+            adminViewWeeklyContainer.style.display = "none";
+            wrapperDataFiltro.style.display = "flex";
+            wrapperNavSemana.style.display = "none";
+            renderAdminAgendamentos();
+        });
+
+        btnAdminViewWeekly.addEventListener("click", () => {
+            adminCurrentView = "weekly";
+            btnAdminViewWeekly.classList.add("active");
+            btnAdminViewTable.classList.remove("active");
+            adminViewTableContainer.style.display = "none";
+            adminViewWeeklyContainer.style.display = "block";
+            wrapperDataFiltro.style.display = "none";
+            wrapperNavSemana.style.display = "flex";
+            renderWeeklyGrid();
+        });
+
+        btnPrevSemana.addEventListener("click", () => {
+            semanaAtualInicio.setDate(semanaAtualInicio.getDate() - 7);
+            renderWeeklyGrid();
+        });
+
+        btnNextSemana.addEventListener("click", () => {
+            semanaAtualInicio.setDate(semanaAtualInicio.getDate() + 7);
+            renderWeeklyGrid();
+        });
+
+        // 4.2. Renderização da Grade Semanal (Estilo Outlook / Microsoft Bookings)
+        function renderWeeklyGrid() {
+            if (!weeklyGridHeader || !weeklyGridBody) return;
+
+            const diasSemanaNomes = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+            const diasDaSemana = [];
+
+            const hojeStr = formatYMD(hoje);
+
+            // Montar array dos 7 dias da semana corrente
+            for (let i = 0; i < 7; i++) {
+                const diaObj = new Date(semanaAtualInicio);
+                diaObj.setDate(semanaAtualInicio.getDate() + i);
+                diasDaSemana.push({
+                    nome: diasSemanaNomes[i],
+                    numero: diaObj.getDate(),
+                    ymd: formatYMD(diaObj),
+                    isToday: formatYMD(diaObj) === hojeStr
+                });
+            }
+
+            // Atualizar label da semana (ex: 20/09 a 26/09)
+            const dIni = diasDaSemana[0].ymd.split('-').reverse().slice(0, 2).join('/');
+            const dFim = diasDaSemana[6].ymd.split('-').reverse().slice(0, 2).join('/');
+            labelSemanaAtual.textContent = `${dIni} a ${dFim}`;
+
+            // 1. Renderizar Cabeçalho (Horas vazia + 7 dias)
+            let headerHTML = `<div class="weekly-header-cell"></div>`;
+            diasDaSemana.forEach(d => {
+                headerHTML += `
+                    <div class="weekly-header-cell ${d.isToday ? 'today' : ''}">
+                        <div>${d.nome}</div>
+                        <div class="day-number">${d.numero}</div>
+                    </div>
+                `;
+            });
+            weeklyGridHeader.innerHTML = headerHTML;
+
+            // 2. Renderizar Corpo da Grade (Horas das 08h às 22h = 15 horas)
+            const horaInicioGrade = 8;
+            const horaFimGrade = 22;
+            const totalHoras = horaFimGrade - horaInicioGrade;
+            const horaAlturaPx = 45; // 45px por hora
+
+            // Ajustar altura dinâmica do corpo da grade
+            weeklyGridBody.style.height = `${totalHoras * horaAlturaPx}px`;
+
+            // Coluna de Horas
+            let bodyHTML = `<div class="weekly-time-col">`;
+            for (let h = horaInicioGrade; h <= horaFimGrade; h++) {
+                const topPos = (h - horaInicioGrade) * horaAlturaPx;
+                bodyHTML += `
+                    <div class="weekly-time-label" style="top: ${topPos}px;">
+                        ${String(h).padStart(2, '0')}:00
+                    </div>
+                `;
+            }
+            bodyHTML += `</div>`;
+
+            // 7 Colunas para cada dia
+            diasDaSemana.forEach((d, colIndex) => {
+                bodyHTML += `<div class="weekly-day-col" data-ymd="${d.ymd}">`;
+
+                // Linhas horizontais de hora
+                for (let h = horaInicioGrade; h < horaFimGrade; h++) {
+                    const topPos = (h - horaInicioGrade) * horaAlturaPx;
+                    bodyHTML += `<div class="weekly-hour-line" style="top: ${topPos}px;"></div>`;
+                }
+
+                // Agendamentos deste dia ordenados por hora
+                const agsDoDia = allAgendamentos
+                    .filter(ag => ag.data === d.ymd && ag.status === "confirmado")
+                    .sort((a, b) => (a.horaInicio || "").localeCompare(b.horaInicio || ""));
+
+                // Algoritmo para posicionar agendamentos simultâneos lado a lado (estilo Google/Outlook Calendar)
+                const layoutItems = agsDoDia.map(ag => {
+                    const [hIni, mIni] = (ag.horaInicio || "08:00").split(':').map(Number);
+                    const [hFim, mFim] = (ag.horaFim || "09:00").split(':').map(Number);
+                    const startMin = hIni * 60 + mIni;
+                    const endMin = hFim * 60 + mFim;
+
+                    return {
+                        ag,
+                        startMin,
+                        endMin,
+                        colIndex: 0,
+                        totalCols: 1
+                    };
+                });
+
+                // Detectar sobreposições de intervalos e atribuir sub-colunas
+                for (let i = 0; i < layoutItems.length; i++) {
+                    const itemA = layoutItems[i];
+                    const colidentes = [itemA];
+
+                    for (let j = 0; j < layoutItems.length; j++) {
+                        if (i === j) continue;
+                        const itemB = layoutItems[j];
+                        // Sobreposição temporal se startA < endB e endA > startB
+                        if (itemA.startMin < itemB.endMin && itemA.endMin > itemB.startMin) {
+                            colidentes.push(itemB);
+                        }
+                    }
+
+                    if (colidentes.length > 1) {
+                        // Ordenar por ID para consistência visual
+                        colidentes.sort((a, b) => a.ag.id.localeCompare(b.ag.id));
+                        const total = colidentes.length;
+                        colidentes.forEach((it, idx) => {
+                            it.colIndex = idx;
+                            it.totalCols = Math.max(it.totalCols, total);
+                        });
+                    }
+                }
+
+                layoutItems.forEach(item => {
+                    const { ag, startMin, endMin, colIndex, totalCols } = item;
+                    const inicioMinRelativo = startMin - (horaInicioGrade * 60);
+                    const duracaoMinTotal = endMin - startMin;
+
+                    const topPx = (inicioMinRelativo / 60) * horaAlturaPx;
+                    const heightPx = Math.max((duracaoMinTotal / 60) * horaAlturaPx - 2, 28);
+
+                    // Largura e deslocamento horizontal para dividir lado a lado
+                    const colWidthPct = 100 / totalCols;
+                    const leftPct = colIndex * colWidthPct;
+                    const widthCalc = `calc(${colWidthPct}% - 4px)`;
+                    const leftCalc = `calc(${leftPct}% + 2px)`;
+
+                    // Cor da sala
+                    const salaObj = allSalas.find(s => s.id === ag.salaId);
+                    const corSala = salaObj?.cor || "#ea580c";
+
+                    const obsText = ag.necessidades ? ` (${ag.necessidades})` : '';
+                    const instText = ag.instrumento ? ` [${ag.instrumento}]` : '';
+
+                    bodyHTML += `
+                        <div class="booking-event-card" 
+                             style="top: ${topPx}px; height: ${heightPx}px; left: ${leftCalc}; width: ${widthCalc}; background: ${corSala}1f; border-left: 3px solid ${corSala}; color: #1e293b;"
+                             title="${ag.salaNome} | ${ag.horaInicio} - ${ag.horaFim}\nSolicitante: ${ag.nomeSolicitante}${ag.instrumento ? ` (${ag.instrumento})` : ''}\nClique para opções"
+                             data-ag-id="${ag.id}">
+                            <div class="booking-event-title" style="color: ${corSala};">${ag.salaNome}</div>
+                            <div class="booking-event-subtitle">${ag.nomeSolicitante}${instText}${obsText}</div>
+                        </div>
+                    `;
+                });
+
+                bodyHTML += `</div>`;
+            });
+
+            weeklyGridBody.innerHTML = bodyHTML;
+
+            // Evento de clique no card da grade para liberar/cancelar
+            weeklyGridBody.querySelectorAll(".booking-event-card").forEach(card => {
+                card.addEventListener("click", async () => {
+                    const id = card.getAttribute("data-ag-id");
+                    const ag = allAgendamentos.find(a => a.id === id);
+                    if (!ag) return;
+
+                    const detalhes = `Agendamento:\n• Sala: ${ag.salaNome}\n• Data: ${ag.data}\n• Horário: ${ag.horaInicio} às ${ag.horaFim}\n• Solicitante: ${ag.nomeSolicitante} (${ag.vinculo || 'Bolsista'})\n\nDeseja cancelar e liberar este horário?`;
+                    if (confirm(detalhes)) {
+                        await AgendamentoService.cancelAgendamento(id);
+                        showToast("Horário liberado imediatamente.");
+                    }
+                });
+            });
+        }
+
+        // 5. Botões de Ação e Cópia da Mensagem Formatada
+        function copiarMensagemAgendamento(dataAlvo) {
+            const dataFiltro = dataAlvo || adminDataFiltro.value || formatYMD(new Date());
+            const texto = AgendamentoService.generateFormattedMessage(dataFiltro, allAgendamentos, allSalas);
+            navigator.clipboard.writeText(texto).then(() => {
+                showToast("Agendamentos copiados para o WhatsApp!");
+            }).catch(err => {
+                console.error("Erro ao copiar:", err);
+                showToast("Erro ao copiar texto.", "error");
+            });
+        }
+
+        if (btnCopiarMensagem) {
+            btnCopiarMensagem.addEventListener("click", () => copiarMensagemAgendamento());
+        }
+
+        if (btnReportAgendamentoAtual) {
+            btnReportAgendamentoAtual.addEventListener("click", () => {
+                copiarMensagemAgendamento(adminDataFiltro.value || formatYMD(new Date()));
+            });
+        }
+
+        // Cópia da Lista de Horários Disponíveis
+        function copiarHorariosDisponiveis(dataAlvo) {
+            const dataFiltro = dataAlvo || adminDataFiltro.value || formatYMD(new Date());
+            const texto = AgendamentoService.generateAvailableSlotsMessage(dataFiltro, allSalas, allAgendamentos);
+            navigator.clipboard.writeText(texto).then(() => {
+                showToast("Horários disponíveis copiados para o WhatsApp!");
+            }).catch(err => {
+                console.error("Erro ao copiar:", err);
+                showToast("Erro ao copiar texto.", "error");
+            });
+        }
+
+        if (btnReportHorariosDisponiveis) {
+            btnReportHorariosDisponiveis.addEventListener("click", () => {
+                copiarHorariosDisponiveis(adminDataFiltro.value || formatYMD(new Date()));
+            });
+        }
+
+        // 6. Função global para Abrir Modal de Nova Sala
+        window.abrirModalNovaSala = function() {
+            editSalaId.value = "";
+            formCadastrarSala.reset();
+            document.getElementById("salaSlotDuration").value = "60";
+            document.getElementById("salaCapacidade").value = "4";
+            document.getElementById("salaHoraInicio").value = "09:00";
+            document.getElementById("salaHoraFim").value = "18:00";
+            document.getElementById("salaDataInicioPeriodo").value = "";
+            document.getElementById("salaDataFimPeriodo").value = "";
+            document.getElementById("salaCorInput").value = "#ea580c";
+            document.getElementById("salaCorPreview").style.background = "#ea580c";
+            document.querySelectorAll('input[name="diasSemana"]').forEach(chk => {
+                chk.checked = [1, 2, 3, 4, 5].includes(Number(chk.value));
+            });
+            modalSalaTitle.innerHTML = `<i data-lucide="door-open" style="color: var(--oer-accent);"></i> Cadastrar Nova Sala`;
+            modalSalaOverlay.classList.add("active");
+            if (window.lucide) lucide.createIcons();
+        };
+
+        // Listeners da paleta de cores da sala
+        document.querySelectorAll(".btn-color-pick").forEach(btn => {
+            btn.addEventListener("click", () => {
+                const c = btn.getAttribute("data-color");
+                document.getElementById("salaCorInput").value = c;
+                document.getElementById("salaCorPreview").style.background = c;
+            });
+        });
+        document.getElementById("salaCorInput").addEventListener("input", (e) => {
+            document.getElementById("salaCorPreview").style.background = e.target.value;
+        });
+
+        if (btnOpenNovaSalaModal) {
+            btnOpenNovaSalaModal.addEventListener("click", window.abrirModalNovaSala);
+        }
+
+        btnCloseSalaModal.addEventListener("click", () => modalSalaOverlay.classList.remove("active"));
+        btnCancelSalaModal.addEventListener("click", () => modalSalaOverlay.classList.remove("active"));
+
+        formCadastrarSala.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const dias = [];
+            document.querySelectorAll('input[name="diasSemana"]:checked').forEach(chk => {
+                dias.push(Number(chk.value));
+            });
+
+            if (dias.length === 0) {
+                alert("Por favor, selecione pelo menos um dia de funcionamento.");
+                return;
+            }
+
+            const dataInicio = document.getElementById("salaDataInicioPeriodo").value || null;
+            const dataFim = document.getElementById("salaDataFimPeriodo").value || null;
+
+            if (dataInicio && dataFim && dataInicio > dataFim) {
+                alert("A data inicial do período não pode ser posterior à data final.");
+                return;
+            }
+
+            const dadosSala = {
+                nome: document.getElementById("salaNome").value.trim(),
+                descricao: document.getElementById("salaDescricao").value.trim(),
+                slotDuration: Number(document.getElementById("salaSlotDuration").value),
+                capacidade: Number(document.getElementById("salaCapacidade").value),
+                dataInicioPeriodo: dataInicio,
+                dataFimPeriodo: dataFim,
+                cor: document.getElementById("salaCorInput").value || "#ea580c",
+                horarioSemanal: {
+                    dias: dias,
+                    inicio: document.getElementById("salaHoraInicio").value,
+                    fim: document.getElementById("salaHoraFim").value
+                }
+            };
+
+            const id = editSalaId.value || null;
+            try {
+                await AgendamentoService.saveSala(dadosSala, id);
+                modalSalaOverlay.classList.remove("active");
+                showToast(id ? "Sala atualizada!" : "Sala criada com sucesso!");
+            } catch (err) {
+                console.error("Erro ao salvar sala:", err);
+                showToast("Erro ao salvar sala.", "error");
+            }
+        });
+
+        // 7. Renderização do Lado Público (Usuário Final)
+        function renderPublicSalas() {
+            if (allSalas.length === 0) {
+                publicSalasGrid.innerHTML = `
+                    <div style="grid-column: 1/-1; text-align: center; color: var(--oer-text-muted); padding: 1rem;">
+                        Nenhuma sala disponível para agendamento no momento.
+                    </div>`;
+                return;
+            }
+
+            // Selecionar primeira sala por padrão se nenhuma selecionada
+            if (!selectedSalaId && allSalas.length > 0) {
+                selectedSalaId = allSalas[0].id;
+            }
+
+            publicSalasGrid.innerHTML = allSalas.map(sala => `
+                <div class="room-radio-card ${sala.id === selectedSalaId ? 'selected' : ''}" data-id="${sala.id}">
+                    <h4>${sala.nome}</h4>
+                    <span>${sala.slotDuration} min por agendamento</span>
+                    <span style="font-size: 0.75rem; color: #64748b;">${sala.descricao || 'Ensaio individual / grupo'}</span>
+                </div>
+            `).join("");
+
+            document.querySelectorAll(".room-radio-card").forEach(card => {
+                card.addEventListener("click", () => {
+                    selectedSalaId = card.getAttribute("data-id");
+                    selectedSlot = null;
+                    selectedDataFormatada = null; // Sem dia pré-selecionado
+
+                    // Se a sala possui Data Inicial do Período, abre o calendário no mês da Data Inicial
+                    const salaClicada = allSalas.find(s => s.id === selectedSalaId);
+                    if (salaClicada?.dataInicioPeriodo) {
+                        const [iniY, iniM] = salaClicada.dataInicioPeriodo.split("-").map(Number);
+                        calAnoAtual = iniY;
+                        calMesAtual = iniM - 1; // 0-indexed
+                    }
+
+                    renderPublicSalas();
+                    renderVisualCalendar();
+                    renderPublicSlots();
+                });
+            });
+
+            const salaAtual = allSalas.find(s => s.id === selectedSalaId);
+            if (salaAtual) {
+                let infoText = `Sala: ${salaAtual.nome} (${salaAtual.horarioSemanal?.inicio || '09:00'} às ${salaAtual.horarioSemanal?.fim || '18:00'})`;
+                if (salaAtual.dataInicioPeriodo && salaAtual.dataFimPeriodo) {
+                    infoText += ` • Período disponível: ${salaAtual.dataInicioPeriodo.split('-').reverse().join('/')} até ${salaAtual.dataFimPeriodo.split('-').reverse().join('/')}`;
+                }
+                publicSalaDisponibilidadeInfo.textContent = infoText;
+            }
+        }
+
+        // 7.1. Calendário Visual Interativo (Estilo Microsoft Bookings)
+        btnPrevMonth.addEventListener("click", () => {
+            calMesAtual--;
+            if (calMesAtual < 0) {
+                calMesAtual = 11;
+                calAnoAtual--;
+            }
+            renderVisualCalendar();
+        });
+
+        btnNextMonth.addEventListener("click", () => {
+            calMesAtual++;
+            if (calMesAtual > 11) {
+                calMesAtual = 0;
+                calAnoAtual++;
+            }
+            renderVisualCalendar();
+        });
+
+        function renderVisualCalendar() {
+            if (!calMonthYearTitle || !calDaysGrid) return;
+
+            // Título: "Setembro 2026"
+            calMonthYearTitle.textContent = `${NOMES_MESES[calMesAtual]} ${calAnoAtual}`;
+
+            // Sala selecionada e seus dias de funcionamento e período
+            const sala = allSalas.find(s => s.id === selectedSalaId);
+            const diasFuncionamento = sala?.horarioSemanal?.dias || [1, 2, 3, 4, 5];
+            const datasBloqueadas = sala?.datasBloqueadas || [];
+            const dataInicioPeriodo = sala?.dataInicioPeriodo || null;
+            const dataFimPeriodo = sala?.dataFimPeriodo || null;
+
+            // Desabilitar botão de voltar mês se já for o mês/ano corrente ou anterior ao início do período
+            const anoRealHoje = hoje.getFullYear();
+            const mesRealHoje = hoje.getMonth();
+            let disablePrev = (calAnoAtual < anoRealHoje) || (calAnoAtual === anoRealHoje && calMesAtual <= mesRealHoje);
+            if (dataInicioPeriodo) {
+                const [iniY, iniM] = dataInicioPeriodo.split("-").map(Number);
+                if (calAnoAtual < iniY || (calAnoAtual === iniY && calMesAtual <= (iniM - 1))) {
+                    disablePrev = true;
+                }
+            }
+            btnPrevMonth.disabled = disablePrev;
+
+            // Desabilitar botão de avançar mês se passar do mês final do período
+            let disableNext = false;
+            if (dataFimPeriodo) {
+                const [fimY, fimM] = dataFimPeriodo.split("-").map(Number);
+                if (calAnoAtual > fimY || (calAnoAtual === fimY && calMesAtual >= (fimM - 1))) {
+                    disableNext = true;
+                }
+            }
+            btnNextMonth.disabled = disableNext;
+
+            // Primeiro dia da semana do mês (0=Dom, 1=Seg, ...)
+            const primeiroDia = new Date(calAnoAtual, calMesAtual, 1);
+            const diaSemanaInicio = primeiroDia.getDay(); // 0 a 6
+
+            // Total de dias no mês
+            const totalDiasNoMes = new Date(calAnoAtual, calMesAtual + 1, 0).getDate();
+
+            // String hoje no formato YYYY-MM-DD
+            const hojeY = hoje.getFullYear();
+            const hojeM = String(hoje.getMonth() + 1).padStart(2, "0");
+            const hojeD = String(hoje.getDate()).padStart(2, "0");
+            const hojeFormatado = `${hojeY}-${hojeM}-${hojeD}`;
+
+            let htmlDias = "";
+
+            // Células vazias antes do primeiro dia do mês
+            for (let i = 0; i < diaSemanaInicio; i++) {
+                htmlDias += `<div class="cal-day-cell empty"></div>`;
+            }
+
+            // Dias do mês
+            for (let dia = 1; dia <= totalDiasNoMes; dia++) {
+                const diaSemana = new Date(calAnoAtual, calMesAtual, dia).getDay();
+                const mStr = String(calMesAtual + 1).padStart(2, "0");
+                const dStr = String(dia).padStart(2, "0");
+                const dataString = `${calAnoAtual}-${mStr}-${dStr}`;
+
+                const ehPassado = dataString < hojeFormatado;
+                const foraPeriodoInicio = dataInicioPeriodo ? dataString < dataInicioPeriodo : false;
+                const foraPeriodoFim = dataFimPeriodo ? dataString > dataFimPeriodo : false;
+                const foraDoPeriodo = foraPeriodoInicio || foraPeriodoFim;
+
+                const salaFechada = !diasFuncionamento.includes(diaSemana);
+                const estaBloqueada = datasBloqueadas.includes(dataString);
+                const desabilitado = ehPassado || foraDoPeriodo || salaFechada || estaBloqueada;
+
+                const ehHoje = dataString === hojeFormatado;
+                const ehSelecionado = dataString === selectedDataFormatada;
+
+                let classes = "cal-day-cell";
+                if (desabilitado) classes += " disabled";
+                if (ehHoje) classes += " today";
+                if (ehSelecionado) classes += " selected";
+
+                let title = `Selecionar ${dia} de ${NOMES_MESES[calMesAtual]}`;
+                if (ehPassado) title = "Data passada";
+                else if (foraDoPeriodo) title = "Fora do período de disponibilidade da sala";
+                else if (salaFechada || estaBloqueada) title = "Sala fechada ou indisponível nesta data";
+
+                htmlDias += `
+                    <button type="button" class="${classes}" data-date="${dataString}" ${desabilitado ? 'disabled' : ''} title="${title}">
+                        ${dia}
+                    </button>
+                `;
+            }
+
+            calDaysGrid.innerHTML = htmlDias;
+
+            // Evento de clique para escolher a data
+            calDaysGrid.querySelectorAll(".cal-day-cell:not(.disabled):not(.empty)").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    const novaData = btn.getAttribute("data-date");
+                    selectedDataFormatada = novaData;
+                    publicDataInput.value = novaData;
+                    selectedSlot = null;
+                    renderVisualCalendar();
+                    renderPublicSlots();
+                });
+            });
+        }
+
+        function renderPublicSlots() {
+            if (!selectedSalaId) {
+                publicSlotsContainer.innerHTML = `<p style="grid-column: 1/-1; font-size: 0.85rem; color: var(--oer-text-muted); padding: 2rem 0; text-align: center;">Selecione uma sala para ver os horários.</p>`;
+                return;
+            }
+            const sala = allSalas.find(s => s.id === selectedSalaId);
+            const dataEscolhida = selectedDataFormatada || publicDataInput.value;
+
+            if (!sala || !dataEscolhida) {
+                publicSlotsContainer.innerHTML = `<p style="grid-column: 1/-1; font-size: 0.85rem; color: var(--oer-text-muted); padding: 2rem 0; text-align: center;">Selecione uma data no calendário para ver os horários disponíveis.</p>`;
+                return;
+            }
+
+            const todosSlots = AgendamentoService.calculateAvailableSlots(sala, dataEscolhida, allAgendamentos);
+            // Oculta completamente horários já agendados
+            const slotsLivres = todosSlots.filter(s => s.disponivel);
+
+            if (slotsLivres.length === 0) {
+                publicSlotsContainer.innerHTML = `
+                    <div style="grid-column: 1/-1; text-align: center; padding: 2rem 0;">
+                        <i data-lucide="check-circle-2" style="width: 24px; height: 24px; color: var(--oer-success); margin-bottom: 0.5rem;"></i>
+                        <p style="font-size: 0.85rem; color: var(--oer-text-muted);">
+                            Todos os horários desta data já foram preenchidos.
+                        </p>
+                    </div>
+                `;
+                if (window.lucide) lucide.createIcons();
+                return;
+            }
+
+            publicSlotsContainer.innerHTML = slotsLivres.map(slot => {
+                const isSelected = selectedSlot && selectedSlot.horaInicio === slot.horaInicio;
+                const slotClass = isSelected ? 'slot-pill selected' : 'slot-pill';
+
+                return `
+                    <button type="button" class="${slotClass}" data-inicio="${slot.horaInicio}" data-fim="${slot.horaFim}" title="Clique para selecionar ${slot.horaInicio}">
+                        ${slot.horaInicio}
+                    </button>
+                `;
+            }).join("");
+
+            document.querySelectorAll(".slot-pill").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    document.querySelectorAll(".slot-pill").forEach(b => b.classList.remove("selected"));
+                    btn.classList.add("selected");
+                    selectedSlot = {
+                        horaInicio: btn.getAttribute("data-inicio"),
+                        horaFim: btn.getAttribute("data-fim")
+                    };
+                });
+            });
+        }
+
+        // 8. Campo Condicional de Partitura
+        radioPartituraList.forEach(radio => {
+            radio.addEventListener("change", () => {
+                if (radio.value === "sim" && radio.checked) {
+                    groupQualPartitura.style.display = "flex";
+                    inputQualPartitura.required = true;
+                    inputQualPartitura.focus();
+                } else if (radio.value === "nao" && radio.checked) {
+                    groupQualPartitura.style.display = "none";
+                    inputQualPartitura.required = false;
+                    inputQualPartitura.value = "";
+                }
+            });
+        });
+
+        // 9. Submissão do Agendamento Público
+        publicBookingForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            if (!selectedSalaId) {
+                alert("Por favor, selecione uma sala.");
+                return;
+            }
+
+            if (!selectedSlot) {
+                alert("Por favor, selecione um horário disponível na lista de horários.");
+                return;
+            }
+
+            const sala = allSalas.find(s => s.id === selectedSalaId);
+            const precisaPartitura = document.querySelector('input[name="radioPartitura"]:checked').value === "sim";
+
+            const payload = {
+                salaId: selectedSalaId,
+                salaNome: sala.nome,
+                data: publicDataInput.value,
+                horaInicio: selectedSlot.horaInicio,
+                horaFim: selectedSlot.horaFim,
+                nomeSolicitante: document.getElementById("inputNome").value,
+                instrumento: document.getElementById("selectInstrumento").value,
+                vinculo: document.getElementById("selectVinculo").value,
+                necessidades: document.getElementById("inputNecessidades").value,
+                precisaPartitura: precisaPartitura,
+                qualPartitura: precisaPartitura ? inputQualPartitura.value : ""
+            };
+
+            const btnConfirm = document.getElementById("btnConfirmarReserva");
+            btnConfirm.disabled = true;
+            btnConfirm.innerHTML = `<i data-lucide="loader-2" class="spin"></i> Registrando reserva...`;
+
+            try {
+                await AgendamentoService.createAgendamento(payload);
+                showToast("Agendamento confirmado com sucesso!");
+                publicBookingForm.reset();
+                groupQualPartitura.style.display = "none";
+                selectedSlot = null;
+                renderVisualCalendar();
+                renderPublicSlots();
+            } catch (err) {
+                console.error("Erro ao criar agendamento:", err);
+                alert(err.message || "Ocorreu um erro ao realizar a reserva.");
+            } finally {
+                btnConfirm.disabled = false;
+                btnConfirm.innerHTML = `<i data-lucide="calendar-check" style="width: 20px; height: 20px;"></i> Confirmar Agendamento em Tempo Real`;
+                lucide.createIcons();
+            }
+        });
+
+        // Criar ícones iniciais
+        lucide.createIcons();
+    </script>
+</body>
+</html>
