@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reserva de Salas - OER</title>
+    
+    <!-- Favicons -->
+    <link rel="icon" type="image/png" sizes="180x180" href="assets/img/favicon-final-180.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/img/favicon-final-180.png">
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- CSS Base & Agendamento -->
+    <link rel="stylesheet" href="assets/css/agendamento.css">
+</head>
+<body>
+
+    <!-- Toast Notification -->
+    <div class="toast-msg" id="toastMsg"></div>
+
+    <!-- Container Centralizado da Página Pública de Reservas -->
+    <main class="public-booking-container">
+        
+        <!-- Cabeçalho Oficial da Reserva -->
+        <header class="header-card" style="border-top: 4px solid var(--oer-primary); display: flex; align-items: center; gap: 1.25rem;">
+            <img src="assets/img/logo_oer.png" alt="OER Logo" style="height: 52px; width: auto; object-fit: contain;">
+            <div class="header-title-group">
+                <h1 style="color: var(--oer-primary); margin: 0; font-size: 1.4rem; display: flex; align-items: center; gap: 0.5rem;">
+                    <i data-lucide="calendar-range" style="color: var(--oer-primary); width: 24px; height: 24px;"></i> Reserva de Salas OER
+                </h1>
+                <p style="margin: 0.25rem 0 0 0; color: var(--oer-text-muted); font-size: 0.9rem;">
+                    Selecione a sala, escolha o dia e horário e preencha seus dados para reservar.
+                </p>
+            </div>
+        </header>
+
+        <div class="booking-steps-wrapper">
+            
+            <!-- Passo 1: Escolher Sala -->
+            <section class="step-box">
+                <div class="step-label">
+                    <i data-lucide="check-circle" style="width: 18px; height: 18px;"></i> 1. Escolha a Sala
+                </div>
+                <div class="booking-room-select-grid" id="publicSalasGrid">
+                    <div style="grid-column: 1/-1; text-align: center; color: var(--oer-text-muted); padding: 1.5rem;">
+                        Carregando opções de salas...
+                    </div>
+                </div>
+            </section>
+
+            <!-- Passo 2: Escolher Data e Horário -->
+            <section class="step-box">
+                <div class="step-label">
+                    <i data-lucide="clock" style="width: 18px; height: 18px;"></i> 2. Escolha Data e Horário Disponível
+                </div>
+                <div class="booking-schedule-layout">
+                    <!-- Coluna Esquerda: Calendário Visual (DATA) -->
+                    <div class="bookings-calendar-card">
+                        <div class="calendar-header">
+                            <span class="bookings-time-header" style="margin: 0;">
+                                <i data-lucide="calendar" style="width: 14px; height: 14px;"></i> DATA
+                            </span>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <div class="calendar-nav-buttons">
+                                    <button type="button" class="btn-cal-nav" id="btnPrevMonth" title="Mês anterior">
+                                        <i data-lucide="chevron-left" style="width: 16px; height: 16px;"></i>
+                                    </button>
+                                    <button type="button" class="btn-cal-nav" id="btnNextMonth" title="Próximo mês">
+                                        <i data-lucide="chevron-right" style="width: 16px; height: 16px;"></i>
+                                    </button>
+                                </div>
+                                <span class="calendar-month-title" id="calMonthYearTitle">Mês Ano</span>
+                            </div>
+                        </div>
+
+                        <!-- Dias da Semana (D, S, T, Q, Q, S, S) -->
+                        <div class="calendar-weekdays-grid">
+                            <div class="cal-weekday">D</div>
+                            <div class="cal-weekday">S</div>
+                            <div class="cal-weekday">T</div>
+                            <div class="cal-weekday">Q</div>
+                            <div class="cal-weekday">Q</div>
+                            <div class="cal-weekday">S</div>
+                            <div class="cal-weekday">S</div>
+                        </div>
+
+                        <!-- Grade com os dias do mês -->
+                        <div class="calendar-days-grid" id="calDaysGrid"></div>
+
+                        <!-- Input oculto para manter compatibilidade com a data escolhida -->
+                        <input type="hidden" id="publicDataInput">
+                        
+                        <small style="display: block; color: var(--oer-text-muted); margin-top: 0.75rem; font-size: 0.8rem;" id="publicSalaDisponibilidadeInfo">
+                            Selecione uma sala acima para ver a disponibilidade.
+                        </small>
+                    </div>
+
+                    <!-- Coluna Direita: Horários Disponíveis (TEMPO) -->
+                    <div class="bookings-time-card">
+                        <div class="bookings-time-header">
+                            <i data-lucide="clock" style="width: 14px; height: 14px;"></i> TEMPO
+                        </div>
+                        <div class="slots-container" id="publicSlotsContainer">
+                            <p style="grid-column: 1/-1; font-size: 0.85rem; color: var(--oer-text-muted); padding: 2rem 0; text-align: center;">
+                                Selecione uma sala e a data para ver os horários disponíveis.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Passo 3: Dados do Solicitante -->
+            <section class="step-box">
+                <div class="step-label">
+                    <i data-lucide="user-plus" style="width: 18px; height: 18px;"></i> 3. Dados do Solicitante & Necessidades
+                </div>
+                <form id="publicBookingForm" class="booking-form">
+                    <div class="form-group">
+                        <label class="form-label" for="inputNome">Nome Completo: *</label>
+                        <input type="text" id="inputNome" class="form-input" placeholder="Digite seu nome completo" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="selectInstrumento">
+                            <i data-lucide="music-2" style="width: 14px; height: 14px; color: var(--oer-primary);"></i> Instrumento / Naipe: *
+                        </label>
+                        <select id="selectInstrumento" class="form-select" required>
+                            <option value="" disabled selected>Selecione seu instrumento...</option>
+                            <option value="Primeiros Violinos">Primeiros Violinos</option>
+                            <option value="Segundos Violinos">Segundos Violinos</option>
+                            <option value="Violas">Violas</option>
+                            <option value="Violoncelos">Violoncelos</option>
+                            <option value="Contrabaixos">Contrabaixos</option>
+                            <option value="Flautas">Flautas</option>
+                            <option value="Oboés">Oboés</option>
+                            <option value="Clarinetes">Clarinetes</option>
+                            <option value="Fagotes">Fagotes</option>
+                            <option value="Trompas">Trompas</option>
+                            <option value="Trompetes">Trompetes</option>
+                            <option value="Trombones">Trombones</option>
+                            <option value="Tuba">Tuba</option>
+                            <option value="Harpa">Harpa</option>
+                            <option value="Piano">Piano</option>
+                            <option value="Percussão">Percussão</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="selectVinculo">Vínculo: *</label>
+                        <select id="selectVinculo" class="form-select" required>
+                            <option value="" disabled selected>Selecione seu vínculo...</option>
+                            <option value="Bolsista">Bolsista</option>
+                            <option value="Monitor">Monitor</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" for="inputNecessidades">Necessidades da Sala / Observações:</label>
+                        <input type="text" id="inputNecessidades" class="form-input" placeholder="Ex: 2 estantes de partitura, afinador, cadeiras extras...">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Irá precisar de partitura?</label>
+                        <div class="partitura-toggle-group">
+                            <label class="radio-label">
+                                <input type="radio" name="radioPartitura" value="nao" checked> Não
+                            </label>
+                            <label class="radio-label">
+                                <input type="radio" name="radioPartitura" value="sim"> Sim
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-group" id="groupQualPartitura" style="display: none;">
+                        <label class="form-label" for="inputQualPartitura" style="color: var(--oer-accent);">
+                            <i data-lucide="music" style="width: 14px; height: 14px;"></i> Qual partitura você irá precisar? *
+                        </label>
+                        <input type="text" id="inputQualPartitura" class="form-input" placeholder="Informe a obra, compositor e instrumento (ex: Sinfonia nº 5 - Trompete 1)">
+                    </div>
+
+                    <div style="margin-top: 0.75rem;">
+                        <button type="submit" class="btn btn-accent" style="width: 100%; padding: 0.9rem; font-size: 1rem; border-radius: 8px;" id="btnConfirmarReserva">
+                            <i data-lucide="calendar-check" style="width: 20px; height: 20px;"></i> Confirmar Agendamento em Tempo Real
+                        </button>
+                    </div>
+                </form>
+            </section>
+
+        </div>
+    </main>
+
+    <!-- Script de Inicialização da Página Pública -->
+    <script type="module">
+        import { AgendamentoService } from "./assets/js/agendamento/agendamento-service.js";
+
+        // Estado local
+        let allSalas = [];
+        let allAgendamentos = [];
+        let selectedSalaId = null;
+        let selectedSlot = null; // { horaInicio, horaFim }
+
+        // Elementos DOM
+        const publicSalasGrid = document.getElementById("publicSalasGrid");
+        const publicDataInput = document.getElementById("publicDataInput");
+        const publicSlotsContainer = document.getElementById("publicSlotsContainer");
+        const publicSalaDisponibilidadeInfo = document.getElementById("publicSalaDisponibilidadeInfo");
+        const publicBookingForm = document.getElementById("publicBookingForm");
+        const radioPartituraList = document.querySelectorAll('input[name="radioPartitura"]');
+        const groupQualPartitura = document.getElementById("groupQualPartitura");
+        const inputQualPartitura = document.getElementById("inputQualPartitura");
+
+        // Calendário Visual
+        const calMonthYearTitle = document.getElementById("calMonthYearTitle");
+        const calDaysGrid = document.getElementById("calDaysGrid");
+        const btnPrevMonth = document.getElementById("btnPrevMonth");
+        const btnNextMonth = document.getElementById("btnNextMonth");
+
+        const hoje = new Date();
+        let calAnoAtual = hoje.getFullYear();
+        let calMesAtual = hoje.getMonth(); // 0 a 11
+        let selectedDataFormatada = hoje.toISOString().split("T")[0]; // YYYY-MM-DD
+
+        const NOMES_MESES = [
+            "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+            "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+        ];
+
+        // Toast Helper
+        function showToast(text, type = "success") {
+            const toast = document.getElementById("toastMsg");
+            if (!toast) return;
+            toast.textContent = text;
+            toast.className = `toast-msg show ${type}`;
+            setTimeout(() => {
+                toast.classList.remove("show");
+            }, 3500);
+        }
+
+        // Data de hoje em formato YYYY-MM-DD
+        const todayStr = new Date().toISOString().split("T")[0];
+        publicDataInput.value = todayStr;
+        publicDataInput.min = todayStr;
+
+        // Ouvintes em Tempo Real
+        AgendamentoService.listenSalas((salas) => {
+            allSalas = salas;
+            renderPublicSalas();
+            renderVisualCalendar();
+            renderPublicSlots();
+        });
+
+        AgendamentoService.listenAgendamentos(null, (agendamentos) => {
+            allAgendamentos = agendamentos;
+            renderVisualCalendar();
+            renderPublicSlots();
+        });
+
+        // Renderização de Salas
+        function renderPublicSalas() {
+            if (allSalas.length === 0) {
+                publicSalasGrid.innerHTML = `
+                    <div style="grid-column: 1/-1; text-align: center; color: var(--oer-text-muted); padding: 1.5rem;">
+                        Nenhuma sala disponível para agendamento no momento.
+                    </div>`;
+                return;
+            }
+
+            if (!selectedSalaId && allSalas.length > 0) {
+                selectedSalaId = allSalas[0].id;
+            }
+
+            publicSalasGrid.innerHTML = allSalas.map(sala => `
+                <div class="room-radio-card ${sala.id === selectedSalaId ? 'selected' : ''}" data-id="${sala.id}">
+                    <h4>${sala.nome}</h4>
+                    <span>${sala.slotDuration} min por agendamento</span>
+                    <span style="font-size: 0.75rem; color: #64748b;">${sala.descricao || 'Ensaio individual / grupo'}</span>
+                </div>
+            `).join("");
+
+            document.querySelectorAll(".room-radio-card").forEach(card => {
+                card.addEventListener("click", () => {
+                    selectedSalaId = card.getAttribute("data-id");
+                    selectedSlot = null;
+                    selectedDataFormatada = null;
+
+                    const salaClicada = allSalas.find(s => s.id === selectedSalaId);
+                    if (salaClicada?.dataInicioPeriodo) {
+                        const [iniY, iniM] = salaClicada.dataInicioPeriodo.split("-").map(Number);
+                        calAnoAtual = iniY;
+                        calMesAtual = iniM - 1;
+                    }
+
+                    renderPublicSalas();
+                    renderVisualCalendar();
+                    renderPublicSlots();
+                });
+            });
+
+            const salaAtual = allSalas.find(s => s.id === selectedSalaId);
+            if (salaAtual) {
+                let infoText = `Sala: ${salaAtual.nome} (${salaAtual.horarioSemanal?.inicio || '09:00'} às ${salaAtual.horarioSemanal?.fim || '18:00'})`;
+                if (salaAtual.dataInicioPeriodo && salaAtual.dataFimPeriodo) {
+                    infoText += ` • Período disponível: ${salaAtual.dataInicioPeriodo.split('-').reverse().join('/')} até ${salaAtual.dataFimPeriodo.split('-').reverse().join('/')}`;
+                }
+                publicSalaDisponibilidadeInfo.textContent = infoText;
+            }
+        }
+
+        // Navegação de Meses
+        btnPrevMonth.addEventListener("click", () => {
+            calMesAtual--;
+            if (calMesAtual < 0) {
+                calMesAtual = 11;
+                calAnoAtual--;
+            }
+            renderVisualCalendar();
+        });
+
+        btnNextMonth.addEventListener("click", () => {
+            calMesAtual++;
+            if (calMesAtual > 11) {
+                calMesAtual = 0;
+                calAnoAtual++;
+            }
+            renderVisualCalendar();
+        });
+
+        // Calendário Visual
+        function renderVisualCalendar() {
+            if (!calMonthYearTitle || !calDaysGrid) return;
+
+            calMonthYearTitle.textContent = `${NOMES_MESES[calMesAtual]} ${calAnoAtual}`;
+
+            const sala = allSalas.find(s => s.id === selectedSalaId);
+            const diasFuncionamento = sala?.horarioSemanal?.dias || [1, 2, 3, 4, 5];
+            const datasBloqueadas = sala?.datasBloqueadas || [];
+            const dataInicioPeriodo = sala?.dataInicioPeriodo || null;
+            const dataFimPeriodo = sala?.dataFimPeriodo || null;
+
+            const anoRealHoje = hoje.getFullYear();
+            const mesRealHoje = hoje.getMonth();
+            let disablePrev = (calAnoAtual < anoRealHoje) || (calAnoAtual === anoRealHoje && calMesAtual <= mesRealHoje);
+            if (dataInicioPeriodo) {
+                const [iniY, iniM] = dataInicioPeriodo.split("-").map(Number);
+                if (calAnoAtual < iniY || (calAnoAtual === iniY && calMesAtual <= (iniM - 1))) {
+                    disablePrev = true;
+                }
+            }
+            btnPrevMonth.disabled = disablePrev;
+
+            let disableNext = false;
+            if (dataFimPeriodo) {
+                const [fimY, fimM] = dataFimPeriodo.split("-").map(Number);
+                if (calAnoAtual > fimY || (calAnoAtual === fimY && calMesAtual >= (fimM - 1))) {
+                    disableNext = true;
+                }
+            }
+            btnNextMonth.disabled = disableNext;
+
+            const primeiroDia = new Date(calAnoAtual, calMesAtual, 1);
+            const diaSemanaInicio = primeiroDia.getDay();
+            const totalDiasNoMes = new Date(calAnoAtual, calMesAtual + 1, 0).getDate();
+
+            const hojeY = hoje.getFullYear();
+            const hojeM = String(hoje.getMonth() + 1).padStart(2, "0");
+            const hojeD = String(hoje.getDate()).padStart(2, "0");
+            const hojeFormatado = `${hojeY}-${hojeM}-${hojeD}`;
+
+            let htmlDias = "";
+
+            for (let i = 0; i < diaSemanaInicio; i++) {
+                htmlDias += `<div class="cal-day-cell empty"></div>`;
+            }
+
+            for (let dia = 1; dia <= totalDiasNoMes; dia++) {
+                const diaSemana = new Date(calAnoAtual, calMesAtual, dia).getDay();
+                const mStr = String(calMesAtual + 1).padStart(2, "0");
+                const dStr = String(dia).padStart(2, "0");
+                const dataString = `${calAnoAtual}-${mStr}-${dStr}`;
+
+                const ehPassado = dataString < hojeFormatado;
+                const foraPeriodoInicio = dataInicioPeriodo ? dataString < dataInicioPeriodo : false;
+                const foraPeriodoFim = dataFimPeriodo ? dataString > dataFimPeriodo : false;
+                const foraDoPeriodo = foraPeriodoInicio || foraPeriodoFim;
+
+                const salaFechada = !diasFuncionamento.includes(diaSemana);
+                const estaBloqueada = datasBloqueadas.includes(dataString);
+                const desabilitado = ehPassado || foraDoPeriodo || salaFechada || estaBloqueada;
+
+                const ehHoje = dataString === hojeFormatado;
+                const ehSelecionado = dataString === selectedDataFormatada;
+
+                let classes = "cal-day-cell";
+                if (desabilitado) classes += " disabled";
+                if (ehHoje) classes += " today";
+                if (ehSelecionado) classes += " selected";
+
+                let title = `Selecionar ${dia} de ${NOMES_MESES[calMesAtual]}`;
+                if (ehPassado) title = "Data passada";
+                else if (foraDoPeriodo) title = "Fora do período de disponibilidade da sala";
+                else if (salaFechada || estaBloqueada) title = "Sala fechada ou indisponível nesta data";
+
+                htmlDias += `
+                    <button type="button" class="${classes}" data-date="${dataString}" ${desabilitado ? 'disabled' : ''} title="${title}">
+                        ${dia}
+                    </button>
+                `;
+            }
+
+            calDaysGrid.innerHTML = htmlDias;
+
+            calDaysGrid.querySelectorAll(".cal-day-cell:not(.disabled):not(.empty)").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    const novaData = btn.getAttribute("data-date");
+                    selectedDataFormatada = novaData;
+                    publicDataInput.value = novaData;
+                    selectedSlot = null;
+                    renderVisualCalendar();
+                    renderPublicSlots();
+                });
+            });
+        }
+
+        // Horários Livres (TEMPO)
+        function renderPublicSlots() {
+            if (!selectedSalaId) {
+                publicSlotsContainer.innerHTML = `<p style="grid-column: 1/-1; font-size: 0.85rem; color: var(--oer-text-muted); padding: 2rem 0; text-align: center;">Selecione uma sala para ver os horários.</p>`;
+                return;
+            }
+            const sala = allSalas.find(s => s.id === selectedSalaId);
+            const dataEscolhida = selectedDataFormatada || publicDataInput.value;
+
+            if (!sala || !dataEscolhida) {
+                publicSlotsContainer.innerHTML = `<p style="grid-column: 1/-1; font-size: 0.85rem; color: var(--oer-text-muted); padding: 2rem 0; text-align: center;">Selecione uma data no calendário para ver os horários disponíveis.</p>`;
+                return;
+            }
+
+            const todosSlots = AgendamentoService.calculateAvailableSlots(sala, dataEscolhida, allAgendamentos);
+            const slotsLivres = todosSlots.filter(s => s.disponivel);
+
+            if (slotsLivres.length === 0) {
+                publicSlotsContainer.innerHTML = `
+                    <div style="grid-column: 1/-1; text-align: center; padding: 2rem 0;">
+                        <i data-lucide="check-circle-2" style="width: 24px; height: 24px; color: var(--oer-success); margin-bottom: 0.5rem;"></i>
+                        <p style="font-size: 0.85rem; color: var(--oer-text-muted);">
+                            Todos os horários desta data já foram preenchidos.
+                        </p>
+                    </div>
+                `;
+                if (window.lucide) lucide.createIcons();
+                return;
+            }
+
+            publicSlotsContainer.innerHTML = slotsLivres.map(slot => {
+                const isSelected = selectedSlot && selectedSlot.horaInicio === slot.horaInicio;
+                const slotClass = isSelected ? 'slot-pill selected' : 'slot-pill';
+
+                return `
+                    <button type="button" class="${slotClass}" data-inicio="${slot.horaInicio}" data-fim="${slot.horaFim}" title="Clique para selecionar ${slot.horaInicio}">
+                        ${slot.horaInicio}
+                    </button>
+                `;
+            }).join("");
+
+            document.querySelectorAll(".slot-pill").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    document.querySelectorAll(".slot-pill").forEach(b => b.classList.remove("selected"));
+                    btn.classList.add("selected");
+                    selectedSlot = {
+                        horaInicio: btn.getAttribute("data-inicio"),
+                        horaFim: btn.getAttribute("data-fim")
+                    };
+                });
+            });
+        }
+
+        // Campo Condicional de Partitura
+        radioPartituraList.forEach(radio => {
+            radio.addEventListener("change", () => {
+                if (radio.value === "sim" && radio.checked) {
+                    groupQualPartitura.style.display = "flex";
+                    inputQualPartitura.required = true;
+                    inputQualPartitura.focus();
+                } else if (radio.value === "nao" && radio.checked) {
+                    groupQualPartitura.style.display = "none";
+                    inputQualPartitura.required = false;
+                    inputQualPartitura.value = "";
+                }
+            });
+        });
+
+        // Submissão do Agendamento
+        publicBookingForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            if (!selectedSalaId) {
+                alert("Por favor, selecione uma sala.");
+                return;
+            }
+
+            if (!selectedSlot) {
+                alert("Por favor, selecione um horário disponível na lista de horários.");
+                return;
+            }
+
+            const sala = allSalas.find(s => s.id === selectedSalaId);
+            const precisaPartitura = document.querySelector('input[name="radioPartitura"]:checked').value === "sim";
+
+            const payload = {
+                salaId: selectedSalaId,
+                salaNome: sala.nome,
+                data: publicDataInput.value,
+                horaInicio: selectedSlot.horaInicio,
+                horaFim: selectedSlot.horaFim,
+                nomeSolicitante: document.getElementById("inputNome").value,
+                instrumento: document.getElementById("selectInstrumento").value,
+                vinculo: document.getElementById("selectVinculo").value,
+                necessidades: document.getElementById("inputNecessidades").value,
+                precisaPartitura: precisaPartitura,
+                qualPartitura: precisaPartitura ? inputQualPartitura.value : ""
+            };
+
+            const btnConfirm = document.getElementById("btnConfirmarReserva");
+            btnConfirm.disabled = true;
+            btnConfirm.innerHTML = `<i data-lucide="loader-2" class="spin"></i> Registrando reserva...`;
+
+            try {
+                await AgendamentoService.createAgendamento(payload);
+                showToast("Agendamento confirmado com sucesso!");
+                publicBookingForm.reset();
+                groupQualPartitura.style.display = "none";
+                selectedSlot = null;
+                renderVisualCalendar();
+                renderPublicSlots();
+                window.scrollTo({ top: 0, behavior: "smooth" });
+            } catch (err) {
+                console.error("Erro ao criar agendamento:", err);
+                alert(err.message || "Ocorreu um erro ao realizar a reserva.");
+            } finally {
+                btnConfirm.disabled = false;
+                btnConfirm.innerHTML = `<i data-lucide="calendar-check" style="width: 20px; height: 20px;"></i> Confirmar Agendamento em Tempo Real`;
+                lucide.createIcons();
+            }
+        });
+
+        lucide.createIcons();
+    </script>
+</body>
+</html>

@@ -1245,3 +1245,96 @@ body {
         padding: 0.75rem 1rem;
     }
 }
+
+/* ==========================================================================
+   Autenticação & Loader Overlay (Estilo Presença OER)
+   ========================================================================== */
+.loader-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.94);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    opacity: 1;
+    visibility: visible;
+    transition: opacity 0.25s, visibility 0.25s;
+    backdrop-filter: blur(4px);
+}
+
+.loader-overlay.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.loader-spinner {
+    border: 4px solid var(--oer-border);
+    border-top: 4px solid var(--oer-primary);
+    border-radius: 50%;
+    width: 44px;
+    height: 44px;
+    animation: agendamento-spin 0.9s linear infinite;
+    margin-bottom: 1rem;
+}
+
+@keyframes agendamento-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Container da Página Pública (reserva.html) */
+.public-booking-container {
+    max-width: 820px;
+    margin: 2rem auto;
+    padding: 0 1rem 3rem 1rem;
+}
+
+/* Botão Voltar ao Admin */
+.btn-back-admin-agendamento {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.85rem;
+    background: #f1f5f9;
+    color: var(--oer-text-main);
+    border: 1px solid var(--oer-border);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.btn-back-admin-agendamento:hover {
+    background: #e2e8f0;
+    color: var(--oer-primary);
+}
+
+/* Botão Copiar Link Músicos */
+.btn-copy-public-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 0.85rem;
+    background: var(--oer-accent-light);
+    color: var(--oer-primary);
+    border: 1px solid var(--oer-accent-border);
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-copy-public-link:hover {
+    background: #ffe4e6;
+    border-color: #fda4af;
+}
+

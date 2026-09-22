@@ -18,26 +18,10 @@
 </head>
 <body>
 
-    <!-- Barra de Controle do Módulo de Agendamento -->
-    <div class="test-env-bar">
-        <div class="test-env-title-group" style="display: flex; align-items: center; gap: 0.5rem;">
-            <span class="test-env-badge" style="background: var(--oer-accent-light); color: var(--oer-primary);">
-                <i data-lucide="door-open" style="width: 14px; height: 14px;"></i> Módulo OER
-            </span>
-            <span class="test-env-subtitle" style="font-size: 0.85rem; color: #cbd5e1;">Agendamento de Salas em Tempo Real</span>
-        </div>
-
-        <div class="test-view-toggle">
-            <button class="test-view-btn" id="btnViewAdmin" title="Painel Administrativo">
-                <i data-lucide="shield" style="width: 14px; height: 14px;"></i> <span>Admin</span>
-            </button>
-            <button class="test-view-btn active" id="btnViewSplit" title="Visão Dividida (Split)">
-                <i data-lucide="columns" style="width: 14px; height: 14px;"></i> <span>Lado a Lado</span>
-            </button>
-            <button class="test-view-btn" id="btnViewPublic" title="Página Pública de Reservas">
-                <i data-lucide="calendar" style="width: 14px; height: 14px;"></i> <span>Músicos</span>
-            </button>
-        </div>
+    <!-- Loader de Inicialização / Verificação de Autenticação (Estilo Presença OER) -->
+    <div class="loader-overlay" id="loader">
+        <div class="loader-spinner"></div>
+        <p style="font-weight: 600; color: #475569; font-size: 0.95rem;">Verificando autenticação...</p>
     </div>
 
     <!-- Container Principal com Modo Split View -->
@@ -49,7 +33,10 @@
             <!-- ======================================================== -->
             <div id="colAdmin">
                 <div class="header-card" style="border-top: 4px solid var(--oer-primary); display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
-                    <div style="display: flex; align-items: center; gap: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;">
+                        <a href="admin.html" class="btn-back-admin-agendamento" title="Voltar ao Painel Admin">
+                            <i data-lucide="arrow-left" style="width: 18px; height: 18px;"></i> Voltar ao Admin
+                        </a>
                         <img src="assets/img/logo_oer.png" alt="OER Logo" style="height: 48px; width: auto; object-fit: contain;">
                         <div class="header-title-group">
                             <h1 style="color: var(--oer-primary); margin: 0; font-size: 1.35rem; display: flex; align-items: center; gap: 0.5rem;">
@@ -58,7 +45,10 @@
                             <p style="margin: 0.2rem 0 0 0; color: var(--oer-text-muted); font-size: 0.85rem;">Configure salas, horários de funcionamento e monitore os agendamentos.</p>
                         </div>
                     </div>
-                    <div>
+                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                        <button type="button" class="btn-copy-public-link" id="btnHeaderCopyPublicLink" title="Copiar link da página pública para enviar aos músicos">
+                            <i data-lucide="share-2" style="width: 16px; height: 16px;"></i> Copiar Link p/ Músicos
+                        </button>
                         <button class="btn btn-primary" id="btnOpenNovaSalaModal" onclick="window.abrirModalNovaSala && window.abrirModalNovaSala()">
                             <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i> Nova Sala
                         </button>
@@ -96,6 +86,10 @@
                         <button type="button" id="btnReportHorariosDisponiveis" class="btn-report-card" title="Clique para copiar a lista de horários livres da data selecionada (ou de hoje) para o WhatsApp" style="background: linear-gradient(135deg, #8B0000, #5c0000);">
                             <i data-lucide="calendar-check-2"></i>
                             <span>Horários Disponíveis</span>
+                        </button>
+                        <button type="button" id="btnCopyLinkCard" class="btn-report-card" title="Copiar link público para envio aos músicos no WhatsApp" style="background: linear-gradient(135deg, #0284c7, #0369a1);">
+                            <i data-lucide="link"></i>
+                            <span>Link dos Músicos</span>
                         </button>
                     </div>
                 </div>
@@ -488,9 +482,38 @@
         });
     </script>
 
-    <!-- Script de Inicialização da Interface de Teste -->
+    <!-- Script de Inicialização e Lógica Administrativa -->
     <script type="module">
+        import { auth } from "./assets/js/firebase-config.js";
+        import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
         import { AgendamentoService } from "./assets/js/agendamento/agendamento-service.js";
+
+        // Loader e Controle de Autenticação (Padrão Presença OER)
+        const loader = document.getElementById("loader");
+        let authCheckHandled = false;
+
+        const authFallbackTimer = setTimeout(() => {
+            if (!authCheckHandled) {
+                authCheckHandled = true;
+                if (loader) loader.classList.add("hidden");
+                if (!auth.currentUser) {
+                    window.location.replace("admin.html");
+                }
+            }
+        }, 4000);
+
+        onAuthStateChanged(auth, (user) => {
+            if (authCheckHandled) return;
+            authCheckHandled = true;
+            clearTimeout(authFallbackTimer);
+
+            if (user) {
+                if (loader) loader.classList.add("hidden");
+                initApp();
+            } else {
+                window.location.replace("admin.html");
+            }
+        });
 
         // Estado local da aplicação
         let allSalas = [];
@@ -499,9 +522,6 @@
         let selectedSlot = null; // { horaInicio, horaFim }
         
         // Elementos DOM principais
-        const btnViewAdmin = document.getElementById("btnViewAdmin");
-        const btnViewSplit = document.getElementById("btnViewSplit");
-        const btnViewPublic = document.getElementById("btnViewPublic");
         const colAdmin = document.getElementById("colAdmin");
         const colPublic = document.getElementById("colPublic");
         const mainContainer = document.getElementById("mainContainer");
@@ -515,6 +535,8 @@
         const btnOpenNovaSalaModal = document.getElementById("btnOpenNovaSalaModal");
         const btnReportAgendamentoAtual = document.getElementById("btnReportAgendamentoAtual");
         const btnReportHorariosDisponiveis = document.getElementById("btnReportHorariosDisponiveis");
+        const btnHeaderCopyPublicLink = document.getElementById("btnHeaderCopyPublicLink");
+        const btnCopyLinkCard = document.getElementById("btnCopyLinkCard");
 
         // Grade Semanal Admin DOM & Estado
         const btnAdminViewTable = document.getElementById("btnAdminViewTable");
@@ -569,6 +591,7 @@
         // Toast Helper
         function showToast(text, type = "success") {
             const toast = document.getElementById("toastMsg");
+            if (!toast) return;
             toast.textContent = text;
             toast.className = `toast-msg show ${type}`;
             setTimeout(() => {
@@ -576,59 +599,64 @@
             }, 3500);
         }
 
-        // 1. Alternância de Visualizações (Admin, Split, Public)
-        btnViewAdmin.addEventListener("click", () => {
-            colAdmin.style.display = "block";
-            colPublic.style.display = "none";
-            mainContainer.style.gridTemplateColumns = "1fr";
-            setActiveViewBtn(btnViewAdmin);
-        });
-
-        btnViewPublic.addEventListener("click", () => {
-            colAdmin.style.display = "none";
-            colPublic.style.display = "block";
-            mainContainer.style.gridTemplateColumns = "1fr";
-            setActiveViewBtn(btnViewPublic);
-        });
-
-        btnViewSplit.addEventListener("click", () => {
-            colAdmin.style.display = "block";
-            colPublic.style.display = "block";
-            mainContainer.style.gridTemplateColumns = window.innerWidth > 1024 ? "1fr 1fr" : "1fr";
-            setActiveViewBtn(btnViewSplit);
-        });
-
-        function setActiveViewBtn(btn) {
-            [btnViewAdmin, btnViewSplit, btnViewPublic].forEach(b => b.classList.remove("active"));
-            btn.classList.add("active");
+        // Função para Copiar Link Público dos Músicos (reserva.html)
+        function copiarLinkMusicos() {
+            const urlReserva = new URL("reserva.html", window.location.href).href;
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(urlReserva).then(() => {
+                    showToast("Link dos músicos copiado com sucesso! Pronto para enviar no WhatsApp.", "success");
+                }).catch(() => {
+                    promptFallback(urlReserva);
+                });
+            } else {
+                promptFallback(urlReserva);
+            }
         }
 
-        // Data de hoje em formato YYYY-MM-DD
-        const todayStr = new Date().toISOString().split("T")[0];
-        adminDataFiltro.value = todayStr;
-        publicDataInput.value = todayStr;
-        publicDataInput.min = todayStr;
+        function promptFallback(url) {
+            window.prompt("Copie o link abaixo para enviar aos músicos:", url);
+        }
 
-        // 2. Ouvintes em Tempo Real
-        AgendamentoService.listenSalas((salas) => {
-            allSalas = salas;
-            renderAdminSalas();
-            renderPublicSalas();
-            renderVisualCalendar();
-            renderPublicSlots();
-        });
+        if (btnHeaderCopyPublicLink) {
+            btnHeaderCopyPublicLink.addEventListener("click", copiarLinkMusicos);
+        }
+        if (btnCopyLinkCard) {
+            btnCopyLinkCard.addEventListener("click", copiarLinkMusicos);
+        }
 
-        AgendamentoService.listenAgendamentos(null, (agendamentos) => {
-            allAgendamentos = agendamentos;
-            renderAdminAgendamentos();
-            renderWeeklyGrid();
-            renderVisualCalendar();
-            renderPublicSlots();
-        });
+        // Função de Inicialização após Autenticação Confirmada
+        function initApp() {
+            // Data de hoje em formato YYYY-MM-DD
+            const todayStr = new Date().toISOString().split("T")[0];
+            if (adminDataFiltro) adminDataFiltro.value = todayStr;
+            if (publicDataInput) {
+                publicDataInput.value = todayStr;
+                publicDataInput.min = todayStr;
+            }
 
-        adminDataFiltro.addEventListener("change", () => {
-            renderAdminAgendamentos();
-        });
+            // Ouvintes em Tempo Real
+            AgendamentoService.listenSalas((salas) => {
+                allSalas = salas;
+                renderAdminSalas();
+                renderPublicSalas();
+                renderVisualCalendar();
+                renderPublicSlots();
+            });
+
+            AgendamentoService.listenAgendamentos(null, (agendamentos) => {
+                allAgendamentos = agendamentos;
+                renderAdminAgendamentos();
+                renderWeeklyGrid();
+                renderVisualCalendar();
+                renderPublicSlots();
+            });
+
+            if (adminDataFiltro) {
+                adminDataFiltro.addEventListener("change", () => {
+                    renderAdminAgendamentos();
+                });
+            }
+        }
 
         // 3. Renderização Admin de Salas
         function renderAdminSalas() {
