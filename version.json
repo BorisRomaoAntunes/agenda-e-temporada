@@ -1,8 +1,20 @@
 {
-  "hash": "ee0d486",
-  "date": "21/09/2026 20:43",
-  "buildAt": "2026-09-21T23:43:31.642Z",
+  "hash": "2b14c79",
+  "date": "21/09/2026 21:16",
+  "buildAt": "2026-09-22T00:17:11.579Z",
   "history": [
+    {
+      "hash": "2b14c79",
+      "date": "21/09/2026 21:16",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(admin): adiciona mecanismo de visibilidade de erros e acao rapida de dispensa na gaveta"
+    },
+    {
+      "hash": "4131989",
+      "date": "21/09/2026 20:44",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pós-deploy vee0d486"
+    },
     {
       "hash": "ee0d486",
       "date": "21/09/2026 20:43",
@@ -110,18 +122,6 @@
       "date": "16/09/2026 22:15",
       "author": "Boris Romão Antunes",
       "subject": "fix(presenca): legenda e marcacao de presenca em atrasos no relatorio"
-    },
-    {
-      "hash": "149d1db",
-      "date": "16/09/2026 22:14",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pós-commit vebf81cf"
-    },
-    {
-      "hash": "ebf81cf",
-      "date": "16/09/2026 22:13",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(presenca): registra usuario logado nas justificativas e notas da lista de presenca"
     }
   ]
 }
