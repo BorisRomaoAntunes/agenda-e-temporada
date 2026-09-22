@@ -1,8 +1,14 @@
 {
-  "hash": "64c9cee",
-  "date": "22/09/2026 17:35",
-  "buildAt": "2026-09-22T20:36:27.556Z",
+  "hash": "8794bbd",
+  "date": "22/09/2026 17:37",
+  "buildAt": "2026-09-22T20:47:44.899Z",
   "history": [
+    {
+      "hash": "8794bbd",
+      "date": "22/09/2026 17:37",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pós-deploy v64c9cee"
+    },
     {
       "hash": "64c9cee",
       "date": "22/09/2026 17:35",
@@ -116,12 +122,6 @@
       "date": "21/09/2026 14:56",
       "author": "Boris Romão Antunes",
       "subject": "revert: restaura versao anterior a implementacao da acao rapida de dispensa"
-    },
-    {
-      "hash": "6083f99",
-      "date": "21/09/2026 14:51",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pós-deploy"
     }
   ]
 }
