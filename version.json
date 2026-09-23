@@ -1,8 +1,20 @@
 {
-  "hash": "7a54ca4",
-  "date": "22/09/2026 21:16",
-  "buildAt": "2026-09-23T00:19:42.307Z",
+  "hash": "b51ac80",
+  "date": "23/09/2026 14:29",
+  "buildAt": "2026-09-23T17:31:22.702Z",
   "history": [
+    {
+      "hash": "b51ac80",
+      "date": "23/09/2026 14:29",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(agendamento): adiciona aviso da equipe de montagem na mensagem individual"
+    },
+    {
+      "hash": "73681c1",
+      "date": "22/09/2026 21:22",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pós-deploy v7a54ca4"
+    },
     {
       "hash": "7a54ca4",
       "date": "22/09/2026 21:16",
@@ -110,18 +122,6 @@
       "date": "21/09/2026 21:21",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualiza version.json pós-deploy va880e2c"
-    },
-    {
-      "hash": "a880e2c",
-      "date": "21/09/2026 21:20",
-      "author": "Boris Romão Antunes",
-      "subject": "fix(admin): remove redeclaracao de statusLower que causava SyntaxError no login"
-    },
-    {
-      "hash": "ce9d3be",
-      "date": "21/09/2026 21:17",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pós-deploy v2b14c79"
     }
   ]
 }
