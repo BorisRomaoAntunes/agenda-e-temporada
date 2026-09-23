@@ -1,8 +1,20 @@
 {
-  "hash": "4c32f2c",
-  "date": "22/09/2026 18:03",
-  "buildAt": "2026-09-22T21:14:35.588Z",
+  "hash": "7a54ca4",
+  "date": "22/09/2026 21:16",
+  "buildAt": "2026-09-23T00:19:42.307Z",
   "history": [
+    {
+      "hash": "7a54ca4",
+      "date": "22/09/2026 21:16",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(agendamento): exibe horario completo (inicio as fim) na mensagem individual"
+    },
+    {
+      "hash": "b18abe1",
+      "date": "22/09/2026 18:30",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pos-deploy v4c32f2c"
+    },
     {
       "hash": "4c32f2c",
       "date": "22/09/2026 18:03",
@@ -110,18 +122,6 @@
       "date": "21/09/2026 21:17",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualiza version.json pós-deploy v2b14c79"
-    },
-    {
-      "hash": "2b14c79",
-      "date": "21/09/2026 21:16",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(admin): adiciona mecanismo de visibilidade de erros e acao rapida de dispensa na gaveta"
-    },
-    {
-      "hash": "4131989",
-      "date": "21/09/2026 20:44",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pós-deploy vee0d486"
     }
   ]
 }
