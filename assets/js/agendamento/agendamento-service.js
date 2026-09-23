@@ -555,10 +555,13 @@ export const AgendamentoService = {
             linha += `  [${detalhes.join(" • ")}]`;
         }
 
+        const avisoMontagem = `_Obs.: Antes de acessar a sala que foi agendada informar a equipe da montagem da OER._`;
+
         return `Olá ${primeiroNome},\n` +
                `Conforme agendado ${textoTemporal} a sala de ensaios (${idSala})\n\n` +
                `📍  *${nomeSalaCompleto}*\n` +
                `${linha}\n\n` +
+               `${avisoMontagem}\n\n` +
                `Qualquer dúvida, estou à disposição`;
     },
 
