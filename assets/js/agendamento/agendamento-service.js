@@ -535,8 +535,11 @@ export const AgendamentoService = {
 
         const nomeSalaCompleto = (ag.salaNome || "SALA DE ENSAIO").toUpperCase();
 
-        // Linha do agendamento (somente o horário inicial em itálico WhatsApp)
-        let linha = `• _${ag.horaInicio || "00:00"}_: ${ag.nomeSolicitante || "Músico"}`;
+        // Linha do agendamento (horário inicial e final em itálico WhatsApp)
+        const horario = (ag.horaInicio && ag.horaFim) 
+            ? `${ag.horaInicio} às ${ag.horaFim}` 
+            : (ag.horaInicio || "00:00");
+        let linha = `• _${horario}_: ${ag.nomeSolicitante || "Músico"}`;
         if (ag.instrumento && ag.instrumento.trim()) {
             linha += `  (${ag.instrumento.trim()})`;
         }
