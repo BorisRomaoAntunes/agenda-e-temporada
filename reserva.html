@@ -197,69 +197,58 @@
     </main>
 
     <!-- ======================================================== -->
-    <!-- MODAL: CONFIRMAÇÃO DE AGENDAMENTO COM CALENDÁRIO E COMPARTILHAMENTO -->
+    <!-- MODAL: CONFIRMAÇÃO DE AGENDAMENTO (MINIMALISTA) -->
     <!-- ======================================================== -->
     <div class="modal-overlay" id="modalConfirmacaoReserva">
-        <div class="modal-box" style="max-width: 520px; border-top: 5px solid #16a34a; border-radius: 14px; overflow: hidden;">
-            <div class="modal-header" style="background: #f0fdf4; border-bottom: 1px solid #bbf7d0; padding: 1rem 1.25rem;">
-                <div style="display: flex; align-items: center; gap: 0.75rem;">
-                    <div style="background: #16a34a; color: white; border-radius: 50%; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 4px rgba(22,163,74,0.25);">
-                        <i data-lucide="check" style="width: 22px; height: 22px; stroke-width: 2.5;"></i>
+        <div class="modal-box" style="max-width: 440px; border-radius: 18px; border: none; box-shadow: 0 20px 40px -10px rgba(0,0,0,0.18); overflow: hidden; background: #ffffff;">
+            <!-- Top bar com fechar sutil -->
+            <div style="padding: 1.25rem 1.25rem 0.5rem 1.25rem; display: flex; justify-content: space-between; align-items: center;">
+                <div style="display: flex; align-items: center; gap: 0.65rem;">
+                    <div style="width: 32px; height: 32px; border-radius: 50%; background: #ecfdf5; color: #10b981; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                        <i data-lucide="check" style="width: 18px; height: 18px; stroke-width: 2.8;"></i>
                     </div>
                     <div>
-                        <h3 style="margin: 0; color: #166534; font-size: 1.15rem; font-weight: 700;">Agendamento Confirmado!</h3>
-                        <p style="margin: 0.15rem 0 0 0; font-size: 0.82rem; color: #15803d;">Sua reserva foi concluída com sucesso.</p>
+                        <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: #111827; letter-spacing: -0.02em;">Agendamento Confirmado</h3>
                     </div>
                 </div>
-                <button class="btn btn-outline btn-sm" id="btnCloseConfirmacaoModal" style="border: none; padding: 0.35rem 0.5rem; color: #166534; background: transparent; cursor: pointer;" title="Fechar">
-                    <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                <button id="btnCloseConfirmacaoModal" style="background: none; border: none; cursor: pointer; color: #9ca3af; padding: 4px; border-radius: 6px; display: flex; align-items: center; justify-content: center;" title="Fechar">
+                    <i data-lucide="x" style="width: 18px; height: 18px;"></i>
                 </button>
             </div>
 
-            <div class="modal-body" style="padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem;">
-                <!-- Card com Resumo das Informações -->
-                <div id="confirmacaoCardDetalhes" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem 1.15rem; font-size: 0.92rem; display: flex; flex-direction: column; gap: 0.65rem;">
+            <div class="modal-body" style="padding: 1rem 1.25rem 1.25rem 1.25rem; display: flex; flex-direction: column; gap: 0.9rem;">
+                <!-- 3 Linhas Essenciais (Ultra-Limpo) -->
+                <div id="confirmacaoCardDetalhes" style="background: #f9fafb; border-radius: 12px; padding: 1rem 1.1rem; display: flex; flex-direction: column; gap: 0.65rem;">
                     <!-- Preenchido dinamicamente via JS -->
                 </div>
 
-                <!-- Aviso / Orientação de Acesso -->
-                <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 0.85rem 1rem; display: flex; gap: 0.65rem; align-items: flex-start;">
-                    <i data-lucide="alert-triangle" style="color: #b45309; width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px;"></i>
-                    <div style="font-size: 0.86rem; color: #92400e; line-height: 1.4;">
-                        <strong>Obs.:</strong> Antes de acessar a sala que foi agendada informar a equipe da montagem da OER.
-                    </div>
+                <!-- Aviso Discreto -->
+                <div style="font-size: 0.8rem; color: #6b7280; line-height: 1.35; display: flex; align-items: center; gap: 0.45rem;">
+                    <i data-lucide="info" style="width: 15px; height: 15px; color: #9ca3af; flex-shrink: 0;"></i>
+                    <span>Antes de acessar a sala, informe a equipe da montagem da OER.</span>
                 </div>
 
-                <!-- Ações: Calendário -->
-                <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.25rem;">
-                    <span style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--oer-text-muted); letter-spacing: 0.04em;">
-                        Adicionar à sua Agenda
-                    </span>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem;">
-                        <a id="btnGoogleCalendar" target="_blank" rel="noopener noreferrer" class="btn" style="background: #ffffff; border: 1px solid #cbd5e1; color: #1e293b; font-size: 0.88rem; padding: 0.75rem 0.5rem; justify-content: center; gap: 0.45rem; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
-                            <i data-lucide="calendar" style="width: 18px; height: 18px; color: #4285F4;"></i> Google Agenda
-                        </a>
-                        <button id="btnAppleCalendar" type="button" class="btn" style="background: #ffffff; border: 1px solid #cbd5e1; color: #1e293b; font-size: 0.88rem; padding: 0.75rem 0.5rem; justify-content: center; gap: 0.45rem; border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.05); cursor: pointer;">
-                            <i data-lucide="apple" style="width: 18px; height: 18px; color: #000;"></i> Apple / .ics
-                        </button>
-                    </div>
-                </div>
+                <!-- Botões de Ação Principais -->
+                <div style="display: flex; flex-direction: column; gap: 0.55rem; margin-top: 0.25rem;">
+                    <!-- Botão Inteligente de Calendário (detecta Apple vs Google/Android/PC) -->
+                    <button id="btnSmartCalendar" type="button" class="btn" style="width: 100%; background: #111827; color: #ffffff; border: none; border-radius: 10px; padding: 0.75rem 1rem; font-size: 0.9rem; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; box-shadow: 0 2px 6px rgba(0,0,0,0.12); cursor: pointer;">
+                        <span id="iconSmartCalendar" style="display: flex; align-items: center;"><i data-lucide="calendar-plus" style="width: 18px; height: 18px;"></i></span>
+                        <span id="labelSmartCalendar">Adicionar à Minha Agenda</span>
+                    </button>
 
-                <!-- Ações: Compartilhar Mensagem -->
-                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                    <span style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--oer-text-muted); letter-spacing: 0.04em;">
-                        Compartilhar / Notificar
-                    </span>
-                    <button id="btnCompartilharReserva" type="button" class="btn" style="background: #128c7e; color: #ffffff; border: none; font-size: 0.92rem; padding: 0.8rem 1rem; justify-content: center; gap: 0.55rem; border-radius: 8px; font-weight: 600; box-shadow: 0 2px 5px rgba(18,140,126,0.3); cursor: pointer; display: inline-flex; align-items: center;">
-                        <i data-lucide="share-2" style="width: 18px; height: 18px;"></i> <span id="labelCompartilhar">Compartilhar Detalhes</span>
+                    <!-- Botão WhatsApp Minimalista -->
+                    <button id="btnCompartilharReserva" type="button" class="btn" style="width: 100%; background: #25D366; color: #ffffff; border: none; border-radius: 10px; padding: 0.75rem 1rem; font-size: 0.9rem; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; box-shadow: 0 2px 6px rgba(37,211,102,0.22); cursor: pointer;">
+                        <i data-lucide="message-circle" style="width: 18px; height: 18px;"></i>
+                        <span id="labelCompartilhar">Compartilhar no WhatsApp</span>
                     </button>
                 </div>
-            </div>
 
-            <div class="modal-footer" style="padding: 0.85rem 1.25rem; background: #f8fafc;">
-                <button type="button" class="btn btn-outline" id="btnOkConfirmacao" style="width: 100%; border-radius: 8px; font-weight: 600; padding: 0.7rem; justify-content: center;">
-                    Fechar / Novo Agendamento
-                </button>
+                <!-- Link Discreto de Fechar -->
+                <div style="text-align: center; margin-top: 0.15rem;">
+                    <button type="button" id="btnOkConfirmacao" style="background: none; border: none; color: #6b7280; font-size: 0.85rem; font-weight: 500; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; padding: 0.35rem 0.5rem;">
+                        Fechar / Fazer nova reserva
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -565,10 +554,23 @@
         });
 
         // ========================================================
-        // MODAL DE CONFIRMAÇÃO, CALENDÁRIO E COMPARTILHAMENTO
+        // MODAL DE CONFIRMAÇÃO MINIMALISTA & CALENDÁRIO INTELIGENTE
         // ========================================================
         let ultimoPayloadConfirmado = null;
         let ultimaMensagemTexto = "";
+
+        function detectPlatform() {
+            const ua = navigator.userAgent || navigator.vendor || window.opera || "";
+            const isIOS = /iPad|iPhone|iPod/.test(ua) && !window.MSStream;
+            const isMacTouch = /Macintosh/.test(ua) && navigator.maxTouchPoints > 1; // iPad Pro
+            const isMac = /Macintosh|MacIntel|MacPPC|Mac68K/.test(ua);
+            const isApple = isIOS || isMacTouch || isMac;
+            const isAndroid = /android/i.test(ua);
+
+            if (isApple) return "apple";
+            if (isAndroid) return "android";
+            return "desktop";
+        }
 
         async function copiarParaClipboard(texto) {
             try {
@@ -652,7 +654,7 @@
             setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
         }
 
-        function configurarGoogleCalendar(payload) {
+        function obterGoogleCalendarUrl(payload) {
             const [anoStr, mesStr, diaStr] = payload.data.split("-");
             const [horaIniH, horaIniM] = payload.horaInicio.split(":");
             const [horaFimH, horaFimM] = payload.horaFim.split(":");
@@ -676,11 +678,7 @@
             detailsText += `\nObs.: Antes de acessar a sala agendada, informe a equipe da montagem da OER.`;
 
             const calDetails = encodeURIComponent(detailsText);
-
-            const btnGoogle = document.getElementById("btnGoogleCalendar");
-            if (btnGoogle) {
-                btnGoogle.href = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${calTitle}&dates=${startIso}/${endIso}&details=${calDetails}&location=${calLocation}`;
-            }
+            return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${calTitle}&dates=${startIso}/${endIso}&details=${calDetails}&location=${calLocation}`;
         }
 
         function abrirModalConfirmacao(payload) {
@@ -692,12 +690,9 @@
             const dia = parseInt(diaStr, 10);
 
             const diasSemanaAbbr = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-            const diasSemanaExt = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
             const dateObj = new Date(ano, mes - 1, dia);
             const diaSemanaAbbrev = diasSemanaAbbr[dateObj.getDay()] || "";
-            const diaSemanaNome = diasSemanaExt[dateObj.getDay()] || "";
             const dataFormatadaDDMM = `${diaStr}/${mesStr}`;
-            const dataCompletaFormatada = `${diaStr}/${mesStr}/${anoStr}`;
 
             const primeiroNome = (payload.nomeSolicitante || "").trim().split(" ")[0] || "Músico";
             const salaUpper = (payload.salaNome || "").toUpperCase();
@@ -722,46 +717,45 @@ _Obs.: Antes de acessar a sala que foi agendada informar a equipe da montagem da
 
 Qualquer dúvida, estou à disposição!`;
 
-            // Preenche o resumo do agendamento no modal
+            // 3 Linhas Essenciais (Ultra-Limpo)
             const cardDetalhes = document.getElementById("confirmacaoCardDetalhes");
             cardDetalhes.innerHTML = `
-                <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.6rem;">
-                    <span style="color: var(--oer-text-muted); font-size: 0.85rem;">Sala reservada:</span>
-                    <span style="font-weight: 700; color: var(--oer-primary); font-size: 1.05rem;">📍 ${payload.salaNome}</span>
+                <!-- Linha 1: Sala -->
+                <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f3f4f6; padding-bottom: 0.55rem;">
+                    <span style="font-size: 0.78rem; text-transform: uppercase; font-weight: 600; color: #9ca3af; letter-spacing: 0.04em;">Sala</span>
+                    <span style="font-size: 1.05rem; font-weight: 700; color: var(--oer-primary);">📍 ${payload.salaNome}</span>
                 </div>
-                <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.6rem;">
-                    <span style="color: var(--oer-text-muted); font-size: 0.85rem;">Data:</span>
-                    <span style="font-weight: 600; color: #1e293b;">${diaSemanaNome}, ${dataCompletaFormatada}</span>
+
+                <!-- Linha 2: Data & Horário -->
+                <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #f3f4f6; padding-bottom: 0.55rem;">
+                    <span style="font-size: 0.78rem; text-transform: uppercase; font-weight: 600; color: #9ca3af; letter-spacing: 0.04em;">Horário</span>
+                    <span style="font-size: 0.92rem; font-weight: 600; color: #111827;">${diaSemanaAbbrev}, ${dataFormatadaDDMM} · <strong style="color: #15803d;">${payload.horaInicio} às ${payload.horaFim}</strong></span>
                 </div>
-                <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.6rem;">
-                    <span style="color: var(--oer-text-muted); font-size: 0.85rem;">Horário:</span>
-                    <span style="font-weight: 700; color: #15803d; background: #dcfce7; padding: 0.25rem 0.6rem; border-radius: 6px; font-size: 0.95rem;">${payload.horaInicio} às ${payload.horaFim}</span>
-                </div>
-                <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.6rem;">
-                    <span style="color: var(--oer-text-muted); font-size: 0.85rem;">Músico:</span>
-                    <span style="font-weight: 600; color: #1e293b;">${payload.nomeSolicitante} <span style="font-weight: 400; color: var(--oer-text-muted);">(${payload.instrumento})</span></span>
-                </div>
-                ${payload.necessidades ? `
-                <div style="display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.6rem;">
-                    <span style="color: var(--oer-text-muted); font-size: 0.85rem;">Necessidades:</span>
-                    <span style="font-weight: 500; color: #1e293b; text-align: right;">${payload.necessidades}</span>
-                </div>
-                ` : ''}
-                ${payload.precisaPartitura && payload.qualPartitura ? `
+
+                <!-- Linha 3: Músico & Instrumento -->
                 <div style="display: flex; align-items: flex-start; justify-content: space-between;">
-                    <span style="color: var(--oer-text-muted); font-size: 0.85rem;">Partitura:</span>
-                    <span style="font-weight: 500; color: #1e293b; text-align: right;">${payload.qualPartitura}</span>
+                    <span style="font-size: 0.78rem; text-transform: uppercase; font-weight: 600; color: #9ca3af; letter-spacing: 0.04em; margin-top: 1px;">Músico</span>
+                    <span style="font-size: 0.9rem; font-weight: 600; color: #374151; text-align: right;">
+                        ${payload.nomeSolicitante} <span style="font-weight: 400; color: #6b7280;">(${payload.instrumento})</span>
+                        ${extraInfo ? `<br><span style="font-size: 0.78rem; font-weight: 500; color: #4b5563;">${extraInfo.trim()}</span>` : ''}
+                    </span>
                 </div>
-                ` : ''}
             `;
 
-            // Configura link do Google Agenda
-            configurarGoogleCalendar(payload);
+            // Detecta plataforma e configura o botão inteligente de calendário
+            const platform = detectPlatform();
+            const iconSmartCalendar = document.getElementById("iconSmartCalendar");
+            const labelSmartCalendar = document.getElementById("labelSmartCalendar");
 
-            // Ajusta o texto do botão compartilhar de acordo com o dispositivo
-            const labelCompartilhar = document.getElementById("labelCompartilhar");
-            if (labelCompartilhar) {
-                labelCompartilhar.textContent = navigator.share ? "Compartilhar Detalhes" : "Copiar Texto da Reserva";
+            if (platform === "apple") {
+                if (iconSmartCalendar) iconSmartCalendar.innerHTML = `<i data-lucide="apple" style="width: 18px; height: 18px;"></i>`;
+                if (labelSmartCalendar) labelSmartCalendar.textContent = "Adicionar à Minha Agenda (Apple Calendário)";
+            } else if (platform === "android") {
+                if (iconSmartCalendar) iconSmartCalendar.innerHTML = `<i data-lucide="calendar-plus" style="width: 18px; height: 18px;"></i>`;
+                if (labelSmartCalendar) labelSmartCalendar.textContent = "Adicionar à Minha Agenda (Google Agenda)";
+            } else {
+                if (iconSmartCalendar) iconSmartCalendar.innerHTML = `<i data-lucide="calendar-plus" style="width: 18px; height: 18px;"></i>`;
+                if (labelSmartCalendar) labelSmartCalendar.textContent = "Adicionar à Minha Agenda (Google Agenda)";
             }
 
             // Abre o modal
@@ -784,12 +778,20 @@ Qualquer dúvida, estou à disposição!`;
             }
         });
 
-        document.getElementById("btnAppleCalendar")?.addEventListener("click", () => {
-            if (ultimoPayloadConfirmado) {
+        // Botão Inteligente de Calendário
+        document.getElementById("btnSmartCalendar")?.addEventListener("click", () => {
+            if (!ultimoPayloadConfirmado) return;
+            const platform = detectPlatform();
+
+            if (platform === "apple") {
                 gerarArquivoICS(ultimoPayloadConfirmado);
+            } else {
+                const googleUrl = obterGoogleCalendarUrl(ultimoPayloadConfirmado);
+                window.open(googleUrl, "_blank");
             }
         });
 
+        // Botão de Compartilhar
         document.getElementById("btnCompartilharReserva")?.addEventListener("click", async () => {
             if (!ultimaMensagemTexto) return;
             if (navigator.share) {
