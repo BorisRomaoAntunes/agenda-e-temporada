@@ -13329,6 +13329,364 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
     }
 
     // =========================================================================
+    // RELATÓRIO DE TEMPO DE OER (BOLSISTAS ATIVOS COM FÓRMULAS EXCEL)
+    // =========================================================================
+    function initTempoOERReport() {
+        const btnOpen = document.getElementById('btn-generate-tempo-oer');
+        const modal = document.getElementById('modal-tempo-oer-overlay');
+        const btnClose = document.getElementById('btn-tempo-oer-modal-close');
+        const btnCloseFooter = document.getElementById('btn-close-tempo-oer-modal-footer');
+        const btnExport = document.getElementById('btn-export-tempo-oer-excel');
+        const searchInput = document.getElementById('tempo-oer-search-input');
+        const tbody = document.getElementById('tempo-oer-table-body');
+        const subtitle = document.getElementById('tempo-oer-subtitle');
+        const countEl = document.getElementById('tempo-oer-filtered-count');
+
+        if (!btnOpen || !modal) return;
+
+        let bolsistasAtivos = [];
+
+        const ordemNaipesHierarquia = [
+            "Primeiros Violinos",
+            "Segundos Violinos",
+            "Violas",
+            "Violoncelos",
+            "Contrabaixos",
+            "Flautas",
+            "Oboés",
+            "Clarinetes",
+            "Fagotes",
+            "Trompa",
+            "Trompete",
+            "Trombones",
+            "Tuba",
+            "Harpa",
+            "Piano",
+            "Percussão"
+        ];
+
+        const getNaipeIndex = (m) => {
+            const instRaw = (m.INSTRUMENTOS || m.Instrumento || '').trim();
+            const instNorm = normalizarNaipe(instRaw);
+            if (!instNorm) return 999;
+
+            const instLower = instRaw.toLowerCase();
+            if (instLower.includes('violino')) {
+                if (instLower.includes('2') || instLower.includes('segund')) return 1;
+                return 0; // 1º violino
+            }
+
+            const idx = ordemNaipesHierarquia.findIndex(n => {
+                const nNorm = normalizarNaipe(n);
+                return nNorm === instNorm || nNorm.includes(instNorm) || instNorm.includes(nNorm);
+            });
+            return idx !== -1 ? idx : 998;
+        };
+
+        const filtrarEOrdenarBolsistas = () => {
+            if (!allMusicians || allMusicians.length === 0) return [];
+
+            const bolsistas = allMusicians.filter(m => {
+                if (m.statusFirebase === 'inativo' || m.statusFirebase === 'desligado') return false;
+
+                const rawStatus = (m.Status || m.status || '').toLowerCase();
+                const tipoContrato = (m['Tipo Contrato Prorrogáveis por igual prazo'] || m['Tipo Contrato'] || '').toString().toLowerCase();
+
+                const isDesligado = rawStatus.includes('cancelad') || rawStatus.includes('inativ') || rawStatus.includes('desligad');
+                if (isDesligado) return false;
+
+                if (rawStatus.includes('monitor') || tipoContrato.includes('monitor')) return false;
+
+                return rawStatus.includes('bolsista') || tipoContrato.includes('bolsista');
+            });
+
+            bolsistas.sort((a, b) => {
+                const idxA = getNaipeIndex(a);
+                const idxB = getNaipeIndex(b);
+                if (idxA !== idxB) return idxA - idxB;
+
+                const nomeA = (a.NOMEARTISTICO || a['NOME REGISTRO'] || a.Nome || '').trim().toLowerCase();
+                const nomeB = (b.NOMEARTISTICO || b['NOME REGISTRO'] || b.Nome || '').trim().toLowerCase();
+                return nomeA.localeCompare(nomeB, 'pt-BR');
+            });
+
+            return bolsistas;
+        };
+
+        const formatDateDisplay = (dateObj, rawStr) => {
+            if (dateObj && !isNaN(dateObj.getTime())) {
+                const dia = String(dateObj.getDate()).padStart(2, '0');
+                const mes = String(dateObj.getMonth() + 1).padStart(2, '0');
+                const ano = dateObj.getFullYear();
+                return `${dia}/${mes}/${ano}`;
+            }
+            if (rawStr && typeof rawStr === 'string' && /^\d{4}-\d{2}-\d{2}/.test(rawStr.trim())) {
+                return rawStr.trim().slice(0, 10).split('-').reverse().join('/');
+            }
+            return rawStr || '-';
+        };
+
+        const renderPrevia = (filtro = '') => {
+            if (!tbody) return;
+
+            const q = filtro.trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            const filtrados = bolsistasAtivos.filter(m => {
+                if (!q) return true;
+                const nomeArt = (m.NOMEARTISTICO || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                const nomeReg = (m['NOME REGISTRO'] || m.Nome || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                const inst = (m.INSTRUMENTOS || m.Instrumento || '').toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                return nomeArt.includes(q) || nomeReg.includes(q) || inst.includes(q);
+            });
+
+            if (countEl) {
+                countEl.textContent = `${filtrados.length} bolsista${filtrados.length !== 1 ? 's' : ''}`;
+            }
+
+            if (filtrados.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="4" style="text-align: center; padding: 2.5rem 1rem; color: #94a3b8; font-size: 0.9rem;">
+                            Nenhum bolsista encontrado para a busca informada.
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+
+            let html = '';
+            filtrados.forEach((m, idx) => {
+                const nomeArt = m.NOMEARTISTICO || m['NOME REGISTRO'] || 'Sem nome';
+                const nomeReg = m['NOME REGISTRO'] || '';
+                const inst = m.INSTRUMENTOS || m.Instrumento || '-';
+                const rawInicio = getMusicoField(m, 'INICIO OER Contrato', 'INICIO OER\\nContrato', 'inicioContrato', 'dataEntrada');
+                const dataInicioObj = parseDateFromExcelOrString(rawInicio);
+                const inicioDisplay = formatDateDisplay(dataInicioObj, rawInicio);
+
+                const rawTermino = getMusicoField(m, 'TERMINO OER Contrato', 'TERMINO OER\\nContrato', 'terminoContrato', 'dataSaida');
+                const tempoOER = calcularTempoOER(rawInicio, rawTermino, m) || (rawInicio ? 'Menos de 1 mês' : 'Início não cadastrado');
+
+                const bg = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
+                html += `
+                    <tr style="background: ${bg}; border-bottom: 1px solid #f1f5f9;">
+                        <td style="padding: 0.65rem 0.85rem; font-weight: 600; color: #1e293b;">
+                            ${nomeArt}
+                            ${nomeReg && nomeReg !== nomeArt ? `<div style="font-size: 0.75rem; color: #64748b; font-weight: 400;">${nomeReg}</div>` : ''}
+                        </td>
+                        <td style="padding: 0.65rem 0.85rem; color: #475569;">${inst}</td>
+                        <td style="padding: 0.65rem 0.85rem; color: #475569;">${inicioDisplay}</td>
+                        <td style="padding: 0.65rem 0.85rem;">
+                            <span style="display: inline-flex; align-items: center; background: #e0f2fe; color: #0369a1; padding: 0.2rem 0.6rem; border-radius: 6px; font-size: 0.82rem; font-weight: 600;">
+                                ${tempoOER}
+                            </span>
+                        </td>
+                    </tr>
+                `;
+            });
+
+            tbody.innerHTML = html;
+        };
+
+        const exportarExcel = () => {
+            if (typeof XLSX === 'undefined') {
+                showNotification("Biblioteca SheetJS não carregada.", "error");
+                return;
+            }
+
+            if (bolsistasAtivos.length === 0) {
+                showNotification("Nenhum bolsista para exportar.", "warning");
+                return;
+            }
+
+            try {
+                showNotification("Gerando planilha com fórmulas...", "info");
+
+                const headers = [
+                    "Nome Artístico",
+                    "Nome de Registro",
+                    "Instrumento",
+                    "Data de Nascimento",
+                    "Idade",
+                    "Início Contrato OER",
+                    "Término Contrato OER",
+                    "Anos na OER",
+                    "Meses na OER",
+                    "Tempo de OER"
+                ];
+
+                const excelRows = [headers];
+
+                bolsistasAtivos.forEach((m, idx) => {
+                    const rowNum = idx + 2; // Cabeçalho está na linha 1
+
+                    const nomeArt = (m.NOMEARTISTICO || m['NOME REGISTRO'] || m.Nome || 'Músico').trim();
+                    const nomeReg = (m['NOME REGISTRO'] || m.Nome || '').trim();
+                    const inst = (m.INSTRUMENTOS || m.Instrumento || '').trim();
+
+                    // Nascimento & Idade
+                    const rawNasc = getMusicoField(m, 'DATA DE NACIMENTO ', 'DATA DE NASCIMENTO', 'Data de Nascimento', 'dataNascimento');
+                    const dataNasc = parseDateFromExcelOrString(rawNasc);
+                    const nascCell = dataNasc && !isNaN(dataNasc.getTime()) 
+                        ? { t: 'd', v: dataNasc, z: 'dd/mm/yyyy' } 
+                        : (rawNasc || '-');
+                    
+                    const idadePre = calcularIdade(rawNasc);
+                    const idadeCell = (dataNasc && !isNaN(dataNasc.getTime())) ? {
+                        t: 'n',
+                        f: `IF(OR(ISBLANK(D${rowNum}),D${rowNum}="-"),"",DATEDIF(D${rowNum},TODAY(),"Y"))`,
+                        v: (typeof idadePre === 'number' ? idadePre : 0)
+                    } : { t: 's', v: '-' };
+
+                    // Início & Término Contrato
+                    const rawInicio = getMusicoField(m, 'INICIO OER Contrato', 'INICIO OER\\nContrato', 'inicioContrato', 'dataEntrada');
+                    const dataInicio = parseDateFromExcelOrString(rawInicio);
+                    const inicioCell = dataInicio && !isNaN(dataInicio.getTime())
+                        ? { t: 'd', v: dataInicio, z: 'dd/mm/yyyy' }
+                        : (rawInicio || '-');
+
+                    const rawTermino = getMusicoField(m, 'TERMINO OER Contrato', 'TERMINO OER\\nContrato', 'terminoContrato', 'dataSaida');
+                    const dataTermino = parseDateFromExcelOrString(rawTermino);
+                    const terminoCell = dataTermino && !isNaN(dataTermino.getTime())
+                        ? { t: 'd', v: dataTermino, z: 'dd/mm/yyyy' }
+                        : (rawTermino || '-');
+
+                    // Cálculo do tempo em JS para valor pré-computado
+                    let diffYears = 0;
+                    let diffMonths = 0;
+                    let tempoFormatadoJS = '-';
+
+                    if (dataInicio && !isNaN(dataInicio.getTime())) {
+                        const hoje = new Date();
+                        diffYears = hoje.getFullYear() - dataInicio.getFullYear();
+                        diffMonths = hoje.getMonth() - dataInicio.getMonth();
+                        if (hoje.getDate() < dataInicio.getDate()) {
+                            diffMonths--;
+                        }
+                        if (diffMonths < 0) {
+                            diffYears--;
+                            diffMonths += 12;
+                        }
+                        if (diffYears < 0) {
+                            diffYears = 0;
+                            diffMonths = 0;
+                        }
+
+                        if (diffYears === 0 && diffMonths === 0) {
+                            tempoFormatadoJS = 'Menos de 1 mês';
+                        } else {
+                            const anosStr = diffYears > 0 ? `${diffYears} ${diffYears === 1 ? 'ano' : 'anos'}` : '';
+                            const mesesStr = diffMonths > 0 ? `${diffMonths} ${diffMonths === 1 ? 'mês' : 'meses'}` : '';
+                            tempoFormatadoJS = (anosStr && mesesStr) ? `${anosStr} e ${mesesStr}` : (anosStr || mesesStr);
+                        }
+                    }
+
+                    // Fórmulas nativas do Excel para recálculo dinâmico
+                    const anosCell = (dataInicio && !isNaN(dataInicio.getTime())) ? {
+                        t: 'n',
+                        f: `IF(OR(ISBLANK(F${rowNum}),F${rowNum}="-"),"",DATEDIF(F${rowNum},TODAY(),"Y"))`,
+                        v: diffYears
+                    } : { t: 's', v: '-' };
+
+                    const mesesCell = (dataInicio && !isNaN(dataInicio.getTime())) ? {
+                        t: 'n',
+                        f: `IF(OR(ISBLANK(F${rowNum}),F${rowNum}="-"),"",DATEDIF(F${rowNum},TODAY(),"YM"))`,
+                        v: diffMonths
+                    } : { t: 's', v: '-' };
+
+                    const tempoCell = (dataInicio && !isNaN(dataInicio.getTime())) ? {
+                        t: 's',
+                        f: `IF(OR(ISBLANK(F${rowNum}),F${rowNum}="-"),"",DATEDIF(F${rowNum},TODAY(),"Y")&" ano(s) e "&DATEDIF(F${rowNum},TODAY(),"YM")&" mês(es)")`,
+                        v: tempoFormatadoJS
+                    } : { t: 's', v: '-' };
+
+                    excelRows.push([
+                        nomeArt,
+                        nomeReg,
+                        inst,
+                        nascCell,
+                        idadeCell,
+                        inicioCell,
+                        terminoCell,
+                        anosCell,
+                        mesesCell,
+                        tempoCell
+                    ]);
+                });
+
+                const worksheet = XLSX.utils.aoa_to_sheet(excelRows, { cellDates: true, dateNF: 'dd/mm/yyyy' });
+
+                // Largura das colunas
+                worksheet['!cols'] = [
+                    { wch: 26 }, // Nome Artístico
+                    { wch: 34 }, // Nome de Registro
+                    { wch: 22 }, // Instrumento
+                    { wch: 20 }, // Data de Nascimento
+                    { wch: 10 }, // Idade
+                    { wch: 22 }, // Início Contrato OER
+                    { wch: 22 }, // Término Contrato OER
+                    { wch: 14 }, // Anos na OER
+                    { wch: 14 }, // Meses na OER
+                    { wch: 24 }  // Tempo de OER
+                ];
+
+                const workbook = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(workbook, worksheet, "Tempo de OER");
+
+                const hojeStr = new Date().toISOString().slice(0, 10);
+                XLSX.writeFile(workbook, `OER_Tempo_de_Casa_Bolsistas_${hojeStr}.xlsx`);
+                showNotification("Planilha de Tempo de OER gerada com sucesso!", "success");
+
+            } catch (err) {
+                console.error("Erro ao gerar planilha de Tempo de OER:", err);
+                showNotification("Erro na geração da planilha: " + err.message, "error");
+            }
+        };
+
+        // Eventos
+        btnOpen.addEventListener('click', () => {
+            if (!allMusicians || allMusicians.length === 0) {
+                showNotification("Nenhum músico cadastrado ou carregado.", "warning");
+                return;
+            }
+
+            bolsistasAtivos = filtrarEOrdenarBolsistas();
+
+            if (subtitle) {
+                subtitle.textContent = `${bolsistasAtivos.length} bolsistas ativos cadastrados`;
+            }
+
+            if (searchInput) searchInput.value = '';
+            renderPrevia('');
+
+            modal.style.display = 'flex';
+            if (window.lucide) lucide.createIcons();
+            if (searchInput) {
+                setTimeout(() => searchInput.focus(), 100);
+            }
+        });
+
+        const fecharModal = () => {
+            modal.style.display = 'none';
+        };
+
+        if (btnClose) btnClose.addEventListener('click', fecharModal);
+        if (btnCloseFooter) btnCloseFooter.addEventListener('click', fecharModal);
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) fecharModal();
+        });
+
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => {
+                renderPrevia(e.target.value);
+            });
+        }
+
+        if (btnExport) {
+            btnExport.addEventListener('click', exportarExcel);
+        }
+    }
+
+    // =========================================================================
     // MODAL DE EXTRAÇÃO E CÓPIA PERSONALIZADA DE DADOS DOS MÚSICOS
     // =========================================================================
     function initMusiciansExtractorModal() {
@@ -13820,6 +14178,9 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
 
     // Inicializar Modal de Extração
     initMusiciansExtractorModal();
+
+    // Inicializar Relatório de Tempo de OER (Bolsistas)
+    initTempoOERReport();
 
     // Inicializar Áreas Copiáveis do Drawer
     initCopyableFields();

@@ -1076,6 +1076,9 @@ Intervalo
                             <button id="btn-generate-faltas-atrasos" class="btn-report-card" title="Clique para gerar a lista de faltas e atrasos dos bolsistas em formato de texto" style="background: #b45309;">
                                 <i data-lucide="file-text"></i> <span>Faltas e Atrasos (Texto)</span>
                             </button>
+                            <button id="btn-generate-tempo-oer" class="btn-report-card" title="Clique para visualizar a prévia e gerar o relatório em Excel do tempo de OER dos bolsistas" style="background: #0284c7;">
+                                <i data-lucide="clock"></i> <span>Tempo de OER (Bolsistas)</span>
+                            </button>
                         </div>
                     </div>
 
@@ -3137,6 +3140,73 @@ Intervalo
                         Fechar
                     </button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== MODAL RELATÓRIO TEMPO DE OER (BOLSISTAS) ===== -->
+    <div id="modal-tempo-oer-overlay" class="ia-modal-overlay" style="display:none;" aria-modal="true" role="dialog">
+        <div class="ia-modal-card" style="max-width: 850px; width: 95%;">
+            <!-- Header -->
+            <div class="ia-modal-header">
+                <div class="ia-modal-header-info">
+                    <div class="ia-modal-icon" style="background: rgba(2, 132, 199, 0.1); color: #0284c7;">
+                        <i data-lucide="clock"></i>
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 1.15rem; font-weight: 700; color: #1e293b;">Tempo de OER - Bolsistas Ativos</h3>
+                        <p style="margin: 0.2rem 0 0 0; font-size: 0.85rem; color: #64748b;" id="tempo-oer-subtitle">Carregando bolsistas...</p>
+                    </div>
+                </div>
+                <button class="ia-modal-close" id="btn-tempo-oer-modal-close" title="Fechar">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="ia-modal-body" style="display: flex; flex-direction: column; gap: 1rem; max-height: 70vh; overflow-y: auto;">
+                <div class="ia-modal-tip" style="background: rgba(2, 132, 199, 0.05); border-color: rgba(2, 132, 199, 0.15); border-left-color: #0284c7; color: #0369a1; display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1rem; border-radius: 8px; font-size: 0.88rem;">
+                    <i data-lucide="info" style="color: #0284c7; flex-shrink: 0; width: 18px; height: 18px;"></i>
+                    <span>Prévia calculada com base na data de entrada (início de contrato) e na data de hoje. A planilha Excel exportada conterá fórmulas dinâmicas para recálculo automático.</span>
+                </div>
+
+                <!-- Busca rápida na prévia -->
+                <div style="display: flex; gap: 0.75rem; align-items: center;">
+                    <div style="position: relative; flex: 1;">
+                        <i data-lucide="search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: #94a3b8; pointer-events: none;"></i>
+                        <input type="text" id="tempo-oer-search-input" placeholder="Buscar por bolsista ou instrumento..." style="width: 100%; padding: 0.55rem 0.75rem 0.55rem 2.2rem; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.88rem; outline: none;">
+                    </div>
+                    <span id="tempo-oer-filtered-count" style="font-size: 0.82rem; color: #64748b; font-weight: 600; white-space: nowrap;">0 bolsistas</span>
+                </div>
+
+                <!-- Tabela de Prévia -->
+                <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #fff;">
+                    <div style="max-height: 360px; overflow-y: auto;">
+                        <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.88rem;">
+                            <thead style="background: #f8fafc; position: sticky; top: 0; z-index: 1; border-bottom: 2px solid #e2e8f0;">
+                                <tr>
+                                    <th style="padding: 0.65rem 0.85rem; font-weight: 700; color: #475569;">Nome Artístico</th>
+                                    <th style="padding: 0.65rem 0.85rem; font-weight: 700; color: #475569;">Instrumento / Naipe</th>
+                                    <th style="padding: 0.65rem 0.85rem; font-weight: 700; color: #475569;">Início Contrato</th>
+                                    <th style="padding: 0.65rem 0.85rem; font-weight: 700; color: #0284c7;">Tempo de OER</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tempo-oer-table-body">
+                                <!-- Linhas inseridas dinamicamente -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div style="padding: 1rem 1.5rem; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; gap: 0.8rem; justify-content: flex-end; align-items: center; border-radius: 0 0 16px 16px;">
+                <button class="btn-outline" id="btn-close-tempo-oer-modal-footer" style="padding: 0.65rem 1.2rem; border-radius: 8px; font-weight: 600; cursor: pointer; border: 1px solid #cbd5e1; background: white; color: #475569;">
+                    Fechar
+                </button>
+                <button class="btn-primary" id="btn-export-tempo-oer-excel" style="padding: 0.65rem 1.4rem; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; background: #16a34a; color: white; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 2px 6px rgba(22, 163, 74, 0.25);">
+                    <i data-lucide="file-spreadsheet"></i> Gerar Planilha (.xlsx)
+                </button>
             </div>
         </div>
     </div>
