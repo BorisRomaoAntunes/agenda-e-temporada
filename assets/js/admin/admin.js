@@ -14082,6 +14082,16 @@ function initPendingAgendamentosArea() {
     const area = document.getElementById('pending-agendamentos-area');
     if (!area) return;
 
+    if (!area._hasWheelListener) {
+        area.addEventListener('wheel', (e) => {
+            if (e.deltaY !== 0 && area.scrollWidth > area.clientWidth) {
+                e.preventDefault();
+                area.scrollLeft += e.deltaY;
+            }
+        }, { passive: false });
+        area._hasWheelListener = true;
+    }
+
     if (unsubscribePendingAgendamentos) {
         unsubscribePendingAgendamentos();
         unsubscribePendingAgendamentos = null;

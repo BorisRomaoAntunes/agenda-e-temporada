@@ -37,7 +37,7 @@
 
     <!-- Estilos Base + Admin -->
     <link rel="stylesheet" href="assets/css/common.css">
-    <link rel="stylesheet" href="assets/css/admin.css?v=12">
+    <link rel="stylesheet" href="assets/css/admin.css?v=13">
 
     <!-- Ícones Lucide -->
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -218,6 +218,21 @@
                  <!-- Área de Notificações de Novos Agendamentos Pendentes (Logo abaixo da pesquisa) -->
                  <div id="pending-agendamentos-area" class="pending-agendamentos-area" style="display: none;"></div>
 
+                 <!-- Card Unificado de Ações Rápidas (Abaixo da pesquisa e acima das métricas) -->
+                 <div class="quick-actions-card" id="quick-actions-card">
+                     <div class="quick-actions-container">
+                         <a href="presenca.html" target="_blank" class="btn-quick-round btn-presenca" title="Presença OER">
+                             <i data-lucide="user-check"></i>
+                         </a>
+                         <a href="agendamento.html" target="_blank" class="btn-quick-round btn-agendamento" title="Agendamento de Salas OER">
+                             <i data-lucide="calendar-clock"></i>
+                         </a>
+                         <a href="https://docs.google.com/document/d/1LZcA7TGbL2J_O8Y8H7JUKAauF8B1PAElbnSDqjodTQw/edit?usp=sharing" target="_blank" class="btn-quick-round btn-instrumentacao" title="Instrumentação">
+                             <i data-lucide="file-text"></i>
+                         </a>
+                     </div>
+                 </div>
+
                  <!-- Container de Cards de Métricas e Assinantes em Tempo Real -->
                  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
                      <!-- Card 1: Músicos Inscritos em Notificações Push -->
@@ -258,18 +273,6 @@
                      </div>
                  </div>
 
-                 <!-- Botões de Acesso Rápido -->
-                 <div class="quick-actions-container">
-                     <a href="presenca.html" target="_blank" class="btn-quick-round btn-presenca" title="Presença OER">
-                         <i data-lucide="user-check"></i>
-                     </a>
-                     <a href="agendamento.html" target="_blank" class="btn-quick-round btn-agendamento" title="Agendamento de Salas OER">
-                         <i data-lucide="calendar-clock"></i>
-                     </a>
-                     <a href="https://docs.google.com/document/d/1LZcA7TGbL2J_O8Y8H7JUKAauF8B1PAElbnSDqjodTQw/edit?usp=sharing" target="_blank" class="btn-quick-round btn-instrumentacao" title="Instrumentação">
-                         <i data-lucide="file-text"></i>
-                     </a>
-                 </div>
 
                  <!-- Card para o Cronômetro do Intervalo -->
                   <div class="admin-interval-card">
@@ -2590,7 +2593,7 @@ Intervalo
             }
         }, 5000);
     </script>
-    <script type="module" src="assets/js/admin/admin.js?v=23"></script>
+    <script type="module" src="assets/js/admin/admin.js?v=24"></script>
     <script>
         // Registro do Service Worker
         if ('serviceWorker' in navigator) {
