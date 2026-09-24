@@ -14041,39 +14041,40 @@ function renderPendingAgendamentoCard(ag) {
 
     return `
         <div class="pending-agendamento-card" data-id="${ag.id}" title="Clique para copiar mensagem de confirmação para o WhatsApp e dispensar este aviso" role="button" tabindex="0">
-            <div class="pending-card-top-row">
+
+            <!-- Linha 1: pulse + badge novo agendamento + sala (direita) -->
+            <div class="pending-card-row-top">
                 <div class="pending-card-badge-group">
                     <span class="pending-pulse-dot"></span>
                     <span class="pending-badge-label">Novo Agendamento</span>
-                    <span class="pending-card-datetime">
-                        <i data-lucide="calendar" style="width: 14px; height: 14px; color: #16a34a;"></i>
-                        ${diaSemana ? `${diaSemana}, ` : ''}${dataFormatada} • ${horario}
-                    </span>
                 </div>
                 <div class="pending-card-sala-badge">
-                    <i data-lucide="map-pin" style="width: 13px; height: 13px;"></i>
+                    <i data-lucide="map-pin" style="width: 12px; height: 12px;"></i>
                     ${salaNome}
                 </div>
             </div>
 
-            <div class="pending-card-main">
+            <!-- Linha 2: nome do músico (grande) + horário abaixo -->
+            <div class="pending-card-body">
                 <div class="pending-card-musico-nome">${nome}</div>
                 <div class="pending-card-musico-sub">
-                    <span>${instrumento ? `${instrumento} • ` : ''}${vinculo}</span>
+                    ${instrumento ? `<span class="pending-sub-chip">${instrumento}</span><span class="pending-sub-sep">•</span>` : ''}<span>${vinculo}</span>
                 </div>
                 ${obsHtml}
             </div>
 
+            <!-- Linha 3: data/hora à esquerda + botão copiar à direita -->
             <div class="pending-card-footer">
-                <span class="pending-card-action-text">
-                    <i data-lucide="message-circle" style="width: 15px; height: 15px;"></i>
-                    Clique no card para copiar a confirmação
+                <span class="pending-card-datetime">
+                    <i data-lucide="clock" style="width: 13px; height: 13px; color: #16a34a; flex-shrink:0;"></i>
+                    ${diaSemana ? `${diaSemana}, ` : ''}${dataFormatada} · ${horario}
                 </span>
                 <span class="pending-card-copy-btn">
-                    <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
-                    Copiar & Confirmar
+                    <i data-lucide="copy" style="width: 13px; height: 13px;"></i>
+                    Copiar
                 </span>
             </div>
+
         </div>
     `;
 }

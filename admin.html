@@ -37,7 +37,7 @@
 
     <!-- Estilos Base + Admin -->
     <link rel="stylesheet" href="assets/css/common.css">
-    <link rel="stylesheet" href="assets/css/admin.css?v=13">
+    <link rel="stylesheet" href="assets/css/admin.css?v=15">
 
     <!-- Ícones Lucide -->
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -220,6 +220,10 @@
 
                  <!-- Card Unificado de Ações Rápidas (Abaixo da pesquisa e acima das métricas) -->
                  <div class="quick-actions-card" id="quick-actions-card">
+                     <div class="quick-actions-header">
+                         <i data-lucide="zap"></i>
+                         <span>Ações Rápidas</span>
+                     </div>
                      <div class="quick-actions-container">
                          <a href="presenca.html" target="_blank" class="btn-quick-round btn-presenca" title="Presença OER">
                              <i data-lucide="user-check"></i>
@@ -2593,7 +2597,7 @@ Intervalo
             }
         }, 5000);
     </script>
-    <script type="module" src="assets/js/admin/admin.js?v=24"></script>
+    <script type="module" src="assets/js/admin/admin.js?v=25"></script>
     <script>
         // Registro do Service Worker
         if ('serviceWorker' in navigator) {
