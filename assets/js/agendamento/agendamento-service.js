@@ -384,7 +384,7 @@ export const AgendamentoService = {
     /**
      * Calcula slots disponíveis para uma sala em uma data escolhida
      */
-    calculateAvailableSlots(sala, dataStr, agendamentosConfirmados) {
+    calculateAvailableSlots(sala, dataStr, agendamentosConfirmados, options = {}) {
         if (!sala || !dataStr) return [];
 
         // Validação de Período Limite (Data Inicial e Final)
@@ -428,6 +428,17 @@ export const AgendamentoService = {
             (ag) => ag.salaId === sala.id && ag.data === dataStr && ag.status === "confirmado"
         );
 
+        // Verificação de tempo atual para identificar slots passados
+        const agora = new Date();
+        const anoAtual = agora.getFullYear();
+        const mesAtual = String(agora.getMonth() + 1).padStart(2, "0");
+        const diaAtual = String(agora.getDate()).padStart(2, "0");
+        const hojeStr = `${anoAtual}-${mesAtual}-${diaAtual}`;
+        const nowTotalMin = agora.getHours() * 60 + agora.getMinutes();
+
+        const isDataPassada = dataStr < hojeStr;
+        const isHoje = dataStr === hojeStr;
+
         for (let current = startTotalMin; current + duration <= endTotalMin; current += duration) {
             const h1 = String(Math.floor(current / 60)).padStart(2, "0");
             const m1 = String(current % 60).padStart(2, "0");
@@ -442,10 +453,17 @@ export const AgendamentoService = {
                 return ag.horaInicio === inicioStr;
             });
 
+            // Considera passado se a data for retroativa ou se for hoje e o horário de início já passou
+            const isPassado = isDataPassada || (isHoje && current <= nowTotalMin);
+
+            const disponivel = !isOcupado && (!options.filterPast || !isPassado);
+
             slots.push({
                 horaInicio: inicioStr,
                 horaFim: fimStr,
-                disponivel: !isOcupado
+                disponivel: disponivel,
+                passado: isPassado,
+                ocupado: isOcupado
             });
         }
 
@@ -539,20 +557,34 @@ export const AgendamentoService = {
             return header + `_Nenhuma sala cadastrada no momento._`;
         }
 
+        // Verificação de data atual / retroativa
+        const agora = new Date();
+        const anoAtual = agora.getFullYear();
+        const mesAtual = String(agora.getMonth() + 1).padStart(2, "0");
+        const diaAtual = String(agora.getDate()).padStart(2, "0");
+        const hojeStr = `${anoAtual}-${mesAtual}-${diaAtual}`;
+
+        const isDataPassada = dataStr < hojeStr;
+        const isHoje = dataStr === hojeStr;
+
         const blocosSalas = [];
 
         salasAtivas.forEach(sala => {
-            const slots = this.calculateAvailableSlots(sala, dataStr, agendamentos || []);
+            const slots = this.calculateAvailableSlots(sala, dataStr, agendamentos || [], { filterPast: true });
             const livres = slots.filter(s => s.disponivel);
 
             const nomeSala = (sala.nome || "SALA").toUpperCase();
             let bloco = `📍  *${nomeSala}*\n`;
 
             if (livres.length === 0) {
-                // Verificar se a sala opera hoje ou se está lotada
+                // Verificar se a sala opera hoje ou se está lotada ou encerrada
                 const configSemanal = sala.horarioSemanal || { dias: [1,2,3,4,5] };
                 if (!configSemanal.dias.includes(dateObj.getDay())) {
                     bloco += `• _Sala fechada neste dia da semana_\n`;
+                } else if (isDataPassada) {
+                    bloco += `• _Data retroativa / encerrada_\n`;
+                } else if (isHoje) {
+                    bloco += `• _Sem horários disponíveis para o restante do dia_\n`;
                 } else if (slots.length > 0) {
                     bloco += `• _Todos os horários esgotados para esta data_\n`;
                 } else {

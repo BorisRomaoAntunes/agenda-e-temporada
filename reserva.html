@@ -499,15 +499,28 @@
                 return;
             }
 
-            const todosSlots = AgendamentoService.calculateAvailableSlots(sala, dataEscolhida, allAgendamentos);
+            const todosSlots = AgendamentoService.calculateAvailableSlots(sala, dataEscolhida, allAgendamentos, { filterPast: true });
             const slotsLivres = todosSlots.filter(s => s.disponivel);
 
             if (slotsLivres.length === 0) {
+                const agora = new Date();
+                const anoAtual = agora.getFullYear();
+                const mesAtual = String(agora.getMonth() + 1).padStart(2, '0');
+                const diaAtual = String(agora.getDate()).padStart(2, '0');
+                const hojeStr = `${anoAtual}-${mesAtual}-${diaAtual}`;
+
+                let mensagemVazia = "Todos os horários desta data já foram preenchidos.";
+                if (dataEscolhida < hojeStr) {
+                    mensagemVazia = "Esta data já se encerrou. Selecione a data de hoje ou uma data futura.";
+                } else if (dataEscolhida === hojeStr) {
+                    mensagemVazia = "Não há mais horários disponíveis para o restante do dia de hoje.";
+                }
+
                 publicSlotsContainer.innerHTML = `
                     <div style="grid-column: 1/-1; text-align: center; padding: 2rem 0;">
-                        <i data-lucide="check-circle-2" style="width: 24px; height: 24px; color: var(--oer-success); margin-bottom: 0.5rem;"></i>
+                        <i data-lucide="calendar-x-2" style="width: 24px; height: 24px; color: var(--oer-accent); margin-bottom: 0.5rem;"></i>
                         <p style="font-size: 0.85rem; color: var(--oer-text-muted);">
-                            Todos os horários desta data já foram preenchidos.
+                            ${mensagemVazia}
                         </p>
                     </div>
                 `;
@@ -821,6 +834,22 @@ Qualquer dúvida, estou à disposição!`;
 
             if (!selectedSlot) {
                 alert("Por favor, selecione um horário disponível na lista de horários.");
+                return;
+            }
+
+            // Validação contra envio de horário já passado no dia de hoje
+            const agora = new Date();
+            const anoAtual = agora.getFullYear();
+            const mesAtual = String(agora.getMonth() + 1).padStart(2, '0');
+            const diaAtual = String(agora.getDate()).padStart(2, '0');
+            const hojeStr = `${anoAtual}-${mesAtual}-${diaAtual}`;
+            const [hSlot, mSlot] = selectedSlot.horaInicio.split(":").map(Number);
+            const slotMin = hSlot * 60 + mSlot;
+            const nowMin = agora.getHours() * 60 + agora.getMinutes();
+
+            if (publicDataInput.value < hojeStr || (publicDataInput.value === hojeStr && slotMin <= nowMin)) {
+                alert("Este horário já se encerrou. Por favor, escolha um horário futuro.");
+                renderPublicSlots();
                 return;
             }
 

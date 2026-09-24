@@ -218,37 +218,48 @@
                  <!-- Área de Notificações de Novos Agendamentos Pendentes (Logo abaixo da pesquisa) -->
                  <div id="pending-agendamentos-area" class="pending-agendamentos-area" style="display: none;"></div>
 
-                 <!-- Card Unificado de Ações Rápidas (Abaixo da pesquisa e acima das métricas) -->
+                 <!-- Card de Ações Rápidas (Botão + Gaveta Dropdown) -->
                  <div class="quick-actions-card" id="quick-actions-card">
-                     <div class="quick-actions-header">
-                         <i data-lucide="zap"></i>
-                         <span>Ações Rápidas</span>
-                     </div>
-                     <div class="quick-actions-container">
-                         <!-- Módulos e Links Externos -->
-                         <a href="presenca.html" target="_blank" class="btn-quick-round btn-presenca" title="Presença OER">
-                             <i data-lucide="user-check"></i>
-                         </a>
-                         <a href="agendamento.html" target="_blank" class="btn-quick-round btn-agendamento" title="Agendamento de Salas OER">
-                             <i data-lucide="calendar-clock"></i>
-                         </a>
-                         <a href="https://docs.google.com/document/d/1LZcA7TGbL2J_O8Y8H7JUKAauF8B1PAElbnSDqjodTQw/edit?usp=sharing" target="_blank" class="btn-quick-round btn-instrumentacao" title="Instrumentação">
-                             <i data-lucide="file-text"></i>
-                         </a>
+                     <div class="quick-actions-trigger-wrapper">
+                         <button type="button" class="quick-actions-trigger-btn" id="quick-actions-trigger-btn" aria-expanded="false" aria-controls="quick-actions-dropdown">
+                             <i data-lucide="zap" class="quick-actions-trigger-icon"></i>
+                             <span>Ações Rápidas</span>
+                             <i data-lucide="chevron-down" class="quick-actions-chevron"></i>
+                         </button>
 
-                         <!-- Pequeno Divisor Visual -->
-                         <div class="quick-actions-divider" role="separator" aria-orientation="vertical"></div>
+                         <!-- Gaveta Dropdown Flutuante -->
+                         <div class="quick-actions-dropdown" id="quick-actions-dropdown" role="menu" aria-hidden="true">
+                             <!-- Módulos e Links Externos -->
+                             <a href="presenca.html" target="_blank" class="quick-actions-item" role="menuitem" data-qa-close>
+                                 <span class="qa-item-icon btn-presenca"><i data-lucide="user-check"></i></span>
+                                 <span class="qa-item-label">Presença OER</span>
+                             </a>
+                             <a href="agendamento.html" target="_blank" class="quick-actions-item" role="menuitem" data-qa-close>
+                                 <span class="qa-item-icon btn-agendamento"><i data-lucide="calendar-clock"></i></span>
+                                 <span class="qa-item-label">Agendamento de Salas</span>
+                             </a>
+                             <a href="https://docs.google.com/document/d/1LZcA7TGbL2J_O8Y8H7JUKAauF8B1PAElbnSDqjodTQw/edit?usp=sharing" target="_blank" class="quick-actions-item" role="menuitem" data-qa-close>
+                                 <span class="qa-item-icon btn-instrumentacao"><i data-lucide="file-text"></i></span>
+                                 <span class="qa-item-label">Instrumentação</span>
+                             </a>
 
-                         <!-- Ações & Relatórios de Agendamento -->
-                         <button type="button" class="btn-quick-round btn-agendamento-atual" id="btn-quick-agendamento-atual" title="Copiar Agendamentos Formatados (WhatsApp)">
-                             <i data-lucide="message-square-text"></i>
-                         </button>
-                         <button type="button" class="btn-quick-round btn-horarios-livres" id="btn-quick-horarios-livres" title="Copiar Horários Disponíveis das Salas (WhatsApp)">
-                             <i data-lucide="calendar-check-2"></i>
-                         </button>
-                         <button type="button" class="btn-quick-round btn-link-musicos" id="btn-quick-link-musicos" title="Copiar Link Público dos Músicos (WhatsApp)">
-                             <i data-lucide="link"></i>
-                         </button>
+                             <!-- Divisor -->
+                             <div class="qa-dropdown-divider"></div>
+
+                             <!-- Ações & Relatórios de Agendamento -->
+                             <button type="button" class="quick-actions-item" id="btn-quick-agendamento-atual" role="menuitem" data-qa-close>
+                                 <span class="qa-item-icon btn-agendamento-atual"><i data-lucide="message-square-text"></i></span>
+                                 <span class="qa-item-label">Agendamentos (WhatsApp)</span>
+                             </button>
+                             <button type="button" class="quick-actions-item" id="btn-quick-horarios-livres" role="menuitem" data-qa-close>
+                                 <span class="qa-item-icon btn-horarios-livres"><i data-lucide="calendar-check-2"></i></span>
+                                 <span class="qa-item-label">Horários Disponíveis</span>
+                             </button>
+                             <button type="button" class="quick-actions-item" id="btn-quick-link-musicos" role="menuitem" data-qa-close>
+                                 <span class="qa-item-icon btn-link-musicos"><i data-lucide="link"></i></span>
+                                 <span class="qa-item-label">Link Público dos Músicos</span>
+                             </button>
+                         </div>
                      </div>
                  </div>
 
