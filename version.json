@@ -1,13 +1,19 @@
 {
-  "hash": "23c2d7d+mod",
-  "date": "24/09/2026, 11:31:27",
-  "buildAt": "2026-09-24T14:31:26.887Z",
+  "hash": "376fce6",
+  "date": "24/09/2026 11:33",
+  "buildAt": "2026-09-24T14:38:03.642Z",
   "history": [
     {
-      "hash": "23c2d7d+mod",
-      "date": "24/09/2026, 11:31:27",
-      "author": "Deploy Local",
-      "subject": "Atualização implantada (3 arquivos modificados)"
+      "hash": "376fce6",
+      "date": "24/09/2026 11:33",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(admin): adiciona cabeçalho 'Ações Rápidas' ao card unificado"
+    },
+    {
+      "hash": "fc52686",
+      "date": "24/09/2026 11:32",
+      "author": "Boris Romão Antunes",
+      "subject": "feat: redesign card agendamento pendente - layout compacto 3 linhas"
     },
     {
       "hash": "23c2d7d",
@@ -116,12 +122,6 @@
       "date": "22/09/2026 18:03",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualizacao de versao e build pos-deploy"
-    },
-    {
-      "hash": "2d4dcf9",
-      "date": "22/09/2026 18:00",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(agendamento): lista suspensa de musicos e monitores com autopreenchimento de instrumento e vinculo"
     }
   ]
 }
