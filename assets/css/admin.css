@@ -6932,4 +6932,207 @@ input:checked + .slider:before {
     box-shadow: 0 1px 4px rgba(124, 58, 237, 0.2);
 }
 
+/* ================= ÁREA DE AGENDAMENTOS PENDENTES (LOGO ABAIXO DA PESQUISA) ================= */
+
+.pending-agendamentos-area {
+    width: 100%;
+    max-width: 740px;
+    margin: -0.5rem auto 1.5rem auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    animation: fadeInPendingArea 0.35s ease-out;
+}
+
+@keyframes fadeInPendingArea {
+    from { opacity: 0; transform: translateY(-8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.pending-agendamento-card {
+    background: #ffffff;
+    border-radius: 14px;
+    border: 1.5px solid #bbf7d0;
+    border-left: 5px solid #16a34a;
+    box-shadow: 0 4px 16px rgba(22, 163, 74, 0.08), 0 2px 4px rgba(0, 0, 0, 0.03);
+    padding: 1rem 1.25rem;
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+}
+
+.pending-agendamento-card:hover {
+    transform: translateY(-2px);
+    border-color: #86efac;
+    border-left-color: #15803d;
+    box-shadow: 0 8px 24px rgba(22, 163, 74, 0.16), 0 3px 8px rgba(0, 0, 0, 0.04);
+    background: linear-gradient(to right, #f0fdf4 0%, #ffffff 100%);
+}
+
+.pending-agendamento-card:active {
+    transform: translateY(0);
+}
+
+.pending-agendamento-card.is-dismissing {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.97);
+    max-height: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    border-width: 0 !important;
+    pointer-events: none;
+    transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pending-card-top-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.pending-card-badge-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.pending-pulse-dot {
+    width: 8px;
+    height: 8px;
+    background-color: #16a34a;
+    border-radius: 50%;
+    display: inline-block;
+    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7);
+    animation: pendingPulse 1.8s infinite;
+}
+
+@keyframes pendingPulse {
+    0% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7);
+    }
+    70% {
+        transform: scale(1);
+        box-shadow: 0 0 0 6px rgba(22, 163, 74, 0);
+    }
+    100% {
+        transform: scale(0.95);
+        box-shadow: 0 0 0 0 rgba(22, 163, 74, 0);
+    }
+}
+
+.pending-badge-label {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #15803d;
+    background: #dcfce7;
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+}
+
+.pending-card-datetime {
+    font-size: 0.84rem;
+    font-weight: 600;
+    color: #374151;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.pending-card-sala-badge {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #ea580c;
+    background: #ffedd5;
+    padding: 0.25rem 0.65rem;
+    border-radius: 8px;
+    border: 1px solid #fed7aa;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.pending-card-main {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.pending-card-musico-nome {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #111827;
+    letter-spacing: -0.01em;
+}
+
+.pending-card-musico-sub {
+    font-size: 0.82rem;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+}
+
+.pending-card-obs {
+    margin-top: 0.2rem;
+    font-size: 0.78rem;
+    color: #4b5563;
+    background: #f9fafb;
+    padding: 0.35rem 0.6rem;
+    border-radius: 6px;
+    border-left: 3px solid #cbd5e1;
+}
+
+.pending-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 0.5rem;
+    border-top: 1px dashed #e5e7eb;
+    margin-top: 0.25rem;
+}
+
+.pending-card-action-text {
+    font-size: 0.8rem;
+    color: #15803d;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.pending-card-copy-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.85rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #ffffff;
+    background: linear-gradient(135deg, #16a34a, #15803d);
+    box-shadow: 0 2px 6px rgba(22, 163, 74, 0.25);
+    border: none;
+    pointer-events: none; /* Deixa o card inteiro clicável */
+    transition: all 0.2s ease;
+}
+
+.pending-agendamento-card:hover .pending-card-copy-btn {
+    background: linear-gradient(135deg, #15803d, #166534);
+    box-shadow: 0 4px 10px rgba(22, 163, 74, 0.35);
+}
+
+
 

@@ -199,6 +199,7 @@ export const AgendamentoService = {
             precisaPartitura: Boolean(dados.precisaPartitura),
             qualPartitura: dados.precisaPartitura ? (dados.qualPartitura || "").trim() : "",
             status: "confirmado",
+            copiadoAdmin: false,
             createdAt: new Date().toISOString()
         };
 
@@ -300,6 +301,84 @@ export const AgendamentoService = {
                 window.dispatchEvent(new CustomEvent("local_agendamentos_updated"));
             }
         } catch(e) {}
+    },
+
+    /**
+     * Marca um agendamento como já copiado/visualizado pelo Admin para não exibir mais o card de pendência
+     */
+    async markAgendamentoCopiado(agendamentoId) {
+        if (!agendamentoId) return;
+        try {
+            const ref = doc(db, AGENDAMENTOS_COLLECTION, agendamentoId);
+            await updateDoc(ref, {
+                copiadoAdmin: true,
+                copiadoAdminAt: serverTimestamp()
+            });
+        } catch (err) {
+            console.warn("Erro ao atualizar copiadoAdmin no Firestore (tentando fallback local):", err.message);
+        }
+        try {
+            let ags = JSON.parse(localStorage.getItem("LOCAL_AGENDAMENTOS_SALAS") || "[]");
+            const idx = ags.findIndex(a => a.id === agendamentoId);
+            if (idx !== -1) {
+                ags[idx].copiadoAdmin = true;
+                localStorage.setItem("LOCAL_AGENDAMENTOS_SALAS", JSON.stringify(ags));
+                window.dispatchEvent(new CustomEvent("local_agendamentos_updated"));
+            }
+        } catch(e) {}
+    },
+
+    /**
+     * Escuta em tempo real os agendamentos pendentes de confirmação (hoje ou futuro e não copiados)
+     */
+    listenAgendamentosPendentes(callback) {
+        const getHojeStr = () => {
+            const hoje = new Date();
+            const y = hoje.getFullYear();
+            const m = String(hoje.getMonth() + 1).padStart(2, "0");
+            const d = String(hoje.getDate()).padStart(2, "0");
+            return `${y}-${m}-${d}`;
+        };
+
+        const loadLocalPendentes = () => {
+            try {
+                const hojeStr = getHojeStr();
+                let ags = JSON.parse(localStorage.getItem("LOCAL_AGENDAMENTOS_SALAS") || "[]");
+                const pendentes = ags.filter(a => a.status === "confirmado" && a.copiadoAdmin !== true && a.data && a.data >= hojeStr);
+                pendentes.sort((a, b) => {
+                    if (a.data !== b.data) return a.data.localeCompare(b.data);
+                    return (a.horaInicio || "").localeCompare(b.horaInicio || "");
+                });
+                callback(pendentes);
+            } catch(e) {
+                callback([]);
+            }
+        };
+
+        const q = query(
+            collection(db, AGENDAMENTOS_COLLECTION),
+            where("status", "==", "confirmado")
+        );
+
+        return onSnapshot(q, (snapshot) => {
+            const hojeStr = getHojeStr();
+            const pendentes = [];
+            snapshot.forEach((docSnap) => {
+                const data = docSnap.data();
+                if (data.copiadoAdmin !== true && data.data && data.data >= hojeStr) {
+                    pendentes.push({ id: docSnap.id, ...data });
+                }
+            });
+            pendentes.sort((a, b) => {
+                if (a.data !== b.data) return a.data.localeCompare(b.data);
+                return (a.horaInicio || "").localeCompare(b.horaInicio || "");
+            });
+            callback(pendentes);
+        }, (error) => {
+            console.warn("Firestore Agendamentos Pendentes (modo local fallback):", error.message);
+            loadLocalPendentes();
+            window.addEventListener("local_agendamentos_updated", loadLocalPendentes);
+        });
     },
 
     /**

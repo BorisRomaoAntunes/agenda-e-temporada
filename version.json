@@ -1,8 +1,20 @@
 {
-  "hash": "b07e618",
-  "date": "24/09/2026 10:56",
-  "buildAt": "2026-09-24T13:56:56.525Z",
+  "hash": "4bfd06f+mod",
+  "date": "24/09/2026, 11:01:03",
+  "buildAt": "2026-09-24T14:01:03.274Z",
   "history": [
+    {
+      "hash": "4bfd06f+mod",
+      "date": "24/09/2026, 11:01:03",
+      "author": "Deploy Local",
+      "subject": "Atualização implantada (3 arquivos modificados)"
+    },
+    {
+      "hash": "4bfd06f",
+      "date": "24/09/2026 11:00",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pós-deploy vb07e618"
+    },
     {
       "hash": "b07e618",
       "date": "24/09/2026 10:56",
@@ -110,18 +122,6 @@
       "date": "22/09/2026 12:05",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualiza version.json pós-deploy v5cfe628"
-    },
-    {
-      "hash": "5cfe628",
-      "date": "22/09/2026 12:04",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(admin): adiciona botao de acesso rapido ao agendamento de salas ao lado da presenca e publica agendamento.html"
-    },
-    {
-      "hash": "ed94566",
-      "date": "22/09/2026 11:54",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pós-deploy v719f064"
     }
   ]
 }
