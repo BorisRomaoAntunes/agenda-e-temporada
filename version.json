@@ -1,13 +1,25 @@
 {
-  "hash": "4bfd06f+mod",
-  "date": "24/09/2026, 11:01:03",
-  "buildAt": "2026-09-24T14:01:03.274Z",
+  "hash": "bd338ac",
+  "date": "24/09/2026 11:06",
+  "buildAt": "2026-09-24T14:08:56.777Z",
   "history": [
     {
-      "hash": "4bfd06f+mod",
-      "date": "24/09/2026, 11:01:03",
-      "author": "Deploy Local",
-      "subject": "Atualização implantada (3 arquivos modificados)"
+      "hash": "bd338ac",
+      "date": "24/09/2026 11:06",
+      "author": "Boris Romão Antunes",
+      "subject": "chore(cache): atualiza versao de cache para admin.css v12 e admin.js v23"
+    },
+    {
+      "hash": "19d2cc3",
+      "date": "24/09/2026 11:05",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(admin): integra área de agendamentos pendentes com monitoramento em tempo real"
+    },
+    {
+      "hash": "68adf18",
+      "date": "24/09/2026 11:04",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(admin): melhorias em agendamentos pendentes e sincronização de versão"
     },
     {
       "hash": "4bfd06f",
@@ -110,18 +122,6 @@
       "date": "22/09/2026 12:21",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualiza version.json pós-deploy v36ac0d4"
-    },
-    {
-      "hash": "36ac0d4",
-      "date": "22/09/2026 12:21",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(agendamento): modo lado a lado nativo, auth estilo presenca, botao copiar link e pagina publica reserva.html"
-    },
-    {
-      "hash": "1eae913",
-      "date": "22/09/2026 12:05",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pós-deploy v5cfe628"
     }
   ]
 }
