@@ -1,8 +1,20 @@
 {
-  "hash": "23bfb33",
-  "date": "24/09/2026 11:25",
-  "buildAt": "2026-09-24T14:25:54.271Z",
+  "hash": "23c2d7d+mod",
+  "date": "24/09/2026, 11:31:27",
+  "buildAt": "2026-09-24T14:31:26.887Z",
   "history": [
+    {
+      "hash": "23c2d7d+mod",
+      "date": "24/09/2026, 11:31:27",
+      "author": "Deploy Local",
+      "subject": "Atualização implantada (3 arquivos modificados)"
+    },
+    {
+      "hash": "23c2d7d",
+      "date": "24/09/2026 11:25",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pós-deploy v3c03f12"
+    },
     {
       "hash": "23bfb33",
       "date": "24/09/2026 11:25",
@@ -110,18 +122,6 @@
       "date": "22/09/2026 18:00",
       "author": "Boris Romão Antunes",
       "subject": "feat(agendamento): lista suspensa de musicos e monitores com autopreenchimento de instrumento e vinculo"
-    },
-    {
-      "hash": "33f39f9",
-      "date": "22/09/2026 17:48",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pós-deploy da correção de layout"
-    },
-    {
-      "hash": "8794bbd",
-      "date": "22/09/2026 17:37",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pós-deploy v64c9cee"
     }
   ]
 }
