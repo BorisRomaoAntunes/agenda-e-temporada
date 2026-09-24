@@ -1,8 +1,20 @@
 {
-  "hash": "b51ac80",
-  "date": "23/09/2026 14:29",
-  "buildAt": "2026-09-23T17:31:22.702Z",
+  "hash": "b07e618",
+  "date": "24/09/2026 10:56",
+  "buildAt": "2026-09-24T13:56:56.525Z",
   "history": [
+    {
+      "hash": "b07e618",
+      "date": "24/09/2026 10:56",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(reserva): modal de confirmação com integração de calendário e compartilhamento"
+    },
+    {
+      "hash": "8c778e7",
+      "date": "23/09/2026 14:32",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pós-deploy vb51ac80"
+    },
     {
       "hash": "b51ac80",
       "date": "23/09/2026 14:29",
@@ -110,18 +122,6 @@
       "date": "22/09/2026 11:54",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualiza version.json pós-deploy v719f064"
-    },
-    {
-      "hash": "719f064",
-      "date": "22/09/2026 11:51",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(agendamento): adiciona modulo de agendamento de salas com regras de disponibilidade, visualizacao em lista/grade, integracao com whatsapp e design responsivo mobile"
-    },
-    {
-      "hash": "bcba0ad",
-      "date": "21/09/2026 21:21",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pós-deploy va880e2c"
     }
   ]
 }
