@@ -187,7 +187,7 @@
 
                     <div style="margin-top: 0.75rem;">
                         <button type="submit" class="btn btn-accent" style="width: 100%; padding: 0.9rem; font-size: 1rem; border-radius: 8px;" id="btnConfirmarReserva">
-                            <i data-lucide="calendar-check" style="width: 20px; height: 20px;"></i> Confirmar Agendamento em Tempo Real
+                            <i data-lucide="calendar-check" style="width: 20px; height: 20px;"></i> Confirmar Agendamento
                         </button>
                     </div>
                 </form>
@@ -195,6 +195,74 @@
 
         </div>
     </main>
+
+    <!-- ======================================================== -->
+    <!-- MODAL: CONFIRMAÇÃO DE AGENDAMENTO COM CALENDÁRIO E COMPARTILHAMENTO -->
+    <!-- ======================================================== -->
+    <div class="modal-overlay" id="modalConfirmacaoReserva">
+        <div class="modal-box" style="max-width: 520px; border-top: 5px solid #16a34a; border-radius: 14px; overflow: hidden;">
+            <div class="modal-header" style="background: #f0fdf4; border-bottom: 1px solid #bbf7d0; padding: 1rem 1.25rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <div style="background: #16a34a; color: white; border-radius: 50%; width: 38px; height: 38px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; box-shadow: 0 2px 4px rgba(22,163,74,0.25);">
+                        <i data-lucide="check" style="width: 22px; height: 22px; stroke-width: 2.5;"></i>
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; color: #166534; font-size: 1.15rem; font-weight: 700;">Agendamento Confirmado!</h3>
+                        <p style="margin: 0.15rem 0 0 0; font-size: 0.82rem; color: #15803d;">Sua reserva foi concluída com sucesso.</p>
+                    </div>
+                </div>
+                <button class="btn btn-outline btn-sm" id="btnCloseConfirmacaoModal" style="border: none; padding: 0.35rem 0.5rem; color: #166534; background: transparent; cursor: pointer;" title="Fechar">
+                    <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                </button>
+            </div>
+
+            <div class="modal-body" style="padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem;">
+                <!-- Card com Resumo das Informações -->
+                <div id="confirmacaoCardDetalhes" style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem 1.15rem; font-size: 0.92rem; display: flex; flex-direction: column; gap: 0.65rem;">
+                    <!-- Preenchido dinamicamente via JS -->
+                </div>
+
+                <!-- Aviso / Orientação de Acesso -->
+                <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 10px; padding: 0.85rem 1rem; display: flex; gap: 0.65rem; align-items: flex-start;">
+                    <i data-lucide="alert-triangle" style="color: #b45309; width: 20px; height: 20px; flex-shrink: 0; margin-top: 2px;"></i>
+                    <div style="font-size: 0.86rem; color: #92400e; line-height: 1.4;">
+                        <strong>Obs.:</strong> Antes de acessar a sala que foi agendada informar a equipe da montagem da OER.
+                    </div>
+                </div>
+
+                <!-- Ações: Calendário -->
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.25rem;">
+                    <span style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--oer-text-muted); letter-spacing: 0.04em;">
+                        Adicionar à sua Agenda
+                    </span>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem;">
+                        <a id="btnGoogleCalendar" target="_blank" rel="noopener noreferrer" class="btn" style="background: #ffffff; border: 1px solid #cbd5e1; color: #1e293b; font-size: 0.88rem; padding: 0.75rem 0.5rem; justify-content: center; gap: 0.45rem; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                            <i data-lucide="calendar" style="width: 18px; height: 18px; color: #4285F4;"></i> Google Agenda
+                        </a>
+                        <button id="btnAppleCalendar" type="button" class="btn" style="background: #ffffff; border: 1px solid #cbd5e1; color: #1e293b; font-size: 0.88rem; padding: 0.75rem 0.5rem; justify-content: center; gap: 0.45rem; border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.05); cursor: pointer;">
+                            <i data-lucide="apple" style="width: 18px; height: 18px; color: #000;"></i> Apple / .ics
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Ações: Compartilhar Mensagem -->
+                <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <span style="font-size: 0.8rem; font-weight: 700; text-transform: uppercase; color: var(--oer-text-muted); letter-spacing: 0.04em;">
+                        Compartilhar / Notificar
+                    </span>
+                    <button id="btnCompartilharReserva" type="button" class="btn" style="background: #128c7e; color: #ffffff; border: none; font-size: 0.92rem; padding: 0.8rem 1rem; justify-content: center; gap: 0.55rem; border-radius: 8px; font-weight: 600; box-shadow: 0 2px 5px rgba(18,140,126,0.3); cursor: pointer; display: inline-flex; align-items: center;">
+                        <i data-lucide="share-2" style="width: 18px; height: 18px;"></i> <span id="labelCompartilhar">Compartilhar Detalhes</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="modal-footer" style="padding: 0.85rem 1.25rem; background: #f8fafc;">
+                <button type="button" class="btn btn-outline" id="btnOkConfirmacao" style="width: 100%; border-radius: 8px; font-weight: 600; padding: 0.7rem; justify-content: center;">
+                    Fechar / Novo Agendamento
+                </button>
+            </div>
+        </div>
+    </div>
 
     <!-- Script de Inicialização da Página Pública -->
     <script type="module">
@@ -496,6 +564,250 @@
             });
         });
 
+        // ========================================================
+        // MODAL DE CONFIRMAÇÃO, CALENDÁRIO E COMPARTILHAMENTO
+        // ========================================================
+        let ultimoPayloadConfirmado = null;
+        let ultimaMensagemTexto = "";
+
+        async function copiarParaClipboard(texto) {
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(texto);
+                } else {
+                    const textarea = document.createElement("textarea");
+                    textarea.value = texto;
+                    textarea.style.position = "fixed";
+                    textarea.style.opacity = "0";
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand("copy");
+                    document.body.removeChild(textarea);
+                }
+                showToast("Texto copiado para a área de transferência!");
+                const label = document.getElementById("labelCompartilhar");
+                if (label) {
+                    const original = label.textContent;
+                    label.textContent = "Copiado com sucesso! ✓";
+                    setTimeout(() => { label.textContent = original; }, 2500);
+                }
+            } catch (e) {
+                console.error("Erro ao copiar texto:", e);
+                showToast("Não foi possível copiar o texto automaticamente.");
+            }
+        }
+
+        function gerarArquivoICS(payload) {
+            const [anoStr, mesStr, diaStr] = payload.data.split("-");
+            const [horaIniH, horaIniM] = payload.horaInicio.split(":");
+            const [horaFimH, horaFimM] = payload.horaFim.split(":");
+
+            const dtStart = `${anoStr}${mesStr}${diaStr}T${horaIniH.padStart(2, '0')}${horaIniM.padStart(2, '0')}00`;
+            const dtEnd = `${anoStr}${mesStr}${diaStr}T${horaFimH.padStart(2, '0')}${horaFimM.padStart(2, '0')}00`;
+            const nowUtc = new Date().toISOString().replace(/[-:]/g, "").split(".")[0] + "Z";
+            const uid = `oer-reserva-${Date.now()}-${Math.floor(Math.random() * 10000)}@oer.art.br`;
+
+            let descRaw = `Reserva de Sala de Ensaio - OER\\n` +
+                `Sala: ${payload.salaNome}\\n` +
+                `Horário: ${payload.horaInicio} às ${payload.horaFim}\\n` +
+                `Músico: ${payload.nomeSolicitante} (${payload.instrumento})\\n`;
+            if (payload.necessidades && payload.necessidades.trim()) {
+                descRaw += `Necessidades: ${payload.necessidades.trim()}\\n`;
+            }
+            if (payload.precisaPartitura && payload.qualPartitura) {
+                descRaw += `Partitura: ${payload.qualPartitura.trim()}\\n`;
+            }
+            descRaw += `\\nObs.: Antes de acessar a sala agendada, informe a equipe da montagem da OER.`;
+
+            const summaryEscaped = `Reserva de Sala: ${payload.salaNome} - OER`.replace(/,/g, "\\,").replace(/;/g, "\\;");
+            const locationEscaped = "Praça das Artes - Av. São João\\, 281 - Centro Histórico de São Paulo\\, SP";
+
+            const icsContent = [
+                "BEGIN:VCALENDAR",
+                "VERSION:2.0",
+                "PRODID:-//Orquestra Experimental de Repertorio//Reserva de Salas//PT",
+                "CALSCALE:GREGORIAN",
+                "METHOD:PUBLISH",
+                "BEGIN:VEVENT",
+                `UID:${uid}`,
+                `DTSTAMP:${nowUtc}`,
+                `DTSTART:${dtStart}`,
+                `DTEND:${dtEnd}`,
+                `SUMMARY:${summaryEscaped}`,
+                `DESCRIPTION:${descRaw}`,
+                `LOCATION:${locationEscaped}`,
+                "STATUS:CONFIRMED",
+                "END:VEVENT",
+                "END:VCALENDAR"
+            ].join("\r\n");
+
+            const blob = new Blob([icsContent], { type: "text/calendar;charset=utf-8" });
+            const link = document.createElement("a");
+            const objectUrl = URL.createObjectURL(blob);
+            link.href = objectUrl;
+            link.download = `reserva-${payload.salaNome.replace(/\s+/g, "_")}-${payload.data}.ics`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+        }
+
+        function configurarGoogleCalendar(payload) {
+            const [anoStr, mesStr, diaStr] = payload.data.split("-");
+            const [horaIniH, horaIniM] = payload.horaInicio.split(":");
+            const [horaFimH, horaFimM] = payload.horaFim.split(":");
+
+            const startIso = `${anoStr}${mesStr}${diaStr}T${horaIniH.padStart(2, '0')}${horaIniM.padStart(2, '0')}00`;
+            const endIso = `${anoStr}${mesStr}${diaStr}T${horaFimH.padStart(2, '0')}${horaFimM.padStart(2, '0')}00`;
+
+            const calTitle = encodeURIComponent(`Reserva Sala de Ensaio: ${payload.salaNome} - OER`);
+            const calLocation = encodeURIComponent("Praça das Artes - Av. São João, 281 - Centro Histórico de São Paulo, SP");
+
+            let detailsText = `Reserva de Sala de Ensaio - OER\n\n` +
+                `Sala: ${payload.salaNome}\n` +
+                `Horário: ${payload.horaInicio} às ${payload.horaFim}\n` +
+                `Músico: ${payload.nomeSolicitante} (${payload.instrumento})\n`;
+            if (payload.necessidades && payload.necessidades.trim()) {
+                detailsText += `Necessidades: ${payload.necessidades.trim()}\n`;
+            }
+            if (payload.precisaPartitura && payload.qualPartitura) {
+                detailsText += `Partitura: ${payload.qualPartitura.trim()}\n`;
+            }
+            detailsText += `\nObs.: Antes de acessar a sala agendada, informe a equipe da montagem da OER.`;
+
+            const calDetails = encodeURIComponent(detailsText);
+
+            const btnGoogle = document.getElementById("btnGoogleCalendar");
+            if (btnGoogle) {
+                btnGoogle.href = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${calTitle}&dates=${startIso}/${endIso}&details=${calDetails}&location=${calLocation}`;
+            }
+        }
+
+        function abrirModalConfirmacao(payload) {
+            ultimoPayloadConfirmado = payload;
+
+            const [anoStr, mesStr, diaStr] = payload.data.split("-");
+            const ano = parseInt(anoStr, 10);
+            const mes = parseInt(mesStr, 10);
+            const dia = parseInt(diaStr, 10);
+
+            const diasSemanaAbbr = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+            const diasSemanaExt = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+            const dateObj = new Date(ano, mes - 1, dia);
+            const diaSemanaAbbrev = diasSemanaAbbr[dateObj.getDay()] || "";
+            const diaSemanaNome = diasSemanaExt[dateObj.getDay()] || "";
+            const dataFormatadaDDMM = `${diaStr}/${mesStr}`;
+            const dataCompletaFormatada = `${diaStr}/${mesStr}/${anoStr}`;
+
+            const primeiroNome = (payload.nomeSolicitante || "").trim().split(" ")[0] || "Músico";
+            const salaUpper = (payload.salaNome || "").toUpperCase();
+
+            let extraInfo = "";
+            if (payload.necessidades && payload.necessidades.trim()) {
+                extraInfo += `  [${payload.necessidades.trim()}]`;
+            }
+            if (payload.precisaPartitura && payload.qualPartitura) {
+                extraInfo += `  [Partitura: ${payload.qualPartitura.trim()}]`;
+            }
+
+            // Modelo solicitado pelo usuário
+            ultimaMensagemTexto = 
+`Olá ${primeiroNome},
+Conforme agendado hoje (${diaSemanaAbbrev}, ${dataFormatadaDDMM}) a sala de ensaios (${payload.salaNome})
+
+📍  *${salaUpper}*
+• _${payload.horaInicio} às ${payload.horaFim}_: ${payload.nomeSolicitante}  (${payload.instrumento})${extraInfo}
+
+_Obs.: Antes de acessar a sala que foi agendada informar a equipe da montagem da OER._
+
+Qualquer dúvida, estou à disposição!`;
+
+            // Preenche o resumo do agendamento no modal
+            const cardDetalhes = document.getElementById("confirmacaoCardDetalhes");
+            cardDetalhes.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.6rem;">
+                    <span style="color: var(--oer-text-muted); font-size: 0.85rem;">Sala reservada:</span>
+                    <span style="font-weight: 700; color: var(--oer-primary); font-size: 1.05rem;">📍 ${payload.salaNome}</span>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.6rem;">
+                    <span style="color: var(--oer-text-muted); font-size: 0.85rem;">Data:</span>
+                    <span style="font-weight: 600; color: #1e293b;">${diaSemanaNome}, ${dataCompletaFormatada}</span>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.6rem;">
+                    <span style="color: var(--oer-text-muted); font-size: 0.85rem;">Horário:</span>
+                    <span style="font-weight: 700; color: #15803d; background: #dcfce7; padding: 0.25rem 0.6rem; border-radius: 6px; font-size: 0.95rem;">${payload.horaInicio} às ${payload.horaFim}</span>
+                </div>
+                <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.6rem;">
+                    <span style="color: var(--oer-text-muted); font-size: 0.85rem;">Músico:</span>
+                    <span style="font-weight: 600; color: #1e293b;">${payload.nomeSolicitante} <span style="font-weight: 400; color: var(--oer-text-muted);">(${payload.instrumento})</span></span>
+                </div>
+                ${payload.necessidades ? `
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.6rem;">
+                    <span style="color: var(--oer-text-muted); font-size: 0.85rem;">Necessidades:</span>
+                    <span style="font-weight: 500; color: #1e293b; text-align: right;">${payload.necessidades}</span>
+                </div>
+                ` : ''}
+                ${payload.precisaPartitura && payload.qualPartitura ? `
+                <div style="display: flex; align-items: flex-start; justify-content: space-between;">
+                    <span style="color: var(--oer-text-muted); font-size: 0.85rem;">Partitura:</span>
+                    <span style="font-weight: 500; color: #1e293b; text-align: right;">${payload.qualPartitura}</span>
+                </div>
+                ` : ''}
+            `;
+
+            // Configura link do Google Agenda
+            configurarGoogleCalendar(payload);
+
+            // Ajusta o texto do botão compartilhar de acordo com o dispositivo
+            const labelCompartilhar = document.getElementById("labelCompartilhar");
+            if (labelCompartilhar) {
+                labelCompartilhar.textContent = navigator.share ? "Compartilhar Detalhes" : "Copiar Texto da Reserva";
+            }
+
+            // Abre o modal
+            const modal = document.getElementById("modalConfirmacaoReserva");
+            modal.classList.add("active");
+            lucide.createIcons();
+        }
+
+        function fecharModalConfirmacao() {
+            const modal = document.getElementById("modalConfirmacaoReserva");
+            modal.classList.remove("active");
+        }
+
+        // Listeners do Modal
+        document.getElementById("btnCloseConfirmacaoModal")?.addEventListener("click", fecharModalConfirmacao);
+        document.getElementById("btnOkConfirmacao")?.addEventListener("click", fecharModalConfirmacao);
+        document.getElementById("modalConfirmacaoReserva")?.addEventListener("click", (e) => {
+            if (e.target.id === "modalConfirmacaoReserva") {
+                fecharModalConfirmacao();
+            }
+        });
+
+        document.getElementById("btnAppleCalendar")?.addEventListener("click", () => {
+            if (ultimoPayloadConfirmado) {
+                gerarArquivoICS(ultimoPayloadConfirmado);
+            }
+        });
+
+        document.getElementById("btnCompartilharReserva")?.addEventListener("click", async () => {
+            if (!ultimaMensagemTexto) return;
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: `Reserva - ${ultimoPayloadConfirmado?.salaNome || "Sala OER"}`,
+                        text: ultimaMensagemTexto
+                    });
+                } catch (err) {
+                    if (err.name !== "AbortError") {
+                        copiarParaClipboard(ultimaMensagemTexto);
+                    }
+                }
+            } else {
+                copiarParaClipboard(ultimaMensagemTexto);
+            }
+        });
+
         // Submissão do Agendamento
         publicBookingForm.addEventListener("submit", async (e) => {
             e.preventDefault();
@@ -534,18 +846,18 @@
             try {
                 await AgendamentoService.createAgendamento(payload);
                 showToast("Agendamento confirmado com sucesso!");
+                abrirModalConfirmacao(payload);
                 publicBookingForm.reset();
                 groupQualPartitura.style.display = "none";
                 selectedSlot = null;
                 renderVisualCalendar();
                 renderPublicSlots();
-                window.scrollTo({ top: 0, behavior: "smooth" });
             } catch (err) {
                 console.error("Erro ao criar agendamento:", err);
                 alert(err.message || "Ocorreu um erro ao realizar a reserva.");
             } finally {
                 btnConfirm.disabled = false;
-                btnConfirm.innerHTML = `<i data-lucide="calendar-check" style="width: 20px; height: 20px;"></i> Confirmar Agendamento em Tempo Real`;
+                btnConfirm.innerHTML = `<i data-lucide="calendar-check" style="width: 20px; height: 20px;"></i> Confirmar Agendamento`;
                 lucide.createIcons();
             }
         });
