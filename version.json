@@ -1,8 +1,20 @@
 {
-  "hash": "a1a045e",
-  "date": "24/09/2026 16:35",
-  "buildAt": "2026-09-24T19:40:58.751Z",
+  "hash": "e7b14a8",
+  "date": "24/09/2026 18:54",
+  "buildAt": "2026-09-24T21:58:43.480Z",
   "history": [
+    {
+      "hash": "e7b14a8",
+      "date": "24/09/2026 18:54",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(musicos): adiciona relatório de tempo de OER com prévia e exportação Excel"
+    },
+    {
+      "hash": "4e44bff",
+      "date": "24/09/2026 16:41",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pós-deploy va1a045e"
+    },
     {
       "hash": "a1a045e",
       "date": "24/09/2026 16:35",
@@ -110,18 +122,6 @@
       "date": "24/09/2026 11:04",
       "author": "Boris Romão Antunes",
       "subject": "feat(admin): melhorias em agendamentos pendentes e sincronização de versão"
-    },
-    {
-      "hash": "4bfd06f",
-      "date": "24/09/2026 11:00",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pós-deploy vb07e618"
-    },
-    {
-      "hash": "b07e618",
-      "date": "24/09/2026 10:56",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(reserva): modal de confirmação com integração de calendário e compartilhamento"
     }
   ]
 }
