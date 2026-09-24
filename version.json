@@ -1,8 +1,14 @@
 {
-  "hash": "5a0e5f5",
-  "date": "24/09/2026 11:24",
-  "buildAt": "2026-09-24T14:25:02.616Z",
+  "hash": "23bfb33",
+  "date": "24/09/2026 11:25",
+  "buildAt": "2026-09-24T14:25:54.271Z",
   "history": [
+    {
+      "hash": "23bfb33",
+      "date": "24/09/2026 11:25",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pós-deploy v2c11352"
+    },
     {
       "hash": "5a0e5f5",
       "date": "24/09/2026 11:24",
@@ -116,12 +122,6 @@
       "date": "22/09/2026 17:37",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualiza version.json pós-deploy v64c9cee"
-    },
-    {
-      "hash": "64c9cee",
-      "date": "22/09/2026 17:35",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(agendamento): copia de mensagem individual ao clicar nas visualizacoes de lista e grade"
     }
   ]
 }
