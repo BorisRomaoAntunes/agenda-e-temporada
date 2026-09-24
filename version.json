@@ -1,8 +1,20 @@
 {
-  "hash": "62908df",
-  "date": "24/09/2026 12:16",
-  "buildAt": "2026-09-24T15:18:17.526Z",
+  "hash": "33a8f70",
+  "date": "24/09/2026 16:32",
+  "buildAt": "2026-09-24T19:35:38.285Z",
   "history": [
+    {
+      "hash": "33a8f70",
+      "date": "24/09/2026 16:32",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(agendamento): adiciona filtro inteligente de horários passados no relatório e na reserva"
+    },
+    {
+      "hash": "34111d8",
+      "date": "24/09/2026 12:19",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pós-deploy v62908df"
+    },
     {
       "hash": "62908df",
       "date": "24/09/2026 12:16",
@@ -110,18 +122,6 @@
       "date": "23/09/2026 14:32",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualiza version.json pós-deploy vb51ac80"
-    },
-    {
-      "hash": "b51ac80",
-      "date": "23/09/2026 14:29",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(agendamento): adiciona aviso da equipe de montagem na mensagem individual"
-    },
-    {
-      "hash": "73681c1",
-      "date": "22/09/2026 21:22",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pós-deploy v7a54ca4"
     }
   ]
 }
