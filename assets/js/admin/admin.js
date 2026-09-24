@@ -51,6 +51,7 @@ import {
 import { 
     httpsCallable 
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-functions.js";
+import { AgendamentoService } from "../agendamento/agendamento-service.js";
 
 // Inicializa serviços Firebase a partir da instância centralizada
 // O storage já é importado do firebase-config.js
@@ -162,10 +163,12 @@ onAuthStateChanged(auth, (user) => {
         initCadastrosManagement(); // Inicia o monitoramento de novos cadastros pendentes via Webhook
         initSecuritySection(); // Inicia a seção de segurança da conta
         initRealtimeVersionModule(); // Inicia sincronização e escuta em tempo real da versão
+        initPendingAgendamentosArea(); // Inicia o monitoramento de agendamentos pendentes logo abaixo da busca
     } else {
         // Não logado
         dashboardContainer.classList.remove('active');
         loginContainer.classList.add('active');
+        if (unsubscribePendingAgendamentos) { unsubscribePendingAgendamentos(); unsubscribePendingAgendamentos = null; }
         if (unsubscribeToggle) { unsubscribeToggle(); unsubscribeToggle = null; }
         if (unsubscribeAppToggle) { unsubscribeAppToggle(); unsubscribeAppToggle = null; }
         if (unsubscribeGoogleCalendarToggle) { unsubscribeGoogleCalendarToggle(); unsubscribeGoogleCalendarToggle = null; }
@@ -13987,6 +13990,167 @@ async function checkAndSyncVersionWithFirestore() {
         console.warn('⚠️ [Admin] Não foi possível sincronizar versão com Firestore:', err);
     }
 }
+
+// ================= ÁREA DE AGENDAMENTOS PENDENTES (LOGO ABAIXO DA PESQUISA) =================
+
+let unsubscribePendingAgendamentos = null;
+
+function escapeHtmlPending(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function renderPendingAgendamentoCard(ag) {
+    const nome = escapeHtmlPending(ag.nomeSolicitante || "Músico");
+    const instrumento = escapeHtmlPending(ag.instrumento || "");
+    const vinculo = escapeHtmlPending(ag.vinculo || "Bolsista");
+    const salaNome = escapeHtmlPending(ag.salaNome || "Sala de Ensaio");
+
+    // Formata a data (YYYY-MM-DD -> DD/MM/YYYY e dia da semana)
+    let dataFormatada = ag.data || "";
+    let diaSemana = "";
+    if (ag.data) {
+        const [ano, mes, dia] = ag.data.split('-').map(Number);
+        const dataObj = new Date(ano, mes - 1, dia);
+        const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+        diaSemana = diasSemana[dataObj.getDay()] || '';
+        dataFormatada = `${String(dia).padStart(2, '0')}/${String(mes).padStart(2, '0')}`;
+    }
+
+    const horario = (ag.horaInicio && ag.horaFim) 
+        ? `${ag.horaInicio} às ${ag.horaFim}` 
+        : (ag.horaInicio || '');
+
+    // Observações ou partitura
+    const detalhesExtras = [];
+    if (ag.necessidades && ag.necessidades.trim()) {
+        detalhesExtras.push(escapeHtmlPending(ag.necessidades.trim()));
+    }
+    if (ag.precisaPartitura && ag.qualPartitura) {
+        detalhesExtras.push(`Partitura: ${escapeHtmlPending(ag.qualPartitura.trim())}`);
+    }
+
+    const obsHtml = detalhesExtras.length > 0 
+        ? `<div class="pending-card-obs"><i data-lucide="info" style="width: 13px; height: 13px; display: inline-block; vertical-align: middle; margin-right: 4px;"></i>${detalhesExtras.join(' • ')}</div>` 
+        : '';
+
+    return `
+        <div class="pending-agendamento-card" data-id="${ag.id}" title="Clique para copiar mensagem de confirmação para o WhatsApp e dispensar este aviso" role="button" tabindex="0">
+            <div class="pending-card-top-row">
+                <div class="pending-card-badge-group">
+                    <span class="pending-pulse-dot"></span>
+                    <span class="pending-badge-label">Novo Agendamento</span>
+                    <span class="pending-card-datetime">
+                        <i data-lucide="calendar" style="width: 14px; height: 14px; color: #16a34a;"></i>
+                        ${diaSemana ? `${diaSemana}, ` : ''}${dataFormatada} • ${horario}
+                    </span>
+                </div>
+                <div class="pending-card-sala-badge">
+                    <i data-lucide="map-pin" style="width: 13px; height: 13px;"></i>
+                    ${salaNome}
+                </div>
+            </div>
+
+            <div class="pending-card-main">
+                <div class="pending-card-musico-nome">${nome}</div>
+                <div class="pending-card-musico-sub">
+                    <span>${instrumento ? `${instrumento} • ` : ''}${vinculo}</span>
+                </div>
+                ${obsHtml}
+            </div>
+
+            <div class="pending-card-footer">
+                <span class="pending-card-action-text">
+                    <i data-lucide="message-circle" style="width: 15px; height: 15px;"></i>
+                    Clique no card para copiar a confirmação
+                </span>
+                <span class="pending-card-copy-btn">
+                    <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
+                    Copiar & Confirmar
+                </span>
+            </div>
+        </div>
+    `;
+}
+
+function initPendingAgendamentosArea() {
+    const area = document.getElementById('pending-agendamentos-area');
+    if (!area) return;
+
+    if (unsubscribePendingAgendamentos) {
+        unsubscribePendingAgendamentos();
+        unsubscribePendingAgendamentos = null;
+    }
+
+    unsubscribePendingAgendamentos = AgendamentoService.listenAgendamentosPendentes((pendentes) => {
+        if (!pendentes || pendentes.length === 0) {
+            area.innerHTML = '';
+            area.style.display = 'none';
+            return;
+        }
+
+        area.style.display = 'flex';
+        area.innerHTML = pendentes.map(ag => renderPendingAgendamentoCard(ag)).join('');
+
+        if (window.lucide && typeof window.lucide.createIcons === 'function') {
+            window.lucide.createIcons();
+        }
+
+        // Adiciona listener de clique em cada card
+        area.querySelectorAll('.pending-agendamento-card').forEach(card => {
+            card.addEventListener('click', async (e) => {
+                const id = card.dataset.id;
+                const ag = pendentes.find(item => item.id === id);
+                if (!ag) return;
+
+                // 1. Gera o texto padrão de confirmação via AgendamentoService
+                const mensagem = AgendamentoService.generateSingleAppointmentMessage(ag);
+
+                // 2. Copia para o clipboard
+                try {
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        await navigator.clipboard.writeText(mensagem);
+                    } else {
+                        const tempTextarea = document.createElement('textarea');
+                        tempTextarea.value = mensagem;
+                        document.body.appendChild(tempTextarea);
+                        tempTextarea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(tempTextarea);
+                    }
+                    showNotification(`Confirmação de ${ag.nomeSolicitante || 'agendamento'} copiada com sucesso!`, 'success');
+                } catch (copyErr) {
+                    console.error('Erro ao copiar texto:', copyErr);
+                    showNotification('Falha ao copiar texto automaticamente.', 'error');
+                }
+
+                // 3. Efeito visual imediato de feedback no card e animação de saída
+                card.classList.add('is-dismissing');
+
+                // 4. Marca como copiado no Firestore (persiste para que não reapareça)
+                try {
+                    await AgendamentoService.markAgendamentoCopiado(id);
+                } catch (markErr) {
+                    console.error('Erro ao marcar agendamento como copiado:', markErr);
+                }
+
+                // Remove do DOM após a animação de transição suave
+                setTimeout(() => {
+                    card.remove();
+                    if (area.children.length === 0) {
+                        area.style.display = 'none';
+                    }
+                }, 350);
+            });
+        });
+    });
+}
+
 
 
 
