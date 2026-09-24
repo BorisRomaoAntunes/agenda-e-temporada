@@ -1583,6 +1583,11 @@ Intervalo
                     <span class="kpi-val" id="drawer-kpi-dispensas">0</span>
                     <span class="kpi-label">Dispensas</span>
                 </div>
+                <div class="kpi-card warning clickable" id="drawer-kpi-card-atrasos" role="button" tabindex="0" title="Clique para ver os atrasos e copiar a lista formatada">
+                    <span class="kpi-val" id="drawer-kpi-atrasos">0</span>
+                    <span class="kpi-label">Atrasos no Ano</span>
+                    <span class="kpi-sub-detail" id="drawer-kpi-atrasos-sub" style="font-size: 0.68rem; color: #b45309; font-weight: 600; margin-top: 3px; display: block; line-height: 1.2;">0 min</span>
+                </div>
             </div>
 
             <!-- 3. RELATÓRIO DE OCORRÊNCIAS & CIDs -->
@@ -1599,6 +1604,7 @@ Intervalo
                     <button type="button" class="btn-filter-pill" data-drawer-filter="atestado">Atestados (CID)</button>
                     <button type="button" class="btn-filter-pill" data-drawer-filter="falta">Faltas</button>
                     <button type="button" class="btn-filter-pill" data-drawer-filter="dispensa">Dispensas</button>
+                    <button type="button" class="btn-filter-pill" data-drawer-filter="atraso">Atrasos</button>
                 </div>
 
                 <div class="occurrence-list" id="drawer-occurrences-list">
@@ -3144,6 +3150,62 @@ Intervalo
         </div>
     </div>
 
+    <!-- ===== MODAL ATRASOS DO MÚSICO (GAVETA) ===== -->
+    <div id="musico-atrasos-modal-overlay" class="ia-modal-overlay" style="display:none; z-index: 3100;" aria-modal="true" role="dialog">
+        <div class="ia-modal-card" style="max-width: 580px; width: 95%;">
+            <!-- Header -->
+            <div class="ia-modal-header">
+                <div class="ia-modal-header-info">
+                    <div class="ia-modal-icon" style="background: rgba(245, 158, 11, 0.15); color: #b45309;">
+                        <i data-lucide="clock"></i>
+                    </div>
+                    <div>
+                        <h3 id="musico-atrasos-modal-title">Atrasos do Integrante</h3>
+                        <p id="musico-atrasos-modal-subtitle">Selecione o(s) mês(es) para visualizar e copiar a lista formatada</p>
+                    </div>
+                </div>
+                <button class="ia-modal-close" id="btn-musico-atrasos-modal-close" title="Fechar">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+
+            <!-- Body -->
+            <div class="ia-modal-body" style="display: flex; flex-direction: column; gap: 1.1rem; padding: 1.25rem 1.5rem;">
+                <!-- Seletor de Meses (Chips/Pills clicáveis com contador de atrasos) -->
+                <div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.5rem;">
+                        <label style="font-size: 0.85rem; font-weight: 700; color: #334155; margin: 0;">Selecione o(s) Mês(es):</label>
+                        <button type="button" id="btn-toggle-all-atrasos-meses" style="background: none; border: none; font-size: 0.75rem; font-weight: 600; color: #b45309; cursor: pointer; text-decoration: underline; padding: 0;">Selecionar Todos</button>
+                    </div>
+                    <div id="musico-atrasos-meses-container" style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+                        <!-- Meses gerados dinamicamente via JS -->
+                    </div>
+                </div>
+
+                <!-- Preview do Conteúdo para Cópia -->
+                <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                        <label style="font-size: 0.85rem; font-weight: 700; color: #334155; margin: 0;">Lista para Cópia:</label>
+                        <span id="musico-atrasos-preview-count" style="font-size: 0.78rem; font-weight: 600; color: #64748b;">0 registro(s)</span>
+                    </div>
+                    <div id="musico-atrasos-result" style="background: #fffbeb; border: 1px solid #fef3c7; border-radius: 8px; padding: 1rem; font-family: inherit; font-size: 0.92rem; line-height: 1.6; min-height: 130px; max-height: 260px; overflow-y: auto; white-space: pre-wrap; word-break: break-word; color: #1e293b;">
+                        <!-- Conteúdo gerado dinamicamente -->
+                    </div>
+                </div>
+
+                <!-- Ações -->
+                <div style="display: flex; gap: 0.8rem; margin-top: 0.2rem;">
+                    <button class="btn-primary" id="btn-copy-musico-atrasos" style="flex: 2; background: #b45309; border: none; color: white; padding: 0.75rem; border-radius: 8px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: background 0.15s ease;">
+                        <i data-lucide="copy" style="width: 16px; height: 16px;"></i> <span>Copiar Lista</span>
+                    </button>
+                    <button class="btn-outline" id="btn-close-musico-atrasos-footer" style="flex: 1; border-radius: 8px; font-weight: 600; cursor: pointer; border: 1px solid #cbd5e1; background: white; color: #475569; padding: 0.75rem;">
+                        Fechar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ===== MODAL RELATÓRIO TEMPO DE OER (BOLSISTAS) ===== -->
     <div id="modal-tempo-oer-overlay" class="ia-modal-overlay" style="display:none;" aria-modal="true" role="dialog">
         <div class="ia-modal-card" style="max-width: 850px; width: 95%;">
@@ -3170,11 +3232,25 @@ Intervalo
                     <span>Prévia calculada com base na data de entrada (início de contrato) e na data de hoje. A planilha Excel exportada conterá fórmulas dinâmicas para recálculo automático.</span>
                 </div>
 
-                <!-- Busca rápida na prévia -->
-                <div style="display: flex; gap: 0.75rem; align-items: center;">
-                    <div style="position: relative; flex: 1;">
+                <!-- Busca rápida e Ordenação na prévia -->
+                <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+                    <div style="position: relative; flex: 1; min-width: 200px;">
                         <i data-lucide="search" style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: #94a3b8; pointer-events: none;"></i>
                         <input type="text" id="tempo-oer-search-input" placeholder="Buscar por bolsista ou instrumento..." style="width: 100%; padding: 0.55rem 0.75rem 0.55rem 2.2rem; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.88rem; outline: none;">
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.4rem;">
+                        <label for="tempo-oer-sort-select" style="font-size: 0.82rem; font-weight: 600; color: #475569; white-space: nowrap; display: flex; align-items: center; gap: 0.3rem;">
+                            <i data-lucide="arrow-down-up" style="width: 14px; height: 14px;"></i> Ordenar:
+                        </label>
+                        <select id="tempo-oer-sort-select" style="padding: 0.52rem 0.75rem; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.85rem; color: #1e293b; background: white; outline: none; cursor: pointer;">
+                            <option value="tempo-desc">Tempo de OER (Maior para o Menor)</option>
+                            <option value="tempo-asc">Tempo de OER (Menor para o Maior)</option>
+                            <option value="nome-asc">Ordem Alfabética (A → Z)</option>
+                            <option value="nome-desc">Ordem Alfabética (Z → A)</option>
+                            <option value="naipe">Naipe (Ordem Orquestral)</option>
+                            <option value="inicio-asc">Início de Contrato (Mais Antigo)</option>
+                            <option value="inicio-desc">Início de Contrato (Mais Recente)</option>
+                        </select>
                     </div>
                     <span id="tempo-oer-filtered-count" style="font-size: 0.82rem; color: #64748b; font-weight: 600; white-space: nowrap;">0 bolsistas</span>
                 </div>
@@ -3183,12 +3259,32 @@ Intervalo
                 <div style="border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden; background: #fff;">
                     <div style="max-height: 360px; overflow-y: auto;">
                         <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.88rem;">
-                            <thead style="background: #f8fafc; position: sticky; top: 0; z-index: 1; border-bottom: 2px solid #e2e8f0;">
+                            <thead style="background: #f8fafc; position: sticky; top: 0; z-index: 1; border-bottom: 2px solid #e2e8f0; user-select: none;">
                                 <tr>
-                                    <th style="padding: 0.65rem 0.85rem; font-weight: 700; color: #475569;">Nome Artístico</th>
-                                    <th style="padding: 0.65rem 0.85rem; font-weight: 700; color: #475569;">Instrumento / Naipe</th>
-                                    <th style="padding: 0.65rem 0.85rem; font-weight: 700; color: #475569;">Início Contrato</th>
-                                    <th style="padding: 0.65rem 0.85rem; font-weight: 700; color: #0284c7;">Tempo de OER</th>
+                                    <th id="th-tempo-oer" style="padding: 0.65rem 0.85rem; font-weight: 700; color: #0284c7; cursor: pointer;" title="Clique para ordenar por Tempo de OER">
+                                        <div style="display: flex; align-items: center; gap: 0.35rem;">
+                                            <span>Tempo de OER</span>
+                                            <i class="sort-icon" data-lucide="arrow-down" style="width: 14px; height: 14px;"></i>
+                                        </div>
+                                    </th>
+                                    <th id="th-inicio-contrato" style="padding: 0.65rem 0.85rem; font-weight: 700; color: #475569; cursor: pointer;" title="Clique para ordenar por Início de Contrato">
+                                        <div style="display: flex; align-items: center; gap: 0.35rem;">
+                                            <span>Início Contrato</span>
+                                            <i class="sort-icon" data-lucide="arrow-up-down" style="width: 14px; height: 14px; color: #94a3b8;"></i>
+                                        </div>
+                                    </th>
+                                    <th id="th-nome-artistico" style="padding: 0.65rem 0.85rem; font-weight: 700; color: #475569; cursor: pointer;" title="Clique para ordenar por Nome Artístico">
+                                        <div style="display: flex; align-items: center; gap: 0.35rem;">
+                                            <span>Nome Artístico</span>
+                                            <i class="sort-icon" data-lucide="arrow-up-down" style="width: 14px; height: 14px; color: #94a3b8;"></i>
+                                        </div>
+                                    </th>
+                                    <th id="th-naipe" style="padding: 0.65rem 0.85rem; font-weight: 700; color: #475569; cursor: pointer;" title="Clique para ordenar por Naipe">
+                                        <div style="display: flex; align-items: center; gap: 0.35rem;">
+                                            <span>Naipe</span>
+                                            <i class="sort-icon" data-lucide="arrow-up-down" style="width: 14px; height: 14px; color: #94a3b8;"></i>
+                                        </div>
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody id="tempo-oer-table-body">

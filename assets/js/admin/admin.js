@@ -7821,6 +7821,7 @@ function initMusiciansManagement() {
     let currentDrawerReportData = null; // Dados apurados do relatório do músico atual
     let currentMusicoOccurrences = []; // Cache das ocorrências do músico aberto
     let currentMusicoJustificativas = []; // Cache das justificativas para o histórico unificado
+    let currentMusicoAtrasosMap = {}; // Cache dos atrasos do músico aberto agrupados por YYYY-MM
 
     // Helper: Formata data YYYY-MM-DD para DD/MM/YYYY com segurança
     function formatDataBR(val) {
@@ -8185,8 +8186,11 @@ function initMusiciansManagement() {
             let faltasAnoEnsaios = 0;
             let faltasAnoConcertos = 0;
             let faltasAnoPS = 0;
+            let atrasosAno = 0;
+            let atrasosMinAno = 0;
             let oldestSystemDate = dataHoje;
             const musicoMonthlyMap = {};
+            const musicoAtrasosMap = {};
 
             const atestadosMusico = [];
             const dispensasMusico = [];
@@ -8283,7 +8287,9 @@ function initMusiciansManagement() {
 
                 // Se o integrante estava escalado/convocado
                 const isConvocado = st !== 'nao_escalado' && st !== 'dispensa' && st !== 'atestado' && st !== 'none' && st !== 'pendente';
-                const isPresenca = st === 'presenca' || st === 'atraso' || st === 'falta_passagem_som';
+                const isAtraso = st === 'atraso';
+                const isAtrasoPS = st === 'atraso_passagem_som';
+                const isPresenca = st === 'presenca' || isAtraso || isAtrasoPS || st === 'falta_passagem_som';
                 const isFalta = st === 'falta';
                 const isFaltaPS = st === 'falta_passagem_som';
 
@@ -8347,6 +8353,47 @@ function initMusiciansManagement() {
                         dataSort: dataDoc
                     });
                 }
+
+                // Ocorrências de atrasos no ano todo (somente ano vigente)
+                if ((isAtraso || isAtrasoPS) && isAnoVigente) {
+                    atrasosAno++;
+                    const minReg = parseInt(reg.minutes, 10) || 0;
+                    atrasosMinAno += minReg;
+
+                    let tituloAtraso = isAtrasoPS ? `Atraso na Passagem de Som (${minReg} min)` : `Atraso (${minReg} min)`;
+                    ocorrenciasList.push({
+                        tipo: 'atraso',
+                        tag: isAtrasoPS ? 'Atraso PS' : 'Atraso',
+                        data: formatDataBR(dataDoc),
+                        titulo: tituloAtraso,
+                        cid: '',
+                        meta: reg.justificativa ? `Anotação: "${reg.justificativa}"` : 'Sem anotação registrada',
+                        dataSort: dataDoc
+                    });
+                }
+
+                // Acúmulo de atrasos por mês para a modal de cópia
+                if ((isAtraso || isAtrasoPS) && dataDoc <= dataHoje && /^\d{4}-\d{2}-\d{2}/.test(dataDoc)) {
+                    const ym = dataDoc.substring(0, 7);
+                    if (!musicoAtrasosMap[ym]) {
+                        musicoAtrasosMap[ym] = [];
+                    }
+                    const minReg = parseInt(reg.minutes, 10) || 0;
+                    const [anoD, mesD, diaD] = dataDoc.split('-').map(Number);
+                    const dateObj = new Date(anoD, mesD - 1, diaD, 12, 0, 0);
+                    const diasSemanaNomes = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+                    const diaSemanaStr = diasSemanaNomes[dateObj.getDay()] || '';
+                    const dataFormatadaDDMM = `${String(diaD).padStart(2, '0')}/${String(mesD).padStart(2, '0')}`;
+
+                    musicoAtrasosMap[ym].push({
+                        dataDoc,
+                        dataFormatada: dataFormatadaDDMM,
+                        diaSemana: diaSemanaStr,
+                        minutos: minReg,
+                        tipo: isAtrasoPS ? 'atraso_passagem_som' : 'atraso',
+                        justificativa: reg.justificativa || ''
+                    });
+                }
             });
 
             // Ordenar ocorrências do mais novo para o mais antigo
@@ -8355,6 +8402,7 @@ function initMusiciansManagement() {
 
             currentMusicoOccurrences = ocorrenciasList;
             currentMusicoJustificativas = justificativasList;
+            currentMusicoAtrasosMap = musicoAtrasosMap;
 
             // 4. Calcular % de participação no ano vigente até hoje
             let pctAno = 100;
@@ -8428,6 +8476,11 @@ function initMusiciansManagement() {
             document.getElementById('drawer-kpi-atestados').textContent = atestadosMusico.length;
             document.getElementById('drawer-kpi-afastamento').textContent = `${diasAfastamentoTotal}d`;
             document.getElementById('drawer-kpi-dispensas').textContent = dispensasMusico.length;
+
+            const kpiAtrasos = document.getElementById('drawer-kpi-atrasos');
+            const kpiAtrasosSub = document.getElementById('drawer-kpi-atrasos-sub');
+            if (kpiAtrasos) kpiAtrasos.textContent = atrasosAno;
+            if (kpiAtrasosSub) kpiAtrasosSub.textContent = atrasosMinAno > 0 ? `${atrasosMinAno} min` : '0 min';
 
             // 6. Gerar e Renderizar Histórico Mensal do Ano Corrente (do mês vigente até janeiro)
             const currentYM = `${ano}-${mesStr}`;
@@ -9359,6 +9412,222 @@ function initMusiciansManagement() {
         });
     }
 
+    // Card de Atrasos: abrir modal de atrasos ao clicar
+    const drawerKpiCardAtrasos = document.getElementById('drawer-kpi-card-atrasos');
+    if (drawerKpiCardAtrasos && !drawerKpiCardAtrasos._listenerAttached) {
+        drawerKpiCardAtrasos._listenerAttached = true;
+        drawerKpiCardAtrasos.addEventListener('click', () => {
+            if (currentSelectedMusico) {
+                openMusicoAtrasosModal(currentSelectedMusico);
+            }
+        });
+        drawerKpiCardAtrasos.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                if (currentSelectedMusico) {
+                    openMusicoAtrasosModal(currentSelectedMusico);
+                }
+            }
+        });
+    }
+
+    function openMusicoAtrasosModal(musico) {
+        if (!musico) return;
+        const modal = document.getElementById('musico-atrasos-modal-overlay');
+        const titleEl = document.getElementById('musico-atrasos-modal-title');
+        const subtitleEl = document.getElementById('musico-atrasos-modal-subtitle');
+        const mesesContainer = document.getElementById('musico-atrasos-meses-container');
+        const resultBox = document.getElementById('musico-atrasos-result');
+        const previewCountEl = document.getElementById('musico-atrasos-preview-count');
+        if (!modal || !mesesContainer || !resultBox) return;
+
+        const nomeMusico = musico.NOMEARTISTICO || musico['NOME REGISTRO'] || musico.Nome || 'Integrante';
+        if (titleEl) titleEl.textContent = `Atrasos: ${nomeMusico}`;
+        if (subtitleEl) subtitleEl.textContent = `${musico.Instrumento || ''} • Temporada 2026`;
+
+        const now = new Date();
+        const anoAtual = now.getFullYear();
+        const mesAtual = now.getMonth() + 1;
+        const mesesNomes = [
+            "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+            "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+        ];
+
+        // Identificar todos os meses que possuem registros na temporada até hoje
+        const availableMonths = [];
+        for (let m = 1; m <= mesAtual; m++) {
+            const ym = `${anoAtual}-${String(m).padStart(2, '0')}`;
+            const atrasosDoMes = currentMusicoAtrasosMap[ym] || [];
+            availableMonths.push({
+                ym,
+                nome: mesesNomes[m - 1],
+                count: atrasosDoMes.length
+            });
+        }
+
+        let selectedMonths = new Set();
+        const currentYM = `${anoAtual}-${String(mesAtual).padStart(2, '0')}`;
+        // Selecionar por padrão o mês vigente, ou o mês mais recente com registros
+        if ((currentMusicoAtrasosMap[currentYM] || []).length > 0) {
+            selectedMonths.add(currentYM);
+        } else {
+            const mesesComAtraso = availableMonths.filter(am => am.count > 0);
+            if (mesesComAtraso.length > 0) {
+                selectedMonths.add(mesesComAtraso[mesesComAtraso.length - 1].ym);
+            } else {
+                selectedMonths.add(currentYM);
+            }
+        }
+
+        function updateAtrasosPreview() {
+            let totalCount = 0;
+            const sortedYMs = Array.from(selectedMonths).sort();
+
+            if (sortedYMs.length === 0) {
+                resultBox.textContent = "Nenhum mês selecionado. Clique em um ou mais meses acima para visualizar e copiar os atrasos.";
+                if (previewCountEl) previewCountEl.textContent = "0 registro(s)";
+                return;
+            }
+
+            const sections = [];
+
+            sortedYMs.forEach(ym => {
+                const atrasosDoMes = (currentMusicoAtrasosMap[ym] || []).slice();
+                atrasosDoMes.sort((a, b) => a.dataDoc.localeCompare(b.dataDoc));
+                totalCount += atrasosDoMes.length;
+
+                const [y, m] = ym.split('-');
+                const mesNome = mesesNomes[parseInt(m, 10) - 1];
+
+                if (atrasosDoMes.length === 0) {
+                    if (sortedYMs.length === 1) {
+                        sections.push(`*${mesNome}*\nNenhum atraso registrado neste mês.`);
+                    }
+                } else {
+                    const linhas = atrasosDoMes.map(item => {
+                        let linha = `${item.dataFormatada} - ${item.diaSemana} - ${item.minutos} minutos atrasos`;
+                        const extras = [];
+                        if (item.tipo === 'atraso_passagem_som') {
+                            extras.push('Passagem de Som');
+                        }
+                        if (item.justificativa && item.justificativa.trim()) {
+                            extras.push(`Motivo: ${item.justificativa.trim()}`);
+                        }
+                        if (extras.length > 0) {
+                            linha += ` (${extras.join(') (')})`;
+                        }
+                        return linha;
+                    });
+
+                    sections.push(`*${mesNome}*\n${linhas.join('\n')}`);
+                }
+            });
+
+            const previewText = sections.join('\n\n');
+            resultBox.textContent = previewText || "Nenhum atraso registrado para os meses selecionados.";
+            if (previewCountEl) previewCountEl.textContent = `${totalCount} registro(s)`;
+        }
+
+        function renderMesesChips() {
+            mesesContainer.innerHTML = '';
+            availableMonths.forEach(am => {
+                const isSelected = selectedMonths.has(am.ym);
+                const chip = document.createElement('button');
+                chip.type = 'button';
+                chip.className = `btn-filter-pill ${isSelected ? 'active' : ''}`;
+                chip.style.display = 'inline-flex';
+                chip.style.alignItems = 'center';
+                chip.style.gap = '0.35rem';
+                chip.style.padding = '0.4rem 0.85rem';
+                chip.style.fontSize = '0.8rem';
+                chip.style.cursor = 'pointer';
+                chip.innerHTML = `
+                    <span>${am.nome}</span>
+                    <span style="font-size: 0.72rem; padding: 1px 6px; border-radius: 10px; background: ${isSelected ? 'rgba(255,255,255,0.25)' : (am.count > 0 ? '#fef3c7' : '#e2e8f0')}; color: ${isSelected ? '#ffffff' : (am.count > 0 ? '#b45309' : '#94a3b8')}; font-weight: 700;">${am.count}</span>
+                `;
+
+                chip.addEventListener('click', () => {
+                    if (selectedMonths.has(am.ym)) {
+                        selectedMonths.delete(am.ym);
+                    } else {
+                        selectedMonths.add(am.ym);
+                    }
+                    renderMesesChips();
+                    updateAtrasosPreview();
+                    updateToggleAllButton();
+                });
+
+                mesesContainer.appendChild(chip);
+            });
+        }
+
+        const btnToggleAll = document.getElementById('btn-toggle-all-atrasos-meses');
+        function updateToggleAllButton() {
+            if (!btnToggleAll) return;
+            btnToggleAll.textContent = selectedMonths.size === availableMonths.length ? "Desmarcar Todos" : "Selecionar Todos";
+        }
+
+        if (btnToggleAll) {
+            btnToggleAll.onclick = () => {
+                if (selectedMonths.size === availableMonths.length) {
+                    selectedMonths.clear();
+                } else {
+                    availableMonths.forEach(am => selectedMonths.add(am.ym));
+                }
+                renderMesesChips();
+                updateAtrasosPreview();
+                updateToggleAllButton();
+            };
+        }
+
+        renderMesesChips();
+        updateAtrasosPreview();
+        updateToggleAllButton();
+
+        // Botão de Copiar Lista
+        const btnCopy = document.getElementById('btn-copy-musico-atrasos');
+        if (btnCopy) {
+            btnCopy.onclick = async () => {
+                const textToCopy = resultBox.textContent;
+                if (!textToCopy || textToCopy.includes("Nenhum mês selecionado") || textToCopy.includes("Nenhum atraso registrado")) {
+                    showNotification("Nenhum atraso disponível para copiar no período selecionado.", "warning");
+                    return;
+                }
+                try {
+                    await navigator.clipboard.writeText(textToCopy);
+                    const originalHTML = btnCopy.innerHTML;
+                    const originalBg = btnCopy.style.background;
+                    btnCopy.innerHTML = `<i data-lucide="check" style="width: 16px; height: 16px;"></i> <span>Lista Copiada!</span>`;
+                    btnCopy.style.background = '#16a34a';
+                    if (window.lucide) lucide.createIcons();
+                    showNotification("Lista de atrasos copiada com sucesso!", "success");
+                    setTimeout(() => {
+                        btnCopy.innerHTML = originalHTML;
+                        btnCopy.style.background = originalBg;
+                        if (window.lucide) lucide.createIcons();
+                    }, 2500);
+                } catch (err) {
+                    console.error("Erro ao copiar lista de atrasos:", err);
+                    showNotification("Não foi possível copiar automaticamente para a área de transferência.", "error");
+                }
+            };
+        }
+
+        const closeAtrasosModal = () => {
+            modal.style.display = 'none';
+        };
+        const btnClose = document.getElementById('btn-musico-atrasos-modal-close');
+        const btnCloseFooter = document.getElementById('btn-close-musico-atrasos-footer');
+        if (btnClose) btnClose.onclick = closeAtrasosModal;
+        if (btnCloseFooter) btnCloseFooter.onclick = closeAtrasosModal;
+        modal.onclick = (e) => {
+            if (e.target === modal) closeAtrasosModal();
+        };
+
+        modal.style.display = 'flex';
+        if (window.lucide) lucide.createIcons();
+    }
+
     window.refreshCurrentMusicoDrawer = () => {
         if (currentSelectedMusico && typeof loadMusicianDetailedReport === 'function') {
             loadMusicianDetailedReport(currentSelectedMusico);
@@ -9410,6 +9679,11 @@ function initMusiciansManagement() {
             if (notesHistoryModal && notesHistoryModal.style.display !== 'none') {
                 notesHistoryModal.style.display = 'none';
                 notesHistoryModal.classList.remove('active');
+                return;
+            }
+            const musicoAtrasosModal = document.getElementById('musico-atrasos-modal-overlay');
+            if (musicoAtrasosModal && musicoAtrasosModal.style.display !== 'none') {
+                musicoAtrasosModal.style.display = 'none';
                 return;
             }
             if (drawer && drawer.classList.contains('open')) {
@@ -13338,13 +13612,20 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
         const btnCloseFooter = document.getElementById('btn-close-tempo-oer-modal-footer');
         const btnExport = document.getElementById('btn-export-tempo-oer-excel');
         const searchInput = document.getElementById('tempo-oer-search-input');
+        const sortSelect = document.getElementById('tempo-oer-sort-select');
         const tbody = document.getElementById('tempo-oer-table-body');
         const subtitle = document.getElementById('tempo-oer-subtitle');
         const countEl = document.getElementById('tempo-oer-filtered-count');
 
+        const thTempo = document.getElementById('th-tempo-oer');
+        const thInicio = document.getElementById('th-inicio-contrato');
+        const thNome = document.getElementById('th-nome-artistico');
+        const thNaipe = document.getElementById('th-naipe');
+
         if (!btnOpen || !modal) return;
 
         let bolsistasAtivos = [];
+        let currentSort = 'tempo-desc'; // Padrão: maior tempo de casa para o menor
 
         const ordemNaipesHierarquia = [
             "Primeiros Violinos",
@@ -13383,10 +13664,10 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
             return idx !== -1 ? idx : 998;
         };
 
-        const filtrarEOrdenarBolsistas = () => {
+        const filtrarBolsistas = () => {
             if (!allMusicians || allMusicians.length === 0) return [];
 
-            const bolsistas = allMusicians.filter(m => {
+            return allMusicians.filter(m => {
                 if (m.statusFirebase === 'inativo' || m.statusFirebase === 'desligado') return false;
 
                 const rawStatus = (m.Status || m.status || '').toLowerCase();
@@ -13399,18 +13680,56 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
 
                 return rawStatus.includes('bolsista') || tipoContrato.includes('bolsista');
             });
+        };
 
-            bolsistas.sort((a, b) => {
-                const idxA = getNaipeIndex(a);
-                const idxB = getNaipeIndex(b);
-                if (idxA !== idxB) return idxA - idxB;
+        const ordenarBolsistas = (lista, criterio) => {
+            return [...lista].sort((a, b) => {
+                const rawInicioA = getMusicoField(a, 'INICIO OER Contrato', 'INICIO OER\nContrato', 'inicioContrato', 'dataEntrada');
+                const rawInicioB = getMusicoField(b, 'INICIO OER Contrato', 'INICIO OER\nContrato', 'inicioContrato', 'dataEntrada');
+                const dateA = parseDateFromExcelOrString(rawInicioA);
+                const dateB = parseDateFromExcelOrString(rawInicioB);
+                const timeA = (dateA && !isNaN(dateA.getTime())) ? dateA.getTime() : null;
+                const timeB = (dateB && !isNaN(dateB.getTime())) ? dateB.getTime() : null;
 
                 const nomeA = (a.NOMEARTISTICO || a['NOME REGISTRO'] || a.Nome || '').trim().toLowerCase();
                 const nomeB = (b.NOMEARTISTICO || b['NOME REGISTRO'] || b.Nome || '').trim().toLowerCase();
-                return nomeA.localeCompare(nomeB, 'pt-BR');
-            });
 
-            return bolsistas;
+                if (criterio === 'tempo-desc') {
+                    // Maior tempo = início mais antigo (menor timestamp). Sem data vai para o final.
+                    if (timeA === null && timeB === null) return nomeA.localeCompare(nomeB, 'pt-BR');
+                    if (timeA === null) return 1;
+                    if (timeB === null) return -1;
+                    if (timeA !== timeB) return timeA - timeB;
+                    return nomeA.localeCompare(nomeB, 'pt-BR');
+                } else if (criterio === 'tempo-asc') {
+                    // Menor tempo = início mais recente (maior timestamp).
+                    if (timeA === null && timeB === null) return nomeA.localeCompare(nomeB, 'pt-BR');
+                    if (timeA === null) return 1;
+                    if (timeB === null) return -1;
+                    if (timeA !== timeB) return timeB - timeA;
+                    return nomeA.localeCompare(nomeB, 'pt-BR');
+                } else if (criterio === 'nome-asc') {
+                    return nomeA.localeCompare(nomeB, 'pt-BR');
+                } else if (criterio === 'nome-desc') {
+                    return nomeB.localeCompare(nomeA, 'pt-BR');
+                } else if (criterio === 'inicio-asc') {
+                    if (timeA === null && timeB === null) return 0;
+                    if (timeA === null) return 1;
+                    if (timeB === null) return -1;
+                    return timeA - timeB;
+                } else if (criterio === 'inicio-desc') {
+                    if (timeA === null && timeB === null) return 0;
+                    if (timeA === null) return 1;
+                    if (timeB === null) return -1;
+                    return timeB - timeA;
+                } else if (criterio === 'naipe') {
+                    const idxA = getNaipeIndex(a);
+                    const idxB = getNaipeIndex(b);
+                    if (idxA !== idxB) return idxA - idxB;
+                    return nomeA.localeCompare(nomeB, 'pt-BR');
+                }
+                return 0;
+            });
         };
 
         const formatDateDisplay = (dateObj, rawStr) => {
@@ -13426,6 +13745,46 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
             return rawStr || '-';
         };
 
+        const atualizarIconesCabecalho = () => {
+            const iconTempo = document.querySelector('#th-tempo-oer .sort-icon');
+            const iconInicio = document.querySelector('#th-inicio-contrato .sort-icon');
+            const iconNome = document.querySelector('#th-nome-artistico .sort-icon');
+            const iconNaipe = document.querySelector('#th-naipe .sort-icon');
+
+            const resetIcon = (el) => {
+                if (!el) return;
+                el.setAttribute('data-lucide', 'arrow-up-down');
+                el.style.color = '#94a3b8';
+            };
+
+            [iconTempo, iconInicio, iconNome, iconNaipe].forEach(resetIcon);
+
+            if (currentSort === 'tempo-desc' && iconTempo) {
+                iconTempo.setAttribute('data-lucide', 'arrow-down');
+                iconTempo.style.color = '#0284c7';
+            } else if (currentSort === 'tempo-asc' && iconTempo) {
+                iconTempo.setAttribute('data-lucide', 'arrow-up');
+                iconTempo.style.color = '#0284c7';
+            } else if (currentSort === 'inicio-asc' && iconInicio) {
+                iconInicio.setAttribute('data-lucide', 'arrow-up');
+                iconInicio.style.color = '#0284c7';
+            } else if (currentSort === 'inicio-desc' && iconInicio) {
+                iconInicio.setAttribute('data-lucide', 'arrow-down');
+                iconInicio.style.color = '#0284c7';
+            } else if (currentSort === 'nome-asc' && iconNome) {
+                iconNome.setAttribute('data-lucide', 'arrow-down-a-z');
+                iconNome.style.color = '#0284c7';
+            } else if (currentSort === 'nome-desc' && iconNome) {
+                iconNome.setAttribute('data-lucide', 'arrow-down-z-a');
+                iconNome.style.color = '#0284c7';
+            } else if (currentSort === 'naipe' && iconNaipe) {
+                iconNaipe.setAttribute('data-lucide', 'check');
+                iconNaipe.style.color = '#0284c7';
+            }
+
+            if (window.lucide) lucide.createIcons();
+        };
+
         const renderPrevia = (filtro = '') => {
             if (!tbody) return;
 
@@ -13438,11 +13797,13 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                 return nomeArt.includes(q) || nomeReg.includes(q) || inst.includes(q);
             });
 
+            const ordenados = ordenarBolsistas(filtrados, currentSort);
+
             if (countEl) {
-                countEl.textContent = `${filtrados.length} bolsista${filtrados.length !== 1 ? 's' : ''}`;
+                countEl.textContent = `${ordenados.length} bolsista${ordenados.length !== 1 ? 's' : ''}`;
             }
 
-            if (filtrados.length === 0) {
+            if (ordenados.length === 0) {
                 tbody.innerHTML = `
                     <tr>
                         <td colspan="4" style="text-align: center; padding: 2.5rem 1rem; color: #94a3b8; font-size: 0.9rem;">
@@ -13454,7 +13815,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
             }
 
             let html = '';
-            filtrados.forEach((m, idx) => {
+            ordenados.forEach((m, idx) => {
                 const nomeArt = m.NOMEARTISTICO || m['NOME REGISTRO'] || 'Sem nome';
                 const nomeReg = m['NOME REGISTRO'] || '';
                 const inst = m.INSTRUMENTOS || m.Instrumento || '-';
@@ -13468,17 +13829,17 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                 const bg = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
                 html += `
                     <tr style="background: ${bg}; border-bottom: 1px solid #f1f5f9;">
+                        <td style="padding: 0.65rem 0.85rem; font-weight: 600; color: #0284c7;">
+                            <span style="display: inline-flex; align-items: center; background: #e0f2fe; color: #0369a1; padding: 0.2rem 0.6rem; border-radius: 6px; font-size: 0.82rem; font-weight: 600;">
+                                ${tempoOER}
+                            </span>
+                        </td>
+                        <td style="padding: 0.65rem 0.85rem; color: #475569; font-weight: 500;">${inicioDisplay}</td>
                         <td style="padding: 0.65rem 0.85rem; font-weight: 600; color: #1e293b;">
                             ${nomeArt}
                             ${nomeReg && nomeReg !== nomeArt ? `<div style="font-size: 0.75rem; color: #64748b; font-weight: 400;">${nomeReg}</div>` : ''}
                         </td>
                         <td style="padding: 0.65rem 0.85rem; color: #475569;">${inst}</td>
-                        <td style="padding: 0.65rem 0.85rem; color: #475569;">${inicioDisplay}</td>
-                        <td style="padding: 0.65rem 0.85rem;">
-                            <span style="display: inline-flex; align-items: center; background: #e0f2fe; color: #0369a1; padding: 0.2rem 0.6rem; border-radius: 6px; font-size: 0.82rem; font-weight: 600;">
-                                ${tempoOER}
-                            </span>
-                        </td>
                     </tr>
                 `;
             });
@@ -13514,8 +13875,9 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                 ];
 
                 const excelRows = [headers];
+                const listaExportacao = ordenarBolsistas(bolsistasAtivos, currentSort);
 
-                bolsistasAtivos.forEach((m, idx) => {
+                listaExportacao.forEach((m, idx) => {
                     const rowNum = idx + 2; // Cabeçalho está na linha 1
 
                     const nomeArt = (m.NOMEARTISTICO || m['NOME REGISTRO'] || m.Nome || 'Músico').trim();
@@ -13648,13 +14010,15 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                 return;
             }
 
-            bolsistasAtivos = filtrarEOrdenarBolsistas();
+            bolsistasAtivos = filtrarBolsistas();
 
             if (subtitle) {
                 subtitle.textContent = `${bolsistasAtivos.length} bolsistas ativos cadastrados`;
             }
 
             if (searchInput) searchInput.value = '';
+            if (sortSelect) sortSelect.value = currentSort;
+            atualizarIconesCabecalho();
             renderPrevia('');
 
             modal.style.display = 'flex';
@@ -13678,6 +14042,51 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
         if (searchInput) {
             searchInput.addEventListener('input', (e) => {
                 renderPrevia(e.target.value);
+            });
+        }
+
+        if (sortSelect) {
+            sortSelect.addEventListener('change', (e) => {
+                currentSort = e.target.value;
+                atualizarIconesCabecalho();
+                renderPrevia(searchInput ? searchInput.value : '');
+            });
+        }
+
+        // Ordenação por clique nos cabeçalhos da tabela
+        if (thTempo) {
+            thTempo.addEventListener('click', () => {
+                currentSort = currentSort === 'tempo-desc' ? 'tempo-asc' : 'tempo-desc';
+                if (sortSelect) sortSelect.value = currentSort;
+                atualizarIconesCabecalho();
+                renderPrevia(searchInput ? searchInput.value : '');
+            });
+        }
+
+        if (thInicio) {
+            thInicio.addEventListener('click', () => {
+                currentSort = currentSort === 'inicio-asc' ? 'inicio-desc' : 'inicio-asc';
+                if (sortSelect) sortSelect.value = currentSort;
+                atualizarIconesCabecalho();
+                renderPrevia(searchInput ? searchInput.value : '');
+            });
+        }
+
+        if (thNome) {
+            thNome.addEventListener('click', () => {
+                currentSort = currentSort === 'nome-asc' ? 'nome-desc' : 'nome-asc';
+                if (sortSelect) sortSelect.value = currentSort;
+                atualizarIconesCabecalho();
+                renderPrevia(searchInput ? searchInput.value : '');
+            });
+        }
+
+        if (thNaipe) {
+            thNaipe.addEventListener('click', () => {
+                currentSort = 'naipe';
+                if (sortSelect) sortSelect.value = currentSort;
+                atualizarIconesCabecalho();
+                renderPrevia(searchInput ? searchInput.value : '');
             });
         }
 
