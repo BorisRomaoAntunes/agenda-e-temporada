@@ -1,8 +1,14 @@
 {
-  "hash": "33a8f70",
-  "date": "24/09/2026 16:32",
-  "buildAt": "2026-09-24T19:35:38.285Z",
+  "hash": "a1a045e",
+  "date": "24/09/2026 16:35",
+  "buildAt": "2026-09-24T19:40:58.751Z",
   "history": [
+    {
+      "hash": "a1a045e",
+      "date": "24/09/2026 16:35",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pós-deploy v33a8f70"
+    },
     {
       "hash": "33a8f70",
       "date": "24/09/2026 16:32",
@@ -116,12 +122,6 @@
       "date": "24/09/2026 10:56",
       "author": "Boris Romão Antunes",
       "subject": "feat(reserva): modal de confirmação com integração de calendário e compartilhamento"
-    },
-    {
-      "hash": "8c778e7",
-      "date": "23/09/2026 14:32",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pós-deploy vb51ac80"
     }
   ]
 }
