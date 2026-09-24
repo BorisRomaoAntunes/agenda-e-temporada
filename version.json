@@ -1,8 +1,20 @@
 {
-  "hash": "bd338ac",
-  "date": "24/09/2026 11:06",
-  "buildAt": "2026-09-24T14:08:56.777Z",
+  "hash": "3c03f12",
+  "date": "24/09/2026 11:21",
+  "buildAt": "2026-09-24T14:22:26.035Z",
   "history": [
+    {
+      "hash": "3c03f12",
+      "date": "24/09/2026 11:21",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(admin): implementa rolagem horizontal na área de agendamentos pendentes"
+    },
+    {
+      "hash": "b7baeb2",
+      "date": "24/09/2026 11:10",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pós-deploy vbd338ac"
+    },
     {
       "hash": "bd338ac",
       "date": "24/09/2026 11:06",
@@ -110,18 +122,6 @@
       "date": "22/09/2026 12:31",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualiza version.json pós-deploy vacd9fca"
-    },
-    {
-      "hash": "acd9fca",
-      "date": "22/09/2026 12:28",
-      "author": "Boris Romão Antunes",
-      "subject": "fix(agendamento): grade semanal no mobile limitada a 2 dias por tela com horas sticky e snap"
-    },
-    {
-      "hash": "2530a34",
-      "date": "22/09/2026 12:21",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pós-deploy v36ac0d4"
     }
   ]
 }
