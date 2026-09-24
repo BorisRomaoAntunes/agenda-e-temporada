@@ -225,6 +225,7 @@
                          <span>Ações Rápidas</span>
                      </div>
                      <div class="quick-actions-container">
+                         <!-- Módulos e Links Externos -->
                          <a href="presenca.html" target="_blank" class="btn-quick-round btn-presenca" title="Presença OER">
                              <i data-lucide="user-check"></i>
                          </a>
@@ -234,6 +235,20 @@
                          <a href="https://docs.google.com/document/d/1LZcA7TGbL2J_O8Y8H7JUKAauF8B1PAElbnSDqjodTQw/edit?usp=sharing" target="_blank" class="btn-quick-round btn-instrumentacao" title="Instrumentação">
                              <i data-lucide="file-text"></i>
                          </a>
+
+                         <!-- Pequeno Divisor Visual -->
+                         <div class="quick-actions-divider" role="separator" aria-orientation="vertical"></div>
+
+                         <!-- Ações & Relatórios de Agendamento -->
+                         <button type="button" class="btn-quick-round btn-agendamento-atual" id="btn-quick-agendamento-atual" title="Copiar Agendamentos Formatados (WhatsApp)">
+                             <i data-lucide="message-square-text"></i>
+                         </button>
+                         <button type="button" class="btn-quick-round btn-horarios-livres" id="btn-quick-horarios-livres" title="Copiar Horários Disponíveis das Salas (WhatsApp)">
+                             <i data-lucide="calendar-check-2"></i>
+                         </button>
+                         <button type="button" class="btn-quick-round btn-link-musicos" id="btn-quick-link-musicos" title="Copiar Link Público dos Músicos (WhatsApp)">
+                             <i data-lucide="link"></i>
+                         </button>
                      </div>
                  </div>
 
@@ -3302,6 +3317,39 @@ Intervalo
                 </button>
                 <button type="button" class="btn-primary" id="btn-copy-extracted" style="padding: 0.65rem 1.4rem; border-radius: 8px; font-weight: 600; cursor: pointer; background: linear-gradient(135deg, #6366f1, #4f46e5); color: white; border: none; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25); transition: transform 0.2s, box-shadow 0.2s;">
                     <i data-lucide="copy" style="width: 16px; height: 16px;"></i> Copiar para Área de Transferência
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Rápido de Seleção de Data para Relatório de Agendamentos / Horários -->
+    <div id="modal-quick-agendamento-report" class="modal-overlay" style="display: none; z-index: 3200;" role="dialog" aria-modal="true">
+        <div class="modal-custom-content" style="background: #ffffff; width: min(440px, 92vw); border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); overflow: hidden; display: flex; flex-direction: column;">
+            <div class="modal-custom-header" style="padding: 1.15rem 1.4rem; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; background: #fafafa;">
+                <h4 id="quick-report-modal-title" style="margin: 0; font-size: 1.05rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 0.5rem;">
+                    <i id="quick-report-modal-icon" data-lucide="message-square-text" style="color: #16a34a; width: 20px; height: 20px;"></i>
+                    <span id="quick-report-modal-title-text">Copiar Agendamentos</span>
+                </h4>
+                <button type="button" class="btn-close-modal" id="btn-close-quick-report-modal" style="background: none; border: none; cursor: pointer; color: #94a3b8; display: flex; align-items: center; justify-content: center; padding: 4px; border-radius: 6px;">
+                    <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                </button>
+            </div>
+            <div class="modal-custom-body" style="padding: 1.4rem; display: flex; flex-direction: column; gap: 1rem;">
+                <p id="quick-report-modal-desc" style="margin: 0; font-size: 0.88rem; color: #64748b; line-height: 1.45;">
+                    Selecione a data para gerar o relatório formatado para o WhatsApp:
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+                    <label for="quick-report-date-input" style="font-size: 0.82rem; font-weight: 600; color: #334155;">Data do Relatório:</label>
+                    <input type="date" id="quick-report-date-input" class="form-input" style="padding: 0.6rem 0.8rem; font-size: 0.95rem; border: 1px solid #cbd5e1; border-radius: 8px; width: 100%; box-sizing: border-box;">
+                </div>
+            </div>
+            <div style="padding: 1rem 1.4rem; background: #f8fafc; border-top: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: flex-end; gap: 0.75rem;">
+                <button type="button" class="btn-outline" id="btn-cancel-quick-report-modal" style="padding: 0.55rem 1.1rem; border-radius: 8px; font-weight: 600; cursor: pointer; border: 1px solid #cbd5e1; background: white; color: #475569; font-size: 0.88rem;">
+                    Cancelar
+                </button>
+                <button type="button" id="btn-confirm-quick-report-modal" style="padding: 0.55rem 1.25rem; border-radius: 8px; font-weight: 600; cursor: pointer; background: linear-gradient(135deg, #16a34a, #15803d); color: white; border: none; display: flex; align-items: center; gap: 0.45rem; font-size: 0.88rem; box-shadow: 0 4px 12px rgba(22, 163, 74, 0.25); transition: all 0.2s;">
+                    <i data-lucide="copy" style="width: 16px; height: 16px;"></i>
+                    <span>Copiar p/ WhatsApp</span>
                 </button>
             </div>
         </div>

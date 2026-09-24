@@ -5219,6 +5219,39 @@ input:checked + .slider:before {
     box-shadow: 0 4px 6px -1px rgba(139, 0, 0, 0.3), 0 2px 4px -1px rgba(139, 0, 0, 0.2);
 }
 
+.btn-quick-round.btn-agendamento-atual {
+    background: linear-gradient(135deg, #16a34a, #15803d);
+    box-shadow: 0 4px 6px -1px rgba(22, 163, 74, 0.3), 0 2px 4px -1px rgba(22, 163, 74, 0.2);
+}
+
+.btn-quick-round.btn-horarios-livres {
+    background: linear-gradient(135deg, #8B0000, #5c0000);
+    box-shadow: 0 4px 6px -1px rgba(139, 0, 0, 0.3), 0 2px 4px -1px rgba(139, 0, 0, 0.2);
+}
+
+.btn-quick-round.btn-link-musicos {
+    background: linear-gradient(135deg, #0284c7, #0369a1);
+    box-shadow: 0 4px 6px -1px rgba(2, 132, 199, 0.3), 0 2px 4px -1px rgba(2, 132, 199, 0.2);
+}
+
+.quick-actions-divider {
+    width: 2px;
+    height: 48px;
+    background: #e2e8f0;
+    border-radius: 999px;
+    margin: 0 0.5rem;
+    align-self: center;
+    flex-shrink: 0;
+}
+
+@media (max-width: 600px) {
+    .quick-actions-divider {
+        width: 60%;
+        height: 1.5px;
+        margin: 0.25rem auto;
+    }
+}
+
 /* Copyable Area (Gaveta do Músico) */
 .copyable-area {
     cursor: pointer;

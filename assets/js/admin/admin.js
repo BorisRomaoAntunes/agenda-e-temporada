@@ -164,11 +164,14 @@ onAuthStateChanged(auth, (user) => {
         initSecuritySection(); // Inicia a seção de segurança da conta
         initRealtimeVersionModule(); // Inicia sincronização e escuta em tempo real da versão
         initPendingAgendamentosArea(); // Inicia o monitoramento de agendamentos pendentes logo abaixo da busca
+        initQuickActionsAgendamentoModule(); // Inicia ações e relatórios rápidos de agendamento no card de ações rápidas
     } else {
         // Não logado
         dashboardContainer.classList.remove('active');
         loginContainer.classList.add('active');
         if (unsubscribePendingAgendamentos) { unsubscribePendingAgendamentos(); unsubscribePendingAgendamentos = null; }
+        if (unsubscribeQuickSalas) { unsubscribeQuickSalas(); unsubscribeQuickSalas = null; }
+        if (unsubscribeQuickAgendamentos) { unsubscribeQuickAgendamentos(); unsubscribeQuickAgendamentos = null; }
         if (unsubscribeToggle) { unsubscribeToggle(); unsubscribeToggle = null; }
         if (unsubscribeAppToggle) { unsubscribeAppToggle(); unsubscribeAppToggle = null; }
         if (unsubscribeGoogleCalendarToggle) { unsubscribeGoogleCalendarToggle(); unsubscribeGoogleCalendarToggle = null; }
@@ -14160,6 +14163,203 @@ function initPendingAgendamentosArea() {
             });
         });
     });
+}
+
+// ================= MÓDULO DE AÇÕES & RELATÓRIOS RÁPIDOS DE AGENDAMENTO =================
+
+let unsubscribeQuickSalas = null;
+let unsubscribeQuickAgendamentos = null;
+let quickSalasCache = [];
+let quickAgendamentosCache = [];
+let quickReportCurrentType = 'agendamento'; // 'agendamento' ou 'horarios'
+let isQuickActionsAgendamentoInitialized = false;
+
+function formatTodayDateYMD() {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function openQuickReportModal(type) {
+    quickReportCurrentType = type;
+    const modal = document.getElementById('modal-quick-agendamento-report');
+    const titleText = document.getElementById('quick-report-modal-title-text');
+    const icon = document.getElementById('quick-report-modal-icon');
+    const desc = document.getElementById('quick-report-modal-desc');
+    const dateInput = document.getElementById('quick-report-date-input');
+    const btnConfirm = document.getElementById('btn-confirm-quick-report-modal');
+
+    if (!modal || !dateInput) return;
+
+    dateInput.value = formatTodayDateYMD();
+
+    if (type === 'agendamento') {
+        if (titleText) titleText.textContent = 'Copiar Agendamentos (WhatsApp)';
+        if (desc) desc.textContent = 'Selecione a data para gerar e copiar a lista formatada dos agendamentos das salas:';
+        if (icon) {
+            icon.setAttribute('data-lucide', 'message-square-text');
+            icon.style.color = '#16a34a';
+        }
+        if (btnConfirm) {
+            btnConfirm.style.background = 'linear-gradient(135deg, #16a34a, #15803d)';
+            btnConfirm.style.boxShadow = '0 4px 12px rgba(22, 163, 74, 0.25)';
+        }
+    } else {
+        if (titleText) titleText.textContent = 'Copiar Horários Disponíveis (WhatsApp)';
+        if (desc) desc.textContent = 'Selecione a data para verificar e copiar a lista de horários livres por sala:';
+        if (icon) {
+            icon.setAttribute('data-lucide', 'calendar-check-2');
+            icon.style.color = '#8B0000';
+        }
+        if (btnConfirm) {
+            btnConfirm.style.background = 'linear-gradient(135deg, #8B0000, #5c0000)';
+            btnConfirm.style.boxShadow = '0 4px 12px rgba(139, 0, 0, 0.25)';
+        }
+    }
+
+    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
+    }
+
+    modal.style.display = 'flex';
+}
+
+function closeQuickReportModal() {
+    const modal = document.getElementById('modal-quick-agendamento-report');
+    if (modal) modal.style.display = 'none';
+}
+
+async function handleConfirmQuickReport() {
+    const dateInput = document.getElementById('quick-report-date-input');
+    const dataAlvo = (dateInput && dateInput.value) ? dateInput.value : formatTodayDateYMD();
+
+    let texto = '';
+    if (quickReportCurrentType === 'agendamento') {
+        texto = AgendamentoService.generateFormattedMessage(dataAlvo, quickAgendamentosCache, quickSalasCache);
+    } else {
+        texto = AgendamentoService.generateAvailableSlotsMessage(dataAlvo, quickSalasCache, quickAgendamentosCache);
+    }
+
+    try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(texto);
+        } else {
+            const tempTextarea = document.createElement('textarea');
+            tempTextarea.value = texto;
+            document.body.appendChild(tempTextarea);
+            tempTextarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempTextarea);
+        }
+
+        const msgSuccess = quickReportCurrentType === 'agendamento' 
+            ? 'Agendamentos copiados para o WhatsApp!' 
+            : 'Horários disponíveis copiados para o WhatsApp!';
+        showNotification(msgSuccess, 'success');
+        closeQuickReportModal();
+    } catch (err) {
+        console.error('Erro ao copiar texto:', err);
+        showNotification('Erro ao copiar texto para a área de transferência.', 'error');
+    }
+}
+
+async function handleCopyLinkMusicos() {
+    const urlReserva = new URL("reserva.html", window.location.href).href;
+    try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(urlReserva);
+        } else {
+            const tempTextarea = document.createElement('textarea');
+            tempTextarea.value = urlReserva;
+            document.body.appendChild(tempTextarea);
+            tempTextarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempTextarea);
+        }
+        showNotification("Link dos músicos copiado com sucesso! Pronto para enviar no WhatsApp.", "success");
+    } catch (err) {
+        console.error("Erro ao copiar link:", err);
+        window.prompt("Copie o link abaixo para enviar aos músicos:", urlReserva);
+    }
+}
+
+function initQuickActionsAgendamentoModule() {
+    // 1. Escutas em tempo real das salas e agendamentos para manter cache sempre atualizado
+    if (unsubscribeQuickSalas) {
+        unsubscribeQuickSalas();
+        unsubscribeQuickSalas = null;
+    }
+    if (unsubscribeQuickAgendamentos) {
+        unsubscribeQuickAgendamentos();
+        unsubscribeQuickAgendamentos = null;
+    }
+
+    unsubscribeQuickSalas = AgendamentoService.listenSalas((salas) => {
+        quickSalasCache = salas || [];
+    });
+
+    unsubscribeQuickAgendamentos = AgendamentoService.listenAgendamentos(null, (ags) => {
+        quickAgendamentosCache = ags || [];
+    });
+
+    // 2. Configura os listeners dos botões de ação e modal
+    if (!isQuickActionsAgendamentoInitialized) {
+        const btnAgendamentoAtual = document.getElementById('btn-quick-agendamento-atual');
+        const btnHorariosLivres = document.getElementById('btn-quick-horarios-livres');
+        const btnLinkMusicos = document.getElementById('btn-quick-link-musicos');
+
+        if (btnAgendamentoAtual) {
+            btnAgendamentoAtual.addEventListener('click', (e) => {
+                e.preventDefault();
+                openQuickReportModal('agendamento');
+            });
+        }
+
+        if (btnHorariosLivres) {
+            btnHorariosLivres.addEventListener('click', (e) => {
+                e.preventDefault();
+                openQuickReportModal('horarios');
+            });
+        }
+
+        if (btnLinkMusicos) {
+            btnLinkMusicos.addEventListener('click', (e) => {
+                e.preventDefault();
+                handleCopyLinkMusicos();
+            });
+        }
+
+        // Listeners do Modal de Seleção de Data
+        const modal = document.getElementById('modal-quick-agendamento-report');
+        const btnClose = document.getElementById('btn-close-quick-report-modal');
+        const btnCancel = document.getElementById('btn-cancel-quick-report-modal');
+        const btnConfirm = document.getElementById('btn-confirm-quick-report-modal');
+
+        if (btnClose) btnClose.addEventListener('click', closeQuickReportModal);
+        if (btnCancel) btnCancel.addEventListener('click', closeQuickReportModal);
+        if (btnConfirm) btnConfirm.addEventListener('click', handleConfirmQuickReport);
+
+        if (modal) {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) closeQuickReportModal();
+            });
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal && modal.style.display === 'flex') {
+                closeQuickReportModal();
+            }
+        });
+
+        isQuickActionsAgendamentoInitialized = true;
+    }
+
+    // Renderiza ícones caso o Lucide esteja disponível
+    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
+    }
 }
 
 
