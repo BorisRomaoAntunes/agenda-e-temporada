@@ -1,8 +1,20 @@
 {
-  "hash": "3c03f12",
-  "date": "24/09/2026 11:21",
-  "buildAt": "2026-09-24T14:22:26.035Z",
+  "hash": "2c11352",
+  "date": "24/09/2026 11:24",
+  "buildAt": "2026-09-24T14:24:55.374Z",
   "history": [
+    {
+      "hash": "2c11352",
+      "date": "24/09/2026 11:24",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(reserva): modal minimalista e botao inteligente de calendario com deteccao de sistema"
+    },
+    {
+      "hash": "2056d6a",
+      "date": "24/09/2026 11:22",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json v3c03f12"
+    },
     {
       "hash": "3c03f12",
       "date": "24/09/2026 11:21",
@@ -110,18 +122,6 @@
       "date": "22/09/2026 12:45",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualiza version.json pós-deploy vc1e4f52"
-    },
-    {
-      "hash": "c1e4f52",
-      "date": "22/09/2026 12:42",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(admin): auditoria de agendamentos e cancelamentos nas ultimas atualizacoes"
-    },
-    {
-      "hash": "56573f1",
-      "date": "22/09/2026 12:31",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pós-deploy vacd9fca"
     }
   ]
 }
