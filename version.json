@@ -1,13 +1,19 @@
 {
-  "hash": "327398d+mod",
-  "date": "24/09/2026, 21:02:36",
-  "buildAt": "2026-09-25T00:02:36.435Z",
+  "hash": "4a3fe3d+mod",
+  "date": "24/09/2026, 21:04:45",
+  "buildAt": "2026-09-25T00:04:45.766Z",
   "history": [
     {
-      "hash": "327398d+mod",
-      "date": "24/09/2026, 21:02:36",
+      "hash": "4a3fe3d+mod",
+      "date": "24/09/2026, 21:04:45",
       "author": "Deploy Local",
-      "subject": "Atualização implantada (6 arquivos modificados)"
+      "subject": "Atualização implantada (2 arquivos modificados)"
+    },
+    {
+      "hash": "4a3fe3d",
+      "date": "24/09/2026 21:04",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(drawer): adiciona cópia rápida para o clipboard ao clicar nos cards de faltas, atestados, afastamento e dispensas"
     },
     {
       "hash": "327398d",
@@ -116,12 +122,6 @@
       "date": "24/09/2026 11:21",
       "author": "Boris Romão Antunes",
       "subject": "feat(admin): implementa rolagem horizontal na área de agendamentos pendentes"
-    },
-    {
-      "hash": "b7baeb2",
-      "date": "24/09/2026 11:10",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pós-deploy vbd338ac"
     }
   ]
 }
