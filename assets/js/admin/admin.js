@@ -9149,7 +9149,7 @@ function initMusiciansManagement() {
 
                 txt += `📋 *RESUMO DE OCORRÊNCIAS:*\n`;
                 txt += `• Faltas no Ano: ${rep.kpis.faltas}${faltasComplemento}\n`;
-                txt += `• Atrasos no Ano: ${rep.kpis.atrasos || 0} (${rep.kpis.atrasosMin || 0} min acumulados)\n`;
+                txt += `• Atrasos no Ano: ${rep.kpis.atrasos || 0} (${formatMinutesToHoursFriendly(rep.kpis.atrasosMin || 0)} acumuladas)\n`;
                 txt += `• Atestados Médicos: ${rep.kpis.atestados} (${rep.kpis.diasAfastamento} afastado)\n`;
                 txt += `• Dispensas Oficiais: ${rep.kpis.dispensas}\n\n`;
 
@@ -9282,7 +9282,7 @@ function initMusiciansManagement() {
         }
         if (prKpiAtrasosSub) {
             const minTot = rep.kpis.atrasosMin || 0;
-            prKpiAtrasosSub.textContent = minTot > 0 ? `${minTot} min acum.` : '0 min';
+            prKpiAtrasosSub.textContent = minTot > 0 ? `${formatMinutesToHoursFriendly(minTot)} acum.` : '0 min';
         }
 
         document.getElementById("pr-kpi-atestados").textContent = rep.kpis.atestados;
@@ -9336,10 +9336,11 @@ function initMusiciansManagement() {
         if (tfootAtrasos) {
             const totalAtrasosQtd = listaAtrasos.length;
             const totalAtrasosMin = listaAtrasos.reduce((acc, cur) => acc + (parseInt(cur.minutos, 10) || 0), 0);
+            const horasTotalAtraso = formatMinutesToHoursFriendly(totalAtrasosMin);
             tfootAtrasos.innerHTML = `
                 <tr>
                     <td colspan="4" style="text-align: right; padding: 7px 10px; font-size: 0.85rem; color: #334155; background: #fafafa; border: 1px solid #ddd;">
-                        <strong>Total de Atrasos:</strong> ${totalAtrasosQtd} atraso${totalAtrasosQtd === 1 ? '' : 's'} · <strong>${totalAtrasosMin} min no total</strong>
+                        <strong>Total de Atrasos:</strong> ${totalAtrasosQtd} atraso${totalAtrasosQtd === 1 ? '' : 's'} · <strong>${horasTotalAtraso} no total</strong> (${totalAtrasosMin} min)
                     </td>
                 </tr>
             `;
