@@ -1,8 +1,14 @@
 {
-  "hash": "2a10dee",
-  "date": "24/09/2026 21:23",
-  "buildAt": "2026-09-25T00:31:49.616Z",
+  "hash": "90053b5",
+  "date": "24/09/2026 21:32",
+  "buildAt": "2026-09-25T00:37:10.361Z",
   "history": [
+    {
+      "hash": "90053b5",
+      "date": "24/09/2026 21:32",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pós-deploy v2a10dee"
+    },
     {
       "hash": "2a10dee",
       "date": "24/09/2026 21:23",
@@ -116,12 +122,6 @@
       "date": "24/09/2026 11:38",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualiza version.json pós-deploy v376fce6"
-    },
-    {
-      "hash": "376fce6",
-      "date": "24/09/2026 11:33",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(admin): adiciona cabeçalho 'Ações Rápidas' ao card unificado"
     }
   ]
 }
