@@ -7865,6 +7865,38 @@ function initMusiciansManagement() {
         return `${horas}h ${String(minsRestantes).padStart(2, '0')}min`;
     }
 
+    // Helper: Formata data YYYY-MM-DD ou DD/MM/AAAA para "DD/MM/AAAA (Sem)" com dia da semana abreviado
+    function formatDataComDiaSemanaBR(val) {
+        if (!val || val === '-' || val === '') return '-';
+        if (typeof val === 'string' && val.includes(' a ')) return val; // Período composto: mantém sem dia da semana
+        if (typeof val === 'string' && val.includes('(') && val.includes(')')) return val; // Já possui parênteses
+
+        const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+        let ano, mes, dia;
+
+        if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val)) {
+            const parts = val.split('T')[0].split('-');
+            ano = parseInt(parts[0], 10);
+            mes = parseInt(parts[1], 10);
+            dia = parseInt(parts[2], 10);
+        } else if (typeof val === 'string' && /^\d{1,2}\/\d{1,2}\/\d{4}/.test(val)) {
+            const parts = val.split(' ')[0].split('/');
+            dia = parseInt(parts[0], 10);
+            mes = parseInt(parts[1], 10);
+            ano = parseInt(parts[2], 10);
+        }
+
+        if (ano && mes && dia) {
+            const dateObj = new Date(ano, mes - 1, dia, 12, 0, 0);
+            const diaSemanaStr = diasSemana[dateObj.getDay()];
+            const diaPad = String(dia).padStart(2, '0');
+            const mesPad = String(mes).padStart(2, '0');
+            return `${diaPad}/${mesPad}/${ano} (${diaSemanaStr})`;
+        }
+
+        return formatDataBR(val);
+    }
+
 
     // =========================================================================
     // BARRA DE BUSCA CENTRALIZADA ESTILO GOOGLE (ABA HISTÓRICO)
@@ -8231,7 +8263,7 @@ function initMusiciansManagement() {
                     ocorrenciasList.push({
                         tipo: 'atestado',
                         tag: 'Atestado Médico',
-                        data: a.dataInicio === a.dataFim ? formatDataBR(a.dataInicio) : `${formatDataBR(a.dataInicio)} a ${formatDataBR(a.dataFim)}`,
+                        data: a.dataInicio === a.dataFim ? formatDataComDiaSemanaBR(a.dataInicio) : `${formatDataBR(a.dataInicio)} a ${formatDataBR(a.dataFim)}`,
                         titulo: `Atestado Médico (${dias} dia${dias > 1 ? 's' : ''})`,
                         cid: a.cid ? `CID ${a.cid}` : '',
                         meta: a.resumo || a.motivo || 'Homologado pela Coordenação OER',
@@ -8254,7 +8286,7 @@ function initMusiciansManagement() {
                     ocorrenciasList.push({
                         tipo: 'dispensa',
                         tag: 'Dispensa',
-                        data: d.dataInicio === d.dataFim ? formatDataBR(d.dataInicio) : `${formatDataBR(d.dataInicio)} a ${formatDataBR(d.dataFim)}`,
+                        data: d.dataInicio === d.dataFim ? formatDataComDiaSemanaBR(d.dataInicio) : `${formatDataBR(d.dataInicio)} a ${formatDataBR(d.dataFim)}`,
                         titulo: 'Dispensa Concedida',
                         cid: '',
                         meta: d.descricao || d.motivo || 'Dispensa Oficial',
@@ -8365,7 +8397,7 @@ function initMusiciansManagement() {
                     ocorrenciasList.push({
                         tipo: 'falta',
                         tag: isFaltaPS ? 'Falta PS' : 'Falta',
-                        data: formatDataBR(dataDoc),
+                        data: formatDataComDiaSemanaBR(dataDoc),
                         titulo: tituloFalta,
                         cid: '',
                         meta: reg.justificativa ? `Anotação / Justificativa: "${reg.justificativa}"` : 'Sem anotação registrada',
@@ -8397,7 +8429,7 @@ function initMusiciansManagement() {
                     const anotacaoAdmin = reg.justificativa ? reg.justificativa.trim() : 'Sem anotação registrada';
 
                     atrasosList.push({
-                        data: formatDataBR(dataDoc),
+                        data: formatDataComDiaSemanaBR(dataDoc),
                         minutos: minReg,
                         duracaoFormatada: formatMinutesToHoursFriendly(minReg),
                         evento: descricaoEvento,
@@ -8409,7 +8441,7 @@ function initMusiciansManagement() {
                     ocorrenciasList.push({
                         tipo: 'atraso',
                         tag: isAtrasoPS ? 'Atraso PS' : 'Atraso',
-                        data: formatDataBR(dataDoc),
+                        data: formatDataComDiaSemanaBR(dataDoc),
                         titulo: tituloAtraso,
                         cid: '',
                         meta: reg.justificativa ? `Anotação: "${reg.justificativa}"` : 'Sem anotação registrada',
@@ -9298,7 +9330,7 @@ function initMusiciansManagement() {
                 ocorrenciasSemAtraso.forEach(o => {
                     const tr = document.createElement("tr");
                     tr.innerHTML = `
-                        <td>${o.data}</td>
+                        <td>${formatDataComDiaSemanaBR(o.data)}</td>
                         <td><strong>${o.tag}</strong></td>
                         <td>${o.titulo} ${o.cid ? '<br><code>' + o.cid + '</code>' : ''}</td>
                         <td>${o.meta || '-'}</td>
@@ -9321,7 +9353,7 @@ function initMusiciansManagement() {
                 listaAtrasos.forEach(a => {
                     const tr = document.createElement("tr");
                     tr.innerHTML = `
-                        <td>${a.data}</td>
+                        <td>${formatDataComDiaSemanaBR(a.data)}</td>
                         <td><strong style="color: #b45309;">${a.duracaoFormatada || a.minutos + ' min'}</strong></td>
                         <td>${a.evento || 'Ensaio'}</td>
                         <td>${a.justificativa || 'Sem anotação registrada'}</td>

@@ -2701,6 +2701,38 @@
             return `${horas}h ${String(minsRestantes).padStart(2, '0')}min`;
         }
 
+        // Helper: Formata data YYYY-MM-DD ou DD/MM/AAAA para "DD/MM/AAAA (Sem)" com dia da semana abreviado
+        function formatDataComDiaSemanaBR(val) {
+            if (!val || val === '-' || val === '') return '-';
+            if (typeof val === 'string' && val.includes(' a ')) return val; // Período composto: mantém sem dia da semana
+            if (typeof val === 'string' && val.includes('(') && val.includes(')')) return val; // Já possui parênteses
+
+            const diasSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+            let ano, mes, dia;
+
+            if (typeof val === 'string' && /^\d{4}-\d{2}-\d{2}/.test(val)) {
+                const parts = val.split('T')[0].split('-');
+                ano = parseInt(parts[0], 10);
+                mes = parseInt(parts[1], 10);
+                dia = parseInt(parts[2], 10);
+            } else if (typeof val === 'string' && /^\d{1,2}\/\d{1,2}\/\d{4}/.test(val)) {
+                const parts = val.split(' ')[0].split('/');
+                dia = parseInt(parts[0], 10);
+                mes = parseInt(parts[1], 10);
+                ano = parseInt(parts[2], 10);
+            }
+
+            if (ano && mes && dia) {
+                const dateObj = new Date(ano, mes - 1, dia, 12, 0, 0);
+                const diaSemanaStr = diasSemana[dateObj.getDay()];
+                const diaPad = String(dia).padStart(2, '0');
+                const mesPad = String(mes).padStart(2, '0');
+                return `${diaPad}/${mesPad}/${ano} (${diaSemanaStr})`;
+            }
+
+            return val;
+        }
+
         function populatePrintableReport(m) {
             let tempoStr = "";
             if (m.inicioContrato && m.inicioContrato !== '-') {
@@ -2758,7 +2790,7 @@
                 ocorrenciasSemAtraso.forEach(o => {
                     const tr = document.createElement("tr");
                     tr.innerHTML = `
-                        <td>${o.data}</td>
+                        <td>${formatDataComDiaSemanaBR(o.data)}</td>
                         <td><strong>${o.tag}</strong></td>
                         <td>${o.titulo} ${o.cid ? '<br><code>' + o.cid + '</code>' : ''}</td>
                         <td>${o.meta || '-'}</td>
@@ -2780,7 +2812,7 @@
                     listaAtrasos.forEach(a => {
                         const tr = document.createElement("tr");
                         tr.innerHTML = `
-                            <td>${a.data}</td>
+                            <td>${formatDataComDiaSemanaBR(a.data)}</td>
                             <td><strong style="color: #b45309;">${a.duracaoFormatada || a.minutos + ' min'}</strong></td>
                             <td>${a.evento || 'Ensaio'}</td>
                             <td>${a.justificativa || 'Sem anotação registrada'}</td>
