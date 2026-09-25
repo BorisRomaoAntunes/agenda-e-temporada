@@ -1518,6 +1518,45 @@ function showNotification(message, type = 'success') {
     }, 5000);
 }
 
+// ================= MOBILE & PDF UTILITIES =================
+
+function isMobileDevice() {
+    return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || 
+           (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+}
+
+async function deliverPDF(pdfBlob, fileName, title) {
+    const file = new File([pdfBlob], fileName, { type: 'application/pdf' });
+    const blobUrl = URL.createObjectURL(pdfBlob);
+    
+    // Tenta primeiro o compartilhamento nativo do iOS / Android
+    if (isMobileDevice() && navigator.canShare && navigator.canShare({ files: [file] })) {
+        try {
+            await navigator.share({
+                files: [file],
+                title: title || fileName,
+                text: `Relatório OER: ${title || fileName}`
+            });
+            return { success: true, method: 'share', url: blobUrl };
+        } catch (err) {
+            if (err.name !== 'AbortError') {
+                console.warn("[PDF] Falha no navigator.share, fallback para nova aba:", err);
+            } else {
+                // Usuário apenas fechou/cancelou o menu nativo de compartilhamento
+                return { success: true, method: 'cancelled', url: blobUrl };
+            }
+        }
+    }
+    
+    // Se não for possível compartilhar nativamente ou se fallback for acionado:
+    // Abre a aba com o leitor nativo do Safari / Chrome
+    const win = window.open(blobUrl, '_blank');
+    if (!win) {
+        return { success: false, method: 'blocked', url: blobUrl };
+    }
+    return { success: true, method: 'tab', url: blobUrl };
+}
+
 // ================= MODAL DE AJUSTES =================
 
 function initSettingsModal() {
@@ -9229,30 +9268,101 @@ function initMusiciansManagement() {
 
         // Opção 2: Imprimir Ficha Oficial Timbrada (PDF)
         if (btnPrintOfficialCard) {
-            btnPrintOfficialCard.addEventListener('click', () => {
+            btnPrintOfficialCard.addEventListener('click', async () => {
                 if (!currentSelectedMusico) return;
                 const m = currentSelectedMusico;
                 populatePrintableReport(m);
                 exportModal.style.display = 'none';
                 exportModal.classList.remove('active');
 
-                // Ajustar título dinâmico para sugestão de nome de arquivo ao salvar PDF
-                const originalTitle = document.title;
-                const nomeMusico = (m.NOMEARTISTICO || m['NOME REGISTRO'] || 'Músico').trim();
-                const instrumentoMusico = (m.INSTRUMENTOS || 'OER').trim();
-                document.title = `${nomeMusico} - ${instrumentoMusico} - Ficha OER`;
+                // Se NÃO for dispositivo móvel (iOS/Android), mantém o comportamento desktop nativo de window.print
+                if (!isMobileDevice()) {
+                    const originalTitle = document.title;
+                    const nomeMusico = (m.NOMEARTISTICO || m['NOME REGISTRO'] || 'Músico').trim();
+                    const instrumentoMusico = (m.INSTRUMENTOS || 'OER').trim();
+                    document.title = `${nomeMusico} - ${instrumentoMusico} - Ficha OER`;
 
-                const restoreTitle = () => {
-                    document.title = originalTitle;
-                    window.removeEventListener('afterprint', restoreTitle);
-                };
-                window.addEventListener('afterprint', restoreTitle);
+                    const restoreTitle = () => {
+                        document.title = originalTitle;
+                        window.removeEventListener('afterprint', restoreTitle);
+                    };
+                    window.addEventListener('afterprint', restoreTitle);
 
-                setTimeout(() => {
+                    setTimeout(() => {
+                        window.print();
+                        setTimeout(restoreTitle, 2000);
+                    }, 250);
+                    return;
+                }
+
+                // Dispositivo móvel (iOS / iPhone / Android):
+                showNotification("Gerando PDF da Ficha Oficial...", "info");
+
+                try {
+                    const printable = document.getElementById('printable-report');
+                    if (!printable || typeof html2pdf !== 'function') {
+                        window.print();
+                        return;
+                    }
+
+                    const clone = printable.cloneNode(true);
+                    clone.id = 'temp-ficha-pdf-clone';
+                    clone.style.setProperty('display', 'block', 'important');
+                    clone.style.setProperty('visibility', 'visible', 'important');
+                    clone.style.position = 'fixed';
+                    clone.style.left = '-9999px';
+                    clone.style.top = '0';
+                    clone.style.width = '750px';
+                    clone.style.background = '#ffffff';
+                    clone.style.padding = '20px';
+                    clone.style.zIndex = '-9999';
+
+                    clone.querySelectorAll('*').forEach(el => {
+                        el.style.setProperty('visibility', 'visible', 'important');
+                    });
+
+                    document.body.appendChild(clone);
+
+                    const nomeMusicoLimpo = (m.NOMEARTISTICO || m['NOME REGISTRO'] || 'Musico')
+                        .trim()
+                        .normalize("NFD")
+                        .replace(/[\u0300-\u036f]/g, "")
+                        .replace(/[^a-zA-Z0-9_-]/g, '_');
+                    const safeFileName = `Ficha_OER_${nomeMusicoLimpo}.pdf`;
+                    const safeTitle = `Ficha Oficial OER - ${m.NOMEARTISTICO || m['NOME REGISTRO']}`;
+
+                    const opt = {
+                        margin: [8, 8, 8, 8],
+                        filename: safeFileName,
+                        image: { type: 'jpeg', quality: 0.98 },
+                        html2canvas: { 
+                            scale: 2, 
+                            useCORS: true, 
+                            letterRendering: true,
+                            scrollX: 0,
+                            scrollY: 0
+                        },
+                        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+                    };
+
+                    let pdfBlob;
+                    try {
+                        pdfBlob = await html2pdf().set(opt).from(clone).outputPdf('blob');
+                    } finally {
+                        if (clone.parentNode) {
+                            document.body.removeChild(clone);
+                        }
+                    }
+
+                    showNotification("Ficha Oficial gerada com sucesso!", "success");
+                    await deliverPDF(pdfBlob, safeFileName, safeTitle);
+
+                } catch (err) {
+                    console.error("Erro ao gerar PDF da Ficha Oficial no mobile:", err);
+                    showNotification("Abrindo visualização de impressão nativa...", "warning");
                     window.print();
-                    // Fallback para garantir restauração caso afterprint não dispare
-                    setTimeout(restoreTitle, 2000);
-                }, 250);
+                }
             });
         }
     }
@@ -12456,6 +12566,8 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
 
     const fecharPresencaModal = () => {
         if (modalPresencaMensal) modalPresencaMensal.style.display = 'none';
+        const mobileActions = document.getElementById('presenca-pdf-mobile-actions');
+        if (mobileActions) mobileActions.style.display = 'none';
     };
 
     if (btnClosePresencaModal) btnClosePresencaModal.addEventListener('click', fecharPresencaModal);
@@ -12463,6 +12575,8 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
 
     function abrirModalPresencaMensal() {
         if (!selectPresencaMes) return;
+        const mobileActions = document.getElementById('presenca-pdf-mobile-actions');
+        if (mobileActions) mobileActions.style.display = 'none';
         
         selectPresencaMes.innerHTML = '';
         const hoje = new Date();
@@ -12632,7 +12746,11 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
             if (st === 'atestado') return { symbol: 'A', status: 'atestado', incP: 0, incF: 0, excelSym: 'A' };
             if (st === 'dispensa') return { symbol: 'D', status: 'dispensa', incP: 0, incF: 0, excelSym: 'D' };
             if (st === 'justificado') return { symbol: 'J', status: 'justificado', incP: 0, incF: 0, excelSym: 'J' };
-            if (st === 'atraso' || st === 'atraso_passagem_som') return { symbol: 'P', status: st, incP: 1, incF: 0, excelSym: 'P' };
+            if (st === 'atraso' || st === 'atraso_passagem_som') {
+                const min = parseInt(reg.minutes, 10) || 0;
+                const atrasoLabel = min > 0 ? `${min}m` : 'At';
+                return { symbol: atrasoLabel, status: st, incP: 1, incF: 0, excelSym: atrasoLabel, minutes: min };
+            }
             if (st === 'nao_escalado') return { symbol: '-', status: 'nao_escalado', incP: 0, incF: 0, excelSym: '-' };
             if (isDispensadoGlobal) return { symbol: 'D', status: 'dispensa', incP: 0, incF: 0, excelSym: 'D' };
             if (isAtestadoGlobal) return { symbol: 'A', status: 'atestado', incP: 0, incF: 0, excelSym: 'A' };
@@ -12689,6 +12807,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
         let incP = 0;
         let incF = 0;
         let hasFalta = false;
+        let hasAtraso = false;
         let allPresenca = true;
         const partesPdf = [];
         const partesExcel = [];
@@ -12707,7 +12826,13 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
             } else {
                 const sym = getSymbol(reg);
                 const prefix = getTipoPrefix(doc.tipo);
-                partesPdf.push(`${prefix}:${sym.symbol}`);
+                if (sym.status === 'atraso' || sym.status === 'atraso_passagem_som') {
+                    hasAtraso = true;
+                    allPresenca = false;
+                    partesPdf.push(`<span class="inline-atraso">${prefix}:${sym.symbol}</span>`);
+                } else {
+                    partesPdf.push(`${prefix}:${sym.symbol}`);
+                }
                 partesExcel.push(`${prefix}:${sym.excelSym}`);
                 incP += sym.incP;
                 incF += sym.incF;
@@ -12721,6 +12846,8 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
         let cellClass = 'status-composto';
         if (hasFalta) {
             cellClass = 'status-falta';
+        } else if (hasAtraso) {
+            cellClass = 'status-atraso';
         } else if (allPresenca) {
             cellClass = 'status-presenca';
         }
@@ -12754,22 +12881,29 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                     where("__name__", ">=", startOfMonthQuery),
                     where("__name__", "<=", endOfMonthQuery + "_\uffff")
                 );
+
+                // Buscar eventos do mês para identificar os dias de concerto
+                const eventosQuery = query(
+                    collection(db, "eventos"),
+                    where("date", ">=", startOfMonthQuery),
+                    where("date", "<=", endOfMonthQuery)
+                );
                 
-                const presencasSnapshot = await getDocs(presencasQuery);
+                // Buscar todos os dados no Firestore em paralelo
+                const [presencasSnapshot, dispensasSnapshot, atestadosSnapshot, eventosSnapshot] = await Promise.all([
+                    getDocs(presencasQuery),
+                    getDocs(query(collection(db, "dispensas"))),
+                    getDocs(query(collection(db, "medicalCertificates_approved"))),
+                    getDocs(eventosQuery)
+                ]);
+
                 const presencasPorData = {};
-                
                 presencasSnapshot.forEach(docSnap => {
                     const dData = docSnap.data();
                     const dateKey = dData.data || docSnap.id.split('_')[0];
                     if (!presencasPorData[dateKey]) presencasPorData[dateKey] = [];
                     presencasPorData[dateKey].push({ id: docSnap.id, ...dData });
                 });
-
-                // Buscar dispensas e atestados no Firestore para o período
-                const [dispensasSnapshot, atestadosSnapshot] = await Promise.all([
-                    getDocs(query(collection(db, "dispensas"))),
-                    getDocs(query(collection(db, "medicalCertificates_approved")))
-                ]);
 
                 const dispensasMap = {};
                 dispensasSnapshot.forEach(docSnap => {
@@ -12919,19 +13053,6 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                 const mesNomeExtenso = mesesNomes[mesInt - 1];
                 const tituloRelatorio = `${mesNomeExtenso.toUpperCase()} / ${ano}`;
                 
-                const printWindow = window.open('', '_blank');
-                if (!printWindow) {
-                    showNotification("Por favor, permita pop-ups para abrir a janela de impressão.", "warning");
-                    return;
-                }
-                
-                // Buscar eventos do mês para identificar os dias de concerto
-                const eventosQuery = query(
-                    collection(db, "eventos"),
-                    where("date", ">=", startOfMonthQuery),
-                    where("date", "<=", endOfMonthQuery)
-                );
-                const eventosSnapshot = await getDocs(eventosQuery);
                 const diasDeConcerto = new Set();
                 
                 eventosSnapshot.forEach(docSnap => {
@@ -13082,10 +13203,11 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
         .status-atestado { background-color: #dbeafe !important; color: #1e40af !important; }
         .status-dispensa { background-color: #e0f2fe !important; color: #075985 !important; font-weight: bold; }
         .status-justificado { background-color: #f3e8ff !important; color: #6b21a8 !important; }
-        .status-atraso { background-color: #fef3c7 !important; color: #92400e !important; }
+        .status-atraso { background-color: #fef08a !important; color: #854d0e !important; font-weight: bold; }
         .status-nao-escalado { background-color: #fafafa !important; color: #757575 !important; }
         .status-cancelado { background-color: #fef2f2 !important; color: #dc2626 !important; font-weight: bold; }
         .status-sem-registro { background-color: #fffde7 !important; }
+        .inline-atraso { background-color: #fef08a !important; color: #854d0e !important; font-weight: bold; padding: 1px 3px; border-radius: 2px; }
         
         .footer-wrapper { margin-top: 10px; border: 1px solid #000; padding: 10px; }
         .legend-items { display: flex; gap: 10px; flex-wrap: wrap; font-size: 7pt; }
@@ -13113,7 +13235,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                 <div class="legend-item"><span class="legend-badge status-atestado">A</span>Atestado Médico</div>
                 <div class="legend-item"><span class="legend-badge status-dispensa">D</span>Dispensado</div>
                 <div class="legend-item"><span class="legend-badge status-justificado">J</span>Justificado</div>
-                <div class="legend-item"><span class="legend-badge status-atraso">At</span>Atraso</div>
+                <div class="legend-item"><span class="legend-badge status-atraso" style="width:auto;padding:0 3px;">15m</span>Atraso (minutos)</div>
                 <div class="legend-item"><span class="legend-badge status-cancelado">CL</span>Cancelado</div>
                 <div class="legend-item"><span class="legend-badge status-nao-escalado">-</span>Não Escalado</div>
                 <div class="legend-item" style="margin-left:10px;border-left:1px solid #ccc;padding-left:10px;"><strong>Prefixos (dias com múltiplos eventos):</strong></div>
@@ -13129,12 +13251,109 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
 </html>
                 `;
                 
-                printWindow.document.open();
-                printWindow.document.write(docHtml);
-                printWindow.document.close();
-                
-                showNotification("Relatório gerado com sucesso!", "success");
-                fecharPresencaModal();
+                // Desktop: fluxo tradicional via nova janela e impressão do navegador
+                if (!isMobileDevice()) {
+                    const printWindow = window.open('', '_blank');
+                    if (!printWindow) {
+                        showNotification("Por favor, permita pop-ups para abrir a janela de impressão.", "warning");
+                        return;
+                    }
+                    printWindow.document.open();
+                    printWindow.document.write(docHtml);
+                    printWindow.document.close();
+                    
+                    showNotification("Relatório gerado com sucesso!", "success");
+                    fecharPresencaModal();
+                    return;
+                }
+
+                // Dispositivo móvel (iOS / iPhone / Android):
+                btnGeneratePresencaPdf.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Renderizando PDF...';
+                if (window.lucide) lucide.createIcons();
+
+                const renderContainer = document.createElement('div');
+                renderContainer.id = 'temp-pdf-render-presenca';
+                renderContainer.style.position = 'fixed';
+                renderContainer.style.left = '-9999px';
+                renderContainer.style.top = '0';
+                renderContainer.style.width = '1120px';
+                renderContainer.style.background = '#ffffff';
+                renderContainer.style.padding = '8px';
+                renderContainer.style.zIndex = '-9999';
+                renderContainer.innerHTML = docHtml;
+                document.body.appendChild(renderContainer);
+
+                const safeFileName = `Presenca_OER_${mesStr}_${ano}.pdf`;
+                const opt = {
+                    margin: [5, 5, 5, 5],
+                    filename: safeFileName,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { 
+                        scale: 2, 
+                        useCORS: true, 
+                        letterRendering: true,
+                        scrollX: 0,
+                        scrollY: 0
+                    },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
+                    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+                };
+
+                let pdfBlob;
+                try {
+                    pdfBlob = await html2pdf().set(opt).from(renderContainer).outputPdf('blob');
+                } finally {
+                    if (renderContainer.parentNode) {
+                        document.body.removeChild(renderContainer);
+                    }
+                }
+
+                const safeTitle = `Lista de Presença OER - ${tituloRelatorio}`;
+                const deliveryResult = await deliverPDF(pdfBlob, safeFileName, safeTitle);
+
+                // Configurar ações mobile no modal caso o usuário queira abrir novamente ou se foi bloqueado
+                const mobileActions = document.getElementById('presenca-pdf-mobile-actions');
+                const btnMobileShare = document.getElementById('btn-presenca-mobile-share');
+                const btnMobileOpen = document.getElementById('btn-presenca-mobile-open');
+                const statusText = document.getElementById('presenca-pdf-mobile-status-text');
+
+                if (mobileActions && btnMobileShare && btnMobileOpen) {
+                    mobileActions.style.display = 'flex';
+                    if (statusText) {
+                        statusText.textContent = deliveryResult.success 
+                            ? "PDF gerado com sucesso! Escolha uma opção:" 
+                            : "PDF gerado! Toque abaixo para visualizar ou compartilhar:";
+                    }
+                    
+                    btnMobileShare.onclick = async () => {
+                        const file = new File([pdfBlob], safeFileName, { type: 'application/pdf' });
+                        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                            try {
+                                await navigator.share({
+                                    files: [file],
+                                    title: safeTitle,
+                                    text: `Relatório OER: ${safeTitle}`
+                                });
+                            } catch (shareErr) {
+                                if (shareErr.name !== 'AbortError') {
+                                    console.warn("Erro ao compartilhar:", shareErr);
+                                }
+                            }
+                        } else {
+                            showNotification("Compartilhamento nativo não disponível neste dispositivo.", "warning");
+                        }
+                    };
+                    
+                    btnMobileOpen.onclick = () => {
+                        if (deliveryResult.url) {
+                            window.open(deliveryResult.url, '_blank');
+                        }
+                    };
+                    
+                    if (window.lucide) lucide.createIcons();
+                }
+
+                showNotification("Relatório PDF pronto!", "success");
                 
             } catch (err) {
                 console.error("Erro ao gerar relatório de presença PDF:", err);
@@ -13443,7 +13662,10 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                     if (st === 'atestado') return 'A';
                     if (st === 'dispensa') return 'D';
                     if (st === 'justificado') return 'J';
-                    if (st === 'atraso' || st === 'atraso_passagem_som') return 'P';
+                    if (st === 'atraso' || st === 'atraso_passagem_som') {
+                        const min = parseInt(reg.minutes, 10) || 0;
+                        return min > 0 ? `${min}m` : 'At';
+                    }
                     if (st === 'nao_escalado') return '-';
                     if (isDispensado) return 'D';
                     if (isAtestado) return 'A';
@@ -13452,6 +13674,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
 
                 // ── LINHAS DOS MÚSICOS ───────────────────────────────────────────────
                 const naipesComMusicos = [...ordemNaipesExibicao, "Outros"].filter(n => musicosPorNaipe[n].length > 0);
+                const atrasoCellRefs = new Set();
 
                 naipesComMusicos.forEach(naipe => {
                     excelRows.push([naipe.toUpperCase()]);
@@ -13471,8 +13694,10 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                                 else if (sym === 'A') cellCommentsMap[cellRef] = "Atestado Médico Homologado";
 
                                 const regDoc = (col.subCol.doc && col.subCol.doc.registros) ? col.subCol.doc.registros[musico.id] : null;
+                                let isAtrasoDoc = false;
                                 if (regDoc) {
                                     if (regDoc.status === 'atraso' || regDoc.status === 'atraso_passagem_som') {
+                                        isAtrasoDoc = true;
                                         const isPS = regDoc.status === 'atraso_passagem_som';
                                         const labelAtraso = isPS ? 'Atraso na Passagem de Som' : 'Atraso';
                                         const minTexto = regDoc.minutes ? `${labelAtraso} de ${regDoc.minutes} minutos` : `${labelAtraso} registrado`;
@@ -13487,6 +13712,10 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                                     }
                                 }
 
+                                if (isAtrasoDoc) {
+                                    atrasoCellRefs.add(cellRef);
+                                }
+
                                 rowMusico.push(sym);
                             }
                         });
@@ -13495,7 +13724,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                         const startColLetter = getColLetter(1); // B
                         const endColLetter = getColLetter(totalDataCols);
                         const formulaRange = `${startColLetter}${currentExcelRowIndex}:${endColLetter}${currentExcelRowIndex}`;
-                        rowMusico.push({ f: `COUNTIF(${formulaRange}, "P") + COUNTIF(${formulaRange}, "*C:P*")` });
+                        rowMusico.push({ f: `COUNTIF(${formulaRange}, "P") + COUNTIF(${formulaRange}, "*m") + COUNTIF(${formulaRange}, "At") + COUNTIF(${formulaRange}, "*C:P*")` });
                         rowMusico.push({ f: `COUNTIF(${formulaRange}, "F") + COUNTIF(${formulaRange}, "*PS:F*")` });
                         excelRows.push(rowMusico);
                     });
@@ -13507,6 +13736,35 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                 }
 
                 const worksheet = XLSX.utils.aoa_to_sheet(excelRows);
+
+                // ── ESTILIZAÇÃO DAS CÉLULAS COM ATRASO (AMARELO) ────────────────────
+                atrasoCellRefs.forEach(cellRef => {
+                    if (!worksheet[cellRef]) {
+                        worksheet[cellRef] = { t: 's', v: '' };
+                    }
+                    worksheet[cellRef].s = {
+                        fill: {
+                            patternType: "solid",
+                            fgColor: { rgb: "FEF08A" }
+                        },
+                        font: {
+                            name: "Calibri",
+                            sz: 10,
+                            bold: true,
+                            color: { rgb: "854D0E" }
+                        },
+                        alignment: {
+                            horizontal: "center",
+                            vertical: "center"
+                        },
+                        border: {
+                            top: { style: "thin", color: { rgb: "D1D5DB" } },
+                            bottom: { style: "thin", color: { rgb: "D1D5DB" } },
+                            left: { style: "thin", color: { rgb: "D1D5DB" } },
+                            right: { style: "thin", color: { rgb: "D1D5DB" } }
+                        }
+                    };
+                });
 
                 // ── MERGES DO CABEÇALHO DUPLO ────────────────────────────────────────
                 const merges = [];
@@ -13560,7 +13818,8 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                     ["LEGENDA DE SIGLAS - LISTA DE PRESENÇA OER"],
                     [],
                     ["Sigla", "Descrição / Status", "Efeito na Frequência"],
-                    ["P", "Presença / Atraso (com nota)", "Soma no total de Presenças (P)"],
+                    ["P", "Presença Integral", "Soma no total de Presenças (P)"],
+                    ["[N]m / At", "Atraso (minutos) em amarelo", "Soma no total de Presenças (P)"],
                     ["F", "Falta Não Justificada", "Soma no total de Faltas (F)"],
                     ["PS:F/C:P", "Falta em Passagem de Som", "Soma 1 Falta (PS) e 1 Presença (Concerto)"],
                     ["A", "Atestado Médico", "Não soma como Falta (Isento)"],
@@ -13577,7 +13836,14 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                     ["PS:", "Passagem de Som", "PS:F = Falta na Passagem de Som"]
                 ];
                 const legendaSheet = XLSX.utils.aoa_to_sheet(legendaRows);
-                legendaSheet['!cols'] = [{ wch: 10 }, { wch: 35 }, { wch: 40 }];
+                legendaSheet['!cols'] = [{ wch: 12 }, { wch: 35 }, { wch: 40 }];
+                if (legendaSheet['A5']) {
+                    legendaSheet['A5'].s = {
+                        fill: { patternType: "solid", fgColor: { rgb: "FEF08A" } },
+                        font: { bold: true, color: { rgb: "854D0E" } },
+                        alignment: { horizontal: "center", vertical: "center" }
+                    };
+                }
                 XLSX.utils.book_append_sheet(workbook, legendaSheet, "Legenda");
 
                 XLSX.writeFile(workbook, `Lista_de_Presenca_Mensal_${mesStr}_${ano}.xlsx`);

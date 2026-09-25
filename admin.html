@@ -2618,8 +2618,10 @@ Intervalo
     <!-- Firebase SDKs (Compat / v8 style for simplicity or Modular v9) -->
     <!-- Vamos usar a API Modular V9, que é mais rápida e moderna -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- Biblioteca SheetJS (XLSX) CDN para ler planilhas Excel no navegador -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- Biblioteca SheetJS com suporte a estilos (cores de célula) para exportar planilhas Excel estilizadas -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+    <!-- Biblioteca html2pdf.js CDN para conversão direta e fiel de HTML para PDF binário real -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <!-- Interceptador Global de Erros — Executa ANTES de qualquer módulo -->
     <script>
         window.__adminErrors = [];
@@ -2660,7 +2662,7 @@ Intervalo
             }
         }, 5000);
     </script>
-    <script type="module" src="assets/js/admin/admin.js?v=30"></script>
+    <script type="module" src="assets/js/admin/admin.js?v=31"></script>
     <script>
         // Registro do Service Worker
         if ('serviceWorker' in navigator) {
@@ -3104,6 +3106,22 @@ Intervalo
                     <button class="btn-outline" id="btn-close-presenca-modal-footer" style="flex: 1; min-width: 100px; border-radius: 8px; font-weight: 600; cursor: pointer; border: 1px solid #ccc; background: white; padding: 0.75rem;">
                         Fechar
                     </button>
+                </div>
+
+                <!-- Feedback e Ações Mobile para PDF -->
+                <div id="presenca-pdf-mobile-actions" style="display:none; flex-direction:column; gap:0.6rem; padding:0.9rem; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; margin-top:0.3rem;">
+                    <div style="display:flex; align-items:center; gap:0.5rem; color:#166534; font-size:0.88rem; font-weight:600;">
+                        <i data-lucide="check-circle-2" style="width:18px; height:18px; color:#16a34a; flex-shrink:0;"></i>
+                        <span id="presenca-pdf-mobile-status-text">PDF gerado com sucesso!</span>
+                    </div>
+                    <div style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+                        <button type="button" id="btn-presenca-mobile-share" class="btn-primary" style="flex:1; min-width:140px; background:#16a34a; border:none; color:white; padding:0.65rem; border-radius:6px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:0.4rem; font-size:0.85rem;">
+                            <i data-lucide="share-2" style="width:15px; height:15px;"></i> Compartilhar / Abrir
+                        </button>
+                        <button type="button" id="btn-presenca-mobile-open" class="btn-outline" style="flex:1; min-width:140px; background:white; border:1px solid #16a34a; color:#166534; padding:0.65rem; border-radius:6px; font-weight:600; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; gap:0.4rem; font-size:0.85rem;">
+                            <i data-lucide="external-link" style="width:15px; height:15px;"></i> Visualizar em Nova Aba
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
