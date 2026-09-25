@@ -1,8 +1,20 @@
 {
-  "hash": "39da48a",
-  "date": "24/09/2026 22:02",
-  "buildAt": "2026-09-25T01:03:11.579Z",
+  "hash": "3c57fc3+mod",
+  "date": "24/09/2026, 22:22:48",
+  "buildAt": "2026-09-25T01:22:48.121Z",
   "history": [
+    {
+      "hash": "3c57fc3+mod",
+      "date": "24/09/2026, 22:22:48",
+      "author": "Deploy Local",
+      "subject": "Atualização implantada (2 arquivos modificados)"
+    },
+    {
+      "hash": "3c57fc3",
+      "date": "24/09/2026 22:03",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pos-deploy v39da48a"
+    },
     {
       "hash": "39da48a",
       "date": "24/09/2026 22:02",
@@ -110,18 +122,6 @@
       "date": "24/09/2026 18:54",
       "author": "Boris Romão Antunes",
       "subject": "feat(musicos): adiciona relatório de tempo de OER com prévia e exportação Excel"
-    },
-    {
-      "hash": "4e44bff",
-      "date": "24/09/2026 16:41",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pós-deploy va1a045e"
-    },
-    {
-      "hash": "a1a045e",
-      "date": "24/09/2026 16:35",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pós-deploy v33a8f70"
     }
   ]
 }

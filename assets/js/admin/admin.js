@@ -9326,24 +9326,6 @@ function initMusiciansManagement() {
                         return;
                     }
 
-                    const clone = printable.cloneNode(true);
-                    clone.id = 'temp-ficha-pdf-clone';
-                    clone.style.setProperty('display', 'block', 'important');
-                    clone.style.setProperty('visibility', 'visible', 'important');
-                    clone.style.position = 'fixed';
-                    clone.style.left = '-9999px';
-                    clone.style.top = '0';
-                    clone.style.width = '750px';
-                    clone.style.background = '#ffffff';
-                    clone.style.padding = '20px';
-                    clone.style.zIndex = '-9999';
-
-                    clone.querySelectorAll('*').forEach(el => {
-                        el.style.setProperty('visibility', 'visible', 'important');
-                    });
-
-                    document.body.appendChild(clone);
-
                     const nomeMusicoLimpo = (m.NOMEARTISTICO || m['NOME REGISTRO'] || 'Musico')
                         .trim()
                         .normalize("NFD")
@@ -9352,6 +9334,22 @@ function initMusiciansManagement() {
                     const safeFileName = `Ficha_OER_${nomeMusicoLimpo}.pdf`;
                     const safeTitle = `Ficha Oficial OER - ${m.NOMEARTISTICO || m['NOME REGISTRO']}`;
 
+                    const fichaHtml = `
+                        <div style="width: 750px; font-family: Arial, Helvetica, sans-serif; background: #ffffff; padding: 20px; color: #000; box-sizing: border-box;">
+                            <style>
+                                .print-header { display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #8b0000; padding-bottom: 15px; margin-bottom: 20px; }
+                                .print-header img { max-height: 55px; }
+                                .print-title { text-align: right; }
+                                .print-title h2 { margin: 0; font-size: 1.3rem; color: #8b0000; }
+                                .print-title p { margin: 3px 0 0 0; font-size: 0.85rem; color: #555; }
+                                .print-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 0.85rem; }
+                                .print-table th, .print-table td { border: 1px solid #ddd; padding: 6px 10px; text-align: left; }
+                                .print-table th { background: #f2f2f2; font-weight: 700; }
+                            </style>
+                            ${printable.innerHTML}
+                        </div>
+                    `;
+
                     const opt = {
                         margin: [8, 8, 8, 8],
                         filename: safeFileName,
@@ -9359,22 +9357,13 @@ function initMusiciansManagement() {
                         html2canvas: { 
                             scale: 2, 
                             useCORS: true, 
-                            letterRendering: true,
-                            scrollX: 0,
-                            scrollY: 0
+                            letterRendering: true
                         },
                         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
                         pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
                     };
 
-                    let pdfBlob;
-                    try {
-                        pdfBlob = await html2pdf().set(opt).from(clone).outputPdf('blob');
-                    } finally {
-                        if (clone.parentNode) {
-                            document.body.removeChild(clone);
-                        }
-                    }
+                    const pdfBlob = await html2pdf().set(opt).from(fichaHtml).outputPdf('blob');
 
                     showNotification("Ficha Oficial gerada com sucesso!", "success");
                     await deliverPDF(pdfBlob, safeFileName, safeTitle);
@@ -13302,18 +13291,6 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                 btnGeneratePresencaPdf.innerHTML = '<i data-lucide="loader-2" class="spin"></i> Renderizando PDF...';
                 if (window.lucide) lucide.createIcons();
 
-                const renderContainer = document.createElement('div');
-                renderContainer.id = 'temp-pdf-render-presenca';
-                renderContainer.style.position = 'fixed';
-                renderContainer.style.left = '-9999px';
-                renderContainer.style.top = '0';
-                renderContainer.style.width = '1120px';
-                renderContainer.style.background = '#ffffff';
-                renderContainer.style.padding = '8px';
-                renderContainer.style.zIndex = '-9999';
-                renderContainer.innerHTML = docHtml;
-                document.body.appendChild(renderContainer);
-
                 const safeFileName = `Presenca_OER_${mesStr}_${ano}.pdf`;
                 const opt = {
                     margin: [5, 5, 5, 5],
@@ -13322,22 +13299,13 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                     html2canvas: { 
                         scale: 2, 
                         useCORS: true, 
-                        letterRendering: true,
-                        scrollX: 0,
-                        scrollY: 0
+                        letterRendering: true
                     },
                     jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
                     pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
                 };
 
-                let pdfBlob;
-                try {
-                    pdfBlob = await html2pdf().set(opt).from(renderContainer).outputPdf('blob');
-                } finally {
-                    if (renderContainer.parentNode) {
-                        document.body.removeChild(renderContainer);
-                    }
-                }
+                const pdfBlob = await html2pdf().set(opt).from(docHtml).outputPdf('blob');
 
                 const safeTitle = `Lista de Presença OER - ${tituloRelatorio}`;
                 const deliveryResult = await deliverPDF(pdfBlob, safeFileName, safeTitle);
