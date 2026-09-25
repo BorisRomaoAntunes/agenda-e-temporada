@@ -6845,6 +6845,31 @@ input:checked + .slider:before {
 /* ==========================================================================
    OCORRÊNCIAS & HISTÓRICO NA GAVETA
    ========================================================================== */
+.occurrence-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-height: 290px;
+    overflow-y: auto;
+    padding-right: 6px;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 #f8fafc;
+}
+.occurrence-list::-webkit-scrollbar {
+    width: 6px;
+}
+.occurrence-list::-webkit-scrollbar-track {
+    background: #f8fafc;
+    border-radius: 4px;
+}
+.occurrence-list::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+.occurrence-list::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
 .occurrence-item {
     background: #f8fafc;
     border: 1px solid #e2e8f0;

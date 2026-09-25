@@ -7850,6 +7850,22 @@ function initMusiciansManagement() {
         return formatDataBR(val) || '-';
     }
 
+    // Helper: Formata minutos em formato amigável de horas e minutos (ex: 140 -> "2h 20min", 45 -> "45 min", 60 -> "1h")
+    function formatMinutesToHoursFriendly(minutos) {
+        const m = parseInt(minutos, 10) || 0;
+        if (m <= 0) return '0 min';
+        const horas = Math.floor(m / 60);
+        const minsRestantes = m % 60;
+        if (horas === 0) {
+            return `${minsRestantes} min`;
+        }
+        if (minsRestantes === 0) {
+            return `${horas}h`;
+        }
+        return `${horas}h ${String(minsRestantes).padStart(2, '0')}min`;
+    }
+
+
     // =========================================================================
     // BARRA DE BUSCA CENTRALIZADA ESTILO GOOGLE (ABA HISTÓRICO)
     // =========================================================================
@@ -8383,7 +8399,7 @@ function initMusiciansManagement() {
                     atrasosList.push({
                         data: formatDataBR(dataDoc),
                         minutos: minReg,
-                        duracaoFormatada: `${minReg} min`,
+                        duracaoFormatada: formatMinutesToHoursFriendly(minReg),
                         evento: descricaoEvento,
                         justificativa: anotacaoAdmin,
                         dataSort: dataDoc
@@ -8415,12 +8431,25 @@ function initMusiciansManagement() {
                     const diaSemanaStr = diasSemanaNomes[dateObj.getDay()] || '';
                     const dataFormatadaDDMM = `${String(diaD).padStart(2, '0')}/${String(mesD).padStart(2, '0')}`;
 
+                    const tipoPres = (presData.tipo || '').toLowerCase();
+                    const evtInfo = eventosPorDataMap[dataDoc];
+                    let rotuloEvento = '';
+                    if (isAtrasoPS) {
+                        rotuloEvento = 'Passagem de Som';
+                    } else if (tipoPres === 'concerto' || (!tipoPres && evtInfo && evtInfo.isConcerto)) {
+                        rotuloEvento = 'Concerto';
+                    } else if (tipoPres === 'ensaio_naipe' || (!tipoPres && evtInfo && evtInfo.tipo === 'ensaio_naipe')) {
+                        const naipeDesc = presData.naipe ? (Array.isArray(presData.naipe) ? presData.naipe.join(', ') : presData.naipe) : '';
+                        rotuloEvento = naipeDesc ? `Ensaio de Naipe: ${naipeDesc}` : 'Ensaio de Naipe';
+                    }
+
                     musicoAtrasosMap[ym].push({
                         dataDoc,
                         dataFormatada: dataFormatadaDDMM,
                         diaSemana: diaSemanaStr,
                         minutos: minReg,
                         tipo: isAtrasoPS ? 'atraso_passagem_som' : 'atraso',
+                        rotuloEvento,
                         justificativa: reg.justificativa || ''
                     });
                 }
@@ -8513,7 +8542,7 @@ function initMusiciansManagement() {
             const kpiAtrasos = document.getElementById('drawer-kpi-atrasos');
             const kpiAtrasosSub = document.getElementById('drawer-kpi-atrasos-sub');
             if (kpiAtrasos) kpiAtrasos.textContent = atrasosAno;
-            if (kpiAtrasosSub) kpiAtrasosSub.textContent = atrasosMinAno > 0 ? `${atrasosMinAno} min` : '0 min';
+            if (kpiAtrasosSub) kpiAtrasosSub.textContent = formatMinutesToHoursFriendly(atrasosMinAno);
 
             // 6. Gerar e Renderizar Histórico Mensal do Ano Corrente (do mês vigente até janeiro)
             const currentYM = `${ano}-${mesStr}`;
@@ -9850,6 +9879,7 @@ function initMusiciansManagement() {
 
         function updateAtrasosPreview() {
             let totalCount = 0;
+            let totalMinutos = 0;
             const sortedYMs = Array.from(selectedMonths).sort();
 
             if (sortedYMs.length === 0) {
@@ -9864,6 +9894,7 @@ function initMusiciansManagement() {
                 const atrasosDoMes = (currentMusicoAtrasosMap[ym] || []).slice();
                 atrasosDoMes.sort((a, b) => a.dataDoc.localeCompare(b.dataDoc));
                 totalCount += atrasosDoMes.length;
+                totalMinutos += atrasosDoMes.reduce((acc, cur) => acc + (parseInt(cur.minutos, 10) || 0), 0);
 
                 const [y, m] = ym.split('-');
                 const mesNome = mesesNomes[parseInt(m, 10) - 1];
@@ -9876,7 +9907,9 @@ function initMusiciansManagement() {
                     const linhas = atrasosDoMes.map(item => {
                         let linha = `${item.dataFormatada} - ${item.diaSemana} - ${item.minutos} minutos atrasos`;
                         const extras = [];
-                        if (item.tipo === 'atraso_passagem_som') {
+                        if (item.rotuloEvento) {
+                            extras.push(item.rotuloEvento);
+                        } else if (item.tipo === 'atraso_passagem_som') {
                             extras.push('Passagem de Som');
                         }
                         if (item.justificativa && item.justificativa.trim()) {
@@ -9894,7 +9927,11 @@ function initMusiciansManagement() {
 
             const previewText = sections.join('\n\n');
             resultBox.textContent = previewText || "Nenhum atraso registrado para os meses selecionados.";
-            if (previewCountEl) previewCountEl.textContent = `${totalCount} registro(s)`;
+            if (previewCountEl) {
+                previewCountEl.textContent = totalCount > 0
+                    ? `${totalCount} registro(s) · ${formatMinutesToHoursFriendly(totalMinutos)}`
+                    : "0 registro(s)";
+            }
         }
 
         function renderMesesChips() {
