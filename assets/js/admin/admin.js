@@ -8248,20 +8248,43 @@ function initMusiciansManagement() {
                 })
             ]);
 
+            // Mapeamento consolidado de chamadas e eventos por data
             const eventosPorDataMap = {};
+            const datasComConcertoSet = new Set();
+            const datasComNaipeSet = new Set();
+
             evtSnap.forEach(dSnap => {
                 const ev = dSnap.data();
-                if (ev && ev.date) {
+                if (ev && ev.date && ev.status !== 'Cancelado') {
                     const tipoEvt = (ev.tipo || '').toLowerCase();
                     const nomeEvt = `${ev.concertoNome || ''} ${ev.descricaoEnsaio || ''} ${ev.nome || ''}`.toLowerCase();
                     const isConcerto = tipoEvt === 'concerto' || nomeEvt.includes('concerto');
+                    const isNaipe = tipoEvt === 'ensaio_naipe' || nomeEvt.includes('naipe');
+                    if (isConcerto) datasComConcertoSet.add(ev.date);
+                    if (isNaipe) datasComNaipeSet.add(ev.date);
+
                     if (!eventosPorDataMap[ev.date] || isConcerto) {
                         eventosPorDataMap[ev.date] = {
                             isConcerto,
+                            isNaipe,
                             tipo: ev.tipo,
                             nome: ev.concertoNome || ev.descricaoEnsaio || ev.nome || ''
                         };
                     }
+                }
+            });
+
+            // Cruzar também com as listas de presença do sistema (para pegar chamadas de naipe ou concertos criados direto na presença)
+            presSnap.forEach(dSnap => {
+                const pData = dSnap.data();
+                const dDoc = pData.data || dSnap.id.split('_')[0];
+                const tipoP = (pData.tipo || '').toLowerCase();
+                const idDoc = dSnap.id.toLowerCase();
+                if (tipoP === 'concerto' || idDoc.includes('concerto')) {
+                    datasComConcertoSet.add(dDoc);
+                }
+                if (tipoP === 'ensaio_naipe' || idDoc.includes('naipe')) {
+                    datasComNaipeSet.add(dDoc);
                 }
             });
 
@@ -8456,11 +8479,10 @@ function initMusiciansManagement() {
                     let descricaoEvento = 'Ensaio';
                     if (isAtrasoPS) {
                         descricaoEvento = 'Passagem de Som';
-                    } else if (tipoPres === 'concerto' || (!tipoPres && evtInfo && evtInfo.isConcerto)) {
+                    } else if (tipoPres === 'concerto' || datasComConcertoSet.has(dataDoc) || (!tipoPres && evtInfo && evtInfo.isConcerto)) {
                         descricaoEvento = 'Concerto';
-                    } else if (tipoPres === 'ensaio_naipe' || (!tipoPres && evtInfo && evtInfo.tipo === 'ensaio_naipe')) {
-                        const naipeDesc = presData.naipe ? (Array.isArray(presData.naipe) ? presData.naipe.join(' + ') : presData.naipe) : '';
-                        descricaoEvento = naipeDesc ? `Ensaio de Naipe (${naipeDesc})` : 'Ensaio de Naipe';
+                    } else if (tipoPres === 'ensaio_naipe' || datasComNaipeSet.has(dataDoc) || (!tipoPres && evtInfo && evtInfo.isNaipe)) {
+                        descricaoEvento = 'Ensaio de Naipe';
                     } else {
                         descricaoEvento = 'Ensaio Geral';
                     }
@@ -8507,11 +8529,10 @@ function initMusiciansManagement() {
                     let rotuloEvento = '';
                     if (isAtrasoPS) {
                         rotuloEvento = 'Passagem de Som';
-                    } else if (tipoPres === 'concerto' || (!tipoPres && evtInfo && evtInfo.isConcerto)) {
+                    } else if (tipoPres === 'concerto' || datasComConcertoSet.has(dataDoc) || (!tipoPres && evtInfo && evtInfo.isConcerto)) {
                         rotuloEvento = 'Concerto';
-                    } else if (tipoPres === 'ensaio_naipe' || (!tipoPres && evtInfo && evtInfo.tipo === 'ensaio_naipe')) {
-                        const naipeDesc = presData.naipe ? (Array.isArray(presData.naipe) ? presData.naipe.join(', ') : presData.naipe) : '';
-                        rotuloEvento = naipeDesc ? `Ensaio de Naipe: ${naipeDesc}` : 'Ensaio de Naipe';
+                    } else if (tipoPres === 'ensaio_naipe' || datasComNaipeSet.has(dataDoc) || (!tipoPres && evtInfo && evtInfo.isNaipe)) {
+                        rotuloEvento = 'Ensaio de Naipe';
                     }
 
                     musicoAtrasosMap[ym].push({
@@ -10064,11 +10085,21 @@ function initMusiciansManagement() {
                         return linha;
                     });
 
-                    sections.push(`*${mesNome}*\n${linhas.join('\n')}`);
+                    const mesMinutos = atrasosDoMes.reduce((acc, cur) => acc + (parseInt(cur.minutos, 10) || 0), 0);
+                    const mesAtrasosQtd = atrasosDoMes.length;
+                    const totalMesStr = formatMinutesToHoursFriendly(mesMinutos);
+                    const rodapeMes = `*Total de ${mesNome}: ${mesAtrasosQtd} atraso${mesAtrasosQtd === 1 ? '' : 's'} · ${totalMesStr}*`;
+
+                    sections.push(`*${mesNome}*\n${linhas.join('\n')}\n${rodapeMes}`);
                 }
             });
 
-            const previewText = sections.join('\n\n');
+            let previewText = sections.join('\n\n');
+            if (sortedYMs.length > 1 && totalCount > 0) {
+                const totalGeralStr = formatMinutesToHoursFriendly(totalMinutos);
+                previewText += `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n*Total Geral: ${totalCount} atraso${totalCount === 1 ? '' : 's'} · ${totalGeralStr}*`;
+            }
+
             resultBox.textContent = previewText || "Nenhum atraso registrado para os meses selecionados.";
             if (previewCountEl) {
                 previewCountEl.textContent = totalCount > 0
