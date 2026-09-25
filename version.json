@@ -1,8 +1,26 @@
 {
-  "hash": "90053b5",
-  "date": "24/09/2026 21:32",
-  "buildAt": "2026-09-25T00:37:10.361Z",
+  "hash": "f9ccc7c",
+  "date": "24/09/2026 21:59",
+  "buildAt": "2026-09-25T00:59:17.276Z",
   "history": [
+    {
+      "hash": "f9ccc7c",
+      "date": "24/09/2026 21:59",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(presenca): exibir minutos de atraso em amarelo no PDF e Excel"
+    },
+    {
+      "hash": "a78aa74",
+      "date": "24/09/2026 21:42",
+      "author": "Boris Romão Antunes",
+      "subject": "feat: adiciona dia da semana abreviado nas datas de ocorrencias e atrasos do PDF"
+    },
+    {
+      "hash": "504c402",
+      "date": "24/09/2026 21:39",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pós-deploy"
+    },
     {
       "hash": "90053b5",
       "date": "24/09/2026 21:32",
@@ -104,24 +122,6 @@
       "date": "24/09/2026 12:19",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualiza version.json pós-deploy v62908df"
-    },
-    {
-      "hash": "62908df",
-      "date": "24/09/2026 12:16",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(admin): adiciona botões de ações e relatórios rápidos com divisor na aba histórico"
-    },
-    {
-      "hash": "6fb4a04",
-      "date": "24/09/2026 11:39",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pós-deploy"
-    },
-    {
-      "hash": "1a4594b",
-      "date": "24/09/2026 11:38",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pós-deploy v376fce6"
     }
   ]
 }
