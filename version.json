@@ -1,13 +1,19 @@
 {
-  "hash": "cf8a315+mod",
-  "date": "24/09/2026, 21:22:12",
-  "buildAt": "2026-09-25T00:22:11.894Z",
+  "hash": "2a10dee",
+  "date": "24/09/2026 21:23",
+  "buildAt": "2026-09-25T00:31:49.616Z",
   "history": [
     {
-      "hash": "cf8a315+mod",
-      "date": "24/09/2026, 21:22:12",
-      "author": "Deploy Local",
-      "subject": "Atualização implantada (2 arquivos modificados)"
+      "hash": "2a10dee",
+      "date": "24/09/2026 21:23",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza cache de versao e formatacao amigavel de horas de atraso no preview"
+    },
+    {
+      "hash": "0c8d42f",
+      "date": "24/09/2026 21:22",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pós-deploy vcf8a315"
     },
     {
       "hash": "cf8a315",
@@ -116,12 +122,6 @@
       "date": "24/09/2026 11:33",
       "author": "Boris Romão Antunes",
       "subject": "feat(admin): adiciona cabeçalho 'Ações Rápidas' ao card unificado"
-    },
-    {
-      "hash": "fc52686",
-      "date": "24/09/2026 11:32",
-      "author": "Boris Romão Antunes",
-      "subject": "feat: redesign card agendamento pendente - layout compacto 3 linhas"
     }
   ]
 }
