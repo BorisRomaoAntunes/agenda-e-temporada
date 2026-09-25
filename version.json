@@ -1,13 +1,13 @@
 {
-  "hash": "a2f64f1+mod",
-  "date": "24/09/2026, 21:07:25",
-  "buildAt": "2026-09-25T00:07:25.718Z",
+  "hash": "5343232",
+  "date": "24/09/2026 21:07",
+  "buildAt": "2026-09-25T00:08:17.495Z",
   "history": [
     {
-      "hash": "a2f64f1+mod",
-      "date": "24/09/2026, 21:07:25",
-      "author": "Deploy Local",
-      "subject": "Atualização implantada (1 arquivos modificados)"
+      "hash": "5343232",
+      "date": "24/09/2026 21:07",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza versao de cache do admin.js"
     },
     {
       "hash": "a2f64f1",
