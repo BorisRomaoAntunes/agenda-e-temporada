@@ -37,6 +37,9 @@ const optBtnDispensa = document.getElementById("optBtnDispensa");
 const optBtnNaoEscalado = document.getElementById("optBtnNaoEscalado");
 const optBtnJustificado = document.getElementById("optBtnJustificado");
 const optBtnFaltaPassagemSom = document.getElementById("optBtnFaltaPassagemSom");
+const optBtnAtrasoPassagemSom = document.getElementById("optBtnAtrasoPassagemSom");
+const labelAtrasoPassagemSom = document.getElementById("labelAtrasoPassagemSom");
+const quickDelaySubtitle = document.getElementById("quickDelaySubtitle");
 const concertoExtraOptions = document.getElementById("concertoExtraOptions");
 const justificationSection = document.getElementById("justificationSection");
 const justificationTextarea = document.getElementById("justificationTextarea");
@@ -215,6 +218,7 @@ async function initApp() {
     if (optBtnNaoEscalado) optBtnNaoEscalado.addEventListener("click", () => instantSelectStatus("nao_escalado"));
     if (optBtnJustificado) optBtnJustificado.addEventListener("click", () => selectJustificadoStatus());
     if (optBtnFaltaPassagemSom) optBtnFaltaPassagemSom.addEventListener("click", () => selectFaltaStatus("falta_passagem_som"));
+    if (optBtnAtrasoPassagemSom) optBtnAtrasoPassagemSom.addEventListener("click", () => toggleAtrasoPassagemSom());
     if (justificationTextarea) justificationTextarea.addEventListener("input", handleJustificationInput);
     if (btnSaveJustification) btnSaveJustification.addEventListener("click", () => saveJustificationAndClose());
 
@@ -1215,7 +1219,7 @@ function renderMusicians() {
             if (activeFilter === "nao-escalado") {
                 matchFilter = statusInfo.status === "nao_escalado";
             } else if (activeFilter === "faltas-atrasos") {
-                matchFilter = statusInfo.status === "falta" || statusInfo.status === "atraso" || statusInfo.status === "falta_passagem_som";
+                matchFilter = statusInfo.status === "falta" || statusInfo.status === "atraso" || statusInfo.status === "falta_passagem_som" || statusInfo.status === "atraso_passagem_som";
             } else if (activeFilter === "pendente") {
                 matchFilter = statusInfo.status === "none";
             }
@@ -1244,7 +1248,7 @@ function renderMusicians() {
         
         const presentCount = list.filter(m => {
             const st = (attendanceData[m.id] || { status: 'none' }).status;
-            return st === 'presenca' || st === 'atraso' || st === 'falta_passagem_som';
+            return st === 'presenca' || st === 'atraso' || st === 'falta_passagem_som' || st === 'atraso_passagem_som';
         }).length;
         const totalCount = list.length;
         const isComplete = presentCount === totalCount && totalCount > 0;
@@ -1291,15 +1295,19 @@ function renderMusicians() {
                 const justMsg = statusInfo.justificativa ? `: ${statusInfo.justificativa}` : "";
                 const shortJust = justMsg.length > 15 ? justMsg.substring(0, 15) + "..." : justMsg;
                 badgeLabel = `Justificado${shortJust}`;
-            } else if (statusInfo.status === "atraso") {
-                const mVal = statusInfo.minutes;
+            } else if (statusInfo.status === "atraso" || statusInfo.status === "atraso_passagem_som") {
+                const isPS = statusInfo.status === "atraso_passagem_som";
+                const prefixo = isPS ? "Atraso PS" : "Atraso";
+                const mVal = statusInfo.minutes || 0;
+                let tempoStr = `${mVal}m`;
                 if (mVal >= 60) {
                     const hrs = Math.floor(mVal / 60);
                     const mins = mVal % 60;
-                    badgeLabel = `Atraso: ${hrs}h${mins > 0 ? mins : ''}`;
-                } else {
-                    badgeLabel = `Atraso: ${mVal}m`;
+                    tempoStr = `${hrs}h${mins > 0 ? mins : ''}`;
                 }
+                const atMsg = statusInfo.justificativa ? `: ${statusInfo.justificativa}` : "";
+                const shortAt = atMsg.length > 12 ? atMsg.substring(0, 12) + "..." : atMsg;
+                badgeLabel = `${prefixo}: ${tempoStr}${shortAt}`;
             }
 
             const isMonitor = m.Status === "Monitor";
@@ -1371,6 +1379,7 @@ function updateCounters() {
         const st = (attendanceData[m.id] || { status: 'none' }).status;
         if (st === 'presenca') presence++;
         else if (st === 'atraso') delay++;
+        else if (st === 'atraso_passagem_som') { delay++; presence++; }
         else if (st === 'falta') absence++;
         else if (st === 'falta_passagem_som') { absence++; presence++; }
         else if (st === 'none') pending++;
@@ -1432,7 +1441,11 @@ function openDrawerForMusician(musician) {
         concertoExtraOptions.style.display = isConcerto ? "block" : "none";
     }
 
-    if (selectedStatusTemp === "justificado" || selectedStatusTemp === "falta" || selectedStatusTemp === "falta_passagem_som") {
+    if (quickDelaySubtitle) {
+        quickDelaySubtitle.textContent = isConcerto ? "Selecione minutos (Passagem de Som)" : "Selecione os minutos";
+    }
+
+    if (selectedStatusTemp === "justificado" || selectedStatusTemp === "falta" || selectedStatusTemp === "falta_passagem_som" || selectedStatusTemp === "atraso" || selectedStatusTemp === "atraso_passagem_som") {
         justificationTextarea.value = current.justificativa || "";
     } else {
         justificationTextarea.value = "";

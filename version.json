@@ -1,8 +1,26 @@
 {
-  "hash": "e7b14a8",
-  "date": "24/09/2026 18:54",
-  "buildAt": "2026-09-24T21:58:43.480Z",
+  "hash": "327398d+mod",
+  "date": "24/09/2026, 21:02:36",
+  "buildAt": "2026-09-25T00:02:36.435Z",
   "history": [
+    {
+      "hash": "327398d+mod",
+      "date": "24/09/2026, 21:02:36",
+      "author": "Deploy Local",
+      "subject": "Atualização implantada (6 arquivos modificados)"
+    },
+    {
+      "hash": "327398d",
+      "date": "24/09/2026 20:58",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(musicos): atualiza ordem de colunas e adiciona ordenacao no modal de tempo de oer"
+    },
+    {
+      "hash": "d496738",
+      "date": "24/09/2026 19:00",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pós-deploy ve7b14a8"
+    },
     {
       "hash": "e7b14a8",
       "date": "24/09/2026 18:54",
@@ -104,24 +122,6 @@
       "date": "24/09/2026 11:10",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualiza version.json pós-deploy vbd338ac"
-    },
-    {
-      "hash": "bd338ac",
-      "date": "24/09/2026 11:06",
-      "author": "Boris Romão Antunes",
-      "subject": "chore(cache): atualiza versao de cache para admin.css v12 e admin.js v23"
-    },
-    {
-      "hash": "19d2cc3",
-      "date": "24/09/2026 11:05",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(admin): integra área de agendamentos pendentes com monitoramento em tempo real"
-    },
-    {
-      "hash": "68adf18",
-      "date": "24/09/2026 11:04",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(admin): melhorias em agendamentos pendentes e sincronização de versão"
     }
   ]
 }

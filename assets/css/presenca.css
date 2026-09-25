@@ -653,11 +653,13 @@ body {
     border: none;
 }
 
-.musician-card.atraso {
+.musician-card.atraso,
+.musician-card.atraso-passagem-som {
     background-color: var(--color-delay-bg);
     border-color: #fde68a;
 }
-.musician-card.atraso .status-badge {
+.musician-card.atraso .status-badge,
+.musician-card.atraso-passagem-som .status-badge {
     background-color: var(--color-delay);
     color: white;
     border: none;
@@ -860,6 +862,24 @@ body {
 .justification-input-container .btn-confirm.mode-falta {
     background-color: #ef4444 !important;
     border-color: #ef4444 !important;
+}
+
+.justification-textarea.mode-atraso {
+    border-color: #fde68a;
+    background-color: #fffbeb;
+    color: #92400e;
+}
+
+.justification-textarea.mode-atraso:focus {
+    border-color: #f59e0b;
+    background-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18);
+}
+
+.justification-input-container .btn-confirm.mode-atraso {
+    background-color: #d97706 !important;
+    border-color: #d97706 !important;
+    color: #ffffff !important;
 }
 
 .justification-input-container .btn-confirm.mode-falta:hover {
@@ -1356,6 +1376,13 @@ body {
     color: #ffffff;
     transform: scale(0.95);
 }
+.delay-pill-btn.selected {
+    background: #f59e0b !important;
+    color: #ffffff !important;
+    border-color: #d97706 !important;
+    box-shadow: 0 0 0 2.5px rgba(245, 158, 11, 0.3) !important;
+    transform: scale(1.02);
+}
 
 /* Opções de Status Compactas em 2 Linhas Horizontais */
 .options-container-compact {
@@ -1407,6 +1434,8 @@ body {
 .opt-btn-compact.justificado { color: var(--color-justified); border-color: #f3e8ff; background: var(--color-justified-bg); }
 .opt-btn-compact.falta-passagem-som { color: #c2410c; border-color: #fed7aa; background: #fff7ed; }
 .opt-btn-compact.falta-passagem-som.selected { background: #ea580c; color: white; border-color: #ea580c; }
+.opt-btn-compact.atraso-passagem-som { color: #b45309; border-color: #fde68a; background: #fffbeb; }
+.opt-btn-compact.atraso-passagem-som.selected { background: #d97706; color: white; border-color: #d97706; }
 
 /* ==========================================================================
    ESTILOS PARA ENSAIOS DE NAIPE SOB DEMANDA E ABAS DE CHAMADA

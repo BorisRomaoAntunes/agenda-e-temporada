@@ -153,7 +153,7 @@
         <div class="quick-delay-container">
             <div class="quick-delay-title">
                 <span>⏱️ Registrar Atraso Rápido</span>
-                <span style="font-size: 0.72rem; text-transform: none; font-weight: 500; opacity: 0.8;">1 toque salva e fecha</span>
+                <span id="quickDelaySubtitle" style="font-size: 0.72rem; text-transform: none; font-weight: 500; opacity: 0.8;">Selecione os minutos</span>
             </div>
             <div class="delay-pills-grid">
                 <button class="delay-pill-btn" data-delay="5">+5m</button>
@@ -199,10 +199,16 @@
 
             <!-- Opção exclusiva para Concerto -->
             <div class="options-row-concerto" id="concertoExtraOptions" style="display: none; margin-top: 0.5rem;">
-                <button class="opt-btn-compact falta-passagem-som" id="optBtnFaltaPassagemSom" style="width: 100%;">
-                    <i data-lucide="volume-x" style="width: 18px; height: 18px;"></i>
-                    <span>Falta em Passagem de Som</span>
-                </button>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem;">
+                    <button class="opt-btn-compact falta-passagem-som" id="optBtnFaltaPassagemSom" type="button">
+                        <i data-lucide="volume-x" style="width: 18px; height: 18px;"></i>
+                        <span>Falta em Passagem</span>
+                    </button>
+                    <button class="opt-btn-compact atraso-passagem-som" id="optBtnAtrasoPassagemSom" type="button">
+                        <i data-lucide="clock" style="width: 18px; height: 18px;"></i>
+                        <span id="labelAtrasoPassagemSom">Atraso Passagem</span>
+                    </button>
+                </div>
             </div>
             
             <!-- Campo de Texto que substitui o botão quando selecionado -->

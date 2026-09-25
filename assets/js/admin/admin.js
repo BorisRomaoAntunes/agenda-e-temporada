@@ -7822,6 +7822,8 @@ function initMusiciansManagement() {
     let currentMusicoOccurrences = []; // Cache das ocorrências do músico aberto
     let currentMusicoJustificativas = []; // Cache das justificativas para o histórico unificado
     let currentMusicoAtrasosMap = {}; // Cache dos atrasos do músico aberto agrupados por YYYY-MM
+    let currentMusicoAtestados = []; // Cache dos atestados do músico aberto
+    let currentMusicoDispensas = []; // Cache das dispensas do músico aberto
 
     // Helper: Formata data YYYY-MM-DD para DD/MM/YYYY com segurança
     function formatDataBR(val) {
@@ -8350,6 +8352,7 @@ function initMusiciansManagement() {
                         titulo: tituloFalta,
                         cid: '',
                         meta: reg.justificativa ? `Anotação / Justificativa: "${reg.justificativa}"` : 'Sem anotação registrada',
+                        justificativa: reg.justificativa || '',
                         dataSort: dataDoc
                     });
                 }
@@ -8403,6 +8406,8 @@ function initMusiciansManagement() {
             currentMusicoOccurrences = ocorrenciasList;
             currentMusicoJustificativas = justificativasList;
             currentMusicoAtrasosMap = musicoAtrasosMap;
+            currentMusicoAtestados = atestadosMusico;
+            currentMusicoDispensas = dispensasMusico;
 
             // 4. Calcular % de participação no ano vigente até hoje
             let pctAno = 100;
@@ -8576,7 +8581,9 @@ function initMusiciansManagement() {
                     dispensas: dispensasMusico.length
                 },
                 ocorrencias: ocorrenciasList,
-                justificativas: justificativasList
+                justificativas: justificativasList,
+                atestados: atestadosMusico,
+                dispensas: dispensasMusico
             };
 
         } catch (err) {
@@ -9408,6 +9415,263 @@ function initMusiciansManagement() {
         btnDrawerQuickDispensa.addEventListener('click', () => {
             if (currentSelectedMusico && typeof window.openDispensaModal === 'function') {
                 window.openDispensaModal(currentSelectedMusico);
+            }
+        });
+    }
+
+    // =========================================================================
+    // CÓPIA RÁPIDA DE DADOS PELOS CARDS DE KPIS DO DRAWER
+    // =========================================================================
+    async function handleKpiCardClipboardCopy(cardId, text, successMsg) {
+        try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                await navigator.clipboard.writeText(text);
+            } else {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.focus();
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+            }
+
+            const cardEl = document.getElementById(cardId);
+            if (cardEl) {
+                cardEl.classList.add('copy-success');
+                const iconSpan = cardEl.querySelector('.kpi-copy-icon');
+                const originalSvg = iconSpan ? iconSpan.innerHTML : '';
+                if (iconSpan) {
+                    iconSpan.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>`;
+                }
+                setTimeout(() => {
+                    cardEl.classList.remove('copy-success');
+                    if (iconSpan && originalSvg) iconSpan.innerHTML = originalSvg;
+                }, 1800);
+            }
+
+            if (typeof showNotification === 'function') {
+                showNotification(successMsg, 'success');
+            }
+        } catch (err) {
+            console.error('Erro ao copiar dados para a área de transferência:', err);
+            if (typeof showNotification === 'function') {
+                showNotification('Não foi possível copiar para a área de transferência.', 'error');
+            }
+        }
+    }
+
+    function getKpiMusicoNome(musico) {
+        if (!musico) return 'Integrante';
+        return (musico.NOMEARTISTICO || musico['NOME REGISTRO'] || musico.Nome || 'Integrante').trim();
+    }
+
+    function getKpiMusicoInstrumento(musico) {
+        if (!musico) return '';
+        return (musico.INSTRUMENTOS || musico.Instrumento || '').trim();
+    }
+
+    async function copyKpiFaltas() {
+        if (!currentSelectedMusico) return;
+        const nome = getKpiMusicoNome(currentSelectedMusico);
+        const instrumento = getKpiMusicoInstrumento(currentSelectedMusico);
+        const ano = new Date().getFullYear();
+        const rep = currentDrawerReportData;
+        const kpis = rep && rep.kpis ? rep.kpis : { faltas: 0, faltasEnsaios: 0, faltasConcertos: 0, faltasPS: 0 };
+        const faltas = (currentMusicoOccurrences || []).filter(o => o.tipo === 'falta');
+
+        let txt = `📋 *FALTAS NO ANO — ${nome.toUpperCase()}*\n`;
+        if (instrumento) txt += `🎻 *Instrumento/Naipe:* ${instrumento}\n`;
+        txt += `📅 *Temporada:* ${ano}\n`;
+
+        if (faltas.length === 0) {
+            txt += `\n✅ *Nenhuma falta registrada na temporada ${ano}.*\n`;
+            txt += `O integrante mantém 100% de presença nas chamadas convocadas.\n`;
+        } else {
+            let subParts = [];
+            if (kpis.faltasEnsaios > 0) subParts.push(`${kpis.faltasEnsaios} Ensaio${kpis.faltasEnsaios === 1 ? '' : 's'}`);
+            if (kpis.faltasConcertos > 0) subParts.push(`${kpis.faltasConcertos} Concerto${kpis.faltasConcertos === 1 ? '' : 's'}`);
+            if (kpis.faltasPS > 0) subParts.push(`${kpis.faltasPS} Passagem de Som`);
+            const subStr = subParts.length > 0 ? ` (${subParts.join(' · ')})` : '';
+
+            txt += `📊 *Total:* ${faltas.length} falta${faltas.length === 1 ? '' : 's'}${subStr}\n\n`;
+            txt += `*Detalhamento das Faltas:*\n`;
+
+            faltas.forEach(f => {
+                const justif = f.justificativa || (f.meta && !f.meta.includes('Sem anotação') ? f.meta.replace(/^Anotação \/ Justificativa:\s*"?/, '').replace(/"?$/, '') : '');
+                txt += `• *${f.data}* — ${f.titulo}\n`;
+                if (justif) {
+                    txt += `  ↳ _Justificativa/Anotação:_ "${justif}"\n`;
+                } else {
+                    txt += `  ↳ _Sem anotação/justificativa registrada_\n`;
+                }
+            });
+        }
+
+        txt += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+        txt += `_Orquestra Experimental de Repertório · Sistema de Gestão_`;
+
+        await handleKpiCardClipboardCopy('drawer-kpi-card-faltas', txt, 'Lista de faltas copiada para a área de transferência!');
+    }
+
+    async function copyKpiAtestados() {
+        if (!currentSelectedMusico) return;
+        const nome = getKpiMusicoNome(currentSelectedMusico);
+        const instrumento = getKpiMusicoInstrumento(currentSelectedMusico);
+        const ano = new Date().getFullYear();
+        const atestados = currentMusicoAtestados || [];
+
+        let txt = `🩺 *ATESTADOS MÉDICOS — ${nome.toUpperCase()}*\n`;
+        if (instrumento) txt += `🎻 *Instrumento/Naipe:* ${instrumento}\n`;
+        txt += `📅 *Temporada:* ${ano}\n`;
+
+        if (atestados.length === 0) {
+            txt += `\n✅ *Nenhum atestado médico registrado na temporada ${ano}.*\n`;
+        } else {
+            const totalDias = atestados.reduce((acc, a) => acc + (parseInt(a.dias) || 0), 0);
+            txt += `📊 *Total:* ${atestados.length} atestado${atestados.length === 1 ? '' : 's'} (${totalDias} dia${totalDias === 1 ? '' : 's'} de afastamento acumulado)\n\n`;
+            txt += `*Histórico de Atestados:*\n`;
+
+            atestados.forEach(a => {
+                const dias = parseInt(a.dias) || 1;
+                const periodo = (a.dataInicio && a.dataFim && a.dataInicio !== a.dataFim)
+                    ? `${formatDataBR(a.dataInicio)} a ${formatDataBR(a.dataFim)}`
+                    : formatDataBR(a.dataInicio || a.data);
+                const cid = a.cid ? `CID ${a.cid}` : (a.diagnostico ? `Diagnóstico: ${a.diagnostico}` : 'CID não informado');
+                const motivo = a.resumo || a.motivo || a.resumo_cid || 'Homologado pela Coordenação OER';
+
+                txt += `• *${periodo}* (${dias} dia${dias > 1 ? 's' : ''})\n`;
+                txt += `  ↳ _Diagnóstico:_ ${cid}\n`;
+                if (motivo) {
+                    txt += `  ↳ _Detalhes:_ ${motivo}\n`;
+                }
+            });
+        }
+
+        txt += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+        txt += `_Orquestra Experimental de Repertório · Sistema de Gestão_`;
+
+        await handleKpiCardClipboardCopy('drawer-kpi-card-atestados', txt, 'Lista de atestados copiada para a área de transferência!');
+    }
+
+    async function copyKpiAfastamento() {
+        if (!currentSelectedMusico) return;
+        const nome = getKpiMusicoNome(currentSelectedMusico);
+        const instrumento = getKpiMusicoInstrumento(currentSelectedMusico);
+        const ano = new Date().getFullYear();
+        const atestados = (currentMusicoAtestados || []).filter(a => (parseInt(a.dias) || 0) > 0 || (a.dataInicio && a.dataFim));
+        const totalDias = atestados.reduce((acc, a) => acc + (parseInt(a.dias) || 0), 0);
+
+        let txt = `🏥 *PERÍODOS DE AFASTAMENTO MÉDICO — ${nome.toUpperCase()}*\n`;
+        if (instrumento) txt += `🎻 *Instrumento/Naipe:* ${instrumento}\n`;
+        txt += `📅 *Temporada:* ${ano}\n`;
+
+        if (totalDias === 0 && atestados.length === 0) {
+            txt += `\n✅ *Nenhum dia de afastamento médico registrado na temporada ${ano} (0 dias).*\n`;
+        } else {
+            txt += `📊 *Total Acumulado:* ${totalDias} dia${totalDias === 1 ? '' : 's'} de afastamento (${atestados.length} período${atestados.length === 1 ? '' : 's'})\n\n`;
+            txt += `*Cronograma de Períodos de Afastamento:*\n`;
+
+            atestados.forEach(a => {
+                const dias = parseInt(a.dias) || 0;
+                const dataIni = formatDataBR(a.dataInicio || a.data);
+                const dataFim = formatDataBR(a.dataFim || a.dataInicio || a.data);
+                const cid = a.cid ? `CID ${a.cid}` : '';
+                const motivo = a.resumo || a.motivo || a.resumo_cid || '';
+
+                txt += `• *Período:* ${dataIni} até ${dataFim} — *${dias} dia${dias === 1 ? '' : 's'}*\n`;
+                if (cid) txt += `  ↳ _Diagnóstico / CID:_ ${cid}\n`;
+                if (motivo) txt += `  ↳ _Motivo/Observação:_ ${motivo}\n`;
+            });
+        }
+
+        txt += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+        txt += `_Orquestra Experimental de Repertório · Sistema de Gestão_`;
+
+        await handleKpiCardClipboardCopy('drawer-kpi-card-afastamento', txt, 'Períodos de afastamento copiados para a área de transferência!');
+    }
+
+    async function copyKpiDispensas() {
+        if (!currentSelectedMusico) return;
+        const nome = getKpiMusicoNome(currentSelectedMusico);
+        const instrumento = getKpiMusicoInstrumento(currentSelectedMusico);
+        const ano = new Date().getFullYear();
+        const dispensas = currentMusicoDispensas || [];
+
+        let txt = `📝 *DISPENSAS OFICIAIS — ${nome.toUpperCase()}*\n`;
+        if (instrumento) txt += `🎻 *Instrumento/Naipe:* ${instrumento}\n`;
+        txt += `📅 *Temporada:* ${ano}\n`;
+
+        if (dispensas.length === 0) {
+            txt += `\n✅ *Nenhuma dispensa oficial registrada na temporada ${ano}.*\n`;
+        } else {
+            txt += `📊 *Total:* ${dispensas.length} dispensa${dispensas.length === 1 ? '' : 's'} concedida${dispensas.length === 1 ? '' : 's'}\n\n`;
+            txt += `*Detalhamento das Dispensas:*\n`;
+
+            dispensas.forEach(d => {
+                const periodo = (d.dataInicio && d.dataFim && d.dataInicio !== d.dataFim)
+                    ? `${formatDataBR(d.dataInicio)} a ${formatDataBR(d.dataFim)}`
+                    : formatDataBR(d.dataInicio || d.data);
+                const motivo = d.descricao || d.motivo || 'Dispensa Oficial deferida pela Direção/Coordenação OER';
+
+                txt += `• *Data/Período:* ${periodo}\n`;
+                txt += `  ↳ _Motivo/Finalidade:_ ${motivo}\n`;
+            });
+        }
+
+        txt += `\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+        txt += `_Orquestra Experimental de Repertório · Sistema de Gestão_`;
+
+        await handleKpiCardClipboardCopy('drawer-kpi-card-dispensas', txt, 'Lista de dispensas copiada para a área de transferência!');
+    }
+
+    // Vincular cliques nos 4 cards de KPI
+    const kpiCardFaltas = document.getElementById('drawer-kpi-card-faltas');
+    if (kpiCardFaltas && !kpiCardFaltas._listenerAttached) {
+        kpiCardFaltas._listenerAttached = true;
+        kpiCardFaltas.addEventListener('click', copyKpiFaltas);
+        kpiCardFaltas.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                copyKpiFaltas();
+            }
+        });
+    }
+
+    const kpiCardAtestados = document.getElementById('drawer-kpi-card-atestados');
+    if (kpiCardAtestados && !kpiCardAtestados._listenerAttached) {
+        kpiCardAtestados._listenerAttached = true;
+        kpiCardAtestados.addEventListener('click', copyKpiAtestados);
+        kpiCardAtestados.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                copyKpiAtestados();
+            }
+        });
+    }
+
+    const kpiCardAfastamento = document.getElementById('drawer-kpi-card-afastamento');
+    if (kpiCardAfastamento && !kpiCardAfastamento._listenerAttached) {
+        kpiCardAfastamento._listenerAttached = true;
+        kpiCardAfastamento.addEventListener('click', copyKpiAfastamento);
+        kpiCardAfastamento.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                copyKpiAfastamento();
+            }
+        });
+    }
+
+    const kpiCardDispensas = document.getElementById('drawer-kpi-card-dispensas');
+    if (kpiCardDispensas && !kpiCardDispensas._listenerAttached) {
+        kpiCardDispensas._listenerAttached = true;
+        kpiCardDispensas.addEventListener('click', copyKpiDispensas);
+        kpiCardDispensas.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                copyKpiDispensas();
             }
         });
     }
@@ -12193,7 +12457,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
             if (st === 'atestado') return { symbol: 'A', status: 'atestado', incP: 0, incF: 0, excelSym: 'A' };
             if (st === 'dispensa') return { symbol: 'D', status: 'dispensa', incP: 0, incF: 0, excelSym: 'D' };
             if (st === 'justificado') return { symbol: 'J', status: 'justificado', incP: 0, incF: 0, excelSym: 'J' };
-            if (st === 'atraso') return { symbol: 'P', status: 'atraso', incP: 1, incF: 0, excelSym: 'P' };
+            if (st === 'atraso' || st === 'atraso_passagem_som') return { symbol: 'P', status: st, incP: 1, incF: 0, excelSym: 'P' };
             if (st === 'nao_escalado') return { symbol: '-', status: 'nao_escalado', incP: 0, incF: 0, excelSym: '-' };
             if (isDispensadoGlobal) return { symbol: 'D', status: 'dispensa', incP: 0, incF: 0, excelSym: 'D' };
             if (isAtestadoGlobal) return { symbol: 'A', status: 'atestado', incP: 0, incF: 0, excelSym: 'A' };
@@ -12219,7 +12483,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
             else if (sym.status === 'atestado') cClass = 'status-atestado';
             else if (sym.status === 'dispensa') cClass = 'status-dispensa';
             else if (sym.status === 'justificado') cClass = 'status-justificado';
-            else if (sym.status === 'atraso') cClass = 'status-atraso';
+            else if (sym.status === 'atraso' || sym.status === 'atraso_passagem_som') cClass = 'status-atraso';
             else if (sym.status === 'nao_escalado') cClass = 'status-nao-escalado';
             else if (sym.status === 'falta_passagem_som') cClass = 'status-falta-som';
 
@@ -12455,11 +12719,13 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                             const nomeMusico = musico ? (musico.NOMEARTISTICO || musico['NOME REGISTRO']) : 'Músico Desconhecido';
                             const dataFormatada = `${String(dia).padStart(2, '0')}/${mesStr}`;
 
-                            if (registro.status === 'atraso') {
+                            if (registro.status === 'atraso' || registro.status === 'atraso_passagem_som') {
+                                const isPS = registro.status === 'atraso_passagem_som';
+                                const labelAtraso = isPS ? 'Atraso na Passagem de Som' : 'Atraso';
                                 const minTexto = registro.minutes ? `${registro.minutes} min` : 'atraso registrado';
                                 const justTexto = (registro.justificativa && registro.justificativa.trim() !== '') ? `: ${registro.justificativa.trim()}` : '';
                                 justificativas.push({
-                                    texto: `${dataFormatada} - ${nomeMusico} (Atraso de ${minTexto})${justTexto}`
+                                    texto: `${dataFormatada} - ${nomeMusico} (${labelAtraso} de ${minTexto})${justTexto}`
                                 });
                             } else if (registro.justificativa && registro.justificativa.trim() !== '') {
                                 const tipoLabel = registro.status === 'falta' ? ' (Falta)' : (registro.status === 'falta_passagem_som' ? ' (Falta PS)' : '');
@@ -13002,7 +13268,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                     if (st === 'atestado') return 'A';
                     if (st === 'dispensa') return 'D';
                     if (st === 'justificado') return 'J';
-                    if (st === 'atraso') return 'P';
+                    if (st === 'atraso' || st === 'atraso_passagem_som') return 'P';
                     if (st === 'nao_escalado') return '-';
                     if (isDispensado) return 'D';
                     if (isAtestado) return 'A';
@@ -13031,8 +13297,10 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
 
                                 const regDoc = (col.subCol.doc && col.subCol.doc.registros) ? col.subCol.doc.registros[musico.id] : null;
                                 if (regDoc) {
-                                    if (regDoc.status === 'atraso') {
-                                        const minTexto = regDoc.minutes ? `Atraso de ${regDoc.minutes} minutos` : 'Atraso registrado';
+                                    if (regDoc.status === 'atraso' || regDoc.status === 'atraso_passagem_som') {
+                                        const isPS = regDoc.status === 'atraso_passagem_som';
+                                        const labelAtraso = isPS ? 'Atraso na Passagem de Som' : 'Atraso';
+                                        const minTexto = regDoc.minutes ? `${labelAtraso} de ${regDoc.minutes} minutos` : `${labelAtraso} registrado`;
                                         if (regDoc.justificativa && regDoc.justificativa.trim() !== '') {
                                             cellCommentsMap[cellRef] = `${minTexto}\nJustificativa: "${regDoc.justificativa.trim()}"`;
                                         } else {
@@ -13500,7 +13768,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                                             labelObs = ` (Concerto)`;
                                         }
                                         bInfo.pendencias.push({ dia, obs: labelObs });
-                                    } else if (registro.status === 'atraso') {
+                                    } else if (registro.status === 'atraso' || registro.status === 'atraso_passagem_som') {
                                         const min = parseInt(registro.minutes) || 0;
                                         bInfo.atrasosMin += min;
                                     }

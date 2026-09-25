@@ -37,7 +37,7 @@
 
     <!-- Estilos Base + Admin -->
     <link rel="stylesheet" href="assets/css/common.css">
-    <link rel="stylesheet" href="assets/css/admin.css?v=15">
+    <link rel="stylesheet" href="assets/css/admin.css?v=16">
 
     <!-- Ícones Lucide -->
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -1566,24 +1566,29 @@ Intervalo
 
             <!-- 2. BLOCO DE KPIS / RESUMO EXECUTIVO -->
             <div class="kpi-grid">
-                <div class="kpi-card danger">
+                <div class="kpi-card danger clickable" id="drawer-kpi-card-faltas" role="button" tabindex="0" title="Clique para copiar a lista de faltas com datas e motivos">
+                    <span class="kpi-copy-icon" aria-hidden="true" title="Copiar faltas"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></span>
                     <span class="kpi-val" id="drawer-kpi-faltas">0</span>
                     <span class="kpi-label">Faltas no Ano</span>
                     <span class="kpi-sub-detail" id="drawer-kpi-faltas-sub" style="font-size: 0.68rem; color: #dc2626; font-weight: 600; margin-top: 3px; display: block; line-height: 1.2;">0 Ensaio · 0 Concerto</span>
                 </div>
-                <div class="kpi-card info">
+                <div class="kpi-card info clickable" id="drawer-kpi-card-atestados" role="button" tabindex="0" title="Clique para copiar a lista de atestados médicos com CIDs">
+                    <span class="kpi-copy-icon" aria-hidden="true" title="Copiar atestados"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></span>
                     <span class="kpi-val" id="drawer-kpi-atestados">0</span>
                     <span class="kpi-label">Atestados</span>
                 </div>
-                <div class="kpi-card purple">
+                <div class="kpi-card purple clickable" id="drawer-kpi-card-afastamento" role="button" tabindex="0" title="Clique para copiar o cronograma de afastamentos médicos">
+                    <span class="kpi-copy-icon" aria-hidden="true" title="Copiar afastamentos"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></span>
                     <span class="kpi-val" id="drawer-kpi-afastamento">0d</span>
                     <span class="kpi-label">Afastamento</span>
                 </div>
-                <div class="kpi-card success">
+                <div class="kpi-card success clickable" id="drawer-kpi-card-dispensas" role="button" tabindex="0" title="Clique para copiar a lista de dispensas oficiais">
+                    <span class="kpi-copy-icon" aria-hidden="true" title="Copiar dispensas"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg></span>
                     <span class="kpi-val" id="drawer-kpi-dispensas">0</span>
                     <span class="kpi-label">Dispensas</span>
                 </div>
                 <div class="kpi-card warning clickable" id="drawer-kpi-card-atrasos" role="button" tabindex="0" title="Clique para ver os atrasos e copiar a lista formatada">
+                    <span class="kpi-copy-icon" aria-hidden="true" title="Ver e copiar atrasos"><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
                     <span class="kpi-val" id="drawer-kpi-atrasos">0</span>
                     <span class="kpi-label">Atrasos no Ano</span>
                     <span class="kpi-sub-detail" id="drawer-kpi-atrasos-sub" style="font-size: 0.68rem; color: #b45309; font-weight: 600; margin-top: 3px; display: block; line-height: 1.2;">0 min</span>
@@ -1914,13 +1919,14 @@ Intervalo
 
         <table class="print-table">
             <tr>
-                <th colspan="4" style="background: #8b0000; color: white;">2. RESUMO DE FREQUÊNCIA & SAÚDE</th>
+                <th colspan="5" style="background: #8b0000; color: white;">2. RESUMO DE FREQUÊNCIA & SAÚDE</th>
             </tr>
             <tr>
-                <td style="text-align: center;"><strong>Faltas no Ano:</strong><br><span id="pr-kpi-faltas" style="font-size: 1.2rem; color: #dc2626;">0</span><br><small id="pr-kpi-faltas-sub" style="font-size: 0.72rem; color: #666; display: block;"></small></td>
-                <td style="text-align: center;"><strong>Atestados Médicos:</strong><br><span id="pr-kpi-atestados" style="font-size: 1.2rem; color: #0284c7;">0</span></td>
-                <td style="text-align: center;"><strong>Dias Afastado:</strong><br><span id="pr-kpi-afastamento" style="font-size: 1.2rem; color: #9333ea;">0</span></td>
-                <td style="text-align: center;"><strong>Dispensas Concedidas:</strong><br><span id="pr-kpi-dispensas" style="font-size: 1.2rem; color: #16a34a;">0</span></td>
+                <td style="text-align: center; width: 20%;"><strong>Faltas no Ano:</strong><br><span id="pr-kpi-faltas" style="font-size: 1.2rem; color: #dc2626;">0</span><br><small id="pr-kpi-faltas-sub" style="font-size: 0.72rem; color: #666; display: block;"></small></td>
+                <td style="text-align: center; width: 20%;"><strong>Atrasos no Ano:</strong><br><span id="pr-kpi-atrasos" style="font-size: 1.2rem; color: #d97706;">0</span><br><small id="pr-kpi-atrasos-sub" style="font-size: 0.72rem; color: #666; display: block;"></small></td>
+                <td style="text-align: center; width: 20%;"><strong>Atestados Médicos:</strong><br><span id="pr-kpi-atestados" style="font-size: 1.2rem; color: #0284c7;">0</span></td>
+                <td style="text-align: center; width: 20%;"><strong>Dias Afastado:</strong><br><span id="pr-kpi-afastamento" style="font-size: 1.2rem; color: #9333ea;">0</span></td>
+                <td style="text-align: center; width: 20%;"><strong>Dispensas Concedidas:</strong><br><span id="pr-kpi-dispensas" style="font-size: 1.2rem; color: #16a34a;">0</span></td>
             </tr>
         </table>
 
@@ -1931,10 +1937,10 @@ Intervalo
             <table class="print-table" id="pr-table-ocorrencias">
                 <thead>
                     <tr>
-                        <th>Data / Período</th>
-                        <th>Tipo</th>
-                        <th>Descrição / CID Médico</th>
-                        <th>Justificativa / Detalhes</th>
+                        <th style="width: 18%;">Data / Período</th>
+                        <th style="width: 16%;">Tipo</th>
+                        <th style="width: 28%;">Descrição / CID Médico</th>
+                        <th style="width: 38%;">Justificativa / Detalhes</th>
                     </tr>
                 </thead>
                 <tbody id="pr-tbody-ocorrencias">
@@ -1943,9 +1949,31 @@ Intervalo
             </table>
         </div>
 
+        <div style="margin-bottom: 15px;">
+            <h4 style="margin: 0 0 5px 0; font-size: 0.95rem; color: #8b0000; border-bottom: 1px solid #ccc; padding-bottom: 3px;">
+                4. HISTÓRICO DE ATRASOS
+            </h4>
+            <table class="print-table" id="pr-table-atrasos">
+                <thead>
+                    <tr>
+                        <th style="width: 18%;">Data</th>
+                        <th style="width: 16%;">Duração</th>
+                        <th style="width: 28%;">Descrição / Evento</th>
+                        <th style="width: 38%;">Justificativa / Observação do Administrador</th>
+                    </tr>
+                </thead>
+                <tbody id="pr-tbody-atrasos">
+                    <!-- Inserido dinamicamente -->
+                </tbody>
+                <tfoot id="pr-tfoot-atrasos" style="font-weight: bold; background: #fafafa;">
+                    <!-- Totalizador inserido dinamicamente -->
+                </tfoot>
+            </table>
+        </div>
+
         <div>
             <h4 style="margin: 0 0 5px 0; font-size: 0.95rem; color: #8b0000; border-bottom: 1px solid #ccc; padding-bottom: 3px;">
-                4. OBSERVAÇÕES E ANOTAÇÕES DA ADMINISTRAÇÃO
+                5. OBSERVAÇÕES E ANOTAÇÕES DA ADMINISTRAÇÃO
             </h4>
             <div id="pr-observacoes" style="border: 1px solid #ddd; padding: 10px; font-size: 0.85rem; min-height: 50px; background: #fafafa;">
                 -
@@ -2632,7 +2660,7 @@ Intervalo
             }
         }, 5000);
     </script>
-    <script type="module" src="assets/js/admin/admin.js?v=25"></script>
+    <script type="module" src="assets/js/admin/admin.js?v=26"></script>
     <script>
         // Registro do Service Worker
         if ('serviceWorker' in navigator) {
