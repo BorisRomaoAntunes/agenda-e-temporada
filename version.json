@@ -1,13 +1,19 @@
 {
-  "hash": "34e5216+mod",
-  "date": "24/09/2026, 21:19:59",
-  "buildAt": "2026-09-25T00:19:59.002Z",
+  "hash": "cf8a315+mod",
+  "date": "24/09/2026, 21:22:12",
+  "buildAt": "2026-09-25T00:22:11.894Z",
   "history": [
     {
-      "hash": "34e5216+mod",
-      "date": "24/09/2026, 21:19:59",
+      "hash": "cf8a315+mod",
+      "date": "24/09/2026, 21:22:12",
       "author": "Deploy Local",
-      "subject": "Atualização implantada (1 arquivos modificados)"
+      "subject": "Atualização implantada (2 arquivos modificados)"
+    },
+    {
+      "hash": "cf8a315",
+      "date": "24/09/2026 21:20",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza versao de cache do admin.js e resumo de horas"
     },
     {
       "hash": "34e5216",
@@ -116,12 +122,6 @@
       "date": "24/09/2026 11:32",
       "author": "Boris Romão Antunes",
       "subject": "feat: redesign card agendamento pendente - layout compacto 3 linhas"
-    },
-    {
-      "hash": "23c2d7d",
-      "date": "24/09/2026 11:25",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pós-deploy v3c03f12"
     }
   ]
 }
