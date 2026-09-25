@@ -1548,12 +1548,12 @@ function selectFaltaStatus(status = "falta") {
     }, 100);
 }
 
-// Manipular input da justificativa / anotação de falta
+// Manipular input da justificativa / anotação de falta ou atraso
 function handleJustificationInput(e) {
     if (!activeMusicianId) return;
 
     const cur = attendanceData[activeMusicianId];
-    if (cur && (cur.status === "justificado" || cur.status === "falta" || cur.status === "falta_passagem_som")) {
+    if (cur && (cur.status === "justificado" || cur.status === "falta" || cur.status === "falta_passagem_som" || cur.status === "atraso" || cur.status === "atraso_passagem_som")) {
         cur.justificativa = e.target.value;
         cur.registradoPor = currentUserEmail || "Admin";
         cur.atualizadoEm = new Date().toISOString();
@@ -1562,21 +1562,77 @@ function handleJustificationInput(e) {
     }
 }
 
-// Aplicar Atalho Rápido de Atraso (Pílula) e Fechar
+// Aplicar Atalho Rápido de Atraso (Pílula) abrindo a caixa de anotação (igual faltas)
 function applyQuickDelay(minutes) {
     if (!activeMusicianId) return;
 
+    selectedDelayTemp = minutes;
+
+    const activeCall = dailyEventsCalls.find(c => c.id === activeCallId);
+    const isConcerto = activeCall && activeCall.tipo === "concerto";
+
+    // Em concertos, o padrão automático alinhado é atraso_passagem_som
+    selectedStatusTemp = isConcerto ? "atraso_passagem_som" : "atraso";
+
+    const current = attendanceData[activeMusicianId] || {};
+    const currentNota = justificationTextarea.value || current.justificativa || "";
+    justificationTextarea.value = currentNota;
+
     attendanceData[activeMusicianId] = {
-        status: "atraso",
+        status: selectedStatusTemp,
         minutes: minutes,
+        justificativa: currentNota,
         registradoPor: currentUserEmail || "Admin",
         atualizadoEm: new Date().toISOString()
     };
 
+    updateDrawerButtonsVisuals();
     saveDraft();
     renderMusicians();
-    closeDrawer();
-    showToast(`Atraso de ${minutes}m registrado!`);
+
+    const labelToast = isConcerto ? `Atraso na Passagem de Som (${minutes}m) selecionado` : `Atraso de ${minutes}m selecionado`;
+    showToast(labelToast);
+
+    // Focar no campo de anotação
+    setTimeout(() => {
+        justificationTextarea.focus();
+    }, 100);
+}
+
+// Alternar entre Atraso Geral no Concerto e Atraso na Passagem de Som
+function toggleAtrasoPassagemSom() {
+    if (!activeMusicianId) return;
+
+    if (selectedStatusTemp === "atraso_passagem_som") {
+        selectedStatusTemp = "atraso";
+        showToast("Alternado para Atraso Geral no Concerto");
+    } else {
+        selectedStatusTemp = "atraso_passagem_som";
+        showToast("Alternado para Atraso na Passagem de Som");
+    }
+
+    if (!selectedDelayTemp || selectedDelayTemp === 0) {
+        selectedDelayTemp = 10;
+    }
+
+    const current = attendanceData[activeMusicianId] || {};
+    const currentNota = justificationTextarea.value || current.justificativa || "";
+
+    attendanceData[activeMusicianId] = {
+        status: selectedStatusTemp,
+        minutes: selectedDelayTemp,
+        justificativa: currentNota,
+        registradoPor: currentUserEmail || "Admin",
+        atualizadoEm: new Date().toISOString()
+    };
+
+    updateDrawerButtonsVisuals();
+    saveDraft();
+    renderMusicians();
+
+    setTimeout(() => {
+        justificationTextarea.focus();
+    }, 100);
 }
 
 // Salvar Justificativa / Anotação e Fechar
@@ -1607,6 +1663,16 @@ function saveJustificationAndClose() {
             atualizadoEm: new Date().toISOString()
         };
         showToast(text !== "" ? "Anotação da falta salva!" : "Falta registrada!");
+    } else if (selectedStatusTemp === "atraso" || selectedStatusTemp === "atraso_passagem_som") {
+        attendanceData[activeMusicianId] = {
+            status: selectedStatusTemp,
+            minutes: selectedDelayTemp || 0,
+            justificativa: text,
+            registradoPor: currentUserEmail || "Admin",
+            atualizadoEm: new Date().toISOString()
+        };
+        const label = selectedStatusTemp === "atraso_passagem_som" ? "Atraso na Passagem de Som" : "Atraso";
+        showToast(text !== "" ? `${label} e anotação salvos!` : `${label} registrado!`);
     }
 
     saveDraft();
@@ -1619,8 +1685,11 @@ function applyDelayChange() {
     if (!activeMusicianId) return;
 
     attendanceData[activeMusicianId] = {
-        status: "atraso",
-        minutes: selectedDelayTemp
+        status: selectedStatusTemp === "atraso_passagem_som" ? "atraso_passagem_som" : "atraso",
+        minutes: selectedDelayTemp,
+        justificativa: justificationTextarea.value || "",
+        registradoPor: currentUserEmail || "Admin",
+        atualizadoEm: new Date().toISOString()
     };
 
     saveDraft();
@@ -1631,7 +1700,7 @@ function applyDelayChange() {
 
 // Atualizar Destaques no Drawer
 function updateDrawerButtonsVisuals() {
-    const btns = [optBtnPresenca, optBtnFalta, optBtnAtestado, optBtnNaoEscalado, optBtnJustificado, optBtnDispensa, optBtnFaltaPassagemSom];
+    const btns = [optBtnPresenca, optBtnFalta, optBtnAtestado, optBtnNaoEscalado, optBtnJustificado, optBtnDispensa, optBtnFaltaPassagemSom, optBtnAtrasoPassagemSom];
     btns.forEach(btn => btn?.classList.remove("selected"));
 
     if (selectedStatusTemp === "presenca") optBtnPresenca?.classList.add("selected");
@@ -1641,18 +1710,29 @@ function updateDrawerButtonsVisuals() {
     else if (selectedStatusTemp === "nao_escalado") optBtnNaoEscalado?.classList.add("selected");
     else if (selectedStatusTemp === "justificado") optBtnJustificado?.classList.add("selected");
     else if (selectedStatusTemp === "falta_passagem_som") optBtnFaltaPassagemSom?.classList.add("selected");
+    else if (selectedStatusTemp === "atraso_passagem_som") optBtnAtrasoPassagemSom?.classList.add("selected");
 
-    // Exibir/Ocultar seção de justificativa / anotação de falta
+    // Destacar pílula de atraso selecionada
+    document.querySelectorAll(".delay-pill-btn").forEach(btn => {
+        const m = parseInt(btn.getAttribute("data-delay"), 10);
+        if ((selectedStatusTemp === "atraso" || selectedStatusTemp === "atraso_passagem_som") && selectedDelayTemp === m) {
+            btn.classList.add("selected");
+        } else {
+            btn.classList.remove("selected");
+        }
+    });
+
+    // Exibir/Ocultar seção de justificativa / anotação de falta / atraso
     if (justificationSection) {
         if (selectedStatusTemp === "justificado") {
             justificationSection.style.display = "flex";
             if (optBtnJustificado) optBtnJustificado.style.display = "none";
             if (optBtnFalta) optBtnFalta.style.display = "flex";
             justificationTextarea.placeholder = "Digite o motivo da justificativa...";
-            justificationTextarea.classList.remove("mode-falta");
+            justificationTextarea.classList.remove("mode-falta", "mode-atraso");
             if (btnSaveJustification) {
                 btnSaveJustification.textContent = "Salvar Justificativa e Fechar";
-                btnSaveJustification.classList.remove("mode-falta");
+                btnSaveJustification.classList.remove("mode-falta", "mode-atraso");
             }
         } else if (selectedStatusTemp === "falta" || selectedStatusTemp === "falta_passagem_som") {
             justificationSection.style.display = "flex";
@@ -1666,19 +1746,38 @@ function updateDrawerButtonsVisuals() {
                 ? "Digite uma anotação sobre a falta na passagem de som (opcional)..."
                 : "Digite o motivo ou anotação da falta (opcional)...";
             justificationTextarea.placeholder = placeholderText;
+            justificationTextarea.classList.remove("mode-atraso");
             justificationTextarea.classList.add("mode-falta");
             if (btnSaveJustification) {
                 btnSaveJustification.textContent = "Salvar Falta e Fechar";
+                btnSaveJustification.classList.remove("mode-atraso");
                 btnSaveJustification.classList.add("mode-falta");
+            }
+        } else if (selectedStatusTemp === "atraso" || selectedStatusTemp === "atraso_passagem_som") {
+            justificationSection.style.display = "flex";
+            if (optBtnJustificado) optBtnJustificado.style.display = "flex";
+            if (optBtnFalta) optBtnFalta.style.display = "flex";
+            const placeholderText = selectedStatusTemp === "atraso_passagem_som"
+                ? "Digite uma anotação sobre o atraso na passagem de som (opcional)..."
+                : "Digite uma anotação sobre o atraso (opcional)...";
+            justificationTextarea.placeholder = placeholderText;
+            justificationTextarea.classList.remove("mode-falta");
+            justificationTextarea.classList.add("mode-atraso");
+            if (btnSaveJustification) {
+                btnSaveJustification.textContent = selectedStatusTemp === "atraso_passagem_som"
+                    ? "Salvar Atraso PS e Fechar"
+                    : "Salvar Atraso e Fechar";
+                btnSaveJustification.classList.remove("mode-falta");
+                btnSaveJustification.classList.add("mode-atraso");
             }
         } else {
             justificationSection.style.display = "none";
             if (optBtnJustificado) optBtnJustificado.style.display = "flex";
             if (optBtnFalta) optBtnFalta.style.display = "flex";
-            justificationTextarea.classList.remove("mode-falta");
+            justificationTextarea.classList.remove("mode-falta", "mode-atraso");
             if (btnSaveJustification) {
                 btnSaveJustification.textContent = "Salvar e Fechar";
-                btnSaveJustification.classList.remove("mode-falta");
+                btnSaveJustification.classList.remove("mode-falta", "mode-atraso");
             }
         }
     }
@@ -2079,7 +2178,7 @@ async function saveOfficialData() {
             else if (r.status === 'falta_passagem_som') { faltasPassagem++; presencas++; }
             else if (r.status === 'atestado') atestados++;
             else if (r.status === 'dispensa') dispensas++;
-            else if (r.status === 'atraso') atrasos++;
+            else if (r.status === 'atraso' || r.status === 'atraso_passagem_som') atrasos++;
             else if (r.status === 'nao_escalado') naoEscalados++;
             else if (r.status === 'justificado') justificados++;
         });

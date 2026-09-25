@@ -8197,6 +8197,7 @@ function initMusiciansManagement() {
             const atestadosMusico = [];
             const dispensasMusico = [];
             const ocorrenciasList = [];
+            const atrasosList = [];
             const justificativasList = [];
 
             // 1. Processar atestados médicos
@@ -8363,6 +8364,31 @@ function initMusiciansManagement() {
                     const minReg = parseInt(reg.minutes, 10) || 0;
                     atrasosMinAno += minReg;
 
+                    const tipoPres = (presData.tipo || '').toLowerCase();
+                    const evtInfo = eventosPorDataMap[dataDoc];
+                    let descricaoEvento = 'Ensaio';
+                    if (isAtrasoPS) {
+                        descricaoEvento = 'Passagem de Som';
+                    } else if (tipoPres === 'concerto' || (!tipoPres && evtInfo && evtInfo.isConcerto)) {
+                        descricaoEvento = 'Concerto';
+                    } else if (tipoPres === 'ensaio_naipe' || (!tipoPres && evtInfo && evtInfo.tipo === 'ensaio_naipe')) {
+                        const naipeDesc = presData.naipe ? (Array.isArray(presData.naipe) ? presData.naipe.join(' + ') : presData.naipe) : '';
+                        descricaoEvento = naipeDesc ? `Ensaio de Naipe (${naipeDesc})` : 'Ensaio de Naipe';
+                    } else {
+                        descricaoEvento = 'Ensaio Geral';
+                    }
+
+                    const anotacaoAdmin = reg.justificativa ? reg.justificativa.trim() : 'Sem anotação registrada';
+
+                    atrasosList.push({
+                        data: formatDataBR(dataDoc),
+                        minutos: minReg,
+                        duracaoFormatada: `${minReg} min`,
+                        evento: descricaoEvento,
+                        justificativa: anotacaoAdmin,
+                        dataSort: dataDoc
+                    });
+
                     let tituloAtraso = isAtrasoPS ? `Atraso na Passagem de Som (${minReg} min)` : `Atraso (${minReg} min)`;
                     ocorrenciasList.push({
                         tipo: 'atraso',
@@ -8371,6 +8397,7 @@ function initMusiciansManagement() {
                         titulo: tituloAtraso,
                         cid: '',
                         meta: reg.justificativa ? `Anotação: "${reg.justificativa}"` : 'Sem anotação registrada',
+                        justificativa: reg.justificativa || '',
                         dataSort: dataDoc
                     });
                 }
@@ -8401,6 +8428,7 @@ function initMusiciansManagement() {
 
             // Ordenar ocorrências do mais novo para o mais antigo
             ocorrenciasList.sort((a, b) => (b.dataSort || '').localeCompare(a.dataSort || ''));
+            atrasosList.sort((a, b) => (b.dataSort || '').localeCompare(a.dataSort || ''));
             justificativasList.sort((a, b) => (b.dataSort || '').localeCompare(a.dataSort || ''));
 
             currentMusicoOccurrences = ocorrenciasList;
@@ -8576,11 +8604,14 @@ function initMusiciansManagement() {
                     faltasEnsaios: faltasAnoEnsaios,
                     faltasConcertos: faltasAnoConcertos,
                     faltasPS: faltasAnoPS,
+                    atrasos: atrasosAno,
+                    atrasosMin: atrasosMinAno,
                     atestados: atestadosMusico.length,
                     diasAfastamento: `${diasAfastamentoTotal}d`,
                     dispensas: dispensasMusico.length
                 },
                 ocorrencias: ocorrenciasList,
+                atrasos: atrasosList,
                 justificativas: justificativasList,
                 atestados: atestadosMusico,
                 dispensas: dispensasMusico
@@ -9089,13 +9120,23 @@ function initMusiciansManagement() {
 
                 txt += `📋 *RESUMO DE OCORRÊNCIAS:*\n`;
                 txt += `• Faltas no Ano: ${rep.kpis.faltas}${faltasComplemento}\n`;
+                txt += `• Atrasos no Ano: ${rep.kpis.atrasos || 0} (${rep.kpis.atrasosMin || 0} min acumulados)\n`;
                 txt += `• Atestados Médicos: ${rep.kpis.atestados} (${rep.kpis.diasAfastamento} afastado)\n`;
                 txt += `• Dispensas Oficiais: ${rep.kpis.dispensas}\n\n`;
 
-                if (rep.ocorrencias && rep.ocorrencias.length > 0) {
-                    txt += `🩺 *HISTÓRICO & CIDs:*\n`;
-                    rep.ocorrencias.forEach(o => {
+                const ocorrenciasSemAtraso = (rep.ocorrencias || []).filter(o => o.tipo !== 'atraso');
+                if (ocorrenciasSemAtraso.length > 0) {
+                    txt += `🩺 *HISTÓRICO DE FALTAS & CIDs:*\n`;
+                    ocorrenciasSemAtraso.forEach(o => {
                         txt += `• [${o.data}] ${o.titulo} ${o.cid ? ' - ' + o.cid : ''}\n`;
+                    });
+                    txt += `\n`;
+                }
+
+                if (rep.atrasos && rep.atrasos.length > 0) {
+                    txt += `⏱️ *HISTÓRICO DE ATRASOS (${rep.atrasos.length}):*\n`;
+                    rep.atrasos.forEach(a => {
+                        txt += `• [${a.data}] ${a.duracaoFormatada} - ${a.evento} (Obs: ${a.justificativa})\n`;
                     });
                     txt += `\n`;
                 }
@@ -9129,11 +9170,27 @@ function initMusiciansManagement() {
         if (btnPrintOfficialCard) {
             btnPrintOfficialCard.addEventListener('click', () => {
                 if (!currentSelectedMusico) return;
-                populatePrintableReport(currentSelectedMusico);
+                const m = currentSelectedMusico;
+                populatePrintableReport(m);
                 exportModal.style.display = 'none';
                 exportModal.classList.remove('active');
+
+                // Ajustar título dinâmico para sugestão de nome de arquivo ao salvar PDF
+                const originalTitle = document.title;
+                const nomeMusico = (m.NOMEARTISTICO || m['NOME REGISTRO'] || 'Músico').trim();
+                const instrumentoMusico = (m.INSTRUMENTOS || 'OER').trim();
+                document.title = `${nomeMusico} - ${instrumentoMusico} - Ficha OER`;
+
+                const restoreTitle = () => {
+                    document.title = originalTitle;
+                    window.removeEventListener('afterprint', restoreTitle);
+                };
+                window.addEventListener('afterprint', restoreTitle);
+
                 setTimeout(() => {
                     window.print();
+                    // Fallback para garantir restauração caso afterprint não dispare
+                    setTimeout(restoreTitle, 2000);
                 }, 250);
             });
         }
@@ -9187,16 +9244,29 @@ function initMusiciansManagement() {
                 prFaltasSub.textContent = '';
             }
         }
+
+        // KPI de Atrasos no Bloco 2
+        const prKpiAtrasos = document.getElementById("pr-kpi-atrasos");
+        const prKpiAtrasosSub = document.getElementById("pr-kpi-atrasos-sub");
+        if (prKpiAtrasos) {
+            prKpiAtrasos.textContent = rep.kpis.atrasos || 0;
+        }
+        if (prKpiAtrasosSub) {
+            const minTot = rep.kpis.atrasosMin || 0;
+            prKpiAtrasosSub.textContent = minTot > 0 ? `${minTot} min acum.` : '0 min';
+        }
+
         document.getElementById("pr-kpi-atestados").textContent = rep.kpis.atestados;
         document.getElementById("pr-kpi-afastamento").textContent = rep.kpis.diasAfastamento;
         document.getElementById("pr-kpi-dispensas").textContent = rep.kpis.dispensas;
 
-        // Ocorrências
+        // Seção 3: Ocorrências, Faltas e CIDs (excluindo atrasos, que agora possuem Seção 4 própria)
         const tbody = document.getElementById("pr-tbody-ocorrencias");
         if (tbody) {
             tbody.innerHTML = "";
-            if (rep.ocorrencias && rep.ocorrencias.length > 0) {
-                rep.ocorrencias.forEach(o => {
+            const ocorrenciasSemAtraso = (rep.ocorrencias || []).filter(o => o.tipo !== 'atraso');
+            if (ocorrenciasSemAtraso.length > 0) {
+                ocorrenciasSemAtraso.forEach(o => {
                     const tr = document.createElement("tr");
                     tr.innerHTML = `
                         <td>${o.data}</td>
@@ -9209,6 +9279,41 @@ function initMusiciansManagement() {
             } else {
                 tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #777;">Nenhuma falta ou atestado registrado para este integrante na temporada.</td></tr>`;
             }
+        }
+
+        // Seção 4: Histórico de Atrasos
+        const tbodyAtrasos = document.getElementById("pr-tbody-atrasos");
+        const tfootAtrasos = document.getElementById("pr-tfoot-atrasos");
+        const listaAtrasos = rep.atrasos || [];
+
+        if (tbodyAtrasos) {
+            tbodyAtrasos.innerHTML = "";
+            if (listaAtrasos.length > 0) {
+                listaAtrasos.forEach(a => {
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                        <td>${a.data}</td>
+                        <td><strong style="color: #b45309;">${a.duracaoFormatada || a.minutos + ' min'}</strong></td>
+                        <td>${a.evento || 'Ensaio'}</td>
+                        <td>${a.justificativa || 'Sem anotação registrada'}</td>
+                    `;
+                    tbodyAtrasos.appendChild(tr);
+                });
+            } else {
+                tbodyAtrasos.innerHTML = `<tr><td colspan="4" style="text-align: center; color: #777;">Nenhum atraso registrado para este integrante na temporada.</td></tr>`;
+            }
+        }
+
+        if (tfootAtrasos) {
+            const totalAtrasosQtd = listaAtrasos.length;
+            const totalAtrasosMin = listaAtrasos.reduce((acc, cur) => acc + (parseInt(cur.minutos, 10) || 0), 0);
+            tfootAtrasos.innerHTML = `
+                <tr>
+                    <td colspan="4" style="text-align: right; padding: 7px 10px; font-size: 0.85rem; color: #334155; background: #fafafa; border: 1px solid #ddd;">
+                        <strong>Total de Atrasos:</strong> ${totalAtrasosQtd} atraso${totalAtrasosQtd === 1 ? '' : 's'} · <strong>${totalAtrasosMin} min no total</strong>
+                    </td>
+                </tr>
+            `;
         }
 
         const adminNotes = getAdminNotesList(m);
