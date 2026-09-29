@@ -1,13 +1,19 @@
 {
-  "hash": "97effc9+mod",
-  "date": "29/09/2026, 12:26:09",
-  "buildAt": "2026-09-29T15:26:09.689Z",
+  "hash": "91ab1c4",
+  "date": "29/09/2026 12:31",
+  "buildAt": "2026-09-29T15:32:16.129Z",
   "history": [
     {
-      "hash": "97effc9+mod",
-      "date": "29/09/2026, 12:26:09",
-      "author": "Deploy Local",
-      "subject": "Atualização implantada (6 arquivos modificados)"
+      "hash": "91ab1c4",
+      "date": "29/09/2026 12:31",
+      "author": "Boris Romão Antunes",
+      "subject": "Melhorias de UX e usabilidade no fluxo de reserva de salas"
+    },
+    {
+      "hash": "908e52e",
+      "date": "29/09/2026 12:26",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pos-deploy v97effc9"
     },
     {
       "hash": "97effc9",
@@ -116,12 +122,6 @@
       "date": "29/09/2026 10:42",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualiza version.json pos-deploy"
-    },
-    {
-      "hash": "1d5a8af",
-      "date": "29/09/2026 10:38",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pos-deploy v13654ef"
     }
   ]
 }
