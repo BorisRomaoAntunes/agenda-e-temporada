@@ -10362,10 +10362,15 @@ function initMusiciansManagement() {
             return (formatted === '-' || !formatted) ? '' : formatted;
         };
 
-        document.getElementById('edit-m-nome-artistico').value = getVal(item.NOMEARTISTICO || item['NOME REGISTRO'] || item.Nome);
-        document.getElementById('edit-m-nome-registro').value = getVal(item['NOME REGISTRO'] || item.NOMEARTISTICO || item.Nome);
-        document.getElementById('edit-m-instrumento').value = getVal(item.INSTRUMENTOS || item.Instrumento);
-        document.getElementById('edit-m-cpf').value = getVal(item.CPF || item.cpfId || item.id);
+        const setVal = (id, val) => {
+            const el = document.getElementById(id);
+            if (el) el.value = getVal(val);
+        };
+
+        setVal('edit-m-nome-artistico', item.NOMEARTISTICO || item['NOME REGISTRO'] || item.Nome);
+        setVal('edit-m-nome-registro', item['NOME REGISTRO'] || item.NOMEARTISTICO || item.Nome);
+        setVal('edit-m-instrumento', item.INSTRUMENTOS || item.Instrumento);
+        setVal('edit-m-cpf', item.CPF || item.cpfId || item.id);
 
         if (editStatusSelect) editStatusSelect.value = selectedStatus;
 
@@ -10381,27 +10386,24 @@ function initMusiciansManagement() {
         }
 
         // Outros campos com tratamento de datas do Excel
-        document.getElementById('edit-m-escalado').value = getVal(item.Escalado);
-        document.getElementById('edit-m-tipo-contrato').value = getVal(getMusicoField(item, 'Tipo Contrato Prorrogáveis por igual prazo', 'Tipo Contrato\nProrrogáveis por igual prazo', 'Tipo Contrato'));
-        document.getElementById('edit-m-inicio-contrato').value = formatExcelDateStr(getMusicoField(item, 'INICIO OER Contrato', 'INICIO OER\nContrato', 'inicioContrato', 'dataEntrada'));
-        document.getElementById('edit-m-termino-contrato').value = formatExcelDateStr(getMusicoField(item, 'TERMINO OER Contrato', 'TERMINO OER\nContrato', 'terminoContrato'));
-        const cadernoInput = document.getElementById('edit-m-caderno-excertos');
-        if (cadernoInput) {
-            cadernoInput.value = getVal(getMusicoField(item, 'Data de Envio Caderno de Exceros', 'Data de Envio\nCaderno de Exceros', 'Data de Envio Caderno de Excertos', 'Data Envio Caderno de Excertos'));
-        }
-        document.getElementById('edit-m-email').value = getVal(item.EMAIL || item.Email);
-        document.getElementById('edit-m-telefone').value = getVal(item.TELEFONE || item.Telefone);
-        document.getElementById('edit-m-nascimento').value = formatExcelDateStr(getMusicoField(item, 'DATA DE NACIMENTO ', 'DATA DE NASCIMENTO', 'Nascimento'));
-        document.getElementById('edit-m-rg').value = getVal(item.RG || item.Rg);
-        document.getElementById('edit-m-pis').value = getVal(getMusicoField(item, 'PIS/PASEP', 'Pis'));
-        document.getElementById('edit-m-genero').value = getVal(item.GENERO || item['GÊNERO'] || item.genero || item['Identidade de Gênero'] || item.Genero);
-        document.getElementById('edit-m-banco').value = getVal(item['Banco '] || item.Banco);
-        document.getElementById('edit-m-agencia').value = getVal(item['Agencia '] || item.Agencia);
-        document.getElementById('edit-m-conta').value = getVal(item['Conta Corrente '] || item['Conta Corrente']);
-        document.getElementById('edit-m-endereco').value = getVal(item['Endereço'] || item['Endereço ']);
-        document.getElementById('edit-m-cep').value = getVal(item.CEP || item.Cep);
-        document.getElementById('edit-m-restricao').value = getVal(getMusicoField(item, 'Restrição Alimentar', 'Restrição Alimentar '));
-        document.getElementById('edit-m-carro').value = getVal(getMusicoField(item, 'Dados Carro', 'Dados\nCarro'));
+        setVal('edit-m-escalado', item.Escalado);
+        setVal('edit-m-tipo-contrato', getMusicoField(item, 'Tipo Contrato Prorrogáveis por igual prazo', 'Tipo Contrato\nProrrogáveis por igual prazo', 'Tipo Contrato'));
+        setVal('edit-m-inicio-contrato', formatExcelDateStr(getMusicoField(item, 'INICIO OER Contrato', 'INICIO OER\nContrato', 'inicioContrato', 'dataEntrada')));
+        setVal('edit-m-termino-contrato', formatExcelDateStr(getMusicoField(item, 'TERMINO OER Contrato', 'TERMINO OER\nContrato', 'terminoContrato')));
+        setVal('edit-m-caderno-excertos', getMusicoField(item, 'Data de Envio Caderno de Exceros', 'Data de Envio\nCaderno de Exceros', 'Data de Envio Caderno de Excertos', 'Data Envio Caderno de Excertos'));
+        setVal('edit-m-email', item.EMAIL || item.Email);
+        setVal('edit-m-telefone', item.TELEFONE || item.Telefone);
+        setVal('edit-m-nascimento', formatExcelDateStr(getMusicoField(item, 'DATA DE NACIMENTO ', 'DATA DE NASCIMENTO', 'Nascimento')));
+        setVal('edit-m-rg', item.RG || item.Rg);
+        setVal('edit-m-pis', getMusicoField(item, 'PIS/PASEP', 'Pis'));
+        setVal('edit-m-genero', item.GENERO || item['GÊNERO'] || item.genero || item['Identidade de Gênero'] || item.Genero);
+        setVal('edit-m-banco', item['Banco '] || item.Banco);
+        setVal('edit-m-agencia', item['Agencia '] || item.Agencia);
+        setVal('edit-m-conta', item['Conta Corrente '] || item['Conta Corrente']);
+        setVal('edit-m-endereco', item['Endereço'] || item['Endereço ']);
+        setVal('edit-m-cep', item.CEP || item.Cep);
+        setVal('edit-m-restricao', getMusicoField(item, 'Restrição Alimentar', 'Restrição Alimentar '));
+        setVal('edit-m-carro', getMusicoField(item, 'Dados Carro', 'Dados\nCarro'));
     };
 
     // Abertura da gaveta para Edição Direta no Banco Firestore
@@ -10432,6 +10434,9 @@ function initMusiciansManagement() {
         else selectedStatus = statusVal;
 
         populateEditDrawerFields(musico, selectedStatus);
+
+        const editBody = editMusicoDrawer.querySelector('.drawer-body');
+        if (editBody) editBody.scrollTop = 0;
 
         editMusicoDrawer.classList.add('open');
         editMusicoDrawerOverlay.classList.add('open');
@@ -14039,10 +14044,10 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
             if (b.atrasos && b.atrasos.length > 0) {
                 const linhasAtraso = b.atrasos.map(a => {
                     let sufixo = '';
-                    if (a.isConcerto && a.motivo) {
-                        sufixo = ` (Concerto - Motivo: ${a.motivo})`;
-                    } else if (a.isConcerto) {
-                        sufixo = ` (Concerto)`;
+                    if (a.tipoEvento && a.motivo) {
+                        sufixo = ` (${a.tipoEvento} - Motivo: ${a.motivo})`;
+                    } else if (a.tipoEvento) {
+                        sufixo = ` (${a.tipoEvento})`;
                     } else if (a.motivo) {
                         sufixo = ` (Motivo: ${a.motivo})`;
                     }
@@ -14073,10 +14078,10 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
             if (b.atrasos && b.atrasos.length > 0) {
                 const linhasAtraso = b.atrasos.map(a => {
                     let sufixo = '';
-                    if (a.isConcerto && a.motivo) {
-                        sufixo = ` (Concerto - Motivo: ${a.motivo})`;
-                    } else if (a.isConcerto) {
-                        sufixo = ` (Concerto)`;
+                    if (a.tipoEvento && a.motivo) {
+                        sufixo = ` (${a.tipoEvento} - Motivo: ${a.motivo})`;
+                    } else if (a.tipoEvento) {
+                        sufixo = ` (${a.tipoEvento})`;
                     } else if (a.motivo) {
                         sufixo = ` (Motivo: ${a.motivo})`;
                     }
@@ -14408,7 +14413,14 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                                             const diasSemanaNomes = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
                                             const diaSemana = diasSemanaNomes[dateObj.getDay()];
                                             const diaDDMM = `${String(diaD).padStart(2, '0')}/${String(mesD).padStart(2, '0')}`;
-                                            const isConcerto = isConcertoPres || registro.status === 'atraso_passagem_som';
+                                            let tipoEvento = null;
+                                            if (registro.status === 'atraso_passagem_som') {
+                                                tipoEvento = 'Passagem de Som';
+                                            } else if (pres.tipo === 'ensaio_naipe') {
+                                                tipoEvento = 'Ensaio de Naipe';
+                                            } else if (isConcertoPres || pres.tipo === 'concerto') {
+                                                tipoEvento = 'Concerto';
+                                            }
                                             const motivo = (registro.justificativa && registro.justificativa.trim() !== '') ? registro.justificativa.trim() : null;
 
                                             bInfo.atrasosDetalhadosMes.push({
@@ -14417,7 +14429,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                                                 diaDDMM,
                                                 diaSemana,
                                                 minutos: min,
-                                                isConcerto,
+                                                tipoEvento,
                                                 motivo
                                             });
                                         }
