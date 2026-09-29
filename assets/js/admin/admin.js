@@ -13939,7 +13939,10 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
         const secoesRelatorio = [];
 
         if (listaFaltantes.length > 0) {
-            secoesRelatorio.push(`*Lista de Faltantes e Datas (Mês de ${mesNomeAno})*\n` + listaFaltantes.map(f => `\t• ${f.nome} - ${f.datasStr}`).join('\n'));
+            secoesRelatorio.push(`*Lista de Faltantes e Datas (Mês de ${mesNomeAno})*\n` + listaFaltantes.map(f => {
+                const obsAno = f.ordinalAno ? ` — [${f.ordinalAno}]` : '';
+                return `\t• ${f.nome} - ${f.datasStr}${obsAno}`;
+            }).join('\n'));
         }
 
         if (listaPendentes.length > 0) {
@@ -13965,7 +13968,14 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
 
         if (listaFaltantes.length > 0) {
             let sec = `<strong>Lista de Faltantes e Datas (Mês de ${mesNomeAno})</strong><br>`;
-            sec += listaFaltantes.map(f => `• <strong>${f.nome}</strong> - ${f.datasStr}`).join('<br>');
+            sec += listaFaltantes.map(f => {
+                let obsAno = '';
+                if (f.ordinalAno) {
+                    const corDestaque = (f.totalFaltasAno >= 3) ? '#b91c1c' : '#475569';
+                    obsAno = ` — <strong style="color: ${corDestaque};">[${f.ordinalAno}]</strong>`;
+                }
+                return `• <strong>${f.nome}</strong> - ${f.datasStr}${obsAno}`;
+            }).join('<br>');
             secoesHTML.push(sec);
         }
 
@@ -14081,12 +14091,13 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
             const mesInt = parseInt(mesStr);
             const totalDias = new Date(anoInt, mesInt, 0).getDate();
             
+            const startOfYear = `${ano}-01-01`;
             const startOfMonth = `${ano}-${mesStr}-01`;
             const endOfMonth = `${ano}-${mesStr}-${totalDias}`;
             
             const presencasQuery = query(
                 collection(db, "presencas"),
-                where("__name__", ">=", startOfMonth),
+                where("__name__", ">=", startOfYear),
                 where("__name__", "<=", endOfMonth + "_\uffff")
             );
             
@@ -14100,13 +14111,13 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                 presencasPorData[dateKey].push({ id: docSnap.id, ...dData });
             });
             
-            // Buscar dispensas, atestados e eventos no Firestore para o período
+            // Buscar dispensas, atestados e eventos no Firestore para o período do ano até o fim do mês
             const [dispensasSnapshot, atestadosSnapshot, eventosSnapshot] = await Promise.all([
                 getDocs(query(collection(db, "dispensas"))),
                 getDocs(query(collection(db, "medicalCertificates_approved"))),
                 getDocs(query(
                     collection(db, "eventos"),
-                    where("date", ">=", startOfMonth),
+                    where("date", ">=", startOfYear),
                     where("date", "<=", endOfMonth)
                 ))
             ]);
@@ -14188,7 +14199,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                 return false;
             });
             
-            // Dicionário de controle: bolsistaId -> { nome, faltas: [ { dia, obs } ], pendencias: [ { dia, obs } ], atrasosMin: 0 }
+            // Dicionário de controle: bolsistaId -> { nome, inst, faltasMes: [ { dia, obs } ], pendenciasMes: [ { dia, obs } ], atrasosMinMes: 0, totalFaltasAno: 0 }
             const dadosBolsistas = {};
             
             bolsistas.forEach(b => {
@@ -14197,16 +14208,20 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                     dadosBolsistas[b.id] = {
                         nome: nomeExibido,
                         inst: (b.INSTRUMENTOS || b.Instrumento || b.instrumento || '').trim(),
-                        faltas: [],
-                        pendencias: [],
-                        atrasosMin: 0
+                        faltasMes: [],
+                        pendenciasMes: [],
+                        atrasosMinMes: 0,
+                        totalFaltasAno: 0
                     };
                 }
             });
             
-            // Varre as presenças do mês
-            for (let dia = 1; dia <= totalDias; dia++) {
-                const dataStr = `${ano}-${mesStr}-${String(dia).padStart(2, '0')}`;
+            // Varre as presenças do ano até o fim do mês selecionado em ordem cronológica
+            const datasPresencasOrdenadas = Object.keys(presencasPorData).sort();
+
+            datasPresencasOrdenadas.forEach(dataStr => {
+                if (dataStr < startOfYear || dataStr > endOfMonth) return;
+                const isDoMesSelecionado = (dataStr >= startOfMonth && dataStr <= endOfMonth);
                 const docsDoDia = presencasPorData[dataStr] || [];
                 
                 docsDoDia.forEach(pres => {
@@ -14221,7 +14236,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                                     return; // Data anterior ao início do contrato deste bolsista
                                 }
 
-                                // Se o bolsista foi cancelado/desligado e a data é igual ou posterior à data de saída, não computar faltas/pendências
+                                // Se o bolsista foi cancelado/desligado e a data é igual ou posterior à data de saída, não computar
                                 if (musicoOriginal && musicoOriginal.dataSaida && dataStr >= musicoOriginal.dataSaida) {
                                     return;
                                 }
@@ -14246,40 +14261,49 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                                 const isFaltaPassagemSom = registro.status === 'falta_passagem_som';
 
                                 if (!isDispensado && !isAtestado) {
-                                    if (isFaltaPassagemSom) {
-                                        const extraNota = (registro.justificativa && registro.justificativa.trim() !== '') ? ` [Nota: "${registro.justificativa.trim()}"]` : '';
-                                        bInfo.faltas.push({ dia, obs: ` (Falta Passagem de Som${extraNota})` });
-                                    } else if (isFalta) {
-                                        let labelObs = ' (Ensaio)';
-                                        if (pres.tipo === 'ensaio_naipe' && pres.naipe) {
-                                            const naipeStr = Array.isArray(pres.naipe) ? pres.naipe.join(' + ') : pres.naipe;
-                                            labelObs = ` (Ensaio de Naipe - ${naipeStr})`;
-                                        } else if (isConcertoPres) {
-                                            labelObs = ` (Concerto)`;
+                                    // 1. Contabilização acumulada no ano
+                                    if (isFalta || isFaltaPassagemSom) {
+                                        bInfo.totalFaltasAno++;
+                                    }
+
+                                    // 2. Registros específicos do mês selecionado
+                                    if (isDoMesSelecionado) {
+                                        const dia = parseInt(dataStr.split('-')[2], 10);
+                                        if (isFaltaPassagemSom) {
+                                            const extraNota = (registro.justificativa && registro.justificativa.trim() !== '') ? ` [Nota: "${registro.justificativa.trim()}"]` : '';
+                                            bInfo.faltasMes.push({ dia, obs: ` (Falta Passagem de Som${extraNota})` });
+                                        } else if (isFalta) {
+                                            let labelObs = ' (Ensaio)';
+                                            if (pres.tipo === 'ensaio_naipe' && pres.naipe) {
+                                                const naipeStr = Array.isArray(pres.naipe) ? pres.naipe.join(' + ') : pres.naipe;
+                                                labelObs = ` (Ensaio de Naipe - ${naipeStr})`;
+                                            } else if (isConcertoPres) {
+                                                labelObs = ` (Concerto)`;
+                                            }
+                                            if (registro.justificativa && registro.justificativa.trim() !== '') {
+                                                labelObs += ` [Nota: "${registro.justificativa.trim()}"]`;
+                                            }
+                                            bInfo.faltasMes.push({ dia, obs: labelObs });
+                                        } else if (isPendente) {
+                                            let labelObs = ' (Ensaio)';
+                                            if (pres.tipo === 'ensaio_naipe' && pres.naipe) {
+                                                const naipeStr = Array.isArray(pres.naipe) ? pres.naipe.join(' + ') : pres.naipe;
+                                                labelObs = ` (Ensaio de Naipe - ${naipeStr})`;
+                                            } else if (isConcertoPres) {
+                                                labelObs = ` (Concerto)`;
+                                            }
+                                            bInfo.pendenciasMes.push({ dia, obs: labelObs });
+                                        } else if (registro.status === 'atraso' || registro.status === 'atraso_passagem_som') {
+                                            const min = parseInt(registro.minutes) || 0;
+                                            bInfo.atrasosMinMes += min;
                                         }
-                                        if (registro.justificativa && registro.justificativa.trim() !== '') {
-                                            labelObs += ` [Nota: "${registro.justificativa.trim()}"]`;
-                                        }
-                                        bInfo.faltas.push({ dia, obs: labelObs });
-                                    } else if (isPendente) {
-                                        let labelObs = ' (Ensaio)';
-                                        if (pres.tipo === 'ensaio_naipe' && pres.naipe) {
-                                            const naipeStr = Array.isArray(pres.naipe) ? pres.naipe.join(' + ') : pres.naipe;
-                                            labelObs = ` (Ensaio de Naipe - ${naipeStr})`;
-                                        } else if (isConcertoPres) {
-                                            labelObs = ` (Concerto)`;
-                                        }
-                                        bInfo.pendencias.push({ dia, obs: labelObs });
-                                    } else if (registro.status === 'atraso' || registro.status === 'atraso_passagem_som') {
-                                        const min = parseInt(registro.minutes) || 0;
-                                        bInfo.atrasosMin += min;
                                     }
                                 }
                             }
                         });
                     }
                 });
-            }
+            });
             
             const formatarNomeComInstrumento = (b) => {
                 const inst = (b.inst || '').trim();
@@ -14295,17 +14319,23 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
             const bolsistasOrdenadosPorNome = Object.values(dadosBolsistas).sort((a, b) => a.nome.localeCompare(b.nome));
             
             bolsistasOrdenadosPorNome.forEach(b => {
-                if (b.faltas.length > 0) {
-                    const datasStr = b.faltas.map(f => `${String(f.dia).padStart(2, '0')}/${mesStr}${f.obs}`).join(', ');
-                    listaFaltantes.push({ nome: formatarNomeComInstrumento(b), datasStr });
+                if (b.faltasMes.length > 0) {
+                    const datasStr = b.faltasMes.map(f => `${String(f.dia).padStart(2, '0')}/${mesStr}${f.obs}`).join(', ');
+                    const ordinalAno = `${b.totalFaltasAno}ª falta no ano`;
+                    listaFaltantes.push({ 
+                        nome: formatarNomeComInstrumento(b), 
+                        datasStr,
+                        ordinalAno,
+                        totalFaltasAno: b.totalFaltasAno
+                    });
                 }
             });
 
             // 2. Processar e formatar Pendências
             const listaPendentes = [];
             bolsistasOrdenadosPorNome.forEach(b => {
-                if (b.pendencias.length > 0) {
-                    const datasStr = b.pendencias.map(p => `${String(p.dia).padStart(2, '0')}/${mesStr}${p.obs}`).join(', ');
+                if (b.pendenciasMes.length > 0) {
+                    const datasStr = b.pendenciasMes.map(p => `${String(p.dia).padStart(2, '0')}/${mesStr}${p.obs}`).join(', ');
                     listaPendentes.push({ nome: formatarNomeComInstrumento(b), datasStr });
                 }
             });
@@ -14313,11 +14343,11 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
             // 3. Processar e formatar Atrasos (do maior para o menor)
             const listaAtrasados = [];
             const bolsistasComAtraso = Object.values(dadosBolsistas)
-                .filter(b => b.atrasosMin > 0)
-                .sort((a, b) => b.atrasosMin - a.atrasosMin);
+                .filter(b => b.atrasosMinMes > 0)
+                .sort((a, b) => b.atrasosMinMes - a.atrasosMinMes);
                 
             bolsistasComAtraso.forEach(b => {
-                listaAtrasados.push({ nome: formatarNomeComInstrumento(b), minutos: b.atrasosMin });
+                listaAtrasados.push({ nome: formatarNomeComInstrumento(b), minutos: b.atrasosMinMes });
             });
             
             const mesesNomes = [
