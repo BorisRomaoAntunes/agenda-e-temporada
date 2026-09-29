@@ -1,8 +1,26 @@
 {
-  "hash": "6fb684c",
-  "date": "29/09/2026 12:07",
-  "buildAt": "2026-09-29T15:14:36.916Z",
+  "hash": "97effc9+mod",
+  "date": "29/09/2026, 12:26:09",
+  "buildAt": "2026-09-29T15:26:09.689Z",
   "history": [
+    {
+      "hash": "97effc9+mod",
+      "date": "29/09/2026, 12:26:09",
+      "author": "Deploy Local",
+      "subject": "Atualização implantada (6 arquivos modificados)"
+    },
+    {
+      "hash": "97effc9",
+      "date": "29/09/2026 12:25",
+      "author": "Boris Romão Antunes",
+      "subject": "fix(admin): move edit-musico-drawer para escopo global fora da section-musicos"
+    },
+    {
+      "hash": "ef763a2",
+      "date": "29/09/2026 12:15",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: version.json pos-deploy v6fb684c"
+    },
     {
       "hash": "6fb684c",
       "date": "29/09/2026 12:07",
@@ -104,24 +122,6 @@
       "date": "29/09/2026 10:38",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualiza version.json pos-deploy v13654ef"
-    },
-    {
-      "hash": "5d2c01b",
-      "date": "29/09/2026 10:36",
-      "author": "Boris Romão Antunes",
-      "subject": "fix(passagem-som): remove icone de violino do cabecalho"
-    },
-    {
-      "hash": "13654ef",
-      "date": "29/09/2026 10:26",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(relatorios): adiciona alertas visual amarelo para 3a falta e vermelho para 4a em diante"
-    },
-    {
-      "hash": "cb64282",
-      "date": "29/09/2026 09:43",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: Atualiza version.json pós-deploy da Nova Reavaliação"
     }
   ]
 }
