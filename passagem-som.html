@@ -45,6 +45,43 @@
             </div>
         </header>
 
+        <!-- Stepper / Barra de Progresso Interativo -->
+        <div class="ps-stepper-wrapper" id="stepperWrapper" style="display: none;">
+            <nav class="ps-stepper" aria-label="Progresso do agendamento">
+                <button type="button" class="ps-step-item active" id="step1Btn" data-target="secaoMusico">
+                    <span class="ps-step-circle">1</span>
+                    <div class="ps-step-text">
+                        <span class="ps-step-title">Músico</span>
+                        <span class="ps-step-subtitle">Identificação</span>
+                    </div>
+                </button>
+                <div class="ps-step-connector"><div class="ps-step-connector-fill" id="connFill1"></div></div>
+                <button type="button" class="ps-step-item" id="step2Btn" data-target="secaoP1">
+                    <span class="ps-step-circle">2</span>
+                    <div class="ps-step-text">
+                        <span class="ps-step-title">1ª Passagem</span>
+                        <span class="ps-step-subtitle">Data & Hora</span>
+                    </div>
+                </button>
+                <div class="ps-step-connector"><div class="ps-step-connector-fill" id="connFill2"></div></div>
+                <button type="button" class="ps-step-item" id="step3Btn" data-target="secaoP2">
+                    <span class="ps-step-circle">3</span>
+                    <div class="ps-step-text">
+                        <span class="ps-step-title">2ª Passagem</span>
+                        <span class="ps-step-subtitle">Data & Hora</span>
+                    </div>
+                </button>
+                <div class="ps-step-connector"><div class="ps-step-connector-fill" id="connFill3"></div></div>
+                <button type="button" class="ps-step-item" id="step4Btn" data-target="secaoResumo">
+                    <span class="ps-step-circle">4</span>
+                    <div class="ps-step-text">
+                        <span class="ps-step-title">Revisão</span>
+                        <span class="ps-step-subtitle">Confirmação</span>
+                    </div>
+                </button>
+            </nav>
+        </div>
+
         <!-- Mensagem caso nenhum ciclo esteja ativo -->
         <div id="conteudoSemCiclo" class="ps-card" style="display: none; text-align: center; padding: 3rem 1.5rem;">
             <i data-lucide="calendar-off" style="width: 48px; height: 48px; color: var(--oer-warning); margin-bottom: 1rem;"></i>
@@ -56,33 +93,51 @@
 
         <!-- Formulário de Agendamento -->
         <div id="conteudoForm">
-            <form id="formAgendamento">
+            <!-- Aviso de dados recuperados do LocalStorage -->
+            <div id="storedNotice" class="stored-data-notice" style="display: none;">
+                <span>✨ Recuperamos seu nome e instrumento da sua última visita.</span>
+                <button type="button" id="btnLimparSalvos">Limpar dados</button>
+            </div>
+
+            <form id="formAgendamento" novalidate>
                 
                 <!-- 1. Dados do Músico (Campos Obrigatórios) -->
-                <div class="ps-card">
+                <section class="ps-card" id="secaoMusico" aria-labelledby="tituloSecaoMusico">
                     <div class="ps-card-header">
-                        <h2><i data-lucide="user" style="color: var(--oer-primary); width: 20px; height: 20px;"></i> 1. Dados do Músico</h2>
+                        <h2 id="tituloSecaoMusico"><i data-lucide="user" style="color: var(--oer-primary); width: 20px; height: 20px;"></i> 1. Dados do Músico</h2>
                     </div>
 
                     <div class="form-grid">
-                        <div class="form-group">
+                        <div class="form-group" id="groupMusicoNome">
                             <label for="musicoNome" class="form-label">
-                                Nome do Músico <span class="req">*</span>
+                                Nome do Músico <span class="req" aria-hidden="true">*</span>
                             </label>
-                            <input 
-                                type="text" 
-                                id="musicoNome" 
-                                class="form-input" 
-                                placeholder="Digite seu nome completo..." 
-                                required
-                                autocomplete="name"
-                            >
-                            <span class="form-hint">O sistema vinculará automaticamente ao seu cadastro ativo na OER.</span>
+                            
+                            <div class="autocomplete-wrapper">
+                                <input 
+                                    type="text" 
+                                    id="musicoNome" 
+                                    class="form-input" 
+                                    placeholder="Digite seu nome (sugestões automáticas)..." 
+                                    required
+                                    autocomplete="off"
+                                    aria-autocomplete="list"
+                                    aria-controls="autocompleteList"
+                                    aria-describedby="musicoNomeDica musicoNomeErro"
+                                >
+                                <div class="autocomplete-dropdown" id="autocompleteList" role="listbox"></div>
+                            </div>
+                            
+                            <div id="musicoIdentificadoBadge" style="display: none;"></div>
+                            <span class="form-hint" id="musicoNomeDica">Digite seu nome. Se você é bolsista/monitor da OER, clique na sua sugestão para preenchimento automático.</span>
+                            <span class="form-error-msg" id="musicoNomeErro">
+                                <i data-lucide="alert-circle" style="width: 14px; height: 14px;"></i> Por favor, informe seu nome completo.
+                            </span>
                         </div>
 
-                        <div class="form-group">
+                        <div class="form-group" id="groupMusicoInstrumento">
                             <label for="musicoInstrumento" class="form-label">
-                                Instrumento <span class="req">*</span>
+                                Instrumento <span class="req" aria-hidden="true">*</span>
                             </label>
                             <input 
                                 type="text" 
@@ -90,48 +145,60 @@
                                 class="form-input" 
                                 placeholder="Ex: Trompete, Violino, Violoncelo..." 
                                 required
+                                aria-describedby="musicoInstrumentoDica musicoInstrumentoErro"
                             >
-                            <span class="form-hint">Informe seu naipe / instrumento.</span>
+                            <span class="form-hint" id="musicoInstrumentoDica">Informe seu naipe ou instrumento musical.</span>
+                            <span class="form-error-msg" id="musicoInstrumentoErro">
+                                <i data-lucide="alert-circle" style="width: 14px; height: 14px;"></i> Por favor, informe o seu instrumento.
+                            </span>
                         </div>
 
-                        <div class="form-group" style="grid-column: 1 / -1;">
+                        <div class="form-group" id="groupMusicoRepertorio" style="grid-column: 1 / -1;">
                             <label for="musicoRepertorio" class="form-label">
-                                Nome do Repertório / Obra a Tocar <span class="req">*</span>
+                                Nome do Repertório / Obra a Tocar <span class="req" aria-hidden="true">*</span>
                             </label>
                             <input 
                                 type="text" 
                                 id="musicoRepertorio" 
                                 class="form-input" 
-                                placeholder="Ex: Intrada (A. Honegger), Concerto pra violino de Mendelssohn..." 
+                                placeholder="Ex: Intrada (A. Honegger), Concerto para violino de Mendelssohn..." 
                                 required
+                                aria-describedby="musicoRepertorioDica musicoRepertorioErro"
                             >
-                            <span class="form-hint">Informe a obra musical que será executada na sua passagem de som.</span>
+                            <span class="form-hint" id="musicoRepertorioDica">Informe a obra musical que será executada na sua passagem de som.</span>
+                            <span class="form-error-msg" id="musicoRepertorioErro">
+                                <i data-lucide="alert-circle" style="width: 14px; height: 14px;"></i> Por favor, informe a obra ou repertório.
+                            </span>
                         </div>
                     </div>
-                </div>
+                </section>
 
                 <!-- 2. Escolha da 1ª Passagem de Som -->
-                <div class="ps-card">
+                <section class="ps-card" id="secaoP1" aria-labelledby="tituloSecaoP1">
                     <div class="ps-card-header">
-                        <h2><i data-lucide="clock" style="color: var(--oer-primary); width: 20px; height: 20px;"></i> 2. Escolha a 1ª Passagem de Som</h2>
+                        <h2 id="tituloSecaoP1"><i data-lucide="clock" style="color: var(--oer-primary); width: 20px; height: 20px;"></i> 2. Escolha a 1ª Passagem de Som</h2>
                         <span class="passagem-badge-tag" style="margin-bottom: 0;">1ª Passagem</span>
                     </div>
 
                     <p style="font-size: 0.85rem; color: var(--oer-text-muted); margin-bottom: 1rem;">
-                        Selecione o dia desejado e clique no horário livre para reservar. Os horários já preenchidos desaparecem automaticamente.
+                        Selecione o dia desejado e clique no horário livre para reservar. O semáforo indica a disponibilidade das vagas.
                     </p>
 
                     <!-- Seletor de Datas da 1ª Passagem -->
-                    <div class="date-selector-row" id="p1DiasContainer"></div>
+                    <div class="date-selector-row" id="p1DiasContainer" role="tablist" aria-label="Datas disponíveis para 1ª passagem"></div>
 
                     <!-- Grade de Horários -->
-                    <div class="slots-grid" id="p1SlotsContainer"></div>
-                </div>
+                    <div class="slots-grid" id="p1SlotsContainer" role="group" aria-label="Horários disponíveis para 1ª passagem"></div>
+
+                    <div class="form-error-msg" id="p1SlotErro" style="margin-top: 0.75rem;">
+                        <i data-lucide="alert-circle" style="width: 14px; height: 14px;"></i> Por favor, selecione um horário para a 1ª passagem de som.
+                    </div>
+                </section>
 
                 <!-- 3. Escolha da 2ª Passagem de Som -->
-                <div class="ps-card">
+                <section class="ps-card" id="secaoP2" aria-labelledby="tituloSecaoP2">
                     <div class="ps-card-header">
-                        <h2><i data-lucide="clock-4" style="color: var(--oer-primary); width: 20px; height: 20px;"></i> 3. Escolha a 2ª Passagem de Som</h2>
+                        <h2 id="tituloSecaoP2"><i data-lucide="clock-4" style="color: var(--oer-primary); width: 20px; height: 20px;"></i> 3. Escolha a 2ª Passagem de Som</h2>
                         <span class="passagem-badge-tag" style="margin-bottom: 0;">2ª Passagem</span>
                     </div>
 
@@ -140,28 +207,32 @@
                     </p>
 
                     <!-- Seletor de Datas da 2ª Passagem -->
-                    <div class="date-selector-row" id="p2DiasContainer"></div>
+                    <div class="date-selector-row" id="p2DiasContainer" role="tablist" aria-label="Datas disponíveis para 2ª passagem"></div>
 
                     <!-- Grade de Horários -->
-                    <div class="slots-grid" id="p2SlotsContainer"></div>
-                </div>
+                    <div class="slots-grid" id="p2SlotsContainer" role="group" aria-label="Horários disponíveis para 2ª passagem"></div>
+
+                    <div class="form-error-msg" id="p2SlotErro" style="margin-top: 0.75rem;">
+                        <i data-lucide="alert-circle" style="width: 14px; height: 14px;"></i> Por favor, selecione um horário para a 2ª passagem de som.
+                    </div>
+                </section>
 
                 <!-- 4. Resumo e Confirmação -->
-                <div class="ps-card" style="border-top: 3px solid var(--oer-primary);">
+                <section class="ps-card" id="secaoResumo" style="border-top: 3px solid var(--oer-primary);" aria-labelledby="tituloSecaoResumo">
                     <div class="ps-card-header">
-                        <h2><i data-lucide="check-circle-2" style="color: var(--oer-success); width: 20px; height: 20px;"></i> Resumo do Agendamento</h2>
+                        <h2 id="tituloSecaoResumo"><i data-lucide="check-circle-2" style="color: var(--oer-success); width: 20px; height: 20px;"></i> 4. Resumo e Confirmação</h2>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem; background: #f8fafc; padding: 1.25rem; border-radius: 10px; border: 1px solid var(--oer-border);">
+                    <div id="resumoContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem; background: #f8fafc; padding: 1.25rem; border-radius: 10px; border: 1px solid var(--oer-border); transition: all 0.3s ease;">
                         <div>
                             <span style="font-size: 0.78rem; color: var(--oer-primary); font-weight: 700; text-transform: uppercase;">1ª Passagem</span>
                             <p style="font-weight: 700; font-size: 1.05rem; color: var(--oer-text-main); margin-top: 0.2rem;" id="resumoP1Data">-</p>
-                            <p style="color: var(--oer-text-muted); font-size: 0.9rem;" id="resumoP1Hora">Selecione o horário</p>
+                            <p style="color: var(--oer-text-muted); font-size: 0.9rem;" id="resumoP1Hora">Selecione o horário acima</p>
                         </div>
                         <div>
                             <span style="font-size: 0.78rem; color: var(--oer-primary); font-weight: 700; text-transform: uppercase;">2ª Passagem</span>
                             <p style="font-weight: 700; font-size: 1.05rem; color: var(--oer-text-main); margin-top: 0.2rem;" id="resumoP2Data">-</p>
-                            <p style="color: var(--oer-text-muted); font-size: 0.9rem;" id="resumoP2Hora">Selecione o horário</p>
+                            <p style="color: var(--oer-text-muted); font-size: 0.9rem;" id="resumoP2Hora">Selecione o horário acima</p>
                         </div>
                     </div>
 
@@ -169,19 +240,96 @@
                         type="submit" 
                         class="btn btn-primary" 
                         id="btnConfirmarAgendamento" 
-                        style="width: 100%; padding: 0.9rem 1.5rem; font-size: 1rem; border-radius: 10px;"
+                        style="width: 100%; padding: 0.95rem 1.5rem; font-size: 1.05rem; border-radius: 10px;"
                         disabled
                     >
-                        Confirmar Agendamento de Passagem de Som
+                        Revisar e Confirmar Agendamento
                     </button>
-                </div>
+                    <p id="motivoDesabilitado" style="text-align: center; font-size: 0.8rem; color: var(--oer-text-muted); margin-top: 0.5rem;">
+                        Preencha seus dados e escolha os dois horários para avançar.
+                    </p>
+                </section>
             </form>
         </div>
 
     </main>
 
+    <!-- Modal de Revisão Pré-Envio (Review Before Submit) -->
+    <div class="modal-overlay" id="modalRevisao" role="dialog" aria-modal="true" aria-labelledby="modalRevisaoTitulo">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modalRevisaoTitulo"><i data-lucide="clipboard-check" style="width: 22px; height: 22px; vertical-align: middle;"></i> Conferir Agendamento</h3>
+                <button type="button" class="btn btn-outline btn-sm" id="btnFecharRevisao" aria-label="Fechar modal">✕</button>
+            </div>
+            
+            <p style="color: var(--oer-text-muted); font-size: 0.88rem; margin-bottom: 1.25rem;">
+                Por favor, revise atentamente os dados antes de registrar suas passagens de som:
+            </p>
+
+            <div class="review-item-card">
+                <div class="review-item-label">Músico & Instrumento</div>
+                <div class="review-item-val" id="revMusico">-</div>
+            </div>
+
+            <div class="review-item-card">
+                <div class="review-item-label">Repertório / Obra</div>
+                <div class="review-item-val" id="revRepertorio">-</div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.75rem;">
+                <div class="review-item-card" style="margin-bottom: 0; border-left: 3px solid var(--oer-primary);">
+                    <div class="review-item-label">1ª Passagem</div>
+                    <div class="review-item-val" id="revP1">-</div>
+                </div>
+                <div class="review-item-card" style="margin-bottom: 0; border-left: 3px solid var(--oer-primary);">
+                    <div class="review-item-label">2ª Passagem</div>
+                    <div class="review-item-val" id="revP2">-</div>
+                </div>
+            </div>
+
+            <div style="background: var(--oer-accent-light); border-left: 4px solid var(--oer-primary); padding: 0.85rem 1rem; border-radius: 6px; font-size: 0.82rem; color: var(--oer-text-main); margin-top: 1rem;">
+                <strong>Lembrete importante:</strong> A Declaração de Estudo deverá ser enviada ao Inspetor da OER até sua 2ª passagem.
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline" id="btnVoltarEditar">Voltar e Ajustar</button>
+                <button type="button" class="btn btn-primary" id="btnConfirmarDefinitivo">
+                    Confirmar Definitivamente
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Alerta de Agendamento Duplicado -->
+    <div class="modal-overlay" id="modalDuplicado" role="dialog" aria-modal="true" aria-labelledby="modalDuplicadoTitulo">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3 id="modalDuplicadoTitulo" style="color: var(--oer-warning);"><i data-lucide="alert-triangle" style="width: 22px; height: 22px; vertical-align: middle;"></i> Agendamento Já Existente</h3>
+                <button type="button" class="btn btn-outline btn-sm" id="btnFecharDuplicado" aria-label="Fechar">✕</button>
+            </div>
+
+            <div class="duplicate-warning-box">
+                Identificamos que já existe um agendamento registrado em seu nome para este ciclo de passagem de som:
+                <div id="duplicadoInfo" style="margin-top: 0.5rem; font-weight: 600;"></div>
+            </div>
+
+            <p style="font-size: 0.88rem; color: var(--oer-text-muted); margin-bottom: 1.25rem;">
+                Deseja <strong>manter</strong> o seu agendamento atual ou deseja <strong>substituí-lo</strong> pelos novos horários selecionados agora?
+            </p>
+
+            <div class="modal-footer" style="flex-wrap: wrap;">
+                <button type="button" class="btn btn-outline" id="btnManterAgendamentoAnterior">
+                    Manter Agendamento Anterior
+                </button>
+                <button type="button" class="btn btn-warning" id="btnSubstituirAgendamento">
+                    Substituir por Estes Novos Horários
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal de Sucesso -->
-    <div class="modal-overlay" id="modalSucesso">
+    <div class="modal-overlay" id="modalSucesso" role="dialog" aria-modal="true" aria-labelledby="modalSucessoTitulo">
         <div class="modal-card">
             <div id="sucessoConteudo"></div>
         </div>

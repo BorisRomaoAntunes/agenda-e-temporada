@@ -1,13 +1,25 @@
 {
-  "hash": "4dda17c+mod",
-  "date": "29/09/2026, 11:59:39",
-  "buildAt": "2026-09-29T14:59:39.727Z",
+  "hash": "34cbedb+mod",
+  "date": "29/09/2026, 12:04:42",
+  "buildAt": "2026-09-29T15:04:42.321Z",
   "history": [
     {
-      "hash": "4dda17c+mod",
-      "date": "29/09/2026, 11:59:39",
+      "hash": "34cbedb+mod",
+      "date": "29/09/2026, 12:04:42",
       "author": "Deploy Local",
-      "subject": "Atualização implantada (3 arquivos modificados)"
+      "subject": "Atualização implantada (2 arquivos modificados)"
+    },
+    {
+      "hash": "34cbedb",
+      "date": "29/09/2026 12:00",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(passagem-som): adiciona botao copiar link na gaveta e atualiza versao de cache do SW"
+    },
+    {
+      "hash": "dbae39e",
+      "date": "29/09/2026 11:59",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pos-deploy v72409a9"
     },
     {
       "hash": "4dda17c",
@@ -110,18 +122,6 @@
       "date": "29/09/2026 09:15",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualiza version.json pos-deploy v3caa6d9"
-    },
-    {
-      "hash": "3caa6d9",
-      "date": "29/09/2026 09:15",
-      "author": "Boris Romão Antunes",
-      "subject": "fix(relatorios): ajusta contagem de faltas pos-data e observacoes em linha separada"
-    },
-    {
-      "hash": "4376d0f",
-      "date": "29/09/2026 09:09",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pos-deploy v49dd7fd"
     }
   ]
 }

@@ -13,8 +13,8 @@
     --oer-bg: #f8fafc;
     --oer-card: #ffffff;
     --oer-text-main: #0f172a;
-    --oer-text-muted: #64748b;
-    --oer-border: #e2e8f0;
+    --oer-text-muted: #475569;
+    --oer-border: #cbd5e1;
     --oer-success: #16a34a;
     --oer-success-bg: #dcfce7;
     --oer-danger: #dc2626;
@@ -32,6 +32,11 @@
     box-sizing: border-box;
     margin: 0;
     padding: 0;
+}
+
+*:focus-visible {
+    outline: 2px solid var(--oer-primary);
+    outline-offset: 2px;
 }
 
 body {
@@ -910,4 +915,413 @@ body {
     color: var(--oer-primary);
     background: var(--oer-accent-light);
 }
+
+/* ==========================================================================
+   MELHORIAS DE UX / USABILIDADE - PASSAGEM DE SOM
+   ========================================================================== */
+
+/* 1. Stepper / Barra de Progresso Fixo */
+.ps-stepper-wrapper {
+    position: sticky;
+    top: 0;
+    z-index: 900;
+    background: rgba(248, 250, 252, 0.94);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--oer-border);
+    margin: -2rem -1.25rem 1.75rem -1.25rem;
+    padding: 0.75rem 1.25rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.ps-stepper {
+    max-width: 1080px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+}
+
+.ps-step-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    background: transparent;
+    border: none;
+    font-family: inherit;
+    padding: 0.35rem 0.6rem;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    text-align: left;
+}
+
+.ps-step-item:hover {
+    background: rgba(255, 255, 255, 0.7);
+}
+
+.ps-step-circle {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #e2e8f0;
+    color: #64748b;
+    font-size: 0.8rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    flex-shrink: 0;
+}
+
+.ps-step-item.active .ps-step-circle {
+    background: var(--oer-primary);
+    color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(139, 0, 0, 0.2);
+    transform: scale(1.05);
+}
+
+.ps-step-item.completed .ps-step-circle {
+    background: var(--oer-success);
+    color: #ffffff;
+}
+
+.ps-step-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.ps-step-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--oer-text-muted);
+    line-height: 1.2;
+}
+
+.ps-step-item.active .ps-step-title {
+    color: var(--oer-primary);
+}
+
+.ps-step-item.completed .ps-step-title {
+    color: var(--oer-text-main);
+}
+
+.ps-step-subtitle {
+    font-size: 0.72rem;
+    color: #94a3b8;
+}
+
+.ps-step-connector {
+    flex: 1;
+    height: 2px;
+    background: #e2e8f0;
+    margin: 0 0.5rem;
+    position: relative;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.ps-step-connector-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--oer-success);
+    transition: width 0.3s ease;
+}
+
+/* 2. Autocomplete de Músicos */
+.autocomplete-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.autocomplete-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    border: 1px solid var(--oer-border);
+    border-radius: 8px;
+    box-shadow: var(--oer-shadow-lg);
+    max-height: 250px;
+    overflow-y: auto;
+    z-index: 1050;
+    display: none;
+}
+
+.autocomplete-dropdown.show {
+    display: block;
+    animation: fadeInDown 0.18s ease-out;
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.autocomplete-item {
+    padding: 0.7rem 0.95rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.88rem;
+    transition: background-color 0.15s ease;
+}
+
+.autocomplete-item:last-child {
+    border-bottom: none;
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.active {
+    background-color: var(--oer-accent-light);
+    color: var(--oer-primary);
+}
+
+.autocomplete-instrument-badge {
+    font-size: 0.72rem;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: #f1f5f9;
+    color: #475569;
+    font-weight: 600;
+}
+
+.autocomplete-item:hover .autocomplete-instrument-badge,
+.autocomplete-item.active .autocomplete-instrument-badge {
+    background: #ffffff;
+    color: var(--oer-primary);
+    border: 1px solid var(--oer-accent-border);
+}
+
+.musico-identified-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.35rem;
+    padding: 0.3rem 0.65rem;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.musico-identified-badge.found {
+    background: var(--oer-success-bg);
+    color: #166534;
+    border: 1px solid #bbf7d0;
+}
+
+.musico-identified-badge.custom {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid var(--oer-border);
+}
+
+/* Persistência Local Storage Banner */
+.stored-data-notice {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    padding: 0.5rem 0.85rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    color: #166534;
+    margin-bottom: 1rem;
+    gap: 0.5rem;
+}
+
+.stored-data-notice button {
+    background: none;
+    border: none;
+    color: #15803d;
+    font-weight: 700;
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 0.78rem;
+}
+
+/* 3. Validação Inline */
+.form-group.has-error .form-input {
+    border-color: var(--oer-danger) !important;
+    background-color: #fffafa;
+    box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.12) !important;
+}
+
+.form-error-msg {
+    color: var(--oer-danger);
+    font-size: 0.78rem;
+    font-weight: 600;
+    margin-top: 0.25rem;
+    display: none;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.form-group.has-error .form-error-msg {
+    display: flex;
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* 4. Semáforo de Urgência nas Pílulas de Data */
+.pill-urgency {
+    display: inline-block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-top: 0.3rem;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.urgency-high {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.urgency-med {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.urgency-low {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.urgency-none {
+    background: #f1f5f9;
+    color: #64748b;
+}
+
+/* 5. Micro-interações e Feedback Tátil */
+.slot-btn {
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.slot-btn:active:not(:disabled) {
+    transform: scale(0.95);
+}
+
+.date-pill-btn {
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.date-pill-btn:active {
+    transform: scale(0.97);
+}
+
+.btn:active:not(:disabled) {
+    transform: scale(0.98);
+}
+
+/* Animação suave de pulse para quando o resumo atualiza */
+.pulse-updated {
+    animation: pulseBorder 0.4s ease-out;
+}
+
+@keyframes pulseBorder {
+    0% {
+        box-shadow: 0 0 0 0 rgba(139, 0, 0, 0.4);
+        background-color: var(--oer-accent-light);
+    }
+    100% {
+        box-shadow: 0 0 0 6px rgba(139, 0, 0, 0);
+        background-color: transparent;
+    }
+}
+
+/* 6. Review Modal Cards */
+.review-item-card {
+    background: #f8fafc;
+    border: 1px solid var(--oer-border);
+    border-radius: 8px;
+    padding: 0.85rem 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.review-item-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--oer-text-muted);
+}
+
+.review-item-val {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--oer-text-main);
+    margin-top: 0.15rem;
+}
+
+/* Alerta de Conflito de Agendamento Duplicado */
+.duplicate-warning-box {
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-left: 5px solid #d97706;
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1.25rem;
+    font-size: 0.9rem;
+}
+
+/* Suporte a preferência de movimento reduzido */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+/* Responsividade Mobile do Stepper */
+@media (max-width: 640px) {
+    .ps-stepper-wrapper {
+        margin: -1.5rem -1rem 1.25rem -1rem;
+        padding: 0.5rem 0.75rem;
+    }
+
+    .ps-step-subtitle {
+        display: none;
+    }
+
+    .ps-step-title {
+        font-size: 0.74rem;
+    }
+
+    .ps-step-circle {
+        width: 24px;
+        height: 24px;
+        font-size: 0.72rem;
+    }
+
+    .ps-step-connector {
+        margin: 0 0.25rem;
+    }
+}
+
 
