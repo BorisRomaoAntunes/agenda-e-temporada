@@ -147,6 +147,7 @@ async function inicializarAdmin() {
     try {
         await PassagemSomService.inicializarCicloPadraoSeNecessario();
         musicosAtivos = await PassagemSomService.getMusicosAtivos();
+        PassagemSomService.sincronizarCatalogoPublicoMusicos().catch((e) => console.warn(e));
 
         // Carrega ciclos / reavaliações
         PassagemSomService.listenTodosCiclos((ciclos) => {

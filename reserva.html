@@ -44,9 +44,11 @@
         <div class="booking-steps-wrapper">
             
             <!-- Passo 1: Escolher Sala -->
-            <section class="step-box">
-                <div class="step-label">
-                    <i data-lucide="check-circle" style="width: 18px; height: 18px;"></i> 1. Escolha a Sala
+            <section class="step-box step-active" id="stepBox1">
+                <div class="step-label" id="stepLabel1">
+                    <span class="step-badge" id="stepBadge1">1</span>
+                    <span>Escolha a Sala</span>
+                    <span class="step-status-tag" id="stepStatus1"></span>
                 </div>
                 <div class="booking-room-select-grid" id="publicSalasGrid">
                     <div style="grid-column: 1/-1; text-align: center; color: var(--oer-text-muted); padding: 1.5rem;">
@@ -56,11 +58,17 @@
             </section>
 
             <!-- Passo 2: Escolher Data e Horário -->
-            <section class="step-box">
-                <div class="step-label">
-                    <i data-lucide="clock" style="width: 18px; height: 18px;"></i> 2. Escolha Data e Horário Disponível
+            <section class="step-box step-disabled" id="stepBox2">
+                <div class="step-label" id="stepLabel2">
+                    <span class="step-badge" id="stepBadge2">2</span>
+                    <span>Escolha Data e Horário Disponível</span>
+                    <span class="step-status-tag" id="stepStatus2"></span>
                 </div>
-                <div class="booking-schedule-layout">
+                <div class="step-locked-hint" id="step2LockedHint">
+                    <i data-lucide="lock" style="width: 16px; height: 16px;"></i>
+                    <span>Selecione uma sala no Passo 1 para ver as datas e horários disponíveis.</span>
+                </div>
+                <div class="booking-schedule-layout" id="step2ScheduleLayout">
                     <!-- Coluna Esquerda: Calendário Visual (DATA) -->
                     <div class="bookings-calendar-card">
                         <div class="calendar-header">
@@ -80,15 +88,15 @@
                             </div>
                         </div>
 
-                        <!-- Dias da Semana (D, S, T, Q, Q, S, S) -->
+                        <!-- Dias da Semana (Dom, Seg, Ter, Qua, Qui, Sex, Sáb) -->
                         <div class="calendar-weekdays-grid">
-                            <div class="cal-weekday">D</div>
-                            <div class="cal-weekday">S</div>
-                            <div class="cal-weekday">T</div>
-                            <div class="cal-weekday">Q</div>
-                            <div class="cal-weekday">Q</div>
-                            <div class="cal-weekday">S</div>
-                            <div class="cal-weekday">S</div>
+                            <div class="cal-weekday">Dom</div>
+                            <div class="cal-weekday">Seg</div>
+                            <div class="cal-weekday">Ter</div>
+                            <div class="cal-weekday">Qua</div>
+                            <div class="cal-weekday">Qui</div>
+                            <div class="cal-weekday">Sex</div>
+                            <div class="cal-weekday">Sáb</div>
                         </div>
 
                         <!-- Grade com os dias do mês -->
@@ -117,9 +125,15 @@
             </section>
 
             <!-- Passo 3: Dados do Solicitante -->
-            <section class="step-box">
-                <div class="step-label">
-                    <i data-lucide="user-plus" style="width: 18px; height: 18px;"></i> 3. Dados do Solicitante & Necessidades
+            <section class="step-box step-disabled" id="stepBox3">
+                <div class="step-label" id="stepLabel3">
+                    <span class="step-badge" id="stepBadge3">3</span>
+                    <span>Dados do Solicitante & Necessidades</span>
+                    <span class="step-status-tag" id="stepStatus3"></span>
+                </div>
+                <div class="step-locked-hint" id="step3LockedHint">
+                    <i data-lucide="lock" style="width: 16px; height: 16px;"></i>
+                    <span>Escolha um horário no Passo 2 para liberar o formulário.</span>
                 </div>
                 <form id="publicBookingForm" class="booking-form">
                     <div class="form-group">
@@ -185,8 +199,30 @@
                         <input type="text" id="inputQualPartitura" class="form-input" placeholder="Informe a obra, compositor e instrumento (ex: Sinfonia nº 5 - Trompete 1)">
                     </div>
 
+                    <!-- Resumo Inline da Reserva -->
+                    <div class="booking-summary-card" id="bookingSummaryCard">
+                        <div class="summary-card-header">
+                            <i data-lucide="clipboard-check" style="width: 18px; height: 18px; color: var(--oer-primary);"></i>
+                            <span>Resumo do Agendamento</span>
+                        </div>
+                        <div class="summary-items-grid">
+                            <div class="summary-item">
+                                <span class="summary-label">Sala</span>
+                                <span class="summary-val highlight" id="summarySala">Nenhuma sala</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">Data</span>
+                                <span class="summary-val" id="summaryData">Nenhuma data</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">Horário</span>
+                                <span class="summary-val highlight" id="summaryHorario">Nenhum horário</span>
+                            </div>
+                        </div>
+                    </div>
+
                     <div style="margin-top: 0.75rem;">
-                        <button type="submit" class="btn btn-accent" style="width: 100%; padding: 0.9rem; font-size: 1rem; border-radius: 8px;" id="btnConfirmarReserva">
+                        <button type="submit" class="btn btn-accent" style="width: 100%; padding: 0.9rem; font-size: 1rem; border-radius: 8px;" id="btnConfirmarReserva" disabled title="Complete todos os passos acima para confirmar">
                             <i data-lucide="calendar-check" style="width: 20px; height: 20px;"></i> Confirmar Agendamento
                         </button>
                     </div>
@@ -272,6 +308,23 @@
         const radioPartituraList = document.querySelectorAll('input[name="radioPartitura"]');
         const groupQualPartitura = document.getElementById("groupQualPartitura");
         const inputQualPartitura = document.getElementById("inputQualPartitura");
+        const inputNome = document.getElementById("inputNome");
+        const selectInstrumento = document.getElementById("selectInstrumento");
+        const selectVinculo = document.getElementById("selectVinculo");
+        const inputNecessidades = document.getElementById("inputNecessidades");
+        const btnConfirmarReserva = document.getElementById("btnConfirmarReserva");
+
+        // Elementos de Passo e Resumo
+        const stepBox1 = document.getElementById("stepBox1");
+        const stepStatus1 = document.getElementById("stepStatus1");
+        const stepBox2 = document.getElementById("stepBox2");
+        const stepStatus2 = document.getElementById("stepStatus2");
+        const stepBox3 = document.getElementById("stepBox3");
+        const stepStatus3 = document.getElementById("stepStatus3");
+        const bookingSummaryCard = document.getElementById("bookingSummaryCard");
+        const summarySala = document.getElementById("summarySala");
+        const summaryData = document.getElementById("summaryData");
+        const summaryHorario = document.getElementById("summaryHorario");
 
         // Calendário Visual
         const calMonthYearTitle = document.getElementById("calMonthYearTitle");
@@ -300,6 +353,117 @@
             }, 3500);
         }
 
+        // Função de controle de estados de passos e resumo
+        function updateStepStates() {
+            const hasSala = !!selectedSalaId;
+            const dataEscolhida = selectedDataFormatada || publicDataInput.value;
+            const hasSlot = !!selectedSlot;
+            const salaObj = allSalas.find(s => s.id === selectedSalaId);
+
+            const nomeVal = (inputNome?.value || "").trim();
+            const instVal = selectInstrumento?.value || "";
+            const vincVal = selectVinculo?.value || "";
+            const precisaPart = document.querySelector('input[name="radioPartitura"]:checked')?.value === "sim";
+            const partVal = (inputQualPartitura?.value || "").trim();
+            const formValido = nomeVal.length >= 2 && instVal !== "" && vincVal !== "" && (!precisaPart || partVal.length > 0);
+
+            // Passo 1: Escolha da Sala
+            if (stepBox1 && stepStatus1) {
+                if (hasSala) {
+                    stepBox1.className = "step-box step-completed";
+                    stepStatus1.innerHTML = `<span style="display: inline-flex; align-items: center; gap: 0.25rem;"><i data-lucide="check" style="width: 14px; height: 14px; color: #16a34a; stroke-width: 3;"></i> ${salaObj?.nome || 'Selecionada'}</span>`;
+                } else {
+                    stepBox1.className = "step-box step-active";
+                    stepStatus1.innerHTML = ``;
+                }
+            }
+
+            // Passo 2: Data e Horário
+            if (stepBox2 && stepStatus2) {
+                if (!hasSala) {
+                    stepBox2.className = "step-box step-disabled";
+                    stepStatus2.innerHTML = `<span style="color: #94a3b8;"><i data-lucide="lock" style="width: 13px; height: 13px;"></i> Bloqueado</span>`;
+                } else if (hasSlot) {
+                    stepBox2.className = "step-box step-completed";
+                    stepStatus2.innerHTML = `<span style="display: inline-flex; align-items: center; gap: 0.25rem;"><i data-lucide="check" style="width: 14px; height: 14px; color: #16a34a; stroke-width: 3;"></i> ${selectedSlot.horaInicio} – ${selectedSlot.horaFim}</span>`;
+                } else {
+                    stepBox2.className = "step-box step-active";
+                    stepStatus2.innerHTML = `<span style="color: var(--oer-primary); font-weight: 600;">Selecione dia e horário</span>`;
+                }
+            }
+
+            // Passo 3: Dados do Solicitante
+            if (stepBox3 && stepStatus3) {
+                if (!hasSala || !hasSlot) {
+                    stepBox3.className = "step-box step-disabled";
+                    stepStatus3.innerHTML = `<span style="color: #94a3b8;"><i data-lucide="lock" style="width: 13px; height: 13px;"></i> Bloqueado</span>`;
+                } else if (formValido) {
+                    stepBox3.className = "step-box step-completed";
+                    stepStatus3.innerHTML = `<span style="display: inline-flex; align-items: center; gap: 0.25rem;"><i data-lucide="check" style="width: 14px; height: 14px; color: #16a34a; stroke-width: 3;"></i> Dados preenchidos</span>`;
+                } else {
+                    stepBox3.className = "step-box step-active";
+                    stepStatus3.innerHTML = `<span style="color: var(--oer-primary); font-weight: 600;">Preencha seus dados</span>`;
+                }
+            }
+
+            // Atualização do Resumo Inline
+            if (summarySala) {
+                summarySala.textContent = salaObj ? salaObj.nome : "Selecione uma sala";
+                summarySala.className = salaObj ? "summary-val highlight" : "summary-val";
+            }
+
+            if (summaryData) {
+                if (dataEscolhida) {
+                    const [anoP, mesP, diaP] = dataEscolhida.split("-").map(Number);
+                    const dtObj = new Date(anoP, mesP - 1, diaP);
+                    const diasSemanaNome = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+                    const diaSem = diasSemanaNome[dtObj.getDay()] || "";
+                    summaryData.textContent = `${diaSem}, ${String(diaP).padStart(2, '0')}/${String(mesP).padStart(2, '0')}/${anoP}`;
+                    summaryData.className = "summary-val highlight";
+                } else {
+                    summaryData.textContent = "Selecione uma data";
+                    summaryData.className = "summary-val";
+                }
+            }
+
+            if (summaryHorario) {
+                if (selectedSlot) {
+                    summaryHorario.textContent = `${selectedSlot.horaInicio} às ${selectedSlot.horaFim}`;
+                    summaryHorario.className = "summary-val highlight";
+                } else {
+                    summaryHorario.textContent = "Selecione um horário";
+                    summaryHorario.className = "summary-val";
+                }
+            }
+
+            if (bookingSummaryCard) {
+                if (hasSala || hasSlot) {
+                    bookingSummaryCard.classList.add("has-data");
+                } else {
+                    bookingSummaryCard.classList.remove("has-data");
+                }
+            }
+
+            // Atualização do Botão Confirmar
+            const prontoParaConfirmar = hasSala && hasSlot && formValido;
+            if (btnConfirmarReserva) {
+                btnConfirmarReserva.disabled = !prontoParaConfirmar;
+                if (prontoParaConfirmar) {
+                    btnConfirmarReserva.title = "Clique para confirmar seu agendamento";
+                } else if (!hasSala) {
+                    btnConfirmarReserva.title = "Selecione uma sala no Passo 1";
+                } else if (!hasSlot) {
+                    btnConfirmarReserva.title = "Escolha um horário livre no Passo 2";
+                } else {
+                    btnConfirmarReserva.title = "Preencha todos os campos obrigatórios (*) do formulário";
+                }
+            }
+
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+        }
+
         // Data de hoje em formato YYYY-MM-DD
         const todayStr = new Date().toISOString().split("T")[0];
         publicDataInput.value = todayStr;
@@ -311,12 +475,14 @@
             renderPublicSalas();
             renderVisualCalendar();
             renderPublicSlots();
+            updateStepStates();
         });
 
         AgendamentoService.listenAgendamentos(null, (agendamentos) => {
             allAgendamentos = agendamentos;
             renderVisualCalendar();
             renderPublicSlots();
+            updateStepStates();
         });
 
         // Renderização de Salas
@@ -326,6 +492,7 @@
                     <div style="grid-column: 1/-1; text-align: center; color: var(--oer-text-muted); padding: 1.5rem;">
                         Nenhuma sala disponível para agendamento no momento.
                     </div>`;
+                updateStepStates();
                 return;
             }
 
@@ -357,6 +524,7 @@
                     renderPublicSalas();
                     renderVisualCalendar();
                     renderPublicSlots();
+                    updateStepStates();
                 });
             });
 
@@ -481,6 +649,7 @@
                     selectedSlot = null;
                     renderVisualCalendar();
                     renderPublicSlots();
+                    updateStepStates();
                 });
             });
         }
@@ -489,6 +658,7 @@
         function renderPublicSlots() {
             if (!selectedSalaId) {
                 publicSlotsContainer.innerHTML = `<p style="grid-column: 1/-1; font-size: 0.85rem; color: var(--oer-text-muted); padding: 2rem 0; text-align: center;">Selecione uma sala para ver os horários.</p>`;
+                updateStepStates();
                 return;
             }
             const sala = allSalas.find(s => s.id === selectedSalaId);
@@ -496,6 +666,7 @@
 
             if (!sala || !dataEscolhida) {
                 publicSlotsContainer.innerHTML = `<p style="grid-column: 1/-1; font-size: 0.85rem; color: var(--oer-text-muted); padding: 2rem 0; text-align: center;">Selecione uma data no calendário para ver os horários disponíveis.</p>`;
+                updateStepStates();
                 return;
             }
 
@@ -525,6 +696,7 @@
                     </div>
                 `;
                 if (window.lucide) lucide.createIcons();
+                updateStepStates();
                 return;
             }
 
@@ -533,8 +705,8 @@
                 const slotClass = isSelected ? 'slot-pill selected' : 'slot-pill';
 
                 return `
-                    <button type="button" class="${slotClass}" data-inicio="${slot.horaInicio}" data-fim="${slot.horaFim}" title="Clique para selecionar ${slot.horaInicio}">
-                        ${slot.horaInicio}
+                    <button type="button" class="${slotClass}" data-inicio="${slot.horaInicio}" data-fim="${slot.horaFim}" title="Selecionar horário: ${slot.horaInicio} às ${slot.horaFim}">
+                        ${slot.horaInicio} – ${slot.horaFim}
                     </button>
                 `;
             }).join("");
@@ -547,8 +719,13 @@
                         horaInicio: btn.getAttribute("data-inicio"),
                         horaFim: btn.getAttribute("data-fim")
                     };
+                    updateStepStates();
+                    setTimeout(() => {
+                        stepBox3?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }, 50);
                 });
             });
+            updateStepStates();
         }
 
         // Campo Condicional de Partitura
@@ -563,7 +740,16 @@
                     inputQualPartitura.required = false;
                     inputQualPartitura.value = "";
                 }
+                updateStepStates();
             });
+        });
+
+        // Ouvintes nos campos do formulário para atualizar validação e resumo em tempo real
+        [inputNome, selectInstrumento, selectVinculo, inputNecessidades, inputQualPartitura].forEach(campo => {
+            if (campo) {
+                campo.addEventListener("input", updateStepStates);
+                campo.addEventListener("change", updateStepStates);
+            }
         });
 
         // ========================================================
@@ -883,16 +1069,17 @@ Qualquer dúvida, estou à disposição!`;
                 selectedSlot = null;
                 renderVisualCalendar();
                 renderPublicSlots();
+                updateStepStates();
             } catch (err) {
                 console.error("Erro ao criar agendamento:", err);
                 alert(err.message || "Ocorreu um erro ao realizar a reserva.");
             } finally {
-                btnConfirm.disabled = false;
                 btnConfirm.innerHTML = `<i data-lucide="calendar-check" style="width: 20px; height: 20px;"></i> Confirmar Agendamento`;
-                lucide.createIcons();
+                updateStepStates();
             }
         });
 
+        updateStepStates();
         lucide.createIcons();
     </script>
 </body>

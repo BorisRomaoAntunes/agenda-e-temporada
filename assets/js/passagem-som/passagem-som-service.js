@@ -71,9 +71,86 @@ export function obterDiaSemanaCurto(dataStr) {
 export const PassagemSomService = {
     /**
      * Busca a lista de músicos ativos da OER (bolsistas, monitores, titulares)
-     * Desconsidera automaticamente registros inativos ou desligados
+     * Utiliza estratégia resiliente:
+     * 1. Consulta pública em 'config/passagem_som_musicos' (Firestore, seguro sem dados sensíveis)
+     * 2. Fallback instantâneo em 'assets/data/musicos-oer.json' (CDN/Hosting e PWA offline)
+     * 3. Fallback na coleção 'musicos' (quando autenticado como administrador)
      */
     async getMusicosAtivos() {
+        const musicosMap = new Map();
+
+        // 1. Carrega do catálogo estático completo (104 músicos, ultra rápido, CDN e PWA offline)
+        try {
+            const response = await fetch("assets/data/musicos-oer.json");
+            if (response.ok) {
+                const staticList = await response.json();
+                if (Array.isArray(staticList)) {
+                    staticList.forEach((m) => {
+                        if (m && m.id) musicosMap.set(m.id, m);
+                    });
+                }
+            }
+        } catch (e) {
+            console.warn("Aviso ao carregar catálogo estático assets/data/musicos-oer.json:", e);
+        }
+
+        // 2. Mescla com atualizações em tempo real salvas no Firestore: config/passagem_som_musicos
+        try {
+            const configDocSnap = await getDoc(doc(db, "config", "passagem_som_musicos"));
+            if (configDocSnap.exists()) {
+                const data = configDocSnap.data();
+                if (data && Array.isArray(data.lista)) {
+                    data.lista.forEach((m) => {
+                        if (m && m.id) musicosMap.set(m.id, m);
+                    });
+                }
+            }
+        } catch (e) {
+            console.warn("Aviso ao carregar config/passagem_som_musicos do Firestore:", e);
+        }
+
+        // 3. Fallback: se ambos estiverem vazios e o usuário for admin autenticado
+        if (musicosMap.size === 0) {
+            try {
+                const snap = await getDocs(collection(db, PassagemSomCollections.MUSICOS));
+                snap.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    const status = (data.Status || "").toLowerCase().trim();
+                    const statusFb = (data.statusFirebase || "").toLowerCase().trim();
+
+                    if (status.includes("emm") || status.includes("desligado") || statusFb === "desligado" || statusFb === "inativo") {
+                        return;
+                    }
+
+                    const nomeReg = (data["NOME REGISTRO"] || "").trim();
+                    const nomeArt = (data.NOMEARTISTICO || "").trim();
+                    const nome = nomeArt || nomeReg || "Sem Nome";
+                    const instrumento = (data.INSTRUMENTOS || data.Instrumento || data.instrumento || "").trim();
+
+                    musicosMap.set(docSnap.id, {
+                        id: docSnap.id,
+                        nome: nome,
+                        nomeRegistro: nomeReg,
+                        nomeArtistico: nomeArt,
+                        instrumento: instrumento,
+                        status: data.Status || "Ativo"
+                    });
+                });
+            } catch (e) {
+                console.warn("Sem acesso direto à coleção restrita musicos:", e);
+            }
+        }
+
+        const listaFinal = Array.from(musicosMap.values());
+        listaFinal.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+        return listaFinal;
+    },
+
+    /**
+     * Sincroniza o catálogo público de músicos ativos em 'config/passagem_som_musicos'
+     * Executado periodicamente pelo painel administrativo autenticado
+     */
+    async sincronizarCatalogoPublicoMusicos() {
         try {
             const snap = await getDocs(collection(db, PassagemSomCollections.MUSICOS));
             const musicos = [];
@@ -82,7 +159,6 @@ export const PassagemSomService = {
                 const status = (data.Status || "").toLowerCase().trim();
                 const statusFb = (data.statusFirebase || "").toLowerCase().trim();
 
-                // Ignora EMM, inativos e desligados
                 if (status.includes("emm") || status.includes("desligado") || statusFb === "desligado" || statusFb === "inativo") {
                     return;
                 }
@@ -98,15 +174,22 @@ export const PassagemSomService = {
                     nomeRegistro: nomeReg,
                     nomeArtistico: nomeArt,
                     instrumento: instrumento,
-                    status: data.Status || "Ativo",
-                    email: data.EMAIL || ""
+                    status: data.Status || "Ativo"
                 });
             });
 
             musicos.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+
+            await setDoc(doc(db, "config", "passagem_som_musicos"), {
+                lista: musicos,
+                total: musicos.length,
+                atualizadoEm: serverTimestamp()
+            }, { merge: true });
+
+            console.log("Catálogo público de músicos OER sincronizado com sucesso:", musicos.length);
             return musicos;
         } catch (e) {
-            console.error("Erro ao carregar músicos ativos:", e);
+            console.warn("Aviso ao sincronizar catálogo público de músicos:", e);
             return [];
         }
     },

@@ -211,13 +211,14 @@ let itemFocadoIndex = -1;
 function configurarAutocomplete() {
     if (!musicoNomeInput || !autocompleteList) return;
 
-    musicoNomeInput.addEventListener("input", () => {
+    function executarBuscaAutocomplete() {
         const termo = musicoNomeInput.value.trim();
         itemFocadoIndex = -1;
 
         if (termo.length < 2) {
             fecharAutocomplete();
-            validarMusicoCorrespondente(termo);
+            if (musicoIdentificadoBadge) musicoIdentificadoBadge.style.display = "none";
+            musicoSelecionado = null;
             atualizarStepper();
             return;
         }
@@ -226,17 +227,38 @@ function configurarAutocomplete() {
         const matches = musicosAtivos.filter((m) => {
             const nomeArt = normalizarTexto(m.nomeArtistico);
             const nomeReg = normalizarTexto(m.nomeRegistro);
-            return nomeArt.includes(termoNorm) || nomeReg.includes(termoNorm);
+            const nomeComum = normalizarTexto(m.nome);
+            return nomeArt.includes(termoNorm) || nomeReg.includes(termoNorm) || nomeComum.includes(termoNorm);
         }).slice(0, 8);
 
         if (matches.length === 0) {
             fecharAutocomplete();
-            validarMusicoCorrespondente(termo);
             atualizarStepper();
             return;
         }
 
         renderizarSugestoesAutocomplete(matches);
+    }
+
+    musicoNomeInput.addEventListener("input", executarBuscaAutocomplete);
+    musicoNomeInput.addEventListener("focus", () => {
+        if (musicoNomeInput.value.trim().length >= 2) {
+            executarBuscaAutocomplete();
+        }
+    });
+
+    musicoNomeInput.addEventListener("blur", () => {
+        // Pequeno atraso para permitir o clique em uma sugestão do dropdown
+        setTimeout(() => {
+            const termo = musicoNomeInput.value.trim();
+            if (termo.length >= 3) {
+                validarMusicoCorrespondente(termo);
+            } else if (termo.length === 0) {
+                if (musicoIdentificadoBadge) musicoIdentificadoBadge.style.display = "none";
+                musicoSelecionado = null;
+            }
+            atualizarStepper();
+        }, 250);
     });
 
     musicoNomeInput.addEventListener("keydown", (e) => {
