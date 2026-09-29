@@ -13931,6 +13931,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
     const btnCopyFaltasAtrasos = document.getElementById('btn-copy-faltas-atrasos');
     const btnFaltasFormatWhatsapp = document.getElementById('btn-faltas-format-whatsapp');
     const btnFaltasFormatEmail = document.getElementById('btn-faltas-format-email');
+    const btnFaltasFormatAtrasosDetalhado = document.getElementById('btn-faltas-format-atrasos-detalhado');
 
     let dadosFaltasCache = null;
 
@@ -14022,28 +14023,103 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
         return html;
     };
 
+    const gerarAtrasosDetalhadoEmailHTML = (d) => {
+        const { mesNome, mesNomeMin, ano, bolsistasComAtrasoDetalhados } = d;
+        if (!bolsistasComAtrasoDetalhados || bolsistasComAtrasoDetalhados.length === 0) {
+            return `Nenhum registro de atraso no mês de ${mesNome} de ${ano}.`;
+        }
+
+        let html = `<strong>Assunto:</strong> Atrasos Bolsistas - ${mesNome} - ${ano}<br><br>`;
+        html += `Olá,<br>`;
+        html += `segue abaixo lista de atrasos dos bolsistas que acumularam mais 30 min de atrasos neste mês e abaixo a lista de atrasos no mês <strong>${mesNomeMin} de ${ano}</strong>.<br><br>`;
+        html += `<strong>Peço que me sinalizei os bolsista que você quer fazer reunião e a data:</strong><br><br>`;
+
+        const blocosBolsistas = bolsistasComAtrasoDetalhados.map(b => {
+            let bloco = `• <strong>${b.nome}</strong> - ${b.totalMinutos} min`;
+            if (b.atrasos && b.atrasos.length > 0) {
+                const linhasAtraso = b.atrasos.map(a => {
+                    let sufixo = '';
+                    if (a.isConcerto && a.motivo) {
+                        sufixo = ` (Concerto - Motivo: ${a.motivo})`;
+                    } else if (a.isConcerto) {
+                        sufixo = ` (Concerto)`;
+                    } else if (a.motivo) {
+                        sufixo = ` (Motivo: ${a.motivo})`;
+                    }
+                    return `&nbsp;&nbsp;&nbsp;&nbsp;${a.diaDDMM} - ${a.diaSemana} - ${a.minutos} minutos atrasos${sufixo}`;
+                });
+                bloco += `<br>` + linhasAtraso.join('<br>');
+            }
+            return bloco;
+        });
+
+        html += blocosBolsistas.join('<br><br>');
+        return html;
+    };
+
+    const gerarAtrasosDetalhadoPlainText = (d) => {
+        const { mesNome, mesNomeMin, ano, bolsistasComAtrasoDetalhados } = d;
+        if (!bolsistasComAtrasoDetalhados || bolsistasComAtrasoDetalhados.length === 0) {
+            return `Nenhum registro de atraso no mês de ${mesNome} de ${ano}.`;
+        }
+
+        let txt = `Assunto: Atrasos Bolsistas - ${mesNome} - ${ano}\n\n`;
+        txt += `Olá,\n`;
+        txt += `segue abaixo lista de atrasos dos bolsistas que acumularam mais 30 min de atrasos neste mês e abaixo a lista de atrasos no mês ${mesNomeMin} de ${ano}.\n\n`;
+        txt += `Peço que me sinalizei os bolsista que você quer fazer reunião e a data:\n\n`;
+
+        const blocosBolsistas = bolsistasComAtrasoDetalhados.map(b => {
+            let bloco = `• ${b.nome} - ${b.totalMinutos} min`;
+            if (b.atrasos && b.atrasos.length > 0) {
+                const linhasAtraso = b.atrasos.map(a => {
+                    let sufixo = '';
+                    if (a.isConcerto && a.motivo) {
+                        sufixo = ` (Concerto - Motivo: ${a.motivo})`;
+                    } else if (a.isConcerto) {
+                        sufixo = ` (Concerto)`;
+                    } else if (a.motivo) {
+                        sufixo = ` (Motivo: ${a.motivo})`;
+                    }
+                    return `    ${a.diaDDMM} - ${a.diaSemana} - ${a.minutos} minutos atrasos${sufixo}`;
+                });
+                bloco += `\n` + linhasAtraso.join('\n');
+            }
+            return bloco;
+        });
+
+        txt += blocosBolsistas.join('\n\n');
+        return txt;
+    };
+
     const atualizarExibicaoFaltas = () => {
         if (!resultFaltasAtrasosContainer || !dadosFaltasCache) return;
+        const isAtrasosDetalhado = btnFaltasFormatAtrasosDetalhado && btnFaltasFormatAtrasosDetalhado.classList.contains('active');
         const isEmail = btnFaltasFormatEmail && btnFaltasFormatEmail.classList.contains('active');
-        if (isEmail) {
+        if (isAtrasosDetalhado) {
+            resultFaltasAtrasosContainer.innerHTML = gerarAtrasosDetalhadoEmailHTML(dadosFaltasCache);
+        } else if (isEmail) {
             resultFaltasAtrasosContainer.innerHTML = gerarFaltasEmailHTML(dadosFaltasCache);
         } else {
             resultFaltasAtrasosContainer.textContent = gerarFaltasMarkdown(dadosFaltasCache);
         }
     };
 
-    if (btnFaltasFormatWhatsapp && btnFaltasFormatEmail) {
-        btnFaltasFormatWhatsapp.addEventListener('click', () => {
-            btnFaltasFormatWhatsapp.classList.add('active');
-            btnFaltasFormatEmail.classList.remove('active');
-            atualizarExibicaoFaltas();
+    const setFaltasFormatActive = (targetBtn) => {
+        [btnFaltasFormatWhatsapp, btnFaltasFormatEmail, btnFaltasFormatAtrasosDetalhado].forEach(b => {
+            if (b) b.classList.remove('active');
         });
+        if (targetBtn) targetBtn.classList.add('active');
+        atualizarExibicaoFaltas();
+    };
 
-        btnFaltasFormatEmail.addEventListener('click', () => {
-            btnFaltasFormatEmail.classList.add('active');
-            btnFaltasFormatWhatsapp.classList.remove('active');
-            atualizarExibicaoFaltas();
-        });
+    if (btnFaltasFormatWhatsapp) {
+        btnFaltasFormatWhatsapp.addEventListener('click', () => setFaltasFormatActive(btnFaltasFormatWhatsapp));
+    }
+    if (btnFaltasFormatEmail) {
+        btnFaltasFormatEmail.addEventListener('click', () => setFaltasFormatActive(btnFaltasFormatEmail));
+    }
+    if (btnFaltasFormatAtrasosDetalhado) {
+        btnFaltasFormatAtrasosDetalhado.addEventListener('click', () => setFaltasFormatActive(btnFaltasFormatAtrasosDetalhado));
     }
 
     if (btnGenerateFaltasAtrasos) {
@@ -14092,6 +14168,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
         
         if (modalFaltasAtrasos) {
             modalFaltasAtrasos.style.display = 'flex';
+            if (window.lucide) lucide.createIcons();
         }
     }
 
@@ -14221,7 +14298,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                 return false;
             });
             
-            // Dicionário de controle: bolsistaId -> { nome, inst, faltasMes: [ { dia, obs } ], pendenciasMes: [ { dia, obs } ], atrasosMinMes: 0, totalFaltasAno: 0 }
+            // Dicionário de controle: bolsistaId -> { nome, inst, faltasMes: [ { dia, obs } ], pendenciasMes: [ { dia, obs } ], atrasosMinMes: 0, atrasosDetalhadosMes: [], totalFaltasAno: 0 }
             const dadosBolsistas = {};
             
             bolsistas.forEach(b => {
@@ -14233,6 +14310,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                         faltasMes: [],
                         pendenciasMes: [],
                         atrasosMinMes: 0,
+                        atrasosDetalhadosMes: [],
                         totalFaltasAno: 0
                     };
                 }
@@ -14324,6 +14402,24 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                                         } else if (registro.status === 'atraso' || registro.status === 'atraso_passagem_som') {
                                             const min = parseInt(registro.minutes) || 0;
                                             bInfo.atrasosMinMes += min;
+
+                                            const [anoD, mesD, diaD] = dataStr.split('-').map(Number);
+                                            const dateObj = new Date(anoD, mesD - 1, diaD);
+                                            const diasSemanaNomes = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+                                            const diaSemana = diasSemanaNomes[dateObj.getDay()];
+                                            const diaDDMM = `${String(diaD).padStart(2, '0')}/${String(mesD).padStart(2, '0')}`;
+                                            const isConcerto = isConcertoPres || registro.status === 'atraso_passagem_som';
+                                            const motivo = (registro.justificativa && registro.justificativa.trim() !== '') ? registro.justificativa.trim() : null;
+
+                                            bInfo.atrasosDetalhadosMes.push({
+                                                dataStr,
+                                                diaD,
+                                                diaDDMM,
+                                                diaSemana,
+                                                minutos: min,
+                                                isConcerto,
+                                                motivo
+                                            });
                                         }
                                     }
                                 }
@@ -14389,6 +14485,12 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
             bolsistasComAtraso.forEach(b => {
                 listaAtrasados.push({ nome: formatarNomeComInstrumento(b), minutos: b.atrasosMinMes });
             });
+
+            const bolsistasComAtrasoDetalhados = bolsistasComAtraso.map(b => ({
+                nome: formatarNomeComInstrumento(b),
+                totalMinutos: b.atrasosMinMes,
+                atrasos: b.atrasosDetalhadosMes
+            }));
             
             const mesesNomes = [
                 "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -14398,9 +14500,13 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
             
             dadosFaltasCache = {
                 mesNomeAno,
+                mesNome: mesesNomes[mesInt - 1],
+                mesNomeMin: mesesNomes[mesInt - 1].toLowerCase(),
+                ano,
                 listaFaltantes,
                 listaPendentes,
-                listaAtrasados
+                listaAtrasados,
+                bolsistasComAtrasoDetalhados
             };
 
             atualizarExibicaoFaltas();
@@ -14415,9 +14521,12 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
         btnCopyFaltasAtrasos.addEventListener('click', async () => {
             try {
                 const isEmail = btnFaltasFormatEmail && btnFaltasFormatEmail.classList.contains('active');
-                if (isEmail) {
+                const isAtrasosDetalhado = btnFaltasFormatAtrasosDetalhado && btnFaltasFormatAtrasosDetalhado.classList.contains('active');
+                if (isEmail || isAtrasosDetalhado) {
                     const htmlContent = resultFaltasAtrasosContainer.innerHTML;
-                    const plainText = resultFaltasAtrasosContainer.textContent;
+                    const plainText = (isAtrasosDetalhado && dadosFaltasCache) 
+                        ? gerarAtrasosDetalhadoPlainText(dadosFaltasCache) 
+                        : resultFaltasAtrasosContainer.textContent;
 
                     const blobHtml = new Blob([htmlContent], { type: 'text/html' });
                     const blobText = new Blob([plainText], { type: 'text/plain' });
