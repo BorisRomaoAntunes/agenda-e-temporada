@@ -5302,6 +5302,11 @@ input:checked + .slider:before {
     box-shadow: 0 3px 6px rgba(2, 132, 199, 0.3);
 }
 
+.qa-item-icon.btn-link-passagem-som {
+    background: linear-gradient(135deg, #7c3aed, #6d28d9);
+    box-shadow: 0 3px 6px rgba(124, 58, 237, 0.3);
+}
+
 /* Texto do item */
 .qa-item-label {
     font-size: 0.88rem;

@@ -91,7 +91,7 @@ self.addEventListener('notificationclick', function(event) {
 // ==========================================
 // CONFIGURAÇÃO DO PWA & CACHE OFFLINE
 // ==========================================
-const CACHE_NAME = 'oer-agenda-v36';
+const CACHE_NAME = 'oer-agenda-v37';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -128,8 +128,11 @@ const FIREBASE_BYPASS_PATTERNS = [
 const NO_CACHE_PATTERNS = [
     '/assets/js/firebase-config.js',
     '/assets/js/admin/',
+    '/assets/js/passagem-som/',
     '/admin.html',
     '/presenca.html',
+    '/passagem-som-admin.html',
+    '/passagem-som.html',
     'gstatic.com/firebasejs'
 ];
 

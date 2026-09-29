@@ -711,27 +711,8 @@ body {
 }
 
 /* ==========================================================================
-   Ícone de Violino & Construtor de Disponibilidade de Horários
+   Construtor de Disponibilidade de Horários
    ========================================================================== */
-
-.violin-icon-wrap {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    background: var(--oer-accent-light);
-    color: var(--oer-primary);
-    border: 1px solid var(--oer-accent-border);
-    flex-shrink: 0;
-}
-
-.violin-icon-svg {
-    width: 26px;
-    height: 26px;
-    fill: currentColor;
-}
 
 .config-section-box {
     background: #ffffff;
