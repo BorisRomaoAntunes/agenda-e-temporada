@@ -1,8 +1,20 @@
 {
-  "hash": "5ee9648",
-  "date": "29/09/2026 10:43",
-  "buildAt": "2026-09-29T13:45:29.458Z",
+  "hash": "9edda17",
+  "date": "29/09/2026 10:51",
+  "buildAt": "2026-09-29T13:56:46.418Z",
   "history": [
+    {
+      "hash": "9edda17",
+      "date": "29/09/2026 10:51",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(relatorio): adiciona formato Atrasos Detalhado para e-mail"
+    },
+    {
+      "hash": "f4955bc",
+      "date": "29/09/2026 10:46",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pos-deploy v5ee9648"
+    },
     {
       "hash": "5ee9648",
       "date": "29/09/2026 10:43",
@@ -110,18 +122,6 @@
       "date": "24/09/2026 22:02",
       "author": "Boris Romão Antunes",
       "subject": "chore: sincroniza arquivos e deploy de producao"
-    },
-    {
-      "hash": "9a712a1",
-      "date": "24/09/2026 21:59",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pós-deploy vf9ccc7c"
-    },
-    {
-      "hash": "f9ccc7c",
-      "date": "24/09/2026 21:59",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(presenca): exibir minutos de atraso em amarelo no PDF e Excel"
     }
   ]
 }
