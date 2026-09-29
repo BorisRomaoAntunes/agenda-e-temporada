@@ -112,24 +112,15 @@
                             <label for="musicoNome" class="form-label">
                                 Nome do Músico <span class="req" aria-hidden="true">*</span>
                             </label>
-                            
-                            <div class="autocomplete-wrapper">
-                                <input 
-                                    type="text" 
-                                    id="musicoNome" 
-                                    class="form-input" 
-                                    placeholder="Digite seu nome (sugestões automáticas)..." 
-                                    required
-                                    autocomplete="off"
-                                    aria-autocomplete="list"
-                                    aria-controls="autocompleteList"
-                                    aria-describedby="musicoNomeDica musicoNomeErro"
-                                >
-                                <div class="autocomplete-dropdown" id="autocompleteList" role="listbox"></div>
-                            </div>
-                            
-                            <div id="musicoIdentificadoBadge" style="display: none;"></div>
-                            <span class="form-hint" id="musicoNomeDica">Digite seu nome. Se você é bolsista/monitor da OER, clique na sua sugestão para preenchimento automático.</span>
+                            <input 
+                                type="text" 
+                                id="musicoNome" 
+                                class="form-input" 
+                                placeholder="Digite seu nome completo..." 
+                                required
+                                aria-describedby="musicoNomeDica musicoNomeErro"
+                            >
+                            <span class="form-hint" id="musicoNomeDica">Informe seu nome completo para confirmação do agendamento.</span>
                             <span class="form-error-msg" id="musicoNomeErro">
                                 <i data-lucide="alert-circle" style="width: 14px; height: 14px;"></i> Por favor, informe seu nome completo.
                             </span>
@@ -139,17 +130,30 @@
                             <label for="musicoInstrumento" class="form-label">
                                 Instrumento <span class="req" aria-hidden="true">*</span>
                             </label>
-                            <input 
-                                type="text" 
+                            <select 
                                 id="musicoInstrumento" 
-                                class="form-input" 
-                                placeholder="Ex: Trompete, Violino, Violoncelo..." 
+                                class="form-input form-select" 
                                 required
                                 aria-describedby="musicoInstrumentoDica musicoInstrumentoErro"
                             >
-                            <span class="form-hint" id="musicoInstrumentoDica">Informe seu naipe ou instrumento musical.</span>
+                                <option value="" disabled selected>Selecione seu instrumento...</option>
+                                <option value="Clarinetes">Clarinetes</option>
+                                <option value="Contrabaixos">Contrabaixos</option>
+                                <option value="Fagotes">Fagotes</option>
+                                <option value="Flautas">Flautas</option>
+                                <option value="Oboés">Oboés</option>
+                                <option value="Percussão">Percussão</option>
+                                <option value="Primeiros Violinos">Primeiros Violinos</option>
+                                <option value="Segundos Violinos">Segundos Violinos</option>
+                                <option value="Trombones">Trombones</option>
+                                <option value="Trompa">Trompa</option>
+                                <option value="Trompete">Trompete</option>
+                                <option value="Violas">Violas</option>
+                                <option value="Violoncelos">Violoncelos</option>
+                            </select>
+                            <span class="form-hint" id="musicoInstrumentoDica">Selecione o instrumento musical da orquestra.</span>
                             <span class="form-error-msg" id="musicoInstrumentoErro">
-                                <i data-lucide="alert-circle" style="width: 14px; height: 14px;"></i> Por favor, informe o seu instrumento.
+                                <i data-lucide="alert-circle" style="width: 14px; height: 14px;"></i> Por favor, selecione o seu instrumento.
                             </span>
                         </div>
 

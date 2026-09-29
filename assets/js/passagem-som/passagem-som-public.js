@@ -104,13 +104,11 @@ function mostrarToast(mensagem, tipo = "info") {
 document.addEventListener("DOMContentLoaded", async () => {
     try {
         await PassagemSomService.inicializarCicloPadraoSeNecessario();
-        musicosAtivos = await PassagemSomService.getMusicosAtivos();
 
         // Recuperar dados prévios do LocalStorage
         recuperarDadosLocalStorage();
 
         // Configurar Listeners de Eventos de UX
-        configurarAutocomplete();
         configurarValidacaoInline();
         configurarStepperNavegacao();
         configurarModais();
@@ -169,7 +167,6 @@ function recuperarDadosLocalStorage() {
                 if (storedNotice) {
                     storedNotice.style.display = "flex";
                 }
-                validarMusicoCorrespondente(data.nome);
             }
         }
     } catch (e) {
@@ -182,9 +179,7 @@ function recuperarDadosLocalStorage() {
                 localStorage.removeItem(STORAGE_KEY);
                 if (musicoNomeInput) musicoNomeInput.value = "";
                 if (musicoInstrumentoInput) musicoInstrumentoInput.value = "";
-                if (musicoIdentificadoBadge) musicoIdentificadoBadge.style.display = "none";
                 if (storedNotice) storedNotice.style.display = "none";
-                musicoSelecionado = null;
                 atualizarStepper();
                 atualizarResumo();
                 mostrarToast("Dados salvos limpos.", "info");
@@ -201,197 +196,6 @@ function salvarDadosLocalStorage(nome, instrumento) {
     } catch (e) {
         console.warn("Erro ao salvar localStorage:", e);
     }
-}
-
-// =========================================================================
-// AUTOCOMPLETE DO NOME DO MÚSICO
-// =========================================================================
-let itemFocadoIndex = -1;
-
-function configurarAutocomplete() {
-    if (!musicoNomeInput || !autocompleteList) return;
-
-    function executarBuscaAutocomplete() {
-        const termo = musicoNomeInput.value.trim();
-        itemFocadoIndex = -1;
-
-        if (termo.length < 2) {
-            fecharAutocomplete();
-            if (musicoIdentificadoBadge) musicoIdentificadoBadge.style.display = "none";
-            musicoSelecionado = null;
-            atualizarStepper();
-            return;
-        }
-
-        const termoNorm = normalizarTexto(termo);
-        const matches = musicosAtivos.filter((m) => {
-            const nomeArt = normalizarTexto(m.nomeArtistico);
-            const nomeReg = normalizarTexto(m.nomeRegistro);
-            const nomeComum = normalizarTexto(m.nome);
-            return nomeArt.includes(termoNorm) || nomeReg.includes(termoNorm) || nomeComum.includes(termoNorm);
-        }).slice(0, 8);
-
-        if (matches.length === 0) {
-            fecharAutocomplete();
-            atualizarStepper();
-            return;
-        }
-
-        renderizarSugestoesAutocomplete(matches);
-    }
-
-    musicoNomeInput.addEventListener("input", executarBuscaAutocomplete);
-    musicoNomeInput.addEventListener("focus", () => {
-        if (musicoNomeInput.value.trim().length >= 2) {
-            executarBuscaAutocomplete();
-        }
-    });
-
-    musicoNomeInput.addEventListener("blur", () => {
-        // Pequeno atraso para permitir o clique em uma sugestão do dropdown
-        setTimeout(() => {
-            const termo = musicoNomeInput.value.trim();
-            if (termo.length >= 3) {
-                validarMusicoCorrespondente(termo);
-            } else if (termo.length === 0) {
-                if (musicoIdentificadoBadge) musicoIdentificadoBadge.style.display = "none";
-                musicoSelecionado = null;
-            }
-            atualizarStepper();
-        }, 250);
-    });
-
-    musicoNomeInput.addEventListener("keydown", (e) => {
-        const itens = autocompleteList.querySelectorAll(".autocomplete-item");
-        if (itens.length === 0 || !autocompleteList.classList.contains("show")) return;
-
-        if (e.key === "ArrowDown") {
-            e.preventDefault();
-            itemFocadoIndex = (itemFocadoIndex + 1) % itens.length;
-            atualizarFocoAutocomplete(itens);
-        } else if (e.key === "ArrowUp") {
-            e.preventDefault();
-            itemFocadoIndex = (itemFocadoIndex - 1 + itens.length) % itens.length;
-            atualizarFocoAutocomplete(itens);
-        } else if (e.key === "Enter") {
-            if (itemFocadoIndex >= 0 && itens[itemFocadoIndex]) {
-                e.preventDefault();
-                itens[itemFocadoIndex].click();
-            }
-        } else if (e.key === "Escape") {
-            fecharAutocomplete();
-        }
-    });
-
-    document.addEventListener("click", (e) => {
-        if (!musicoNomeInput.contains(e.target) && !autocompleteList.contains(e.target)) {
-            fecharAutocomplete();
-        }
-    });
-}
-
-function renderizarSugestoesAutocomplete(matches) {
-    autocompleteList.innerHTML = "";
-    matches.forEach((m, idx) => {
-        const div = document.createElement("div");
-        div.className = "autocomplete-item";
-        div.setAttribute("role", "option");
-        div.id = `autoOpt-${idx}`;
-        div.innerHTML = `
-            <div>
-                <strong>${m.nome}</strong>
-                ${m.nomeRegistro && m.nomeRegistro !== m.nome ? `<div style="font-size: 0.74rem; color: #64748b;">${m.nomeRegistro}</div>` : ""}
-            </div>
-            ${m.instrumento ? `<span class="autocomplete-instrument-badge">${m.instrumento}</span>` : ""}
-        `;
-
-        div.addEventListener("click", () => {
-            selecionarMusicoAutocomplete(m);
-        });
-
-        autocompleteList.appendChild(div);
-    });
-
-    autocompleteList.classList.add("show");
-}
-
-function atualizarFocoAutocomplete(itens) {
-    itens.forEach((it, idx) => {
-        if (idx === itemFocadoIndex) {
-            it.classList.add("active");
-            it.scrollIntoView({ block: "nearest" });
-        } else {
-            it.classList.remove("active");
-        }
-    });
-}
-
-function selecionarMusicoAutocomplete(musico) {
-    musicoSelecionado = musico;
-    musicoNomeInput.value = musico.nome;
-    if (musico.instrumento && musicoInstrumentoInput) {
-        musicoInstrumentoInput.value = musico.instrumento;
-    }
-
-    fecharAutocomplete();
-    limparErro(groupMusicoNome, musicoNomeErro);
-    limparErro(groupMusicoInstrumento, musicoInstrumentoErro);
-
-    if (musicoIdentificadoBadge) {
-        musicoIdentificadoBadge.className = "musico-identified-badge found";
-        musicoIdentificadoBadge.innerHTML = `<i data-lucide="check-circle" style="width: 14px; height: 14px;"></i> Músico da OER identificado (${musico.instrumento || "Geral"})`;
-        musicoIdentificadoBadge.style.display = "inline-flex";
-        if (window.lucide) lucide.createIcons();
-    }
-
-    atualizarStepper();
-    atualizarResumo();
-
-    // Rolar suavemente para a 1ª passagem se os campos obrigatórios estiverem ok
-    if (musicoRepertorioInput && musicoRepertorioInput.value.trim().length > 2) {
-        rolarParaSecao("secaoP1");
-    } else {
-        musicoRepertorioInput.focus();
-    }
-}
-
-function validarMusicoCorrespondente(nomeDigitado) {
-    if (!nomeDigitado || nomeDigitado.trim().length < 2) {
-        musicoSelecionado = null;
-        if (musicoIdentificadoBadge) musicoIdentificadoBadge.style.display = "none";
-        return;
-    }
-
-    const match = PassagemSomService.encontrarMusicoCorrespondente(nomeDigitado, musicosAtivos);
-    if (match.musico) {
-        musicoSelecionado = match.musico;
-        if (!musicoInstrumentoInput.value.trim() && match.musico.instrumento) {
-            musicoInstrumentoInput.value = match.musico.instrumento;
-            limparErro(groupMusicoInstrumento, musicoInstrumentoErro);
-        }
-        if (musicoIdentificadoBadge) {
-            musicoIdentificadoBadge.className = "musico-identified-badge found";
-            musicoIdentificadoBadge.innerHTML = `<i data-lucide="check-circle" style="width: 14px; height: 14px;"></i> Músico da OER reconhecido (${match.musico.instrumento || ""})`;
-            musicoIdentificadoBadge.style.display = "inline-flex";
-            if (window.lucide) lucide.createIcons();
-        }
-    } else {
-        musicoSelecionado = null;
-        if (musicoIdentificadoBadge) {
-            musicoIdentificadoBadge.className = "musico-identified-badge custom";
-            musicoIdentificadoBadge.innerHTML = `<i data-lucide="info" style="width: 14px; height: 14px;"></i> Músico externo / convidado ou nome personalizado`;
-            musicoIdentificadoBadge.style.display = "inline-flex";
-            if (window.lucide) lucide.createIcons();
-        }
-    }
-}
-
-function fecharAutocomplete() {
-    if (autocompleteList) {
-        autocompleteList.classList.remove("show");
-        autocompleteList.innerHTML = "";
-    }
-    itemFocadoIndex = -1;
 }
 
 // =========================================================================
@@ -426,19 +230,21 @@ function configurarValidacaoInline() {
     }
 
     if (musicoInstrumentoInput) {
+        musicoInstrumentoInput.addEventListener("change", () => {
+            if (!musicoInstrumentoInput.value.trim()) {
+                aplicarErro(groupMusicoInstrumento, musicoInstrumentoErro);
+            } else {
+                limparErro(groupMusicoInstrumento, musicoInstrumentoErro);
+            }
+            atualizarStepper();
+            atualizarResumo();
+        });
         musicoInstrumentoInput.addEventListener("blur", () => {
             if (!musicoInstrumentoInput.value.trim()) {
                 aplicarErro(groupMusicoInstrumento, musicoInstrumentoErro);
             } else {
                 limparErro(groupMusicoInstrumento, musicoInstrumentoErro);
             }
-        });
-        musicoInstrumentoInput.addEventListener("input", () => {
-            if (musicoInstrumentoInput.value.trim()) {
-                limparErro(groupMusicoInstrumento, musicoInstrumentoErro);
-            }
-            atualizarStepper();
-            atualizarResumo();
         });
     }
 

@@ -79,20 +79,7 @@ export const PassagemSomService = {
     async getMusicosAtivos() {
         const musicosMap = new Map();
 
-        // 1. Carrega do catálogo estático completo (104 músicos, ultra rápido, CDN e PWA offline)
-        try {
-            const response = await fetch("assets/data/musicos-oer.json");
-            if (response.ok) {
-                const staticList = await response.json();
-                if (Array.isArray(staticList)) {
-                    staticList.forEach((m) => {
-                        if (m && m.id) musicosMap.set(m.id, m);
-                    });
-                }
-            }
-        } catch (e) {
-            console.warn("Aviso ao carregar catálogo estático assets/data/musicos-oer.json:", e);
-        }
+        // 1. Consulta em config/passagem_som_musicos se disponível
 
         // 2. Mescla com atualizações em tempo real salvas no Firestore: config/passagem_som_musicos
         try {
@@ -118,7 +105,8 @@ export const PassagemSomService = {
                     const status = (data.Status || "").toLowerCase().trim();
                     const statusFb = (data.statusFirebase || "").toLowerCase().trim();
 
-                    if (status.includes("emm") || status.includes("desligado") || statusFb === "desligado" || statusFb === "inativo") {
+                    // Filtro estrito: somente Bolsistas da OER
+                    if (!status.includes("bolsista") || status.includes("desligado") || statusFb === "desligado" || statusFb === "inativo") {
                         return;
                     }
 
@@ -133,7 +121,7 @@ export const PassagemSomService = {
                         nomeRegistro: nomeReg,
                         nomeArtistico: nomeArt,
                         instrumento: instrumento,
-                        status: data.Status || "Ativo"
+                        status: "Bolsista"
                     });
                 });
             } catch (e) {
@@ -147,19 +135,20 @@ export const PassagemSomService = {
     },
 
     /**
-     * Sincroniza o catálogo público de músicos ativos em 'config/passagem_som_musicos'
+     * Sincroniza o catálogo público de bolsistas ativos em 'config/passagem_som_musicos'
      * Executado periodicamente pelo painel administrativo autenticado
      */
     async sincronizarCatalogoPublicoMusicos() {
         try {
             const snap = await getDocs(collection(db, PassagemSomCollections.MUSICOS));
-            const musicos = [];
+            const bolsistas = [];
             snap.forEach((docSnap) => {
                 const data = docSnap.data();
                 const status = (data.Status || "").toLowerCase().trim();
                 const statusFb = (data.statusFirebase || "").toLowerCase().trim();
 
-                if (status.includes("emm") || status.includes("desligado") || statusFb === "desligado" || statusFb === "inativo") {
+                // Somente Bolsistas ativos
+                if (!status.includes("bolsista") || status.includes("desligado") || statusFb === "desligado" || statusFb === "inativo") {
                     return;
                 }
 
@@ -168,28 +157,28 @@ export const PassagemSomService = {
                 const nome = nomeArt || nomeReg || "Sem Nome";
                 const instrumento = (data.INSTRUMENTOS || data.Instrumento || data.instrumento || "").trim();
 
-                musicos.push({
+                bolsistas.push({
                     id: docSnap.id,
                     nome: nome,
                     nomeRegistro: nomeReg,
                     nomeArtistico: nomeArt,
                     instrumento: instrumento,
-                    status: data.Status || "Ativo"
+                    status: "Bolsista"
                 });
             });
 
-            musicos.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+            bolsistas.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 
             await setDoc(doc(db, "config", "passagem_som_musicos"), {
-                lista: musicos,
-                total: musicos.length,
+                lista: bolsistas,
+                total: bolsistas.length,
                 atualizadoEm: serverTimestamp()
             }, { merge: true });
 
-            console.log("Catálogo público de músicos OER sincronizado com sucesso:", musicos.length);
-            return musicos;
+            console.log("Catálogo público de bolsistas OER sincronizado com sucesso:", bolsistas.length);
+            return bolsistas;
         } catch (e) {
-            console.warn("Aviso ao sincronizar catálogo público de músicos:", e);
+            console.warn("Aviso ao sincronizar catálogo público de bolsistas:", e);
             return [];
         }
     },

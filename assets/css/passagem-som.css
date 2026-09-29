@@ -1298,29 +1298,186 @@ body {
     }
 }
 
-/* Responsividade Mobile do Stepper */
+/* Responsividade Mobile Completa (Smartphones e Telas Menores) */
 @media (max-width: 640px) {
+    .ps-container {
+        padding: 1rem 0.75rem 3.5rem;
+    }
+
+    /* Cabeçalho Compacto e Centralizado */
+    .ps-header-card {
+        padding: 1.15rem 1rem;
+        flex-direction: column;
+        text-align: center;
+        gap: 0.75rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .ps-header-info {
+        flex-direction: column;
+        gap: 0.65rem;
+        align-items: center;
+    }
+
+    .ps-logo {
+        height: 44px;
+    }
+
+    .ps-title-group h1 {
+        font-size: 1.25rem;
+        justify-content: center;
+    }
+
+    .ps-title-group p {
+        font-size: 0.82rem;
+    }
+
+    /* Stepper Adaptativo: Ícones limpos com rótulo no passo ativo */
     .ps-stepper-wrapper {
-        margin: -1.5rem -1rem 1.25rem -1rem;
-        padding: 0.5rem 0.75rem;
+        margin: -1rem -0.75rem 1.25rem -0.75rem;
+        padding: 0.6rem 0.5rem;
+    }
+
+    .ps-stepper {
+        gap: 0.2rem;
+    }
+
+    .ps-step-item {
+        padding: 0.25rem;
     }
 
     .ps-step-subtitle {
         display: none;
     }
 
+    /* Exibe texto do passo apenas no passo ativo para evitar compressão horizontal */
+    .ps-step-item:not(.active) .ps-step-text {
+        display: none;
+    }
+
+    .ps-step-item.active .ps-step-text {
+        display: flex;
+    }
+
     .ps-step-title {
-        font-size: 0.74rem;
+        font-size: 0.76rem;
+        white-space: nowrap;
     }
 
     .ps-step-circle {
-        width: 24px;
-        height: 24px;
-        font-size: 0.72rem;
+        width: 26px;
+        height: 26px;
+        font-size: 0.75rem;
+        flex-shrink: 0;
     }
 
     .ps-step-connector {
-        margin: 0 0.25rem;
+        margin: 0 0.15rem;
+        min-width: 12px;
+    }
+
+    /* Cards e Espaçamento Interno */
+    .ps-card {
+        padding: 1.15rem 0.95rem;
+        margin-bottom: 1.25rem;
+        border-radius: 10px;
+    }
+
+    .ps-card-header {
+        margin-bottom: 1rem;
+        padding-bottom: 0.65rem;
+    }
+
+    .ps-card-header h2,
+    .ps-card-header h3 {
+        font-size: 1.05rem;
+    }
+
+    /* Grid do Formulário em Coluna Única */
+    .form-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    /* Prevenção de Zoom no iOS Safari (font-size 16px) */
+    .form-input,
+    .form-select,
+    select.form-input {
+        font-size: 16px !important;
+        padding: 0.75rem 0.85rem;
+    }
+
+    /* Carrossel de Datas com Toque Horizontal Suave */
+    .date-selector-row {
+        gap: 0.5rem;
+        padding-bottom: 0.65rem;
+        margin-bottom: 1rem;
+        scroll-snap-type: x mandatory;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .date-pill-btn {
+        min-width: 110px;
+        padding: 0.65rem 0.5rem;
+        scroll-snap-align: start;
+        flex: 0 0 auto;
+    }
+
+    .date-pill-day {
+        font-size: 0.75rem;
+    }
+
+    .date-pill-date {
+        font-size: 0.95rem;
+    }
+
+    .pill-urgency {
+        font-size: 0.62rem;
+        padding: 1px 4px;
+    }
+
+    /* Grade de Horários: 2 Colunas Simétricas com Área de Toque Otimizada */
+    .slots-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.6rem;
+    }
+
+    .slot-btn {
+        min-height: 48px;
+        padding: 0.65rem 0.4rem;
+        font-size: 0.92rem;
+    }
+
+    /* Caixa de Resumo e Ação Final */
+    .resumo-card-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem;
+    }
+
+    .btn {
+        width: 100%;
+        padding: 0.85rem 1rem;
+        font-size: 0.92rem;
+    }
+
+    /* Modais em Telas Pequenas */
+    .modal-card {
+        padding: 1.25rem 1rem;
+        max-width: 95%;
+        border-radius: 10px;
+    }
+
+    .modal-header h3 {
+        font-size: 1.1rem;
+    }
+
+    .modal-footer {
+        flex-direction: column-reverse;
+        gap: 0.5rem;
+    }
+
+    .modal-footer .btn {
+        width: 100%;
     }
 }
 
