@@ -8910,13 +8910,20 @@ function initMusiciansManagement() {
         return [];
     }
 
+    let isSavingNote = false;
+
     // Helper: Atualiza contador e resumo abaixo do campo de texto de forma compacta e discreta
     function updateNotesStatusDisplay(musico) {
         if (!notesTimestampDisplay) return;
         const notes = getAdminNotesList(musico);
+        const latestPreviewEl = document.getElementById('drawer-latest-note-preview');
+        const latestTextEl = document.getElementById('drawer-latest-note-text');
+        const latestTimeEl = document.getElementById('drawer-latest-note-time');
+
         if (notes.length === 0) {
             notesTimestampDisplay.textContent = 'Nenhuma anotação registrada ainda';
             notesTimestampDisplay.removeAttribute('title');
+            if (latestPreviewEl) latestPreviewEl.style.display = 'none';
         } else {
             const countLabel = notes.length === 1 ? '1 anotação' : `${notes.length} anotações`;
             const last = notes[notes.length - 1];
@@ -8945,6 +8952,15 @@ function initMusiciansManagement() {
 
             notesTimestampDisplay.textContent = `${countLabel} • Última: ${dataCurta}`;
             notesTimestampDisplay.setAttribute('title', last.criadoEmFormatado || `Última anotação por ${last.autor || 'Coordenação OER'}`);
+
+            if (latestPreviewEl && latestTextEl) {
+                latestPreviewEl.style.display = 'block';
+                latestTextEl.textContent = last.texto || '';
+                if (latestTimeEl) {
+                    latestTimeEl.textContent = dataCurta;
+                }
+                if (window.lucide) lucide.createIcons();
+            }
         }
     }
 
@@ -9067,7 +9083,7 @@ function initMusiciansManagement() {
 
     if (btnSaveNotes) {
         btnSaveNotes.addEventListener('click', async () => {
-            if (!currentSelectedMusico) return;
+            if (!currentSelectedMusico || isSavingNote) return;
 
             const text = notesInput.value.trim();
             if (!text) {
@@ -9076,23 +9092,64 @@ function initMusiciansManagement() {
                 return;
             }
 
-            const now = new Date();
-            const timestampStr = `Salvo em ${now.toLocaleDateString('pt-BR')} às ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} por ${auth.currentUser?.email || 'Coordenação OER'}`;
-
-            const newNote = {
-                id: 'note_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
-                texto: text,
-                criadoEm: now.toISOString(),
-                criadoEmFormatado: timestampStr,
-                autor: auth.currentUser?.email || 'Coordenação OER'
-            };
-
+            isSavingNote = true;
             btnSaveNotes.disabled = true;
             btnSaveNotes.innerHTML = `<i data-lucide="loader-2" class="spin" style="width: 14px; height: 14px;"></i> <span>Salvando...</span>`;
             if (window.lucide) lucide.createIcons();
 
             try {
-                const currentList = [...getAdminNotesList(currentSelectedMusico)];
+                // Leitura em tempo real do documento atual para evitar sobrescrita ou dados desatualizados
+                let currentList = [];
+                try {
+                    const freshDoc = await getDoc(doc(db, "musicos", currentSelectedMusico.id));
+                    if (freshDoc.exists()) {
+                        const freshData = freshDoc.data();
+                        currentList = [...getAdminNotesList({ id: currentSelectedMusico.id, ...freshData })];
+                    } else {
+                        currentList = [...getAdminNotesList(currentSelectedMusico)];
+                    }
+                } catch (readErr) {
+                    console.warn("⚠️ [Anotações] Leitura direta falhou, utilizando cache:", readErr);
+                    currentList = [...getAdminNotesList(currentSelectedMusico)];
+                }
+
+                // Camada Anti-Duplicidade: verifica se o mesmo texto já foi registrado recentemente
+                const normalizedText = text.toLowerCase().trim();
+                if (currentList.length > 0) {
+                    const lastNote = currentList[currentList.length - 1];
+                    const normalizedLast = (lastNote.texto || '').toLowerCase().trim();
+                    if (normalizedText === normalizedLast) {
+                        let isRecent = true;
+                        if (lastNote.criadoEm) {
+                            const diffMinutes = (Date.now() - new Date(lastNote.criadoEm).getTime()) / (1000 * 60);
+                            if (!isNaN(diffMinutes) && diffMinutes > 15) {
+                                isRecent = false;
+                            }
+                        }
+                        if (isRecent) {
+                            showNotification("Esta mesma anotação já foi registrada recentemente para este integrante.", "warning");
+                            notesInput.value = '';
+                            updateNotesStatusDisplay(currentSelectedMusico);
+                            btnSaveNotes.disabled = false;
+                            btnSaveNotes.innerHTML = `<i data-lucide="save" style="width: 14px; height: 14px;"></i> <span>Salvar Anotação</span>`;
+                            if (window.lucide) lucide.createIcons();
+                            isSavingNote = false;
+                            return;
+                        }
+                    }
+                }
+
+                const now = new Date();
+                const timestampStr = `Salvo em ${now.toLocaleDateString('pt-BR')} às ${now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} por ${auth.currentUser?.email || 'Coordenação OER'}`;
+
+                const newNote = {
+                    id: 'note_' + Date.now() + '_' + Math.random().toString(36).substring(2, 7),
+                    texto: text,
+                    criadoEm: now.toISOString(),
+                    criadoEmFormatado: timestampStr,
+                    autor: auth.currentUser?.email || 'Coordenação OER'
+                };
+
                 currentList.push(newNote);
 
                 // Atualiza Firestore
@@ -9115,7 +9172,7 @@ function initMusiciansManagement() {
                 // Limpa o campo para a próxima anotação
                 notesInput.value = '';
 
-                // Atualiza o indicador de anotações
+                // Atualiza o indicador de anotações e o preview imediato
                 updateNotesStatusDisplay(currentSelectedMusico);
 
                 btnSaveNotes.classList.add('saved');
@@ -9129,6 +9186,7 @@ function initMusiciansManagement() {
                     btnSaveNotes.disabled = false;
                     btnSaveNotes.innerHTML = `<i data-lucide="save" style="width: 14px; height: 14px;"></i> <span>Salvar Anotação</span>`;
                     if (window.lucide) lucide.createIcons();
+                    isSavingNote = false;
                 }, 1800);
 
             } catch (err) {
@@ -9136,6 +9194,7 @@ function initMusiciansManagement() {
                 btnSaveNotes.disabled = false;
                 btnSaveNotes.innerHTML = `<i data-lucide="save" style="width: 14px; height: 14px;"></i> <span>Salvar Anotação</span>`;
                 if (window.lucide) lucide.createIcons();
+                isSavingNote = false;
                 showNotification("Erro ao salvar no banco. Verifique sua conexão.", "warning");
             }
         });
@@ -14134,7 +14193,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                 if (nomeExibido) {
                     dadosBolsistas[b.id] = {
                         nome: nomeExibido,
-                        inst: (b.INSTRUMENTOS || b.Instrumento || ''),
+                        inst: (b.INSTRUMENTOS || b.Instrumento || b.instrumento || '').trim(),
                         faltas: [],
                         pendencias: [],
                         atrasosMin: 0
@@ -14219,6 +14278,15 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                 });
             }
             
+            const formatarNomeComInstrumento = (b) => {
+                const inst = (b.inst || '').trim();
+                if (!inst) return b.nome;
+                if (b.nome.includes(' (Desligado em')) {
+                    return b.nome.replace(' (Desligado em', ` (${inst}) (Desligado em`);
+                }
+                return `${b.nome} (${inst})`;
+            };
+
             // 1. Processar e formatar Faltas
             const listaFaltantes = [];
             const bolsistasOrdenadosPorNome = Object.values(dadosBolsistas).sort((a, b) => a.nome.localeCompare(b.nome));
@@ -14226,7 +14294,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
             bolsistasOrdenadosPorNome.forEach(b => {
                 if (b.faltas.length > 0) {
                     const datasStr = b.faltas.map(f => `${String(f.dia).padStart(2, '0')}/${mesStr}${f.obs}`).join(', ');
-                    listaFaltantes.push({ nome: b.nome, datasStr });
+                    listaFaltantes.push({ nome: formatarNomeComInstrumento(b), datasStr });
                 }
             });
 
@@ -14235,7 +14303,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
             bolsistasOrdenadosPorNome.forEach(b => {
                 if (b.pendencias.length > 0) {
                     const datasStr = b.pendencias.map(p => `${String(p.dia).padStart(2, '0')}/${mesStr}${p.obs}`).join(', ');
-                    listaPendentes.push({ nome: b.nome, datasStr });
+                    listaPendentes.push({ nome: formatarNomeComInstrumento(b), datasStr });
                 }
             });
             
@@ -14246,7 +14314,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                 .sort((a, b) => b.atrasosMin - a.atrasosMin);
                 
             bolsistasComAtraso.forEach(b => {
-                listaAtrasados.push({ nome: b.nome, minutos: b.atrasosMin });
+                listaAtrasados.push({ nome: formatarNomeComInstrumento(b), minutos: b.atrasosMin });
             });
             
             const mesesNomes = [

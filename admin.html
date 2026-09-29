@@ -1648,6 +1648,17 @@ Intervalo
                             </button>
                         </div>
                     </div>
+
+                    <!-- Card compacto com a última anotação registrada -->
+                    <div id="drawer-latest-note-preview" style="display: none; margin-top: 0.75rem; padding: 0.75rem 0.85rem; background: #f8fafc; border: 1px solid #e2e8f0; border-left: 3px solid var(--primary-color, #8b0000); border-radius: 8px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem;">
+                            <span style="font-size: 0.75rem; font-weight: 600; color: #475569; display: flex; align-items: center; gap: 0.35rem;">
+                                <i data-lucide="message-square" style="width: 13px; height: 13px; color: var(--primary-color, #8b0000);"></i> Última anotação registrada
+                            </span>
+                            <span id="drawer-latest-note-time" style="font-size: 0.7rem; color: #94a3b8;"></span>
+                        </div>
+                        <p id="drawer-latest-note-text" style="margin: 0; font-size: 0.82rem; color: #1e293b; white-space: pre-wrap; line-height: 1.4;"></p>
+                    </div>
                 </div>
             </div>
 
