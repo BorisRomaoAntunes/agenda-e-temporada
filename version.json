@@ -1,8 +1,32 @@
 {
-  "hash": "ce3e007",
-  "date": "29/09/2026 11:12",
-  "buildAt": "2026-09-29T14:12:41.572Z",
+  "hash": "4dda17c+mod",
+  "date": "29/09/2026, 11:59:39",
+  "buildAt": "2026-09-29T14:59:39.727Z",
   "history": [
+    {
+      "hash": "4dda17c+mod",
+      "date": "29/09/2026, 11:59:39",
+      "author": "Deploy Local",
+      "subject": "Atualização implantada (3 arquivos modificados)"
+    },
+    {
+      "hash": "4dda17c",
+      "date": "29/09/2026 11:53",
+      "author": "Boris Romão Antunes",
+      "subject": "fix(admin): corrige abertura da gaveta de edicao de integrante"
+    },
+    {
+      "hash": "72409a9",
+      "date": "29/09/2026 11:50",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(relatorio): sinaliza Passagem de Som e Ensaio de Naipe no detalhamento de atrasos"
+    },
+    {
+      "hash": "e348f49",
+      "date": "29/09/2026 11:30",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pos-deploy va304ec5"
+    },
     {
       "hash": "ce3e007",
       "date": "29/09/2026 11:12",
@@ -98,30 +122,6 @@
       "date": "29/09/2026 09:09",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualiza version.json pos-deploy v49dd7fd"
-    },
-    {
-      "hash": "49dd7fd",
-      "date": "29/09/2026 09:07",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(relatorios): adiciona contagem acumulada de faltas no ano ao relatorio de faltas dos bolsistas"
-    },
-    {
-      "hash": "0103721",
-      "date": "29/09/2026 09:01",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: Atualiza version.json pós-deploy da Passagem de Som"
-    },
-    {
-      "hash": "15e0ed5",
-      "date": "29/09/2026 08:54",
-      "author": "Boris Romão Antunes",
-      "subject": "feat: Adiciona sistema de agendamento de passagem de som com painel admin, integracao de musicos e relatorios"
-    },
-    {
-      "hash": "93e4b88",
-      "date": "29/09/2026 08:33",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pos-deploy v0bb837c"
     }
   ]
 }
