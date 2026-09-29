@@ -1,13 +1,19 @@
 {
-  "hash": "3c57fc3+mod",
-  "date": "24/09/2026, 22:22:48",
-  "buildAt": "2026-09-25T01:22:48.121Z",
+  "hash": "0bb837c",
+  "date": "29/09/2026 08:28",
+  "buildAt": "2026-09-29T11:29:07.179Z",
   "history": [
     {
-      "hash": "3c57fc3+mod",
-      "date": "24/09/2026, 22:22:48",
-      "author": "Deploy Local",
-      "subject": "Atualização implantada (2 arquivos modificados)"
+      "hash": "0bb837c",
+      "date": "29/09/2026 08:28",
+      "author": "Boris Romão Antunes",
+      "subject": "feat: adiciona instrumento ao lado do nome no relatorio de faltas e atrasos"
+    },
+    {
+      "hash": "b3915d4",
+      "date": "24/09/2026 22:23",
+      "author": "Boris Romão Antunes",
+      "subject": "fix(pdf): corrige geração de PDF em branco no mobile passando HTML direto ao compilador"
     },
     {
       "hash": "3c57fc3",
@@ -116,12 +122,6 @@
       "date": "24/09/2026 19:00",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualiza version.json pós-deploy ve7b14a8"
-    },
-    {
-      "hash": "e7b14a8",
-      "date": "24/09/2026 18:54",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(musicos): adiciona relatório de tempo de OER com prévia e exportação Excel"
     }
   ]
 }
