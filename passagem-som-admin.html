@@ -47,16 +47,36 @@
                 <a href="admin.html" class="btn btn-outline btn-sm" title="Voltar ao Painel Admin Principal">
                     <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> Voltar ao Admin
                 </a>
+                
+                <!-- Ícone Elegante de Violino OER -->
+                <div class="violin-icon-wrap" title="Orquestra Experimental de Repertório">
+                    <svg viewBox="0 0 64 64" class="violin-icon-svg" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="32" cy="7" r="3" />
+                        <path d="M29 6 H25 M35 6 H39 M29 8 H26 M35 8 H38" />
+                        <rect x="30.5" y="10" width="3" height="12" rx="0.5" />
+                        <path d="M25 24 C19 26 19 32 23 35 C24 36 24 37 23 38 C18 42 19 50 25 54 C28 56 36 56 39 54 C45 50 46 42 41 38 C40 37 40 36 41 35 C45 32 45 26 39 24 C36 23 28 23 25 24 Z" />
+                        <polygon points="30,55 34,55 33,47 31,47" fill="currentColor" />
+                        <path d="M26 36 C25 34 27 33 27 31" />
+                        <path d="M38 36 C39 34 37 33 37 31" />
+                        <circle cx="26" cy="36" r="0.8" fill="currentColor" />
+                        <circle cx="27" cy="31" r="0.8" fill="currentColor" />
+                        <circle cx="38" cy="36" r="0.8" fill="currentColor" />
+                        <circle cx="37" cy="31" r="0.8" fill="currentColor" />
+                        <line x1="31.2" y1="9" x2="31.2" y2="47" />
+                        <line x1="32.8" y1="9" x2="32.8" y2="47" />
+                    </svg>
+                </div>
+
                 <img src="assets/img/logo_oer.png" alt="OER Logo" class="ps-logo">
                 <div class="ps-title-group">
-                    <h1><i data-lucide="mic-2" style="width: 24px; height: 24px; color: var(--oer-primary);"></i> Painel de Passagem de Som</h1>
+                    <h1>Painel de Passagem de Som</h1>
                     <p>Controle de horários, relatórios para WhatsApp, exportação e validação de músicos.</p>
                 </div>
             </div>
 
             <div class="ps-header-actions">
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <label for="selectCiclo" style="font-size: 0.82rem; font-weight: 600; color: var(--oer-text-muted);">Edição:</label>
+                    <label for="selectCiclo" style="font-size: 0.82rem; font-weight: 600; color: var(--oer-text-muted);">Reavaliação:</label>
                     <select id="selectCiclo" class="form-input" style="padding: 0.45rem 0.75rem; font-size: 0.88rem; font-weight: 600; min-width: 220px;"></select>
                 </div>
                 <button type="button" class="btn btn-primary btn-sm" id="btnHeaderCopyLink" title="Copiar link da página pública para enviar aos músicos">
@@ -89,7 +109,7 @@
                 <i data-lucide="message-square" style="width: 17px; height: 17px;"></i> Mensagem para WhatsApp
             </button>
             <button type="button" class="ps-tab-btn" data-tab="tab-ciclos">
-                <i data-lucide="settings" style="width: 17px; height: 17px;"></i> Configurações do Ciclo
+                <i data-lucide="calendar-range" style="width: 17px; height: 17px;"></i> Configuração de Nova Reavaliação
             </button>
         </nav>
 
@@ -185,19 +205,20 @@
             </div>
         </div>
 
-        <!-- ABA 3: CONFIGURAÇÃO DE CICLOS E HORÁRIOS -->
+        <!-- ABA 3: CONFIGURAÇÃO DE NOVA REAVALIAÇÃO (CONSTRUTOR VISUAL DE DISPONIBILIDADE) -->
         <div id="tab-ciclos" class="tab-pane" style="display: none;">
             <div class="ps-card">
                 <div class="ps-card-header">
-                    <h2><i data-lucide="calendar" style="width: 20px; height: 20px; color: var(--oer-primary);"></i> Configuração do Ciclo Atual</h2>
+                    <h2><i data-lucide="calendar-check-2" style="width: 20px; height: 20px; color: var(--oer-primary);"></i> Configuração de Nova Reavaliação</h2>
                     <button type="button" class="btn btn-outline btn-sm" id="btnNovoCiclo">
-                        <i data-lucide="plus" style="width: 15px; height: 15px;"></i> Criar Novo Ciclo
+                        <i data-lucide="plus" style="width: 15px; height: 15px;"></i> Nova Reavaliação
                     </button>
                 </div>
 
+                <!-- Dados Gerais da Reavaliação -->
                 <div class="form-grid">
                     <div class="form-group">
-                        <label class="form-label">Nome do Ciclo / Edição:</label>
+                        <label class="form-label">Nome da Reavaliação:</label>
                         <input type="text" id="cicloNomeInput" class="form-input" placeholder="Ex: Reavaliação 03 - 2026">
                     </div>
                     <div class="form-group">
@@ -211,7 +232,7 @@
                     <div class="form-group" style="justify-content: flex-end;">
                         <label class="form-label" style="cursor: pointer; display: flex; align-items: center; gap: 0.5rem; margin-top: 1.5rem;">
                             <input type="checkbox" id="cicloAtivoCheckbox" style="width: 18px; height: 18px; accent-color: var(--oer-primary);">
-                            <span>Ciclo Ativo (disponível para os músicos no formulário)</span>
+                            <span>Reavaliação Ativa (disponível no formulário público)</span>
                         </label>
                     </div>
                     <div class="form-group" style="grid-column: 1 / -1;">
@@ -220,31 +241,159 @@
                     </div>
                 </div>
 
-                <hr style="border: none; border-top: 1px solid var(--oer-border); margin: 1.5rem 0;">
+                <hr style="border: none; border-top: 1px solid var(--oer-border); margin: 2rem 0;">
 
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
-                    <div>
-                        <h4 style="font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--oer-primary);">
-                            Dias e Horários da 1ª Passagem (JSON estruturado)
-                        </h4>
-                        <p style="font-size: 0.8rem; color: var(--oer-text-muted); margin-bottom: 0.5rem;">
-                            Lista de datas com os horários disponíveis em cada dia:
-                        </p>
-                        <textarea id="p1DiasJson" class="form-input" style="width: 100%; height: 220px; font-family: monospace; font-size: 0.82rem;"></textarea>
+                <!-- ======================================================== -->
+                <!-- SEÇÃO 1: PERÍODO E DISPONIBILIDADE DA 1ª PASSAGEM -->
+                <!-- ======================================================== -->
+                <div class="config-section-box">
+                    <div class="config-section-title">
+                        <span><i data-lucide="clock" style="width: 18px; height: 18px; color: var(--oer-primary);"></i> 1ª Passagem de Som: Período & Horários</span>
+                        <span class="passagem-badge-tag" style="margin: 0;">1ª Passagem</span>
                     </div>
-                    <div>
-                        <h4 style="font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--oer-primary);">
-                            Dias e Horários da 2ª Passagem (JSON estruturado)
-                        </h4>
-                        <p style="font-size: 0.8rem; color: var(--oer-text-muted); margin-bottom: 0.5rem;">
-                            Lista de datas com os horários disponíveis em cada dia:
-                        </p>
-                        <textarea id="p2DiasJson" class="form-input" style="width: 100%; height: 220px; font-family: monospace; font-size: 0.82rem;"></textarea>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem; margin-bottom: 1.25rem;">
+                        <div class="form-group">
+                            <label class="form-label">Data Inicial:</label>
+                            <input type="date" id="p1DataInicio" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Data Final:</label>
+                            <input type="date" id="p1DataFim" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Duração de Cada Slot:</label>
+                            <select id="p1DuracaoSlot" class="form-input">
+                                <option value="15">15 minutos</option>
+                                <option value="20">20 minutos</option>
+                                <option value="30" selected>30 minutos (Padrão)</option>
+                                <option value="45">45 minutos</option>
+                                <option value="60">60 minutos (1 hora)</option>
+                            </select>
+                        </div>
                     </div>
+
+                    <div class="form-group" style="margin-bottom: 1.25rem;">
+                        <label class="form-label">Dias da Semana Permitidos:</label>
+                        <div class="weekdays-picker" id="p1Weekdays">
+                            <label class="weekday-checkbox-label"><input type="checkbox" value="1" checked> Seg</label>
+                            <label class="weekday-checkbox-label"><input type="checkbox" value="2" checked> Ter</label>
+                            <label class="weekday-checkbox-label"><input type="checkbox" value="3" checked> Qua</label>
+                            <label class="weekday-checkbox-label"><input type="checkbox" value="4" checked> Qui</label>
+                            <label class="weekday-checkbox-label"><input type="checkbox" value="5" checked> Sex</label>
+                            <label class="weekday-checkbox-label"><input type="checkbox" value="6"> Sáb</label>
+                            <label class="weekday-checkbox-label"><input type="checkbox" value="0"> Dom</label>
+                        </div>
+                    </div>
+
+                    <!-- Múltiplos Intervalos de Horários no Mesmo Dia (com +) -->
+                    <div class="intervalos-wrapper">
+                        <label class="form-label" style="margin-bottom: 0.5rem; color: var(--oer-primary);">
+                            <i data-lucide="layers" style="width: 16px; height: 16px;"></i> Intervalos de Horários de Funcionamento no Dia:
+                        </label>
+                        <p style="font-size: 0.78rem; color: var(--oer-text-muted); margin-bottom: 0.75rem;">
+                            Defina os turnos ou períodos livres. Adicione mais de um intervalo se houver pausa no dia (ex: almoço ou ensaio de naipe).
+                        </p>
+
+                        <div id="p1IntervalosContainer">
+                            <!-- Inserido dinamicamente via JS -->
+                        </div>
+
+                        <button type="button" class="btn-add-intervalo" id="btnP1AddIntervalo">
+                            <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Adicionar outro intervalo de horários
+                        </button>
+                    </div>
+
+                    <div style="margin-top: 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+                        <button type="button" class="btn btn-outline" id="btnP1GerarGrade" style="font-weight: 700;">
+                            <i data-lucide="sparkles" style="width: 15px; height: 15px; color: var(--oer-primary);"></i> Gerar / Atualizar Grade da 1ª Passagem
+                        </button>
+                        <span style="font-size: 0.8rem; color: var(--oer-text-muted);">
+                            Você pode clicar no <strong>×</strong> de qualquer horário gerado abaixo para removê-lo individualmente.
+                        </span>
+                    </div>
+
+                    <!-- Grade Visual de Dias e Horários da 1ª Passagem -->
+                    <div class="dias-preview-grid" id="p1DiasPreview"></div>
                 </div>
 
-                <button type="button" class="btn btn-primary" id="btnSalvarCiclo" style="padding: 0.75rem 1.5rem;">
-                    Salvar Configurações do Ciclo
+                <!-- ======================================================== -->
+                <!-- SEÇÃO 2: PERÍODO E DISPONIBILIDADE DA 2ª PASSAGEM -->
+                <!-- ======================================================== -->
+                <div class="config-section-box">
+                    <div class="config-section-title">
+                        <span><i data-lucide="clock-4" style="width: 18px; height: 18px; color: var(--oer-primary);"></i> 2ª Passagem de Som: Período & Horários</span>
+                        <span class="passagem-badge-tag" style="margin: 0;">2ª Passagem</span>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1.25rem; margin-bottom: 1.25rem;">
+                        <div class="form-group">
+                            <label class="form-label">Data Inicial:</label>
+                            <input type="date" id="p2DataInicio" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Data Final:</label>
+                            <input type="date" id="p2DataFim" class="form-input">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Duração de Cada Slot:</label>
+                            <select id="p2DuracaoSlot" class="form-input">
+                                <option value="15">15 minutos</option>
+                                <option value="20">20 minutos</option>
+                                <option value="30" selected>30 minutos (Padrão)</option>
+                                <option value="45">45 minutos</option>
+                                <option value="60">60 minutos (1 hora)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group" style="margin-bottom: 1.25rem;">
+                        <label class="form-label">Dias da Semana Permitidos:</label>
+                        <div class="weekdays-picker" id="p2Weekdays">
+                            <label class="weekday-checkbox-label"><input type="checkbox" value="1" checked> Seg</label>
+                            <label class="weekday-checkbox-label"><input type="checkbox" value="2" checked> Ter</label>
+                            <label class="weekday-checkbox-label"><input type="checkbox" value="3" checked> Qua</label>
+                            <label class="weekday-checkbox-label"><input type="checkbox" value="4" checked> Qui</label>
+                            <label class="weekday-checkbox-label"><input type="checkbox" value="5" checked> Sex</label>
+                            <label class="weekday-checkbox-label"><input type="checkbox" value="6"> Sáb</label>
+                            <label class="weekday-checkbox-label"><input type="checkbox" value="0"> Dom</label>
+                        </div>
+                    </div>
+
+                    <!-- Múltiplos Intervalos de Horários da 2ª Passagem -->
+                    <div class="intervalos-wrapper">
+                        <label class="form-label" style="margin-bottom: 0.5rem; color: var(--oer-primary);">
+                            <i data-lucide="layers" style="width: 16px; height: 16px;"></i> Intervalos de Horários de Funcionamento no Dia:
+                        </label>
+                        <p style="font-size: 0.78rem; color: var(--oer-text-muted); margin-bottom: 0.75rem;">
+                            Defina os turnos ou períodos livres. Adicione mais de um intervalo se houver pausa no dia.
+                        </p>
+
+                        <div id="p2IntervalosContainer">
+                            <!-- Inserido dinamicamente via JS -->
+                        </div>
+
+                        <button type="button" class="btn-add-intervalo" id="btnP2AddIntervalo">
+                            <i data-lucide="plus" style="width: 14px; height: 14px;"></i> Adicionar outro intervalo de horários
+                        </button>
+                    </div>
+
+                    <div style="margin-top: 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+                        <button type="button" class="btn btn-outline" id="btnP2GerarGrade" style="font-weight: 700;">
+                            <i data-lucide="sparkles" style="width: 15px; height: 15px; color: var(--oer-primary);"></i> Gerar / Atualizar Grade da 2ª Passagem
+                        </button>
+                        <span style="font-size: 0.8rem; color: var(--oer-text-muted);">
+                            Você pode clicar no <strong>×</strong> de qualquer horário gerado abaixo para removê-lo individualmente.
+                        </span>
+                    </div>
+
+                    <!-- Grade Visual de Dias e Horários da 2ª Passagem -->
+                    <div class="dias-preview-grid" id="p2DiasPreview"></div>
+                </div>
+
+                <!-- Botão de Salvar -->
+                <button type="button" class="btn btn-primary" id="btnSalvarCiclo" style="padding: 0.85rem 2rem; font-size: 1rem; border-radius: 10px;">
+                    <i data-lucide="save" style="width: 18px; height: 18px;"></i> Salvar Configurações da Reavaliação
                 </button>
             </div>
         </div>

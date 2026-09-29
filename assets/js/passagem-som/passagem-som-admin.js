@@ -2,7 +2,7 @@
  * passagem-som-admin.js
  * Painel Administrativo de Passagem de Som (OER)
  * Relatórios em Tabela, WhatsApp diário, Exportação Excel/CSV,
- * Validação de Músicos e Gestão de Ciclos
+ * Validação de Músicos e Construtor Visual de Nova Reavaliação
  */
 
 import { auth } from "../firebase-config.js";
@@ -24,6 +24,25 @@ let musicosAtivos = [];
 let filtroTipo = "todas"; // 'todas', '1', '2'
 let filtroTexto = "";
 let dataSelecionadaWhatsApp = "";
+
+// Estado do Construtor de Reavaliação
+let p1Config = {
+    dataInicio: "",
+    dataFim: "",
+    duracao: 30,
+    weekdays: [1, 2, 3, 4, 5],
+    intervalos: [{ inicio: "13:30", fim: "17:00" }],
+    dias: []
+};
+
+let p2Config = {
+    dataInicio: "",
+    dataFim: "",
+    duracao: 30,
+    weekdays: [1, 2, 3, 4, 5],
+    intervalos: [{ inicio: "13:30", fim: "17:00" }],
+    dias: []
+};
 
 // Elementos DOM
 const loaderEl = document.getElementById("loader");
@@ -51,17 +70,34 @@ const inputDataWhatsApp = document.getElementById("inputDataWhatsApp");
 const whatsappPreviewEl = document.getElementById("whatsappPreview");
 const btnCopiarWhatsApp = document.getElementById("btnCopiarWhatsApp");
 
-// Ciclos
-const formEditarCiclo = document.getElementById("formEditarCiclo");
+// Campos Gerais de Reavaliação
 const cicloNomeInput = document.getElementById("cicloNomeInput");
 const cicloTituloInput = document.getElementById("cicloTituloInput");
 const cicloAvisoInput = document.getElementById("cicloAvisoInput");
 const cicloLocalInput = document.getElementById("cicloLocalInput");
 const cicloAtivoCheckbox = document.getElementById("cicloAtivoCheckbox");
-const p1DiasJsonEl = document.getElementById("p1DiasJson");
-const p2DiasJsonEl = document.getElementById("p2DiasJson");
 const btnSalvarCiclo = document.getElementById("btnSalvarCiclo");
 const btnNovoCiclo = document.getElementById("btnNovoCiclo");
+
+// Construtor 1ª Passagem DOM
+const p1DataInicioEl = document.getElementById("p1DataInicio");
+const p1DataFimEl = document.getElementById("p1DataFim");
+const p1DuracaoSlotEl = document.getElementById("p1DuracaoSlot");
+const p1WeekdaysContainer = document.getElementById("p1Weekdays");
+const p1IntervalosContainer = document.getElementById("p1IntervalosContainer");
+const btnP1AddIntervalo = document.getElementById("btnP1AddIntervalo");
+const btnP1GerarGrade = document.getElementById("btnP1GerarGrade");
+const p1DiasPreview = document.getElementById("p1DiasPreview");
+
+// Construtor 2ª Passagem DOM
+const p2DataInicioEl = document.getElementById("p2DataInicio");
+const p2DataFimEl = document.getElementById("p2DataFim");
+const p2DuracaoSlotEl = document.getElementById("p2DuracaoSlot");
+const p2WeekdaysContainer = document.getElementById("p2Weekdays");
+const p2IntervalosContainer = document.getElementById("p2IntervalosContainer");
+const btnP2AddIntervalo = document.getElementById("btnP2AddIntervalo");
+const btnP2GerarGrade = document.getElementById("btnP2GerarGrade");
+const p2DiasPreview = document.getElementById("p2DiasPreview");
 
 // Modal Edição Agendamento
 const modalEditarAgendamento = document.getElementById("modalEditarAgendamento");
@@ -112,7 +148,7 @@ async function inicializarAdmin() {
         await PassagemSomService.inicializarCicloPadraoSeNecessario();
         musicosAtivos = await PassagemSomService.getMusicosAtivos();
 
-        // Carrega ciclos
+        // Carrega ciclos / reavaliações
         PassagemSomService.listenTodosCiclos((ciclos) => {
             todosCiclos = ciclos;
             atualizarSelectCiclos();
@@ -136,7 +172,7 @@ function atualizarSelectCiclos() {
     todosCiclos.forEach((c) => {
         const opt = document.createElement("option");
         opt.value = c.id;
-        opt.textContent = `${c.nome} ${c.ativo ? "(Ativo)" : ""}`;
+        opt.textContent = `${c.nome} ${c.ativo ? "(Ativa)" : ""}`;
         if (cicloSelecionado && cicloSelecionado.id === c.id) {
             opt.selected = true;
         }
@@ -164,7 +200,7 @@ function selecionarCiclo(cicloId) {
         printDataAtualizacao.textContent = `Atualização ${dd}/${mm}/${yyyy}`;
     }
 
-    preencherFormConfigCiclo(cicloSelecionado);
+    carregarDadosReavaliacao(cicloSelecionado);
 
     // Escuta agendamentos do ciclo selecionado
     if (unsubscribeAgendamentos) unsubscribeAgendamentos();
@@ -205,7 +241,7 @@ function renderizarValidacaoMusicos() {
         const item = document.createElement("div");
         item.className = "validation-item";
 
-        // Sugestão inicial por correspondência média ou vazia
+        // Sugestão inicial por correspondência
         const match = PassagemSomService.encontrarMusicoCorrespondente(ag.nomeDigitado, musicosAtivos);
 
         // Monta o seletor com todos os músicos ativos
@@ -271,7 +307,6 @@ function renderizarValidacaoMusicos() {
 // RENDERIZAÇÃO DA TABELA OFICIAL (MODELO DO PDF)
 // =========================================================================
 function normalizarLinhasTabela() {
-    // Desmembra cada agendamento em duas linhas cronológicas (1ª e 2ª passagem)
     const linhas = [];
 
     agendamentosDoCiclo.forEach((ag) => {
@@ -311,7 +346,6 @@ function normalizarLinhasTabela() {
         }
     });
 
-    // Ordenação padrão: data e horário cronológico
     linhas.sort((a, b) => a.dataHoraISO.localeCompare(b.dataHoraISO));
     return linhas;
 }
@@ -319,14 +353,12 @@ function normalizarLinhasTabela() {
 function renderizarTabela() {
     let linhas = normalizarLinhasTabela();
 
-    // Filtro por tipo (1ª ou 2ª)
     if (filtroTipo === "1") {
         linhas = linhas.filter((l) => l.tipoNum === "1");
     } else if (filtroTipo === "2") {
         linhas = linhas.filter((l) => l.tipoNum === "2");
     }
 
-    // Filtro por busca de texto
     if (filtroTexto) {
         const q = normalizarTexto(filtroTexto);
         linhas = linhas.filter((l) => {
@@ -423,7 +455,6 @@ btnExportarCSV.addEventListener("click", () => {
         return;
     }
 
-    // Cria cabeçalho CSV compatível com Excel (separador ponto e vírgula no padrão BR)
     const cabecalho = ["Datas e Horários", "Passagem", "Nome", "Instrumento", "OBRA", "Status Vínculo"];
     const linhasCSV = [cabecalho.join(";")];
 
@@ -439,7 +470,7 @@ btnExportarCSV.addEventListener("click", () => {
         linhasCSV.push(item.join(";"));
     });
 
-    const csvContent = "\uFEFF" + linhasCSV.join("\r\n"); // UTF-8 BOM para abrir com acentuação perfeita no Excel
+    const csvContent = "\uFEFF" + linhasCSV.join("\r\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -453,7 +484,6 @@ btnExportarCSV.addEventListener("click", () => {
     mostrarToast("Planilha gerada e baixada com sucesso!", "success");
 });
 
-// Impressão da Tabela (Fiel ao modelo da folha PDF enviada)
 btnImprimirTabela.addEventListener("click", () => {
     window.print();
 });
@@ -464,7 +494,6 @@ btnImprimirTabela.addEventListener("click", () => {
 function atualizarPreviewWhatsApp() {
     if (!cicloSelecionado) return;
 
-    // Se nenhuma data foi escolhida no seletor de WhatsApp, escolhe a próxima data que tem agendamentos
     const todasDatasComAgendamento = new Set();
     agendamentosDoCiclo.forEach((ag) => {
         if (ag.primeiraPassagem) todasDatasComAgendamento.add(ag.primeiraPassagem.data);
@@ -474,7 +503,6 @@ function atualizarPreviewWhatsApp() {
     const datasOrdenadas = Array.from(todasDatasComAgendamento).sort();
 
     if (!dataSelecionadaWhatsApp) {
-        // Tenta selecionar amanhã ou a primeira data disponível
         const hoje = new Date();
         const amanha = new Date(hoje);
         amanha.setDate(hoje.getDate() + 1);
@@ -487,7 +515,6 @@ function atualizarPreviewWhatsApp() {
         inputDataWhatsApp.value = dataSelecionadaWhatsApp;
     }
 
-    // Filtra agendamentos para a data selecionada (seja 1ª ou 2ª passagem)
     const doDia = [];
     agendamentosDoCiclo.forEach((ag) => {
         if (ag.primeiraPassagem && ag.primeiraPassagem.data === dataSelecionadaWhatsApp) {
@@ -506,11 +533,10 @@ function atualizarPreviewWhatsApp() {
         }
     });
 
-    // Ordena por horário
     doDia.sort((a, b) => a.horario.localeCompare(b.horario));
 
     const diaSem = obterDiaSemanaCurto(dataSelecionadaWhatsApp);
-    const dataFormatadaDia = formatarDataBR(dataSelecionadaWhatsApp).substring(0, 5); // ex: 18/09
+    const dataFormatadaDia = formatarDataBR(dataSelecionadaWhatsApp).substring(0, 5);
     const local = cicloSelecionado.local || "sala de Ensaio OSM/OER";
     const avisoDeclaracao = cicloSelecionado.avisoDeclaracao || "preciso da DECLARAÇÃO de ESTUDO enviada para mim até sua SEGUNDA PASSAGEM DE SOM";
 
@@ -527,7 +553,6 @@ function atualizarPreviewWhatsApp() {
     }
 
     textoMsg += `ATENÇÃO: ${avisoDeclaracao}\n\nQualquer dúvida, estou à disposição.`;
-
     whatsappPreviewEl.textContent = textoMsg;
 }
 
@@ -546,71 +571,323 @@ btnCopiarWhatsApp.addEventListener("click", () => {
 });
 
 // =========================================================================
-// CONFIGURAÇÃO DE CICLOS & HORÁRIOS
+// CONSTRUTOR DE DISPONIBILIDADE: CÁLCULOS DE HORÁRIOS & INTERVALOS
 // =========================================================================
-function preencherFormConfigCiclo(c) {
+
+function gerarSlotsNoIntervalo(horaInicio, horaFim, duracaoMinutos) {
+    const slots = [];
+    if (!horaInicio || !horaFim || !duracaoMinutos) return slots;
+    const [hI, mI] = horaInicio.split(":").map(Number);
+    const [hF, mF] = horaFim.split(":").map(Number);
+    let curMin = hI * 60 + mI;
+    const endMin = hF * 60 + mF;
+    while (curMin < endMin) {
+        const h = String(Math.floor(curMin / 60)).padStart(2, "0");
+        const m = String(curMin % 60).padStart(2, "0");
+        slots.push(`${h}:${m}`);
+        curMin += duracaoMinutos;
+    }
+    return slots;
+}
+
+function gerarGradeParaPeriodo(dataInicio, dataFim, weekdays, intervalos, duracaoMinutos) {
+    if (!dataInicio || !dataFim) return [];
+    const [yI, mI, dI] = dataInicio.split("-").map(Number);
+    const [yF, mF, dF] = dataFim.split("-").map(Number);
+
+    const start = new Date(yI, mI - 1, dI);
+    const end = new Date(yF, mF - 1, dF);
+    if (start > end) return [];
+
+    const dias = [];
+    let cur = new Date(start);
+    const nomesDias = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+    while (cur <= end) {
+        const dayOfWeek = cur.getDay();
+        if (weekdays.includes(dayOfWeek)) {
+            const yyyy = cur.getFullYear();
+            const mm = String(cur.getMonth() + 1).padStart(2, "0");
+            const dd = String(cur.getDate()).padStart(2, "0");
+            const dataStr = `${yyyy}-${mm}-${dd}`;
+
+            let horariosDoDia = [];
+            intervalos.forEach((inter) => {
+                if (inter.inicio && inter.fim) {
+                    const slots = gerarSlotsNoIntervalo(inter.inicio, inter.fim, duracaoMinutos);
+                    horariosDoDia.push(...slots);
+                }
+            });
+
+            horariosDoDia = Array.from(new Set(horariosDoDia)).sort();
+
+            dias.push({
+                data: dataStr,
+                diaSemana: nomesDias[dayOfWeek],
+                horarios: horariosDoDia
+            });
+        }
+        cur.setDate(cur.getDate() + 1);
+    }
+    return dias;
+}
+
+// Renderiza a lista de múltiplos intervalos com o botão de excluir
+function renderizarIntervalosUI(containerEl, configObj, callbackAtualizar) {
+    containerEl.innerHTML = "";
+    configObj.intervalos.forEach((inter, idx) => {
+        const row = document.createElement("div");
+        row.className = "intervalo-row";
+        row.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 0.4rem;">
+                <span style="font-size: 0.8rem; font-weight: 600; color: var(--oer-text-muted);">Intervalo ${idx + 1}:</span>
+                <input type="time" class="form-input input-inter-inicio" value="${inter.inicio || '13:30'}" style="padding: 0.35rem 0.6rem; font-size: 0.85rem;">
+                <span style="font-size: 0.8rem; color: var(--oer-text-muted);">às</span>
+                <input type="time" class="form-input input-inter-fim" value="${inter.fim || '17:00'}" style="padding: 0.35rem 0.6rem; font-size: 0.85rem;">
+            </div>
+            ${configObj.intervalos.length > 1 ? `
+            <button type="button" class="btn btn-outline btn-sm btn-del-intervalo" title="Remover este intervalo" style="padding: 0.3rem 0.6rem; color: var(--oer-danger);">
+                <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+            </button>
+            ` : ""}
+        `;
+
+        row.querySelector(".input-inter-inicio").addEventListener("change", (e) => {
+            inter.inicio = e.target.value;
+        });
+        row.querySelector(".input-inter-fim").addEventListener("change", (e) => {
+            inter.fim = e.target.value;
+        });
+
+        const btnDel = row.querySelector(".btn-del-intervalo");
+        if (btnDel) {
+            btnDel.addEventListener("click", () => {
+                configObj.intervalos.splice(idx, 1);
+                renderizarIntervalosUI(containerEl, configObj, callbackAtualizar);
+            });
+        }
+
+        containerEl.appendChild(row);
+    });
+
+    if (window.lucide) lucide.createIcons();
+}
+
+// Renderiza a grade visual de dias com chips de horários
+function renderizarDiasPreviewUI(containerEl, diasArray) {
+    containerEl.innerHTML = "";
+    if (!diasArray || diasArray.length === 0) {
+        containerEl.innerHTML = `
+            <div style="grid-column: 1 / -1; padding: 1.5rem; text-align: center; color: var(--oer-text-muted); background: #f8fafc; border-radius: 8px; border: 1px dashed var(--oer-border);">
+                Nenhum dia configurado ainda. Defina as datas e intervalos acima e clique em <strong>Gerar Grade</strong>.
+            </div>
+        `;
+        return;
+    }
+
+    diasArray.forEach((d, diaIdx) => {
+        const card = document.createElement("div");
+        card.className = "dia-card";
+
+        let chipsHtml = "";
+        d.horarios.forEach((h, hIdx) => {
+            chipsHtml += `
+                <span class="slot-chip" data-dia="${diaIdx}" data-hora="${h}">
+                    ${h}
+                    <button type="button" class="btn-del-slot" title="Remover este horário">&times;</button>
+                </span>
+            `;
+        });
+
+        card.innerHTML = `
+            <div class="dia-card-header">
+                <span class="dia-card-title">${formatarDataBR(d.data)} (${d.diaSemana || obterDiaSemanaCurto(d.data)})</span>
+                <span class="dia-card-badge">${d.horarios.length} horários</span>
+            </div>
+            <div class="chips-slots-container">
+                ${chipsHtml}
+                <button type="button" class="btn-add-slot-chip" title="Adicionar horário avulso a este dia">
+                    + Horário
+                </button>
+            </div>
+        `;
+
+        // Evento de remover horário individual
+        card.querySelectorAll(".slot-chip").forEach((chip) => {
+            const btnDel = chip.querySelector(".btn-del-slot");
+            btnDel.addEventListener("click", () => {
+                const horaParaRemover = chip.getAttribute("data-hora");
+                d.horarios = d.horarios.filter((h) => h !== horaParaRemover);
+                renderizarDiasPreviewUI(containerEl, diasArray);
+            });
+        });
+
+        // Evento de adicionar horário avulso
+        const btnAdd = card.querySelector(".btn-add-slot-chip");
+        btnAdd.addEventListener("click", () => {
+            const novoH = prompt("Digite o horário a adicionar neste dia (ex: 18:30):");
+            if (novoH && /^\d{1,2}:\d{2}$/.test(novoH.trim())) {
+                const horaFormatada = novoH.trim().padStart(5, "0");
+                if (!d.horarios.includes(horaFormatada)) {
+                    d.horarios.push(horaFormatada);
+                    d.horarios.sort();
+                    renderizarDiasPreviewUI(containerEl, diasArray);
+                }
+            } else if (novoH) {
+                mostrarToast("Formato inválido. Use HH:MM (ex: 14:00).", "error");
+            }
+        });
+
+        containerEl.appendChild(card);
+    });
+}
+
+// Botões de Adicionar Intervalo (+)
+btnP1AddIntervalo.addEventListener("click", () => {
+    p1Config.intervalos.push({ inicio: "17:30", fim: "19:30" });
+    renderizarIntervalosUI(p1IntervalosContainer, p1Config);
+});
+
+btnP2AddIntervalo.addEventListener("click", () => {
+    p2Config.intervalos.push({ inicio: "17:30", fim: "19:30" });
+    renderizarIntervalosUI(p2IntervalosContainer, p2Config);
+});
+
+// Botão Gerar Grade 1ª Passagem
+btnP1GerarGrade.addEventListener("click", () => {
+    const dataInicio = p1DataInicioEl.value;
+    const dataFim = p1DataFimEl.value;
+    const duracao = parseInt(p1DuracaoSlotEl.value, 10) || 30;
+
+    // Checkboxes selecionados
+    const weekdays = [];
+    p1WeekdaysContainer.querySelectorAll('input[type="checkbox"]:checked').forEach((cb) => {
+        weekdays.push(parseInt(cb.value, 10));
+    });
+
+    if (!dataInicio || !dataFim) {
+        mostrarToast("Informe a Data Inicial e Data Final para a 1ª Passagem.", "warning");
+        return;
+    }
+
+    p1Config.dataInicio = dataInicio;
+    p1Config.dataFim = dataFim;
+    p1Config.duracao = duracao;
+    p1Config.weekdays = weekdays;
+
+    p1Config.dias = gerarGradeParaPeriodo(dataInicio, dataFim, weekdays, p1Config.intervalos, duracao);
+    renderizarDiasPreviewUI(p1DiasPreview, p1Config.dias);
+    mostrarToast(`Grade da 1ª Passagem gerada com ${p1Config.dias.length} dias!`, "success");
+});
+
+// Botão Gerar Grade 2ª Passagem
+btnP2GerarGrade.addEventListener("click", () => {
+    const dataInicio = p2DataInicioEl.value;
+    const dataFim = p2DataFimEl.value;
+    const duracao = parseInt(p2DuracaoSlotEl.value, 10) || 30;
+
+    const weekdays = [];
+    p2WeekdaysContainer.querySelectorAll('input[type="checkbox"]:checked').forEach((cb) => {
+        weekdays.push(parseInt(cb.value, 10));
+    });
+
+    if (!dataInicio || !dataFim) {
+        mostrarToast("Informe a Data Inicial e Data Final para a 2ª Passagem.", "warning");
+        return;
+    }
+
+    p2Config.dataInicio = dataInicio;
+    p2Config.dataFim = dataFim;
+    p2Config.duracao = duracao;
+    p2Config.weekdays = weekdays;
+
+    p2Config.dias = gerarGradeParaPeriodo(dataInicio, dataFim, weekdays, p2Config.intervalos, duracao);
+    renderizarDiasPreviewUI(p2DiasPreview, p2Config.dias);
+    mostrarToast(`Grade da 2ª Passagem gerada com ${p2Config.dias.length} dias!`, "success");
+});
+
+// =========================================================================
+// CARREGAR E SALVAR REAVALIAÇÃO NO FIRESTORE
+// =========================================================================
+function carregarDadosReavaliacao(c) {
     cicloNomeInput.value = c.nome || "";
     cicloTituloInput.value = c.titulo || "";
     cicloAvisoInput.value = c.avisoDeclaracao || "";
     cicloLocalInput.value = c.local || "";
     cicloAtivoCheckbox.checked = !!c.ativo;
 
-    p1DiasJsonEl.value = JSON.stringify(c.periodo1?.dias || [], null, 2);
-    p2DiasJsonEl.value = JSON.stringify(c.periodo2?.dias || [], null, 2);
+    // 1ª Passagem
+    p1Config.dias = c.periodo1?.dias || [];
+    if (p1Config.dias.length > 0) {
+        p1DataInicioEl.value = p1Config.dias[0].data;
+        p1DataFimEl.value = p1Config.dias[p1Config.dias.length - 1].data;
+    }
+    renderizarIntervalosUI(p1IntervalosContainer, p1Config);
+    renderizarDiasPreviewUI(p1DiasPreview, p1Config.dias);
+
+    // 2ª Passagem
+    p2Config.dias = c.periodo2?.dias || [];
+    if (p2Config.dias.length > 0) {
+        p2DataInicioEl.value = p2Config.dias[0].data;
+        p2DataFimEl.value = p2Config.dias[p2Config.dias.length - 1].data;
+    }
+    renderizarIntervalosUI(p2IntervalosContainer, p2Config);
+    renderizarDiasPreviewUI(p2DiasPreview, p2Config.dias);
 }
 
 btnSalvarCiclo.addEventListener("click", async () => {
     if (!cicloSelecionado) return;
 
-    let p1Dias = [];
-    let p2Dias = [];
-
-    try {
-        p1Dias = JSON.parse(p1DiasJsonEl.value);
-        p2Dias = JSON.parse(p2DiasJsonEl.value);
-    } catch (e) {
-        mostrarToast("Erro no formato JSON dos dias e horários. Verifique a sintaxe.", "error");
+    if (!p1Config.dias || p1Config.dias.length === 0) {
+        mostrarToast("Gere ao menos 1 dia para a 1ª Passagem de Som.", "warning");
+        return;
+    }
+    if (!p2Config.dias || p2Config.dias.length === 0) {
+        mostrarToast("Gere ao menos 1 dia para a 2ª Passagem de Som.", "warning");
         return;
     }
 
     const updates = {
-        nome: cicloNomeInput.value.trim(),
-        titulo: cicloTituloInput.value.trim(),
+        nome: cicloNomeInput.value.trim() || cicloSelecionado.nome,
+        titulo: cicloTituloInput.value.trim() || `Passagem de Som - ${cicloNomeInput.value.trim()}`,
         avisoDeclaracao: cicloAvisoInput.value.trim(),
         local: cicloLocalInput.value.trim(),
         ativo: cicloAtivoCheckbox.checked,
         periodo1: {
             titulo: "1ª Passagem de Som",
-            dias: p1Dias
+            dias: p1Config.dias
         },
         periodo2: {
             titulo: "2ª Passagem de Som",
-            dias: p2Dias
+            dias: p2Config.dias
         }
     };
 
     try {
         btnSalvarCiclo.disabled = true;
+        btnSalvarCiclo.innerHTML = `<span class="loader-spinner" style="width: 16px; height: 16px; margin: 0; border-width: 2px;"></span> Salvando...`;
         await PassagemSomService.salvarCiclo(cicloSelecionado.id, updates);
-        mostrarToast("Configurações do ciclo salvas com sucesso!", "success");
+        mostrarToast("Configurações da Reavaliação salvas com sucesso!", "success");
     } catch (e) {
-        console.error("Erro ao salvar ciclo:", e);
-        mostrarToast("Erro ao salvar ciclo.", "error");
+        console.error("Erro ao salvar reavaliação:", e);
+        mostrarToast(e.message || "Erro ao salvar reavaliação.", "error");
     } finally {
         btnSalvarCiclo.disabled = false;
+        btnSalvarCiclo.innerHTML = `<i data-lucide="save" style="width: 18px; height: 18px;"></i> Salvar Configurações da Reavaliação`;
+        if (window.lucide) lucide.createIcons();
     }
 });
 
 btnNovoCiclo.addEventListener("click", async () => {
-    const nomeNovo = prompt("Digite o nome da nova Edição/Reavaliação (ex: Reavaliação 04 - 2026):");
-    if (!nomeNovo) return;
+    const nomeNovo = prompt("Digite o nome da Nova Reavaliação (ex: Reavaliação 04 - 2026):");
+    if (!nomeNovo || !nomeNovo.trim()) return;
 
-    const idNovo = normalizarTexto(nomeNovo).replace(/\s+/g, "_");
+    const idNovo = normalizarTexto(nomeNovo.trim()).replace(/\s+/g, "_");
 
-    const novoCiclo = {
+    const novaReavaliacao = {
         id: idNovo,
-        nome: nomeNovo,
-        titulo: `Passagem de Som - ${nomeNovo}`,
+        nome: nomeNovo.trim(),
+        titulo: `Passagem de Som - ${nomeNovo.trim()}`,
         ativo: true,
         local: "sala de Ensaio OSM/OER",
         avisoDeclaracao: "preciso da DECLARAÇÃO de ESTUDO enviada para mim até sua SEGUNDA PASSAGEM DE SOM",
@@ -625,10 +902,12 @@ btnNovoCiclo.addEventListener("click", async () => {
     };
 
     try {
-        await PassagemSomService.salvarCiclo(idNovo, novoCiclo);
-        mostrarToast(`Ciclo "${nomeNovo}" criado com sucesso!`, "success");
+        await PassagemSomService.salvarCiclo(idNovo, novaReavaliacao);
+        mostrarToast(`"${nomeNovo}" criada com sucesso!`, "success");
+        selecionarCiclo(idNovo);
     } catch (e) {
-        mostrarToast("Erro ao criar novo ciclo.", "error");
+        console.error("Erro ao criar reavaliação:", e);
+        mostrarToast(e.message || "Erro ao criar nova reavaliação.", "error");
     }
 });
 

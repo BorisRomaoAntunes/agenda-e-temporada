@@ -130,6 +130,23 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
+    // ==========================================
+    // MÓDULO DE PASSAGEM DE SOM / REAVALIAÇÃO
+    // ==========================================
+    // Coleção "passagens_som_ciclos": leitura pública, escrita pelo administrador autenticado
+    match /passagens_som_ciclos/{document} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    // Coleção "passagens_som_agendamentos": leitura pública (para consultar disponibilidade), criação pública com validação, atualização/exclusão pelo admin
+    match /passagens_som_agendamentos/{document} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasAll(['cicloId', 'nomeDigitado', 'instrumento', 'repertorio', 'primeiraPassagem', 'segundaPassagem'])
+                    && request.resource.data.nomeDigitado is string;
+      allow update, delete: if isSignedIn();
+    }
+
     // Regra padrão de segurança (nega tudo por padrão)
     match /{document=**} {
       allow read, write: if false;

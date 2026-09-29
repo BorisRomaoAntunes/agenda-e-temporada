@@ -709,3 +709,224 @@ body {
 .print-footer-update {
     display: none;
 }
+
+/* ==========================================================================
+   Ícone de Violino & Construtor de Disponibilidade de Horários
+   ========================================================================== */
+
+.violin-icon-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--oer-accent-light);
+    color: var(--oer-primary);
+    border: 1px solid var(--oer-accent-border);
+    flex-shrink: 0;
+}
+
+.violin-icon-svg {
+    width: 26px;
+    height: 26px;
+    fill: currentColor;
+}
+
+.config-section-box {
+    background: #ffffff;
+    border: 1px solid var(--oer-border);
+    border-radius: var(--oer-radius);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    border-top: 4px solid var(--oer-primary);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+}
+
+.config-section-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--oer-text-main);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.6rem;
+    border-bottom: 1px solid var(--oer-border);
+}
+
+.weekdays-picker {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin-top: 0.35rem;
+}
+
+.weekday-checkbox-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.4rem 0.75rem;
+    border-radius: 8px;
+    border: 1px solid var(--oer-border);
+    background: #f8fafc;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.15s ease;
+}
+
+.weekday-checkbox-label:hover {
+    background: #f1f5f9;
+}
+
+.weekday-checkbox-label input[type="checkbox"] {
+    accent-color: var(--oer-primary);
+    width: 16px;
+    height: 16px;
+}
+
+.intervalos-wrapper {
+    background: #f8fafc;
+    border: 1px solid var(--oer-border);
+    border-radius: 10px;
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.intervalo-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.intervalo-row:last-child {
+    margin-bottom: 0;
+}
+
+.btn-add-intervalo {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: #fff;
+    border: 1.5px dashed var(--oer-primary);
+    color: var(--oer-primary);
+    font-size: 0.82rem;
+    font-weight: 700;
+    padding: 0.45rem 0.9rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 0.5rem;
+}
+
+.btn-add-intervalo:hover {
+    background: var(--oer-accent-light);
+}
+
+.dias-preview-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+    margin-top: 1.25rem;
+}
+
+.dia-card {
+    background: #fff;
+    border: 1px solid var(--oer-border);
+    border-radius: 10px;
+    padding: 1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+
+.dia-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.dia-card-title {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--oer-primary);
+}
+
+.dia-card-badge {
+    font-size: 0.75rem;
+    background: #f1f5f9;
+    color: #475569;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.chips-slots-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+}
+
+.slot-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: #f8fafc;
+    border: 1px solid var(--oer-border);
+    border-radius: 6px;
+    padding: 0.3rem 0.55rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--oer-text-main);
+    transition: all 0.15s ease;
+}
+
+.slot-chip:hover {
+    border-color: var(--oer-primary);
+    background: var(--oer-accent-light);
+}
+
+.slot-chip .btn-del-slot {
+    background: none;
+    border: none;
+    color: #94a3b8;
+    cursor: pointer;
+    font-size: 1rem;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 2px;
+}
+
+.slot-chip .btn-del-slot:hover {
+    color: var(--oer-danger);
+}
+
+.btn-add-slot-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: none;
+    border: 1px dashed #cbd5e1;
+    border-radius: 6px;
+    padding: 0.3rem 0.55rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--oer-text-muted);
+    cursor: pointer;
+}
+
+.btn-add-slot-chip:hover {
+    border-color: var(--oer-primary);
+    color: var(--oer-primary);
+    background: var(--oer-accent-light);
+}
+
