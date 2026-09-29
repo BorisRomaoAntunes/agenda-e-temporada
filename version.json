@@ -1,8 +1,20 @@
 {
-  "hash": "13654ef",
-  "date": "29/09/2026 10:26",
-  "buildAt": "2026-09-29T13:26:25.165Z",
+  "hash": "1d5a8af",
+  "date": "29/09/2026 10:38",
+  "buildAt": "2026-09-29T13:40:27.993Z",
   "history": [
+    {
+      "hash": "1d5a8af",
+      "date": "29/09/2026 10:38",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pos-deploy v13654ef"
+    },
+    {
+      "hash": "5d2c01b",
+      "date": "29/09/2026 10:36",
+      "author": "Boris Romão Antunes",
+      "subject": "fix(passagem-som): remove icone de violino do cabecalho"
+    },
     {
       "hash": "13654ef",
       "date": "29/09/2026 10:26",
@@ -110,18 +122,6 @@
       "date": "24/09/2026 21:39",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualiza version.json pós-deploy"
-    },
-    {
-      "hash": "90053b5",
-      "date": "24/09/2026 21:32",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pós-deploy v2a10dee"
-    },
-    {
-      "hash": "2a10dee",
-      "date": "24/09/2026 21:23",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza cache de versao e formatacao amigavel de horas de atraso no preview"
     }
   ]
 }
