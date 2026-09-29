@@ -1,13 +1,19 @@
 {
-  "hash": "34cbedb+mod",
-  "date": "29/09/2026, 12:04:42",
-  "buildAt": "2026-09-29T15:04:42.321Z",
+  "hash": "db136b7+mod",
+  "date": "29/09/2026, 12:06:34",
+  "buildAt": "2026-09-29T15:06:34.069Z",
   "history": [
     {
-      "hash": "34cbedb+mod",
-      "date": "29/09/2026, 12:04:42",
+      "hash": "db136b7+mod",
+      "date": "29/09/2026, 12:06:34",
       "author": "Deploy Local",
-      "subject": "Atualização implantada (2 arquivos modificados)"
+      "subject": "Atualização implantada (1 arquivos modificados)"
+    },
+    {
+      "hash": "db136b7",
+      "date": "29/09/2026 12:05",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pos-deploy v34cbedb"
     },
     {
       "hash": "34cbedb",
@@ -116,12 +122,6 @@
       "date": "29/09/2026 09:35",
       "author": "Boris Romão Antunes",
       "subject": "feat: Adiciona construtor visual de disponibilidade com multiplos intervalos, icone de violino e renomeia para Nova Reavaliacao"
-    },
-    {
-      "hash": "8d73735",
-      "date": "29/09/2026 09:15",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pos-deploy v3caa6d9"
     }
   ]
 }
