@@ -243,7 +243,7 @@ export const PassagemSomService = {
                 titulo: "Passagem de Som - Reavaliação 03 - 2026",
                 ativo: true,
                 local: "sala de Ensaio OSM/OER",
-                avisoDeclaracao: "preciso da DECLARAÇÃO de ESTUDO enviada para mim até sua SEGUNDA PASSAGEM DE SOM",
+                avisoDeclaracao: "DECLARAÇÃO de ESTUDO deverá ser enviada para o Inspetor da OER até sua SEGUNDA PASSAGEM DE SOM - Caso precise do documento, solicite ao Inspetor da OER",
                 periodo1: {
                     titulo: "1ª Passagem de Som",
                     dias: [

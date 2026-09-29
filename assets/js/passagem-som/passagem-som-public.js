@@ -335,7 +335,7 @@ formEl.addEventListener("submit", async (e) => {
             </div>
 
             <div style="background: var(--oer-accent-light); border-left: 4px solid var(--oer-primary); padding: 0.9rem 1rem; border-radius: 6px; font-size: 0.85rem; color: var(--oer-text-main); margin-bottom: 1.5rem;">
-                <strong>Atenção:</strong> ${cicloAtivo.avisoDeclaracao || "Preciso da declaração de estudo enviada até sua segunda passagem de som."}
+                <strong>Atenção:</strong> ${cicloAtivo.avisoDeclaracao || "DECLARAÇÃO de ESTUDO deverá ser enviada para o Inspetor da OER até sua SEGUNDA PASSAGEM DE SOM - Caso precise do documento, solicite ao Inspetor da OER"}
             </div>
 
             <button type="button" class="btn btn-outline" style="width: 100%;" onclick="window.location.reload()">

@@ -538,7 +538,7 @@ function atualizarPreviewWhatsApp() {
     const diaSem = obterDiaSemanaCurto(dataSelecionadaWhatsApp);
     const dataFormatadaDia = formatarDataBR(dataSelecionadaWhatsApp).substring(0, 5);
     const local = cicloSelecionado.local || "sala de Ensaio OSM/OER";
-    const avisoDeclaracao = cicloSelecionado.avisoDeclaracao || "preciso da DECLARAÇÃO de ESTUDO enviada para mim até sua SEGUNDA PASSAGEM DE SOM";
+    const avisoDeclaracao = cicloSelecionado.avisoDeclaracao || "DECLARAÇÃO de ESTUDO deverá ser enviada para o Inspetor da OER até sua SEGUNDA PASSAGEM DE SOM - Caso precise do documento, solicite ao Inspetor da OER";
 
     let textoMsg = `Boa tarde!\n\nSegue o cronograma de passagem de som para amanhã dia ${dataFormatadaDia} (${diaSem}), na ${local}:\n\n`;
 
@@ -890,7 +890,7 @@ btnNovoCiclo.addEventListener("click", async () => {
         titulo: `Passagem de Som - ${nomeNovo.trim()}`,
         ativo: true,
         local: "sala de Ensaio OSM/OER",
-        avisoDeclaracao: "preciso da DECLARAÇÃO de ESTUDO enviada para mim até sua SEGUNDA PASSAGEM DE SOM",
+        avisoDeclaracao: "DECLARAÇÃO de ESTUDO deverá ser enviada para o Inspetor da OER até sua SEGUNDA PASSAGEM DE SOM - Caso precise do documento, solicite ao Inspetor da OER",
         periodo1: {
             titulo: "1ª Passagem de Som",
             dias: []
