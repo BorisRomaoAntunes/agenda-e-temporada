@@ -1,8 +1,26 @@
 {
-  "hash": "49dd7fd",
-  "date": "29/09/2026 09:07",
-  "buildAt": "2026-09-29T12:08:28.181Z",
+  "hash": "3caa6d9+mod",
+  "date": "29/09/2026, 09:15:33",
+  "buildAt": "2026-09-29T12:15:32.852Z",
   "history": [
+    {
+      "hash": "3caa6d9+mod",
+      "date": "29/09/2026, 09:15:33",
+      "author": "Deploy Local",
+      "subject": "Atualização implantada (2 arquivos modificados)"
+    },
+    {
+      "hash": "3caa6d9",
+      "date": "29/09/2026 09:15",
+      "author": "Boris Romão Antunes",
+      "subject": "fix(relatorios): ajusta contagem de faltas pos-data e observacoes em linha separada"
+    },
+    {
+      "hash": "4376d0f",
+      "date": "29/09/2026 09:09",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pos-deploy v49dd7fd"
+    },
     {
       "hash": "49dd7fd",
       "date": "29/09/2026 09:07",
@@ -104,24 +122,6 @@
       "date": "24/09/2026 21:19",
       "author": "Boris Romão Antunes",
       "subject": "feat(drawer): limita tamanho do card de ocorrencias com scrollbar customizada"
-    },
-    {
-      "hash": "b5cb630",
-      "date": "24/09/2026 21:08",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pós-deploy va2f64f1"
-    },
-    {
-      "hash": "5343232",
-      "date": "24/09/2026 21:07",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza versao de cache do admin.js"
-    },
-    {
-      "hash": "a2f64f1",
-      "date": "24/09/2026 21:06",
-      "author": "Boris Romão Antunes",
-      "subject": "feat: inclui relatorio de atrasos na ficha PDF e suporte a atraso de passagem de som"
     }
   ]
 }
