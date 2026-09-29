@@ -13940,7 +13940,16 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
 
         if (listaFaltantes.length > 0) {
             secoesRelatorio.push(`*Lista de Faltantes e Datas (Mês de ${mesNomeAno})*\n` + listaFaltantes.map(f => {
-                const obsAno = f.ordinalAno ? ` — [${f.ordinalAno}]` : '';
+                let obsAno = '';
+                if (f.ordinalAno) {
+                    let emojiAlerta = '';
+                    if (f.totalFaltasAno === 3) {
+                        emojiAlerta = '🟡 ';
+                    } else if (f.totalFaltasAno >= 4) {
+                        emojiAlerta = '🔴 ';
+                    }
+                    obsAno = ` — ${emojiAlerta}[${f.ordinalAno}]`;
+                }
                 let linha = `\t• ${f.nome} - ${f.datasStr}${obsAno}`;
                 if (f.observacoesStr) {
                     linha += `\n\t  _[${f.observacoesStr}]_`;
@@ -13975,7 +13984,12 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
             sec += listaFaltantes.map(f => {
                 let obsAno = '';
                 if (f.ordinalAno) {
-                    const corDestaque = (f.totalFaltasAno >= 3) ? '#b91c1c' : '#475569';
+                    let corDestaque = '#475569';
+                    if (f.totalFaltasAno === 3) {
+                        corDestaque = '#d97706';
+                    } else if (f.totalFaltasAno >= 4) {
+                        corDestaque = '#dc2626';
+                    }
                     obsAno = ` — <strong style="color: ${corDestaque};">[${f.ordinalAno}]</strong>`;
                 }
                 let linha = `• <strong>${f.nome}</strong> - ${f.datasStr}${obsAno}`;
