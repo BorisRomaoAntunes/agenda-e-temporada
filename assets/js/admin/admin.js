@@ -13941,7 +13941,11 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
         if (listaFaltantes.length > 0) {
             secoesRelatorio.push(`*Lista de Faltantes e Datas (Mês de ${mesNomeAno})*\n` + listaFaltantes.map(f => {
                 const obsAno = f.ordinalAno ? ` — [${f.ordinalAno}]` : '';
-                return `\t• ${f.nome} - ${f.datasStr}${obsAno}`;
+                let linha = `\t• ${f.nome} - ${f.datasStr}${obsAno}`;
+                if (f.observacoesStr) {
+                    linha += `\n\t  _[${f.observacoesStr}]_`;
+                }
+                return linha;
             }).join('\n'));
         }
 
@@ -13974,7 +13978,11 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                     const corDestaque = (f.totalFaltasAno >= 3) ? '#b91c1c' : '#475569';
                     obsAno = ` — <strong style="color: ${corDestaque};">[${f.ordinalAno}]</strong>`;
                 }
-                return `• <strong>${f.nome}</strong> - ${f.datasStr}${obsAno}`;
+                let linha = `• <strong>${f.nome}</strong> - ${f.datasStr}${obsAno}`;
+                if (f.observacoesStr) {
+                    linha += `<br>&nbsp;&nbsp;&nbsp;&nbsp;<em>[${f.observacoesStr}]</em>`;
+                }
+                return linha;
             }).join('<br>');
             secoesHTML.push(sec);
         }
@@ -14269,9 +14277,14 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                                     // 2. Registros específicos do mês selecionado
                                     if (isDoMesSelecionado) {
                                         const dia = parseInt(dataStr.split('-')[2], 10);
+                                        const notaTexto = (registro.justificativa && registro.justificativa.trim() !== '') ? registro.justificativa.trim() : null;
+
                                         if (isFaltaPassagemSom) {
-                                            const extraNota = (registro.justificativa && registro.justificativa.trim() !== '') ? ` [Nota: "${registro.justificativa.trim()}"]` : '';
-                                            bInfo.faltasMes.push({ dia, obs: ` (Falta Passagem de Som${extraNota})` });
+                                            bInfo.faltasMes.push({ 
+                                                dia, 
+                                                tipoDesc: ' (Falta Passagem de Som)',
+                                                nota: notaTexto
+                                            });
                                         } else if (isFalta) {
                                             let labelObs = ' (Ensaio)';
                                             if (pres.tipo === 'ensaio_naipe' && pres.naipe) {
@@ -14280,10 +14293,11 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                                             } else if (isConcertoPres) {
                                                 labelObs = ` (Concerto)`;
                                             }
-                                            if (registro.justificativa && registro.justificativa.trim() !== '') {
-                                                labelObs += ` [Nota: "${registro.justificativa.trim()}"]`;
-                                            }
-                                            bInfo.faltasMes.push({ dia, obs: labelObs });
+                                            bInfo.faltasMes.push({ 
+                                                dia, 
+                                                tipoDesc: labelObs,
+                                                nota: notaTexto
+                                            });
                                         } else if (isPendente) {
                                             let labelObs = ' (Ensaio)';
                                             if (pres.tipo === 'ensaio_naipe' && pres.naipe) {
@@ -14320,13 +14334,25 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
             
             bolsistasOrdenadosPorNome.forEach(b => {
                 if (b.faltasMes.length > 0) {
-                    const datasStr = b.faltasMes.map(f => `${String(f.dia).padStart(2, '0')}/${mesStr}${f.obs}`).join(', ');
+                    const datasStr = b.faltasMes.map(f => `${String(f.dia).padStart(2, '0')}/${mesStr}${f.tipoDesc}`).join(', ');
                     const ordinalAno = `${b.totalFaltasAno}ª falta no ano`;
+
+                    const notasArr = [];
+                    b.faltasMes.forEach(f => {
+                        if (f.nota) {
+                            const dataDDMM = `${String(f.dia).padStart(2, '0')}/${mesStr}`;
+                            notasArr.push(`${dataDDMM}: "${f.nota}"`);
+                        }
+                    });
+
+                    const observacoesStr = notasArr.length > 0 ? notasArr.join(' | ') : null;
+
                     listaFaltantes.push({ 
                         nome: formatarNomeComInstrumento(b), 
                         datasStr,
                         ordinalAno,
-                        totalFaltasAno: b.totalFaltasAno
+                        totalFaltasAno: b.totalFaltasAno,
+                        observacoesStr
                     });
                 }
             });
