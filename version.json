@@ -1,13 +1,19 @@
 {
-  "hash": "3caa6d9+mod",
-  "date": "29/09/2026, 09:15:33",
-  "buildAt": "2026-09-29T12:15:32.852Z",
+  "hash": "c60f9d6",
+  "date": "29/09/2026 09:35",
+  "buildAt": "2026-09-29T12:36:15.558Z",
   "history": [
     {
-      "hash": "3caa6d9+mod",
-      "date": "29/09/2026, 09:15:33",
-      "author": "Deploy Local",
-      "subject": "Atualização implantada (2 arquivos modificados)"
+      "hash": "c60f9d6",
+      "date": "29/09/2026 09:35",
+      "author": "Boris Romão Antunes",
+      "subject": "feat: Adiciona construtor visual de disponibilidade com multiplos intervalos, icone de violino e renomeia para Nova Reavaliacao"
+    },
+    {
+      "hash": "8d73735",
+      "date": "29/09/2026 09:15",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pos-deploy v3caa6d9"
     },
     {
       "hash": "3caa6d9",
@@ -116,12 +122,6 @@
       "date": "24/09/2026 21:20",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualiza versao de cache do admin.js e resumo de horas"
-    },
-    {
-      "hash": "34e5216",
-      "date": "24/09/2026 21:19",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(drawer): limita tamanho do card de ocorrencias com scrollbar customizada"
     }
   ]
 }
