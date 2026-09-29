@@ -1,8 +1,14 @@
 {
-  "hash": "91ab1c4",
-  "date": "29/09/2026 12:31",
-  "buildAt": "2026-09-29T15:32:16.129Z",
+  "hash": "34c5c6c",
+  "date": "29/09/2026 12:33",
+  "buildAt": "2026-09-29T15:33:10.847Z",
   "history": [
+    {
+      "hash": "34c5c6c",
+      "date": "29/09/2026 12:33",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: version.json pos-deploy v91ab1c4"
+    },
     {
       "hash": "91ab1c4",
       "date": "29/09/2026 12:31",
@@ -116,12 +122,6 @@
       "date": "29/09/2026 10:43",
       "author": "Boris Romão Antunes",
       "subject": "feat(passagem-som): renomeia campo para Avisos Importantes e atualiza texto modelo"
-    },
-    {
-      "hash": "396b404",
-      "date": "29/09/2026 10:42",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pos-deploy"
     }
   ]
 }
