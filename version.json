@@ -1,13 +1,19 @@
 {
-  "hash": "db136b7+mod",
-  "date": "29/09/2026, 12:06:34",
-  "buildAt": "2026-09-29T15:06:34.069Z",
+  "hash": "6fb684c",
+  "date": "29/09/2026 12:07",
+  "buildAt": "2026-09-29T15:14:36.916Z",
   "history": [
     {
-      "hash": "db136b7+mod",
-      "date": "29/09/2026, 12:06:34",
-      "author": "Deploy Local",
-      "subject": "Atualização implantada (1 arquivos modificados)"
+      "hash": "6fb684c",
+      "date": "29/09/2026 12:07",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(passagem-som): melhorias completas de UX, stepper, autocomplete, semaforo e cache v38"
+    },
+    {
+      "hash": "cca8ad8",
+      "date": "29/09/2026 12:07",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pos-deploy"
     },
     {
       "hash": "db136b7",
@@ -116,12 +122,6 @@
       "date": "29/09/2026 09:43",
       "author": "Boris Romão Antunes",
       "subject": "chore: Atualiza version.json pós-deploy da Nova Reavaliação"
-    },
-    {
-      "hash": "c60f9d6",
-      "date": "29/09/2026 09:35",
-      "author": "Boris Romão Antunes",
-      "subject": "feat: Adiciona construtor visual de disponibilidade com multiplos intervalos, icone de violino e renomeia para Nova Reavaliacao"
     }
   ]
 }
