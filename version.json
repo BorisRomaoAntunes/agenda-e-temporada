@@ -1,8 +1,20 @@
 {
-  "hash": "c60f9d6",
-  "date": "29/09/2026 09:35",
-  "buildAt": "2026-09-29T12:36:15.558Z",
+  "hash": "13654ef",
+  "date": "29/09/2026 10:26",
+  "buildAt": "2026-09-29T13:26:25.165Z",
   "history": [
+    {
+      "hash": "13654ef",
+      "date": "29/09/2026 10:26",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(relatorios): adiciona alertas visual amarelo para 3a falta e vermelho para 4a em diante"
+    },
+    {
+      "hash": "cb64282",
+      "date": "29/09/2026 09:43",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: Atualiza version.json pós-deploy da Nova Reavaliação"
+    },
     {
       "hash": "c60f9d6",
       "date": "29/09/2026 09:35",
@@ -110,18 +122,6 @@
       "date": "24/09/2026 21:23",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualiza cache de versao e formatacao amigavel de horas de atraso no preview"
-    },
-    {
-      "hash": "0c8d42f",
-      "date": "24/09/2026 21:22",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pós-deploy vcf8a315"
-    },
-    {
-      "hash": "cf8a315",
-      "date": "24/09/2026 21:20",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza versao de cache do admin.js e resumo de horas"
     }
   ]
 }
