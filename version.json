@@ -1,8 +1,14 @@
 {
-  "hash": "a304ec5",
-  "date": "29/09/2026 11:04",
-  "buildAt": "2026-09-29T14:05:01.742Z",
+  "hash": "ce3e007",
+  "date": "29/09/2026 11:12",
+  "buildAt": "2026-09-29T14:12:41.572Z",
   "history": [
+    {
+      "hash": "ce3e007",
+      "date": "29/09/2026 11:12",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pos-deploy"
+    },
     {
       "hash": "a304ec5",
       "date": "29/09/2026 11:04",
@@ -116,12 +122,6 @@
       "date": "29/09/2026 08:33",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualiza version.json pos-deploy v0bb837c"
-    },
-    {
-      "hash": "0bb837c",
-      "date": "29/09/2026 08:28",
-      "author": "Boris Romão Antunes",
-      "subject": "feat: adiciona instrumento ao lado do nome no relatorio de faltas e atrasos"
     }
   ]
 }
