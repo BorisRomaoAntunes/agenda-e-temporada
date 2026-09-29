@@ -16025,6 +16025,26 @@ async function handleCopyLinkMusicos() {
     }
 }
 
+async function handleCopyLinkPassagemSom() {
+    const urlPassagem = new URL("passagem-som.html", window.location.href).href;
+    try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(urlPassagem);
+        } else {
+            const tempTextarea = document.createElement('textarea');
+            tempTextarea.value = urlPassagem;
+            document.body.appendChild(tempTextarea);
+            tempTextarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempTextarea);
+        }
+        showNotification("Link de Agendamento da Passagem de Som copiado com sucesso! Pronto para enviar aos músicos.", "success");
+    } catch (err) {
+        console.error("Erro ao copiar link de passagem de som:", err);
+        window.prompt("Copie o link abaixo para enviar aos músicos:", urlPassagem);
+    }
+}
+
 function initQuickActionsAgendamentoModule() {
     // 1. Escutas em tempo real das salas e agendamentos para manter cache sempre atualizado
     if (unsubscribeQuickSalas) {
@@ -16049,6 +16069,7 @@ function initQuickActionsAgendamentoModule() {
         const btnAgendamentoAtual = document.getElementById('btn-quick-agendamento-atual');
         const btnHorariosLivres = document.getElementById('btn-quick-horarios-livres');
         const btnLinkMusicos = document.getElementById('btn-quick-link-musicos');
+        const btnLinkPassagemSom = document.getElementById('btn-quick-link-passagem-som');
 
         if (btnAgendamentoAtual) {
             btnAgendamentoAtual.addEventListener('click', (e) => {
@@ -16068,6 +16089,13 @@ function initQuickActionsAgendamentoModule() {
             btnLinkMusicos.addEventListener('click', (e) => {
                 e.preventDefault();
                 handleCopyLinkMusicos();
+            });
+        }
+
+        if (btnLinkPassagemSom) {
+            btnLinkPassagemSom.addEventListener('click', (e) => {
+                e.preventDefault();
+                handleCopyLinkPassagemSom();
             });
         }
 
