@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agendamento de Passagem de Som - OER</title>
+    
+    <!-- Favicons -->
+    <link rel="icon" type="image/png" sizes="180x180" href="assets/img/favicon-final-180.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/img/favicon-final-180.png">
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- CSS Passagem de Som -->
+    <link rel="stylesheet" href="assets/css/passagem-som.css">
+</head>
+<body>
+
+    <!-- Loader de Inicialização -->
+    <div class="loader-overlay" id="loader">
+        <div class="loader-spinner"></div>
+        <p style="font-weight: 600; color: #475569; font-size: 0.95rem;">Carregando horários disponíveis...</p>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast-msg" id="toastMsg"></div>
+
+    <!-- Container Principal -->
+    <main class="ps-container">
+        
+        <!-- Cabeçalho Oficial -->
+        <header class="ps-header-card">
+            <div class="ps-header-info">
+                <img src="assets/img/logo_oer.png" alt="OER Logo" class="ps-logo">
+                <div class="ps-title-group">
+                    <h1 id="cicloTitulo">Passagem de Som OER</h1>
+                    <p id="cicloDescricao">Escolha suas datas e horários para a 1ª e 2ª passagem de som.</p>
+                </div>
+            </div>
+        </header>
+
+        <!-- Mensagem caso nenhum ciclo esteja ativo -->
+        <div id="conteudoSemCiclo" class="ps-card" style="display: none; text-align: center; padding: 3rem 1.5rem;">
+            <i data-lucide="calendar-off" style="width: 48px; height: 48px; color: var(--oer-warning); margin-bottom: 1rem;"></i>
+            <h2 style="margin-bottom: 0.5rem;">Nenhum ciclo de passagem de som ativo no momento.</h2>
+            <p style="color: var(--oer-text-muted); font-size: 0.9rem;">
+                Por favor, aguarde a liberação dos novos horários pela coordenação ou entre em contato com a administração da OER.
+            </p>
+        </div>
+
+        <!-- Formulário de Agendamento -->
+        <div id="conteudoForm">
+            <form id="formAgendamento">
+                
+                <!-- 1. Dados do Músico (Campos Obrigatórios) -->
+                <div class="ps-card">
+                    <div class="ps-card-header">
+                        <h2><i data-lucide="user" style="color: var(--oer-primary); width: 20px; height: 20px;"></i> 1. Dados do Músico</h2>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="musicoNome" class="form-label">
+                                Nome do Músico <span class="req">*</span>
+                            </label>
+                            <input 
+                                type="text" 
+                                id="musicoNome" 
+                                class="form-input" 
+                                placeholder="Digite seu nome completo..." 
+                                required
+                                autocomplete="name"
+                            >
+                            <span class="form-hint">O sistema vinculará automaticamente ao seu cadastro ativo na OER.</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="musicoInstrumento" class="form-label">
+                                Instrumento <span class="req">*</span>
+                            </label>
+                            <input 
+                                type="text" 
+                                id="musicoInstrumento" 
+                                class="form-input" 
+                                placeholder="Ex: Trompete, Violino, Violoncelo..." 
+                                required
+                            >
+                            <span class="form-hint">Informe seu naipe / instrumento.</span>
+                        </div>
+
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label for="musicoRepertorio" class="form-label">
+                                Nome do Repertório / Obra a Tocar <span class="req">*</span>
+                            </label>
+                            <input 
+                                type="text" 
+                                id="musicoRepertorio" 
+                                class="form-input" 
+                                placeholder="Ex: Intrada (A. Honegger), Concerto pra violino de Mendelssohn..." 
+                                required
+                            >
+                            <span class="form-hint">Informe a obra musical que será executada na sua passagem de som.</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Escolha da 1ª Passagem de Som -->
+                <div class="ps-card">
+                    <div class="ps-card-header">
+                        <h2><i data-lucide="clock" style="color: var(--oer-primary); width: 20px; height: 20px;"></i> 2. Escolha a 1ª Passagem de Som</h2>
+                        <span class="passagem-badge-tag" style="margin-bottom: 0;">1ª Passagem</span>
+                    </div>
+
+                    <p style="font-size: 0.85rem; color: var(--oer-text-muted); margin-bottom: 1rem;">
+                        Selecione o dia desejado e clique no horário livre para reservar. Os horários já preenchidos desaparecem automaticamente.
+                    </p>
+
+                    <!-- Seletor de Datas da 1ª Passagem -->
+                    <div class="date-selector-row" id="p1DiasContainer"></div>
+
+                    <!-- Grade de Horários -->
+                    <div class="slots-grid" id="p1SlotsContainer"></div>
+                </div>
+
+                <!-- 3. Escolha da 2ª Passagem de Som -->
+                <div class="ps-card">
+                    <div class="ps-card-header">
+                        <h2><i data-lucide="clock-4" style="color: var(--oer-primary); width: 20px; height: 20px;"></i> 3. Escolha a 2ª Passagem de Som</h2>
+                        <span class="passagem-badge-tag" style="margin-bottom: 0;">2ª Passagem</span>
+                    </div>
+
+                    <p style="font-size: 0.85rem; color: var(--oer-text-muted); margin-bottom: 1rem;">
+                        Selecione o dia e horário para a sua segunda passagem de som no período seguinte.
+                    </p>
+
+                    <!-- Seletor de Datas da 2ª Passagem -->
+                    <div class="date-selector-row" id="p2DiasContainer"></div>
+
+                    <!-- Grade de Horários -->
+                    <div class="slots-grid" id="p2SlotsContainer"></div>
+                </div>
+
+                <!-- 4. Resumo e Confirmação -->
+                <div class="ps-card" style="border-top: 3px solid var(--oer-primary);">
+                    <div class="ps-card-header">
+                        <h2><i data-lucide="check-circle-2" style="color: var(--oer-success); width: 20px; height: 20px;"></i> Resumo do Agendamento</h2>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem; background: #f8fafc; padding: 1.25rem; border-radius: 10px; border: 1px solid var(--oer-border);">
+                        <div>
+                            <span style="font-size: 0.78rem; color: var(--oer-primary); font-weight: 700; text-transform: uppercase;">1ª Passagem</span>
+                            <p style="font-weight: 700; font-size: 1.05rem; color: var(--oer-text-main); margin-top: 0.2rem;" id="resumoP1Data">-</p>
+                            <p style="color: var(--oer-text-muted); font-size: 0.9rem;" id="resumoP1Hora">Selecione o horário</p>
+                        </div>
+                        <div>
+                            <span style="font-size: 0.78rem; color: var(--oer-primary); font-weight: 700; text-transform: uppercase;">2ª Passagem</span>
+                            <p style="font-weight: 700; font-size: 1.05rem; color: var(--oer-text-main); margin-top: 0.2rem;" id="resumoP2Data">-</p>
+                            <p style="color: var(--oer-text-muted); font-size: 0.9rem;" id="resumoP2Hora">Selecione o horário</p>
+                        </div>
+                    </div>
+
+                    <button 
+                        type="submit" 
+                        class="btn btn-primary" 
+                        id="btnConfirmarAgendamento" 
+                        style="width: 100%; padding: 0.9rem 1.5rem; font-size: 1rem; border-radius: 10px;"
+                        disabled
+                    >
+                        Confirmar Agendamento de Passagem de Som
+                    </button>
+                </div>
+            </form>
+        </div>
+
+    </main>
+
+    <!-- Modal de Sucesso -->
+    <div class="modal-overlay" id="modalSucesso">
+        <div class="modal-card">
+            <div id="sucessoConteudo"></div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="assets/js/passagem-som/passagem-som-public.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+        });
+    </script>
+</body>
+</html>

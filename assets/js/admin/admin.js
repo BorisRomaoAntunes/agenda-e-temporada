@@ -9683,6 +9683,9 @@ function initMusiciansManagement() {
         // Carregar anotações
         loadNotesForMusician(musico);
 
+        // Carregar status e agendamento de Passagem de Som / Reavaliação
+        carregarPassagemSomDrawer(musico);
+
         // Resetar filtro de ocorrências para 'todas'
         drawerFilterPills.forEach(p => {
             if (p.dataset.drawerFilter === 'todas') p.classList.add('active');
@@ -15998,3 +16001,77 @@ function initQuickActionsDropdown() {
 }
 
 
+
+
+    // =========================================================================
+    // INTEGRAÇÃO: CARREGAMENTO DE PASSAGEM DE SOM / REAVALIAÇÃO NA GAVETA
+    // =========================================================================
+    async function carregarPassagemSomDrawer(musico) {
+        const badgeEl = document.getElementById("drawer-badge-passagem-status");
+        const cicloEl = document.getElementById("drawer-val-passagem-ciclo");
+        const p1El = document.getElementById("drawer-val-passagem-p1");
+        const p2El = document.getElementById("drawer-val-passagem-p2");
+        const obraEl = document.getElementById("drawer-val-passagem-obra");
+
+        if (!badgeEl || !cicloEl) return;
+
+        badgeEl.textContent = "Consultando...";
+        badgeEl.style.background = "#f1f5f9";
+        badgeEl.style.color = "#64748b";
+        cicloEl.textContent = "-";
+        p1El.textContent = "-";
+        p2El.textContent = "-";
+        obraEl.textContent = "-";
+
+        try {
+            const agRef = collection(db, "passagens_som_agendamentos");
+            let ag = null;
+
+            if (musico.id) {
+                const qMusico = query(agRef, where("musicoId", "==", musico.id));
+                const snap = await getDocs(qMusico);
+                if (!snap.empty) {
+                    ag = snap.docs[0].data();
+                }
+            }
+
+            if (!ag) {
+                const nomeReg = (musico["NOME REGISTRO"] || "").toLowerCase().trim();
+                const nomeArt = (musico.NOMEARTISTICO || "").toLowerCase().trim();
+                const allSnap = await getDocs(agRef);
+                for (const d of allSnap.docs) {
+                    const data = d.data();
+                    const nDig = (data.nomeDigitado || "").toLowerCase().trim();
+                    const nOfic = (data.musicoNomeOficial || "").toLowerCase().trim();
+                    if ((nomeReg && (nDig === nomeReg || nOfic === nomeReg)) ||
+                        (nomeArt && (nDig === nomeArt || nOfic === nomeArt))) {
+                        ag = data;
+                        break;
+                    }
+                }
+            }
+
+            if (ag) {
+                badgeEl.textContent = "Agendado";
+                badgeEl.style.background = "#dcfce7";
+                badgeEl.style.color = "#16a34a";
+
+                cicloEl.textContent = ag.cicloId || "Reavaliação OER";
+                p1El.textContent = ag.primeiraPassagem ? `${formatDataBR(ag.primeiraPassagem.data)} às ${ag.primeiraPassagem.horario}` : "-";
+                p2El.textContent = ag.segundaPassagem ? `${formatDataBR(ag.segundaPassagem.data)} às ${ag.segundaPassagem.horario}` : "-";
+                obraEl.textContent = ag.repertorio || "-";
+            } else {
+                badgeEl.textContent = "Aguardando";
+                badgeEl.style.background = "#fef3c7";
+                badgeEl.style.color = "#d97706";
+
+                cicloEl.textContent = "Aguardando agendamento";
+                p1El.textContent = "Não agendado";
+                p2El.textContent = "Não agendado";
+                obraEl.textContent = "-";
+            }
+        } catch (e) {
+            console.warn("Aviso ao carregar dados de passagem de som no drawer:", e);
+            badgeEl.textContent = "Pendente";
+        }
+    }

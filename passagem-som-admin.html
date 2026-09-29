@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Gestão - Passagem de Som OER</title>
+    
+    <!-- Favicons -->
+    <link rel="icon" type="image/png" sizes="180x180" href="assets/img/favicon-final-180.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="assets/img/favicon-final-180.png">
+
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <!-- CSS Passagem de Som -->
+    <link rel="stylesheet" href="assets/css/passagem-som.css">
+</head>
+<body>
+
+    <!-- Loader de Autenticação -->
+    <div class="loader-overlay" id="loader">
+        <div class="loader-spinner"></div>
+        <p style="font-weight: 600; color: #475569; font-size: 0.95rem;">Verificando autenticação...</p>
+    </div>
+
+    <!-- Toast Notification -->
+    <div class="toast-msg" id="toastMsg"></div>
+
+    <!-- Cabeçalho Exclusivo de Impressão (Fiel ao Modelo PDF) -->
+    <div class="print-only-header">
+        <h2 id="printTituloCiclo" style="font-size: 14pt; margin-bottom: 0.75rem; text-transform: uppercase;">
+            Lista de Agendamentos Passagem de Som
+        </h2>
+    </div>
+
+    <!-- Container Principal -->
+    <main class="ps-container">
+        
+        <!-- Cabeçalho Oficial Admin -->
+        <header class="ps-header-card">
+            <div class="ps-header-info">
+                <a href="admin.html" class="btn btn-outline btn-sm" title="Voltar ao Painel Admin Principal">
+                    <i data-lucide="arrow-left" style="width: 16px; height: 16px;"></i> Voltar ao Admin
+                </a>
+                <img src="assets/img/logo_oer.png" alt="OER Logo" class="ps-logo">
+                <div class="ps-title-group">
+                    <h1><i data-lucide="mic-2" style="width: 24px; height: 24px; color: var(--oer-primary);"></i> Painel de Passagem de Som</h1>
+                    <p>Controle de horários, relatórios para WhatsApp, exportação e validação de músicos.</p>
+                </div>
+            </div>
+
+            <div class="ps-header-actions">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <label for="selectCiclo" style="font-size: 0.82rem; font-weight: 600; color: var(--oer-text-muted);">Edição:</label>
+                    <select id="selectCiclo" class="form-input" style="padding: 0.45rem 0.75rem; font-size: 0.88rem; font-weight: 600; min-width: 220px;"></select>
+                </div>
+                <button type="button" class="btn btn-primary btn-sm" id="btnHeaderCopyLink" title="Copiar link da página pública para enviar aos músicos">
+                    <i data-lucide="share-2" style="width: 15px; height: 15px;"></i> Copiar Link p/ Músicos
+                </button>
+            </div>
+        </header>
+
+        <!-- Card de Validação Inteligente de Músicos (Aparece se houver pendências) -->
+        <section class="validation-card" id="validationCard" style="display: none;">
+            <div class="validation-card-header">
+                <h3>
+                    <i data-lucide="alert-triangle" style="width: 20px; height: 20px;"></i> 
+                    Músicos Aguardando Validação de Vínculo
+                </h3>
+                <span class="badge badge-pendente" id="validationCountBadge">0 pendentes</span>
+            </div>
+            <p style="font-size: 0.85rem; color: #78350f; margin-bottom: 1rem;">
+                Os seguintes músicos preencheram o formulário público com grafias diferentes do cadastro. Associe-os ao registro oficial para sincronizar com o banco de dados e a gaveta do músico.
+            </p>
+            <div class="validation-list" id="validationList"></div>
+        </section>
+
+        <!-- Abas de Navegação -->
+        <nav class="ps-tabs no-print">
+            <button type="button" class="ps-tab-btn active" data-tab="tab-tabela">
+                <i data-lucide="table" style="width: 17px; height: 17px;"></i> Tabela de Agendamentos
+            </button>
+            <button type="button" class="ps-tab-btn" data-tab="tab-whatsapp">
+                <i data-lucide="message-square" style="width: 17px; height: 17px;"></i> Mensagem para WhatsApp
+            </button>
+            <button type="button" class="ps-tab-btn" data-tab="tab-ciclos">
+                <i data-lucide="settings" style="width: 17px; height: 17px;"></i> Configurações do Ciclo
+            </button>
+        </nav>
+
+        <!-- ABA 1: TABELA GERAL & RELATÓRIOS -->
+        <div id="tab-tabela" class="tab-pane">
+            <div class="ps-card">
+                <div class="ps-card-header">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <h2><i data-lucide="list-ordered" style="width: 20px; height: 20px; color: var(--oer-primary);"></i> Lista Cronológica de Agendamentos</h2>
+                        <span class="badge" id="countAgendamentosBadge" style="background: var(--oer-accent-light); color: var(--oer-primary);">0 horários</span>
+                    </div>
+
+                    <div class="no-print" style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-outline btn-sm" id="btnExportarCSV" title="Exportar dados para Excel (.csv)">
+                            <i data-lucide="file-spreadsheet" style="width: 15px; height: 15px; color: #16a34a;"></i> Exportar Excel / CSV
+                        </button>
+                        <button type="button" class="btn btn-outline btn-sm" id="btnImprimirTabela" title="Imprimir tabela conforme modelo oficial em folha">
+                            <i data-lucide="printer" style="width: 15px; height: 15px;"></i> Imprimir Relatório
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Barra de Filtros -->
+                <div class="no-print" style="display: flex; gap: 0.75rem; margin-bottom: 1.25rem; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 220px;">
+                        <input type="text" id="inputBusca" class="form-input" placeholder="Buscar por músico, instrumento ou obra..." style="width: 100%;">
+                    </div>
+                    <div style="width: 200px;">
+                        <select id="selectFiltroTipo" class="form-input" style="width: 100%;">
+                            <option value="todas">Todas as Passagens</option>
+                            <option value="1">Apenas 1ª Passagem</option>
+                            <option value="2">Apenas 2ª Passagem</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Tabela de Dados -->
+                <div class="table-responsive">
+                    <table class="ps-table">
+                        <thead>
+                            <tr>
+                                <th>Datas e Horários</th>
+                                <th>Passagem</th>
+                                <th>Nome</th>
+                                <th>Instrumento</th>
+                                <th>OBRA</th>
+                                <th class="no-print">Vínculo</th>
+                                <th class="no-print" style="text-align: right;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyAgendamentos">
+                            <tr>
+                                <td colspan="7" style="text-align: center; color: var(--oer-text-muted); padding: 2rem;">
+                                    Carregando agendamentos...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Rodapé de Atualização para Impressão -->
+                <div class="print-footer-update" id="printDataAtualizacao">
+                    Atualização --/--/----
+                </div>
+            </div>
+        </div>
+
+        <!-- ABA 2: MENSAGEM WHATSAPP DIÁRIA -->
+        <div id="tab-whatsapp" class="tab-pane" style="display: none;">
+            <div class="ps-card">
+                <div class="ps-card-header">
+                    <h2><i data-lucide="message-circle" style="width: 20px; height: 20px; color: #16a34a;"></i> Cronograma Diário para WhatsApp</h2>
+                    <button type="button" class="btn btn-success btn-sm" id="btnCopiarWhatsApp">
+                        <i data-lucide="copy" style="width: 15px; height: 15px;"></i> Copiar p/ WhatsApp
+                    </button>
+                </div>
+
+                <p style="font-size: 0.85rem; color: var(--oer-text-muted); margin-bottom: 1.25rem;">
+                    Selecione o dia desejado para gerar automaticamente a mensagem padrão pronta para envio no grupo dos músicos, com os dois primeiros nomes e instrumentos:
+                </p>
+
+                <div style="margin-bottom: 1.25rem; max-width: 260px;">
+                    <label for="inputDataWhatsApp" class="form-label">Data do Cronograma:</label>
+                    <input type="date" id="inputDataWhatsApp" class="form-input" style="width: 100%;">
+                </div>
+
+                <!-- Caixa de Visualização da Mensagem -->
+                <div class="whatsapp-preview-box">
+                    <div class="whatsapp-bubble" id="whatsappPreview">
+                        Gerando mensagem...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ABA 3: CONFIGURAÇÃO DE CICLOS E HORÁRIOS -->
+        <div id="tab-ciclos" class="tab-pane" style="display: none;">
+            <div class="ps-card">
+                <div class="ps-card-header">
+                    <h2><i data-lucide="calendar" style="width: 20px; height: 20px; color: var(--oer-primary);"></i> Configuração do Ciclo Atual</h2>
+                    <button type="button" class="btn btn-outline btn-sm" id="btnNovoCiclo">
+                        <i data-lucide="plus" style="width: 15px; height: 15px;"></i> Criar Novo Ciclo
+                    </button>
+                </div>
+
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label class="form-label">Nome do Ciclo / Edição:</label>
+                        <input type="text" id="cicloNomeInput" class="form-input" placeholder="Ex: Reavaliação 03 - 2026">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Título da Página Pública:</label>
+                        <input type="text" id="cicloTituloInput" class="form-input" placeholder="Ex: Passagem de Som - Reavaliação 03 - 2026">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Local dos Ensaios (para o WhatsApp):</label>
+                        <input type="text" id="cicloLocalInput" class="form-input" placeholder="Ex: sala de Ensaio OSM/OER">
+                    </div>
+                    <div class="form-group" style="justify-content: flex-end;">
+                        <label class="form-label" style="cursor: pointer; display: flex; align-items: center; gap: 0.5rem; margin-top: 1.5rem;">
+                            <input type="checkbox" id="cicloAtivoCheckbox" style="width: 18px; height: 18px; accent-color: var(--oer-primary);">
+                            <span>Ciclo Ativo (disponível para os músicos no formulário)</span>
+                        </label>
+                    </div>
+                    <div class="form-group" style="grid-column: 1 / -1;">
+                        <label class="form-label">Aviso sobre Declaração de Estudo:</label>
+                        <input type="text" id="cicloAvisoInput" class="form-input" placeholder="Ex: preciso da DECLARAÇÃO de ESTUDO enviada para mim até sua SEGUNDA PASSAGEM DE SOM">
+                    </div>
+                </div>
+
+                <hr style="border: none; border-top: 1px solid var(--oer-border); margin: 1.5rem 0;">
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+                    <div>
+                        <h4 style="font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--oer-primary);">
+                            Dias e Horários da 1ª Passagem (JSON estruturado)
+                        </h4>
+                        <p style="font-size: 0.8rem; color: var(--oer-text-muted); margin-bottom: 0.5rem;">
+                            Lista de datas com os horários disponíveis em cada dia:
+                        </p>
+                        <textarea id="p1DiasJson" class="form-input" style="width: 100%; height: 220px; font-family: monospace; font-size: 0.82rem;"></textarea>
+                    </div>
+                    <div>
+                        <h4 style="font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--oer-primary);">
+                            Dias e Horários da 2ª Passagem (JSON estruturado)
+                        </h4>
+                        <p style="font-size: 0.8rem; color: var(--oer-text-muted); margin-bottom: 0.5rem;">
+                            Lista de datas com os horários disponíveis em cada dia:
+                        </p>
+                        <textarea id="p2DiasJson" class="form-input" style="width: 100%; height: 220px; font-family: monospace; font-size: 0.82rem;"></textarea>
+                    </div>
+                </div>
+
+                <button type="button" class="btn btn-primary" id="btnSalvarCiclo" style="padding: 0.75rem 1.5rem;">
+                    Salvar Configurações do Ciclo
+                </button>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Modal Editar Agendamento -->
+    <div class="modal-overlay" id="modalEditarAgendamento">
+        <div class="modal-card">
+            <div class="modal-header">
+                <h3>Editar Agendamento</h3>
+                <button type="button" id="btnFecharModalEdit" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #94a3b8;">&times;</button>
+            </div>
+
+            <form id="formEditarAgendamento">
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label class="form-label">Nome do Músico:</label>
+                    <input type="text" id="editNome" class="form-input" required>
+                </div>
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label class="form-label">Instrumento:</label>
+                    <input type="text" id="editInstrumento" class="form-input" required>
+                </div>
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label class="form-label">Obra / Repertório:</label>
+                    <input type="text" id="editRepertorio" class="form-input" required>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                    <div class="form-group">
+                        <label class="form-label">Data 1ª Passagem:</label>
+                        <input type="date" id="editP1Data" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Horário 1ª Passagem:</label>
+                        <input type="text" id="editP1Hora" class="form-input" placeholder="HH:MM" required>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                    <div class="form-group">
+                        <label class="form-label">Data 2ª Passagem:</label>
+                        <input type="date" id="editP2Data" class="form-input" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Horário 2ª Passagem:</label>
+                        <input type="text" id="editP2Hora" class="form-input" placeholder="HH:MM" required>
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="assets/js/passagem-som/passagem-som-admin.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            if (window.lucide) {
+                lucide.createIcons();
+            }
+        });
+    </script>
+</body>
+</html>

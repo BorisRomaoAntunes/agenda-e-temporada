@@ -238,6 +238,10 @@
                                  <span class="qa-item-icon btn-agendamento"><i data-lucide="calendar-clock"></i></span>
                                  <span class="qa-item-label">Agendamento de Salas</span>
                              </a>
+                             <a href="passagem-som-admin.html" target="_blank" class="quick-actions-item" role="menuitem" data-qa-close>
+                                 <span class="qa-item-icon btn-passagem-som" style="background: rgba(139, 0, 0, 0.12); color: var(--primary-color, #8b0000);"><i data-lucide="mic-2"></i></span>
+                                 <span class="qa-item-label">Passagem de Som</span>
+                             </a>
                              <a href="https://docs.google.com/document/d/1LZcA7TGbL2J_O8Y8H7JUKAauF8B1PAElbnSDqjodTQw/edit?usp=sharing" target="_blank" class="quick-actions-item" role="menuitem" data-qa-close>
                                  <span class="qa-item-icon btn-instrumentacao"><i data-lucide="file-text"></i></span>
                                  <span class="qa-item-label">Instrumentação</span>
@@ -1702,6 +1706,34 @@ Intervalo
                     <div class="drawer-field copyable-area" style="grid-column: span 2;">
                         <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Data Envio Caderno de Excertos</span>
                         <span class="field-value field-txt" id="drawer-val-caderno-excertos" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- REAVALIAÇÃO & PASSAGEM DE SOM (INTEGRAÇÃO OER) -->
+            <div class="drawer-section-card" id="drawer-section-passagem-som" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 1.25rem;">
+                <div class="section-card-header" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.8rem; padding-bottom: 0.4rem; border-bottom: 1px solid #f1f5f9;">
+                    <h4 style="margin: 0; font-size: 0.95rem; font-weight: 700; color: var(--primary-color, #8b0000); display: flex; align-items: center; gap: 0.4rem;">
+                        <i data-lucide="mic-2" style="width: 16px; height: 16px;"></i> Reavaliação & Passagem de Som
+                    </h4>
+                    <span id="drawer-badge-passagem-status" style="font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 6px; background: #fef3c7; color: #d97706;">Aguardando</span>
+                </div>
+                <div class="drawer-grid" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.8rem 1rem;">
+                    <div class="drawer-field copyable-area" style="grid-column: span 2;">
+                        <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Ciclo / Edição</span>
+                        <span class="field-value field-txt" id="drawer-val-passagem-ciclo" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                    </div>
+                    <div class="drawer-field copyable-area">
+                        <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">1ª Passagem</span>
+                        <span class="field-value field-txt" id="drawer-val-passagem-p1" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                    </div>
+                    <div class="drawer-field copyable-area">
+                        <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">2ª Passagem</span>
+                        <span class="field-value field-txt" id="drawer-val-passagem-p2" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
+                    </div>
+                    <div class="drawer-field copyable-area" style="grid-column: span 2;">
+                        <span class="field-label" style="font-size: 0.75rem; color: #999; display: block; margin-bottom: 0.1rem;">Obra / Repertório</span>
+                        <span class="field-value field-txt" id="drawer-val-passagem-obra" style="font-size: 0.9rem; font-weight: 600; color: #333; display: block;">-</span>
                     </div>
                 </div>
             </div>
