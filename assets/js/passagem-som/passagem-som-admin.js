@@ -812,7 +812,7 @@ btnP2GerarGrade.addEventListener("click", () => {
 function carregarDadosReavaliacao(c) {
     cicloNomeInput.value = c.nome || "";
     cicloTituloInput.value = c.titulo || "";
-    cicloAvisoInput.value = c.avisoDeclaracao || "";
+    cicloAvisoInput.value = c.avisoDeclaracao || "DECLARAÇÃO de ESTUDO deverá ser enviada para o Inspetor da OER até sua SEGUNDA PASSAGEM DE SOM - Caso precise do documento, solicite ao Inspetor da OER";
     cicloLocalInput.value = c.local || "";
     cicloAtivoCheckbox.checked = !!c.ativo;
 
