@@ -491,7 +491,7 @@ export const AgendamentoService = {
         // Agrupar por Sala
         const porSala = {};
         agendamentosDaData.forEach((ag) => {
-            const nomeSala = (ag.salaNome || "SALA").toUpperCase();
+            const nomeSala = (ag.salaNome || "SALA").replace(/ensiio/gi, "Ensaio").toUpperCase();
             if (!porSala[nomeSala]) porSala[nomeSala] = [];
             porSala[nomeSala].push(ag);
         });
@@ -573,7 +573,7 @@ export const AgendamentoService = {
             const slots = this.calculateAvailableSlots(sala, dataStr, agendamentos || [], { filterPast: true });
             const livres = slots.filter(s => s.disponivel);
 
-            const nomeSala = (sala.nome || "SALA").toUpperCase();
+            const nomeSala = (sala.nome || "SALA").replace(/ensiio/gi, "Ensaio").toUpperCase();
             let bloco = `📍  *${nomeSala}*\n`;
 
             if (livres.length === 0) {
@@ -640,11 +640,11 @@ export const AgendamentoService = {
         if (matchNum) {
             idSala = `sala ${matchNum[0]}`;
         } else {
-            const nomeLimpo = (ag.salaNome || "Ensaio").replace(/^(sala\s*(de\s*ensaio)?\s*[-–:]?\s*)/i, "").trim();
+            const nomeLimpo = (ag.salaNome || "Ensaio").replace(/ensiio/gi, "Ensaio").replace(/^(sala\s*(de\s*ensaio)?\s*[-–:]?\s*)/i, "").trim();
             idSala = `sala ${nomeLimpo || "Ensaio"}`;
         }
 
-        const nomeSalaCompleto = (ag.salaNome || "SALA DE ENSAIO").toUpperCase();
+        const nomeSalaCompleto = (ag.salaNome || "SALA DE ENSAIO").replace(/ensiio/gi, "Ensaio").toUpperCase();
 
         // Linha do agendamento (horário inicial e final em itálico WhatsApp)
         const horario = (ag.horaInicio && ag.horaFim) 
