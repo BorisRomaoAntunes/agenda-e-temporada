@@ -532,7 +532,8 @@ export const AgendamentoService = {
             blocos.push(blocoSala.trim());
         });
 
-        return blocos.join("\n\n");
+        const rodape = `📌 *Para agendar:* Envie por favor a sala e o horário escolhido. Qualquer dúvida, estou à disposição!`;
+        return `${blocos.join("\n\n")}\n\n${rodape}`;
     },
 
     /**
@@ -599,7 +600,8 @@ export const AgendamentoService = {
             blocosSalas.push(bloco.trim());
         });
 
-        return header + blocosSalas.join("\n\n");
+        const rodape = `📌 *Para agendar:* Envie por favor a sala e o horário escolhido. Qualquer dúvida, estou à disposição!`;
+        return `${header}${blocosSalas.join("\n\n")}\n\n${rodape}`;
     },
 
     /**

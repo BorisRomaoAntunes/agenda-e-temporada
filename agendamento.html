@@ -622,8 +622,11 @@
             }
         }
 
-        function promptFallback(url) {
-            window.prompt("Copie o link abaixo para enviar aos músicos:", url);
+        function promptFallback(conteudo) {
+            const mensagem = (conteudo && (conteudo.startsWith("http") || conteudo.includes(".html")))
+                ? "Copie o link abaixo para enviar aos músicos:"
+                : "Copie a mensagem abaixo para enviar no WhatsApp:";
+            window.prompt(mensagem, conteudo);
         }
 
         if (btnHeaderCopyPublicLink) {
@@ -828,14 +831,14 @@
         }
 
         // Cópia da Mensagem Individual Personalizada de um Agendamento
-        function copiarMensagemIndividual(ag) {
+        function copiarMensagemIndividual(ag, customToastMessage = null) {
             if (!ag) return;
             const texto = AgendamentoService.generateSingleAppointmentMessage(ag);
             const primeiroNome = (ag.nomeSolicitante || "Músico").trim().split(/\s+/)[0];
 
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(texto).then(() => {
-                    showToast(`Mensagem de ${primeiroNome} copiada para o WhatsApp!`, "success");
+                    showToast(customToastMessage || `Mensagem de ${primeiroNome} copiada para o WhatsApp!`, "success");
                 }).catch(err => {
                     console.error("Erro ao copiar via clipboard:", err);
                     promptFallback(texto);
@@ -1573,7 +1576,7 @@
 
             try {
                 await AgendamentoService.createAgendamento(payload);
-                showToast("Agendamento confirmado com sucesso!");
+                copiarMensagemIndividual(payload, "Agendamento confirmado e mensagem copiada para o WhatsApp!");
                 publicBookingForm.reset();
                 if (selectInstrumento) selectInstrumento.disabled = false;
                 if (selectVinculo) selectVinculo.disabled = false;
