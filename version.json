@@ -1,8 +1,14 @@
 {
-  "hash": "8332406",
-  "date": "30/09/2026 12:28",
-  "buildAt": "2026-09-30T15:30:27.189Z",
+  "hash": "5a56060",
+  "date": "30/09/2026 12:30",
+  "buildAt": "2026-09-30T15:30:49.098Z",
   "history": [
+    {
+      "hash": "5a56060",
+      "date": "30/09/2026 12:30",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pos-deploy v8332406"
+    },
     {
       "hash": "8332406",
       "date": "30/09/2026 12:28",
@@ -116,12 +122,6 @@
       "date": "29/09/2026 10:59",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualiza version.json pos-deploy v9edda17"
-    },
-    {
-      "hash": "b2010a1",
-      "date": "29/09/2026 10:59",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(passagem-som): preenche valor padrao do campo Avisos Importantes"
     }
   ]
 }
