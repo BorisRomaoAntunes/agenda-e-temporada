@@ -1,8 +1,26 @@
 {
-  "hash": "34c5c6c",
-  "date": "29/09/2026 12:33",
-  "buildAt": "2026-09-29T15:33:10.847Z",
+  "hash": "8332406",
+  "date": "30/09/2026 12:28",
+  "buildAt": "2026-09-30T15:30:27.189Z",
   "history": [
+    {
+      "hash": "8332406",
+      "date": "30/09/2026 12:28",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(agendamento): adiciona rodape whatsapp para escolha de sala/horario e copia automatica na confirmacao"
+    },
+    {
+      "hash": "3aba246",
+      "date": "29/09/2026 12:53",
+      "author": "Boris Romão Antunes",
+      "subject": "feat: privacidade de dados (remover autocomplete), select de instrumentos e responsividade mobile"
+    },
+    {
+      "hash": "479d83d",
+      "date": "29/09/2026 12:35",
+      "author": "Boris Romão Antunes",
+      "subject": "Atualiza version.json do deploy de produção"
+    },
     {
       "hash": "34c5c6c",
       "date": "29/09/2026 12:33",
@@ -104,24 +122,6 @@
       "date": "29/09/2026 10:59",
       "author": "Boris Romão Antunes",
       "subject": "feat(passagem-som): preenche valor padrao do campo Avisos Importantes"
-    },
-    {
-      "hash": "9edda17",
-      "date": "29/09/2026 10:51",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(relatorio): adiciona formato Atrasos Detalhado para e-mail"
-    },
-    {
-      "hash": "f4955bc",
-      "date": "29/09/2026 10:46",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pos-deploy v5ee9648"
-    },
-    {
-      "hash": "5ee9648",
-      "date": "29/09/2026 10:43",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(passagem-som): renomeia campo para Avisos Importantes e atualiza texto modelo"
     }
   ]
 }
