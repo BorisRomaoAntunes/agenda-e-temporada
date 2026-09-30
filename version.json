@@ -1,8 +1,20 @@
 {
-  "hash": "5a56060",
-  "date": "30/09/2026 12:30",
-  "buildAt": "2026-09-30T15:30:49.098Z",
+  "hash": "7b79356",
+  "date": "30/09/2026 14:03",
+  "buildAt": "2026-09-30T17:06:13.617Z",
   "history": [
+    {
+      "hash": "7b79356",
+      "date": "30/09/2026 14:03",
+      "author": "Boris Romão Antunes",
+      "subject": "fix(agendamento): remove rodape de solicitacao do relatorio de agendamento atual"
+    },
+    {
+      "hash": "d9855cd",
+      "date": "30/09/2026 12:31",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: version.json deploy v5a56060"
+    },
     {
       "hash": "5a56060",
       "date": "30/09/2026 12:30",
@@ -110,18 +122,6 @@
       "date": "29/09/2026 11:12",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualiza version.json pos-deploy"
-    },
-    {
-      "hash": "a304ec5",
-      "date": "29/09/2026 11:04",
-      "author": "Boris Romão Antunes",
-      "subject": "fix(agendamento): corrige grafia da Sala de Ensaio nas mensagens do WhatsApp"
-    },
-    {
-      "hash": "ab44559",
-      "date": "29/09/2026 10:59",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pos-deploy v9edda17"
     }
   ]
 }
