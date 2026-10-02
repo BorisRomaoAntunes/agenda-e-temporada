@@ -521,6 +521,41 @@ body {
     cursor: not-allowed;
 }
 
+.btn-cal-today {
+    background: #f8fafc;
+    border: 1px solid var(--oer-border);
+    border-radius: 8px;
+    height: 30px;
+    padding: 0 0.65rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--oer-primary);
+    font-size: 0.76rem;
+    font-weight: 600;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+}
+
+.btn-cal-today:hover:not(:disabled) {
+    background: var(--oer-accent-light);
+    color: var(--oer-primary);
+    border-color: var(--oer-accent-border);
+    transform: scale(1.03);
+}
+
+.btn-cal-today.active-today {
+    background: var(--oer-primary);
+    color: #ffffff;
+    border-color: var(--oer-primary);
+}
+
+.btn-cal-today:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
 /* Grade da Semana */
 .calendar-weekdays-grid {
     display: grid;

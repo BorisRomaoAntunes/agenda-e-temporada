@@ -76,6 +76,9 @@
                                 <i data-lucide="calendar" style="width: 14px; height: 14px;"></i> DATA
                             </span>
                             <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <button type="button" class="btn-cal-today" id="btnToday" title="Ir para a data de hoje">
+                                    Hoje
+                                </button>
                                 <div class="calendar-nav-buttons">
                                     <button type="button" class="btn-cal-nav" id="btnPrevMonth" title="Mês anterior">
                                         <i data-lucide="chevron-left" style="width: 16px; height: 16px;"></i>
@@ -331,11 +334,21 @@
         const calDaysGrid = document.getElementById("calDaysGrid");
         const btnPrevMonth = document.getElementById("btnPrevMonth");
         const btnNextMonth = document.getElementById("btnNextMonth");
+        const btnToday = document.getElementById("btnToday");
+
+        // Helper para obter data local em YYYY-MM-DD (evita divergência de fuso horário)
+        function formatarDataLocal(d = new Date()) {
+            const y = d.getFullYear();
+            const m = String(d.getMonth() + 1).padStart(2, "0");
+            const dia = String(d.getDate()).padStart(2, "0");
+            return `${y}-${m}-${dia}`;
+        }
 
         const hoje = new Date();
+        const hojeFormatado = formatarDataLocal(hoje);
         let calAnoAtual = hoje.getFullYear();
         let calMesAtual = hoje.getMonth(); // 0 a 11
-        let selectedDataFormatada = hoje.toISOString().split("T")[0]; // YYYY-MM-DD
+        let selectedDataFormatada = hojeFormatado; // YYYY-MM-DD
 
         const NOMES_MESES = [
             "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -465,9 +478,46 @@
         }
 
         // Data de hoje em formato YYYY-MM-DD
-        const todayStr = new Date().toISOString().split("T")[0];
+        const todayStr = hojeFormatado;
         publicDataInput.value = todayStr;
         publicDataInput.min = todayStr;
+
+        // Ajusta o mês do calendário e a data selecionada para a sala
+        function ajustarDataECalendarioParaSala(sala) {
+            // Se a sala possui Data Inicial do Período no FUTURO, abre o calendário no mês da Data Inicial
+            if (sala?.dataInicioPeriodo && sala.dataInicioPeriodo > hojeFormatado) {
+                const [iniY, iniM] = sala.dataInicioPeriodo.split("-").map(Number);
+                calAnoAtual = iniY;
+                calMesAtual = iniM - 1;
+                selectedDataFormatada = sala.dataInicioPeriodo;
+            } else {
+                // Caso contrário (início já ocorreu ou é hoje), vai sempre para a DATA ATUAL
+                calAnoAtual = hoje.getFullYear();
+                calMesAtual = hoje.getMonth();
+                selectedDataFormatada = hojeFormatado;
+            }
+            if (publicDataInput) {
+                publicDataInput.value = selectedDataFormatada;
+            }
+        }
+
+        // Função para ir para a Data Atual (Hoje)
+        function irParaDataAtual() {
+            calAnoAtual = hoje.getFullYear();
+            calMesAtual = hoje.getMonth();
+            selectedDataFormatada = hojeFormatado;
+            if (publicDataInput) {
+                publicDataInput.value = hojeFormatado;
+            }
+            selectedSlot = null;
+            renderVisualCalendar();
+            renderPublicSlots();
+            updateStepStates();
+        }
+
+        if (btnToday) {
+            btnToday.addEventListener("click", irParaDataAtual);
+        }
 
         // Ouvintes em Tempo Real
         AgendamentoService.listenSalas((salas) => {
@@ -498,6 +548,7 @@
 
             if (!selectedSalaId && allSalas.length > 0) {
                 selectedSalaId = allSalas[0].id;
+                ajustarDataECalendarioParaSala(allSalas[0]);
             }
 
             publicSalasGrid.innerHTML = allSalas.map(sala => `
@@ -512,14 +563,9 @@
                 card.addEventListener("click", () => {
                     selectedSalaId = card.getAttribute("data-id");
                     selectedSlot = null;
-                    selectedDataFormatada = null;
 
                     const salaClicada = allSalas.find(s => s.id === selectedSalaId);
-                    if (salaClicada?.dataInicioPeriodo) {
-                        const [iniY, iniM] = salaClicada.dataInicioPeriodo.split("-").map(Number);
-                        calAnoAtual = iniY;
-                        calMesAtual = iniM - 1;
-                    }
+                    ajustarDataECalendarioParaSala(salaClicada);
 
                     renderPublicSalas();
                     renderVisualCalendar();
@@ -589,14 +635,14 @@
             }
             btnNextMonth.disabled = disableNext;
 
+            if (btnToday) {
+                const ehHojeMesEAno = (calAnoAtual === hoje.getFullYear() && calMesAtual === hoje.getMonth() && selectedDataFormatada === hojeFormatado);
+                btnToday.classList.toggle("active-today", ehHojeMesEAno);
+            }
+
             const primeiroDia = new Date(calAnoAtual, calMesAtual, 1);
             const diaSemanaInicio = primeiroDia.getDay();
             const totalDiasNoMes = new Date(calAnoAtual, calMesAtual + 1, 0).getDate();
-
-            const hojeY = hoje.getFullYear();
-            const hojeM = String(hoje.getMonth() + 1).padStart(2, "0");
-            const hojeD = String(hoje.getDate()).padStart(2, "0");
-            const hojeFormatado = `${hojeY}-${hojeM}-${hojeD}`;
 
             let htmlDias = "";
 
@@ -620,7 +666,7 @@
                 const desabilitado = ehPassado || foraDoPeriodo || salaFechada || estaBloqueada;
 
                 const ehHoje = dataString === hojeFormatado;
-                const ehSelecionado = dataString === selectedDataFormatada;
+                const ehSelecionado = dataString === selectedDataFormatada && !desabilitado;
 
                 let classes = "cal-day-cell";
                 if (desabilitado) classes += " disabled";
