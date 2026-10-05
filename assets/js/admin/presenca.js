@@ -83,6 +83,7 @@ let selectedDate = "";
 let activeMusicianId = null;
 let selectedStatusTemp = null;
 let selectedDelayTemp = 0;
+let statusBeforeDelay = { status: "none", minutes: 0 };
 let existedInFirestore = false; // Indica se a lista da data selecionada já estava salva no Firestore
 let dailyEventsCalls = []; // Lista de chamadas (Tutti + Naipes) para a data selecionada
 let activeCallId = null; // ID da chamada ativa no momento
@@ -222,15 +223,8 @@ async function initApp() {
     if (justificationTextarea) justificationTextarea.addEventListener("input", handleJustificationInput);
     if (btnSaveJustification) btnSaveJustification.addEventListener("click", () => saveJustificationAndClose());
 
-    // Atalhos Rápidos de Atraso (Pílulas)
-    document.querySelectorAll(".delay-pill-btn").forEach(btn => {
-        btn.addEventListener("click", (e) => {
-            const minutes = parseInt(e.currentTarget.getAttribute("data-delay"), 10);
-            if (!isNaN(minutes)) {
-                applyQuickDelay(minutes);
-            }
-        });
-    });
+    // Régua Horizontal de Atraso (estilo iOS)
+    initDelayRuler();
 
     // Suporte a Gesto Swipe-Down na Alça da Modal
     if (drawerHandleWrapper) {
@@ -1457,6 +1451,13 @@ function openDrawerForMusician(musician) {
 
     if (overlay) overlay.classList.add("open");
     if (statusDrawer) statusDrawer.classList.add("open");
+
+    // Guardar status anterior ao atraso (para desfazer quando a régua voltar a 0)
+    const isDelayStatus = current.status === "atraso" || current.status === "atraso_passagem_som";
+    statusBeforeDelay = isDelayStatus ? { status: "none", minutes: 0 } : { ...current };
+
+    // Posicionar a régua no atraso já salvo (ou em 0) sem registrar nada
+    requestAnimationFrame(() => setDelayRulerValue(isDelayStatus ? (current.minutes || 0) : 0, { silent: true }));
 }
 
 // Selecionar Instantaneamente Status Simples e Fechar
@@ -1562,8 +1563,8 @@ function handleJustificationInput(e) {
     }
 }
 
-// Aplicar Atalho Rápido de Atraso (Pílula) abrindo a caixa de anotação (igual faltas)
-function applyQuickDelay(minutes) {
+// Aplicar Atraso (régua) abrindo a caixa de anotação (igual faltas)
+function applyQuickDelay(minutes, { focusNote = true } = {}) {
     if (!activeMusicianId) return;
 
     selectedDelayTemp = minutes;
@@ -1571,10 +1572,16 @@ function applyQuickDelay(minutes) {
     const activeCall = dailyEventsCalls.find(c => c.id === activeCallId);
     const isConcerto = activeCall && activeCall.tipo === "concerto";
 
-    // Em concertos, o padrão automático alinhado é atraso_passagem_som
-    selectedStatusTemp = isConcerto ? "atraso_passagem_som" : "atraso";
+    // Mantém o tipo de atraso já escolhido (Geral x Passagem de Som);
+    // senão, em concertos o padrão automático é atraso_passagem_som
+    if (selectedStatusTemp !== "atraso" && selectedStatusTemp !== "atraso_passagem_som") {
+        selectedStatusTemp = isConcerto ? "atraso_passagem_som" : "atraso";
+    }
 
     const current = attendanceData[activeMusicianId] || {};
+    if (current.status !== "atraso" && current.status !== "atraso_passagem_som") {
+        statusBeforeDelay = current.status ? { ...current } : { status: "none", minutes: 0 };
+    }
     const currentNota = justificationTextarea.value || current.justificativa || "";
     justificationTextarea.value = currentNota;
 
@@ -1590,13 +1597,34 @@ function applyQuickDelay(minutes) {
     saveDraft();
     renderMusicians();
 
-    const labelToast = isConcerto ? `Atraso na Passagem de Som (${minutes}m) selecionado` : `Atraso de ${minutes}m selecionado`;
+    const label = formatDelayLabel(minutes);
+    const labelToast = selectedStatusTemp === "atraso_passagem_som" ? `Atraso na Passagem de Som (${label}) registrado` : `Atraso de ${label} registrado`;
     showToast(labelToast);
 
     // Focar no campo de anotação
-    setTimeout(() => {
-        justificationTextarea.focus();
-    }, 100);
+    if (focusNote) {
+        setTimeout(() => {
+            justificationTextarea.focus();
+        }, 100);
+    }
+}
+
+// Desfazer atraso (régua voltou para 0): restaura o status anterior ou Pendente
+function clearQuickDelay() {
+    if (!activeMusicianId) return;
+    const current = attendanceData[activeMusicianId] || {};
+    if (current.status !== "atraso" && current.status !== "atraso_passagem_som") return;
+
+    const previous = statusBeforeDelay && statusBeforeDelay.status ? { ...statusBeforeDelay } : { status: "none", minutes: 0 };
+    attendanceData[activeMusicianId] = previous;
+    selectedStatusTemp = previous.status;
+    selectedDelayTemp = 0;
+    justificationTextarea.value = previous.justificativa || "";
+
+    updateDrawerButtonsVisuals();
+    saveDraft();
+    renderMusicians();
+    showToast("Atraso removido");
 }
 
 // Alternar entre Atraso Geral no Concerto e Atraso na Passagem de Som
@@ -1712,15 +1740,9 @@ function updateDrawerButtonsVisuals() {
     else if (selectedStatusTemp === "falta_passagem_som") optBtnFaltaPassagemSom?.classList.add("selected");
     else if (selectedStatusTemp === "atraso_passagem_som") optBtnAtrasoPassagemSom?.classList.add("selected");
 
-    // Destacar pílula de atraso selecionada
-    document.querySelectorAll(".delay-pill-btn").forEach(btn => {
-        const m = parseInt(btn.getAttribute("data-delay"), 10);
-        if ((selectedStatusTemp === "atraso" || selectedStatusTemp === "atraso_passagem_som") && selectedDelayTemp === m) {
-            btn.classList.add("selected");
-        } else {
-            btn.classList.remove("selected");
-        }
-    });
+    // Sincronizar a régua de atraso com o status atual
+    const isDelaySel = selectedStatusTemp === "atraso" || selectedStatusTemp === "atraso_passagem_som";
+    syncDelayRuler(isDelaySel ? (selectedDelayTemp || 0) : 0);
 
     // Exibir/Ocultar seção de justificativa / anotação de falta / atraso
     if (justificationSection) {
@@ -2345,4 +2367,297 @@ function updateDelayDisplay(minutes) {
         delayValDisplay.innerText = `Atraso: ${minutes} min`;
         delayValDisplay.style.color = "var(--color-delay)";
     }
+}
+
+// ===================================================================
+// Régua Horizontal de Atraso (estilo iOS)
+// 0, 1m…59m (de 1 em 1) e depois 1h, 1h05, 1h10… até 3h (de 5 em 5).
+// Registra automaticamente quando a régua para; 0 desfaz o atraso.
+// ===================================================================
+const DELAY_RULER_VALUES = (() => {
+    const values = [];
+    for (let m = 0; m < 60; m++) values.push(m);
+    for (let m = 60; m <= 180; m += 5) values.push(m);
+    return values;
+})();
+const DELAY_RULER_COMMIT_MS = 400;
+const DELAY_RULER_WHEEL_STEP_PX = 40;
+
+const delayRuler = {
+    root: null,
+    track: null,
+    items: [],
+    itemW: 56,
+    centerIndex: -1,
+    silent: false,
+    silentTimer: null,
+    commitTimer: null,
+    rafPending: false,
+    pendingTarget: null,
+    lastUserInput: 0,
+    wheelAcc: 0,
+    wheelTimer: null,
+    drag: null,
+    suppressClick: false
+};
+
+// Formatar rótulo do atraso: 0, 7m, 1h, 1h05
+function formatDelayLabel(minutes) {
+    if (!minutes) return "0";
+    if (minutes < 60) return `${minutes}m`;
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return m ? `${h}h${String(m).padStart(2, "0")}` : `${h}h`;
+}
+
+function delayRulerNearestIndex(minutes) {
+    let best = 0;
+    let bestDist = Infinity;
+    DELAY_RULER_VALUES.forEach((v, i) => {
+        const d = Math.abs(v - (minutes || 0));
+        if (d < bestDist) { bestDist = d; best = i; }
+    });
+    return best;
+}
+
+function delayRulerClamp(idx) {
+    return Math.max(0, Math.min(DELAY_RULER_VALUES.length - 1, idx));
+}
+
+function getAppliedDelayMinutes() {
+    if (!activeMusicianId) return 0;
+    const current = attendanceData[activeMusicianId] || {};
+    const isDelay = current.status === "atraso" || current.status === "atraso_passagem_som";
+    return isDelay ? (current.minutes || 0) : 0;
+}
+
+function initDelayRuler() {
+    const root = document.getElementById("delayRuler");
+    const track = document.getElementById("delayRulerTrack");
+    if (!root || !track) return;
+    delayRuler.root = root;
+    delayRuler.track = track;
+
+    // Construir itens
+    track.innerHTML = "";
+    const spacerStart = document.createElement("div");
+    spacerStart.className = "delay-ruler-spacer";
+    track.appendChild(spacerStart);
+
+    delayRuler.items = DELAY_RULER_VALUES.map((value, index) => {
+        const item = document.createElement("div");
+        const isMajor = value < 60 ? value % 5 === 0 : value % 30 === 0;
+        item.className = "delay-ruler-item" + (isMajor ? " major" : "");
+        item.dataset.index = index;
+        item.innerHTML = `<span class="delay-ruler-label">${formatDelayLabel(value)}</span><span class="delay-ruler-tick"></span>`;
+        track.appendChild(item);
+        return item;
+    });
+
+    const spacerEnd = document.createElement("div");
+    spacerEnd.className = "delay-ruler-spacer";
+    track.appendChild(spacerEnd);
+
+    // Scroll nativo (toque / trackpad horizontal)
+    track.addEventListener("scroll", onDelayRulerScroll, { passive: true });
+    track.addEventListener("touchstart", () => {
+        delayRuler.silent = false;
+        delayRuler.pendingTarget = null;
+        clearTimeout(delayRuler.silentTimer);
+        delayRuler.lastUserInput = performance.now();
+    }, { passive: true });
+
+    // Roda do mouse / trackpad vertical -> passos horizontais
+    root.addEventListener("wheel", onDelayRulerWheel, { passive: false });
+
+    // Arrastar com o mouse (desktop)
+    track.addEventListener("pointerdown", onDelayRulerPointerDown);
+    window.addEventListener("pointermove", onDelayRulerPointerMove);
+    window.addEventListener("pointerup", onDelayRulerPointerUp);
+    window.addEventListener("pointercancel", onDelayRulerPointerUp);
+
+    // Clicar num número para ir até ele
+    track.addEventListener("click", (e) => {
+        if (delayRuler.suppressClick) return;
+        const item = e.target.closest(".delay-ruler-item");
+        if (!item) return;
+        delayRulerGoToIndex(parseInt(item.dataset.index, 10));
+        root.focus({ preventScroll: true });
+    });
+
+    // Teclado: setas, Home, End
+    root.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowRight" || e.key === "ArrowUp") { e.preventDefault(); delayRulerStep(1); }
+        else if (e.key === "ArrowLeft" || e.key === "ArrowDown") { e.preventDefault(); delayRulerStep(-1); }
+        else if (e.key === "Home") { e.preventDefault(); delayRulerGoToIndex(0); }
+        else if (e.key === "End") { e.preventDefault(); delayRulerGoToIndex(DELAY_RULER_VALUES.length - 1); }
+    });
+
+    delayRulerUpdateCenter(0, { haptic: false });
+}
+
+function delayRulerMeasure() {
+    const w = delayRuler.items[0]?.offsetWidth;
+    if (w) delayRuler.itemW = w;
+    return delayRuler.itemW;
+}
+
+function delayRulerIndexFromScroll() {
+    const w = delayRulerMeasure();
+    return delayRulerClamp(Math.round(delayRuler.track.scrollLeft / w));
+}
+
+function onDelayRulerScroll() {
+    if (delayRuler.rafPending) return;
+    delayRuler.rafPending = true;
+    requestAnimationFrame(() => {
+        delayRuler.rafPending = false;
+        const idx = delayRulerIndexFromScroll();
+        delayRulerUpdateCenter(idx, { haptic: !delayRuler.silent });
+        if (!delayRuler.silent) {
+            delayRuler.lastUserInput = performance.now();
+            delayRulerScheduleCommit();
+        }
+    });
+}
+
+// Destacar o valor central e vizinhos
+function delayRulerUpdateCenter(idx, { haptic = true } = {}) {
+    if (idx === delayRuler.centerIndex) return;
+    const items = delayRuler.items;
+    const prev = delayRuler.centerIndex;
+    for (let i = prev - 2; i <= prev + 2; i++) {
+        items[i]?.classList.remove("is-center", "near-1", "near-2");
+    }
+    items[idx]?.classList.add("is-center");
+    items[idx - 1]?.classList.add("near-1");
+    items[idx + 1]?.classList.add("near-1");
+    items[idx - 2]?.classList.add("near-2");
+    items[idx + 2]?.classList.add("near-2");
+
+    if (haptic && prev !== -1 && navigator.vibrate) {
+        try { navigator.vibrate(5); } catch (_) { /* sem suporte */ }
+    }
+
+    delayRuler.centerIndex = idx;
+    if (delayRuler.pendingTarget === idx) delayRuler.pendingTarget = null;
+
+    const value = DELAY_RULER_VALUES[idx];
+    if (delayRuler.root) {
+        delayRuler.root.setAttribute("aria-valuenow", value);
+        delayRuler.root.setAttribute("aria-valuetext", value ? `Atraso de ${formatDelayLabel(value)}` : "Sem atraso");
+        delayRuler.root.classList.toggle("has-delay", value > 0);
+    }
+}
+
+function delayRulerScheduleCommit() {
+    clearTimeout(delayRuler.commitTimer);
+    delayRuler.commitTimer = setTimeout(delayRulerCommit, DELAY_RULER_COMMIT_MS);
+}
+
+// Registrar automaticamente o valor em que a régua parou
+function delayRulerCommit() {
+    if (delayRuler.drag) { delayRulerScheduleCommit(); return; }
+    if (!activeMusicianId) return;
+    // Aguarda terminar uma navegação programada (setas/clique)
+    if (delayRuler.pendingTarget !== null && delayRuler.pendingTarget !== delayRuler.centerIndex) {
+        delayRulerScheduleCommit();
+        return;
+    }
+    delayRuler.pendingTarget = null;
+
+    const value = DELAY_RULER_VALUES[delayRuler.centerIndex] || 0;
+    if (value === getAppliedDelayMinutes()) return;
+
+    if (value > 0) applyQuickDelay(value, { focusNote: false });
+    else clearQuickDelay();
+}
+
+function delayRulerGoToIndex(idx) {
+    if (!delayRuler.track) return;
+    idx = delayRulerClamp(idx);
+    delayRuler.pendingTarget = idx;
+    delayRuler.lastUserInput = performance.now();
+    delayRuler.silent = false;
+    clearTimeout(delayRuler.silentTimer);
+    delayRuler.track.scrollTo({ left: idx * delayRulerMeasure(), behavior: "smooth" });
+    delayRulerScheduleCommit();
+}
+
+function delayRulerStep(delta) {
+    const base = delayRuler.pendingTarget !== null ? delayRuler.pendingTarget : delayRuler.centerIndex;
+    delayRulerGoToIndex(base + delta);
+}
+
+function onDelayRulerWheel(e) {
+    // Scroll horizontal (trackpad) segue nativo
+    if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+    e.preventDefault();
+    const delta = e.deltaMode === 1 ? e.deltaY * 16 : e.deltaY;
+    delayRuler.wheelAcc += delta;
+    clearTimeout(delayRuler.wheelTimer);
+    delayRuler.wheelTimer = setTimeout(() => { delayRuler.wheelAcc = 0; }, 200);
+
+    let steps = 0;
+    while (Math.abs(delayRuler.wheelAcc) >= DELAY_RULER_WHEEL_STEP_PX) {
+        const sign = Math.sign(delayRuler.wheelAcc);
+        steps += sign;
+        delayRuler.wheelAcc -= sign * DELAY_RULER_WHEEL_STEP_PX;
+    }
+    if (steps !== 0) delayRulerStep(steps);
+}
+
+function onDelayRulerPointerDown(e) {
+    if (e.pointerType !== "mouse" || e.button !== 0) return;
+    delayRuler.drag = { startX: e.clientX, startLeft: delayRuler.track.scrollLeft, moved: false };
+}
+
+function onDelayRulerPointerMove(e) {
+    const drag = delayRuler.drag;
+    if (!drag) return;
+    const dx = e.clientX - drag.startX;
+    if (!drag.moved && Math.abs(dx) > 4) {
+        drag.moved = true;
+        delayRuler.track.classList.add("dragging");
+        delayRuler.silent = false;
+        delayRuler.pendingTarget = null;
+    }
+    if (drag.moved) {
+        delayRuler.track.scrollLeft = drag.startLeft - dx;
+        delayRuler.lastUserInput = performance.now();
+    }
+}
+
+function onDelayRulerPointerUp() {
+    const drag = delayRuler.drag;
+    if (!drag) return;
+    delayRuler.drag = null;
+    if (!drag.moved) return;
+    delayRuler.track.classList.remove("dragging");
+    delayRuler.suppressClick = true;
+    setTimeout(() => { delayRuler.suppressClick = false; }, 0);
+    delayRulerGoToIndex(delayRulerIndexFromScroll());
+}
+
+// Posicionar a régua num valor (silent = não registra nada)
+function setDelayRulerValue(minutes, { silent = false, smooth = false } = {}) {
+    if (!delayRuler.track) return;
+    const idx = delayRulerNearestIndex(minutes);
+    if (!silent) { delayRulerGoToIndex(idx); return; }
+
+    delayRuler.silent = true;
+    delayRuler.pendingTarget = null;
+    clearTimeout(delayRuler.commitTimer);
+    clearTimeout(delayRuler.silentTimer);
+    delayRuler.track.scrollTo({ left: idx * delayRulerMeasure(), behavior: smooth ? "smooth" : "auto" });
+    delayRulerUpdateCenter(idx, { haptic: false });
+    delayRuler.silentTimer = setTimeout(() => { delayRuler.silent = false; }, smooth ? 700 : 150);
+}
+
+// Sincronizar a régua quando o status muda por outros botões
+function syncDelayRuler(minutes) {
+    if (!delayRuler.track || delayRuler.drag) return;
+    if (performance.now() - delayRuler.lastUserInput < DELAY_RULER_COMMIT_MS + 200) return;
+    if (delayRuler.centerIndex === delayRulerNearestIndex(minutes)) return;
+    setDelayRulerValue(minutes, { silent: true, smooth: true });
 }

@@ -485,24 +485,50 @@ body {
 /* Tabela de Agendamentos (Admin) */
 .table-responsive {
     overflow-x: auto;
+    overflow-y: auto;
+    max-height: 520px;
     border-radius: 8px;
     border: 1px solid var(--oer-border);
 }
 
+/* Scrollbar personalizada e discreta */
+.table-responsive::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f8fafc;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
 .ps-table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     font-size: 0.88rem;
     background: #fff;
     text-align: left;
 }
 
 .ps-table th {
+    position: sticky;
+    top: 0;
+    z-index: 2;
     background: #f8fafc;
     color: #475569;
     font-weight: 700;
     padding: 0.85rem 1rem;
     border-bottom: 1px solid var(--oer-border);
+    box-shadow: 0 1px 0 var(--oer-border);
     white-space: nowrap;
 }
 
@@ -742,6 +768,12 @@ body {
         display: block !important;
         text-align: center;
         margin-bottom: 1.5rem;
+    }
+
+    .table-responsive {
+        max-height: none !important;
+        overflow: visible !important;
+        border: none !important;
     }
 
     .ps-table {

@@ -26,7 +26,7 @@
 
     <!-- CSS: Base + Custom Presença -->
     <link rel="stylesheet" href="assets/css/common.css">
-    <link rel="stylesheet" href="assets/css/presenca.css?v=20260922_01">
+    <link rel="stylesheet" href="assets/css/presenca.css?v=20261005_01">
 </head>
 <body>
 
@@ -155,15 +155,11 @@
                 <span>⏱️ Registrar Atraso Rápido</span>
                 <span id="quickDelaySubtitle" style="font-size: 0.72rem; text-transform: none; font-weight: 500; opacity: 0.8;">Selecione os minutos</span>
             </div>
-            <div class="delay-pills-grid">
-                <button class="delay-pill-btn" data-delay="5">+5m</button>
-                <button class="delay-pill-btn" data-delay="10">+10m</button>
-                <button class="delay-pill-btn" data-delay="15">+15m</button>
-                <button class="delay-pill-btn" data-delay="20">+20m</button>
-                <button class="delay-pill-btn" data-delay="30">+30m</button>
-                <button class="delay-pill-btn" data-delay="45">+45m</button>
-                <button class="delay-pill-btn" data-delay="60">+60m</button>
-                <button class="delay-pill-btn" data-delay="90">+90m</button>
+            <!-- Régua horizontal de atraso (estilo iOS) - gerada pelo presenca.js -->
+            <div class="delay-ruler" id="delayRuler" tabindex="0" role="slider" aria-label="Minutos de atraso" aria-valuemin="0" aria-valuemax="180" aria-valuenow="0" aria-valuetext="Sem atraso">
+                <div class="delay-ruler-highlight" aria-hidden="true"></div>
+                <div class="delay-ruler-track" id="delayRulerTrack"></div>
+                <div class="delay-ruler-indicator" aria-hidden="true"></div>
             </div>
         </div>
         
@@ -402,7 +398,7 @@
     </div>
 
     <!-- Firebase SDK & Custom Logics -->
-    <script type="module" src="assets/js/admin/presenca.js?v=20260922_01"></script>
+    <script type="module" src="assets/js/admin/presenca.js?v=20261005_01"></script>
 
     <!-- Sistema de Rastreamento de Engajamento/Analytics -->
     <script type="module" src="assets/js/public/analytics.js"></script>
