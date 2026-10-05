@@ -52,6 +52,7 @@ import {
     httpsCallable 
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-functions.js";
 import { AgendamentoService } from "../agendamento/agendamento-service.js";
+import { PassagemSomService, formatarDataBR } from "../passagem-som/passagem-som-service.js";
 
 // Inicializa serviços Firebase a partir da instância centralizada
 // O storage já é importado do firebase-config.js
@@ -4310,9 +4311,13 @@ function initAtestadosManagement() {
     const q = query(collection(db, "medicalCertificates"), orderBy("createdAt", "desc"));
     
     onSnapshot(q, (snapshot) => {
+        const atestadosList = [];
         if (snapshot.empty) {
             atestadosGridContainer.classList.remove('visible');
             atestadosGrid.innerHTML = '';
+            if (typeof window.updatePendingAtestadosList === 'function') {
+                window.updatePendingAtestadosList([]);
+            }
             return;
         }
 
@@ -4327,10 +4332,15 @@ function initAtestadosManagement() {
 
         snapshot.forEach((docSnap) => {
             const data = docSnap.data();
+            atestadosList.push({ id: docSnap.id, ...data });
             const card = createAtestadoCard(docSnap.id, data);
             atestadosGrid.appendChild(card);
         });
         
+        if (typeof window.updatePendingAtestadosList === 'function') {
+            window.updatePendingAtestadosList(atestadosList);
+        }
+
         if (window.lucide) lucide.createIcons();
     });
 
@@ -4406,6 +4416,9 @@ function initAtestadosManagement() {
         document.body.style.overflow = 'hidden';
         if (window.lucide) lucide.createIcons();
     }
+
+    // Expõe para o card de pendência unificado no topo do Histórico
+    window.openAtestadoModal = openAtestadoModal;
 
     // 4. Fechar Modal
     function closeAtestadoModal() {
@@ -15734,9 +15747,21 @@ async function checkAndSyncVersionWithFirestore() {
     }
 }
 
-// ================= ÁREA DE AGENDAMENTOS PENDENTES (LOGO ABAIXO DA PESQUISA) =================
+// ================= ÁREA DE PENDÊNCIAS UNIFICADA (LOGO ABAIXO DA PESQUISA) =================
+// Centraliza:
+// 1) Novos Agendamentos de Salas de Ensaio (Copiar WhatsApp)
+// 2) Validações de Vínculo de Passagem de Som (Vincular Músico)
+// 3) Atestados Médicos Pendentes (Revisar / Homologar)
 
 let unsubscribePendingAgendamentos = null;
+let unsubscribePendingPassagem = null;
+
+let pendingSalasItems = [];
+let pendingPassagemItems = [];
+let pendingAtestadosItems = [];
+let cachedMusicosParaVinculo = null;
+let currentAgendamentoParaVincular = null;
+let isModalVinculoInitialized = false;
 
 function escapeHtmlPending(str) {
     if (!str) return '';
@@ -15748,13 +15773,14 @@ function escapeHtmlPending(str) {
         .replace(/'/g, '&#039;');
 }
 
+// ── 1. Card de Agendamento de Sala ──
 function renderPendingAgendamentoCard(ag) {
     const nome = escapeHtmlPending(ag.nomeSolicitante || "Músico");
     const instrumento = escapeHtmlPending(ag.instrumento || "");
     const vinculo = escapeHtmlPending(ag.vinculo || "Bolsista");
     const salaNome = escapeHtmlPending(ag.salaNome || "Sala de Ensaio");
 
-    // Formata a data (YYYY-MM-DD -> DD/MM/YYYY e dia da semana)
+    // Formata a data (YYYY-MM-DD -> DD/MM e dia da semana)
     let dataFormatada = ag.data || "";
     let diaSemana = "";
     if (ag.data) {
@@ -15783,8 +15809,7 @@ function renderPendingAgendamentoCard(ag) {
         : '';
 
     return `
-        <div class="pending-agendamento-card" data-id="${ag.id}" title="Clique para copiar mensagem de confirmação para o WhatsApp e dispensar este aviso" role="button" tabindex="0">
-
+        <div class="pending-agendamento-card" data-type="sala" data-id="${ag.id}" title="Clique para copiar mensagem de confirmação para o WhatsApp e dispensar este aviso" role="button" tabindex="0">
             <!-- Linha 1: pulse + badge novo agendamento + sala (direita) -->
             <div class="pending-card-row-top">
                 <div class="pending-card-badge-group">
@@ -15797,7 +15822,7 @@ function renderPendingAgendamentoCard(ag) {
                 </div>
             </div>
 
-            <!-- Linha 2: nome do músico (grande) + horário abaixo -->
+            <!-- Linha 2: nome do músico (grande) + instrumento/vínculo -->
             <div class="pending-card-body">
                 <div class="pending-card-musico-nome">${nome}</div>
                 <div class="pending-card-musico-sub">
@@ -15817,55 +15842,145 @@ function renderPendingAgendamentoCard(ag) {
                     Copiar
                 </span>
             </div>
-
         </div>
     `;
 }
 
-function initPendingAgendamentosArea() {
+// ── 2. Card de Passagem de Som (Vínculo Pendente) ──
+function renderPendingPassagemSomCard(ag) {
+    const nome = escapeHtmlPending(ag.nomeDigitado || "Músico");
+    const instrumento = escapeHtmlPending(ag.instrumento || "");
+    const repertorio = escapeHtmlPending(ag.repertorio || "");
+
+    const p1 = ag.primeiraPassagem || {};
+    const p2 = ag.segundaPassagem || {};
+    const p1Str = p1.data ? `${formatarDataBR(p1.data).substring(0, 5)} ${p1.horario || ''}`.trim() : "-";
+    const p2Str = p2.data ? `${formatarDataBR(p2.data).substring(0, 5)} ${p2.horario || ''}`.trim() : "-";
+
+    return `
+        <div class="pending-agendamento-card pending-card-passagem" data-type="passagem" data-id="${ag.id}" title="Clique para validar o vínculo deste músico com o cadastro da OER" role="button" tabindex="0">
+            <!-- Linha 1: pulse + badge vínculo pendente + chip passagem de som -->
+            <div class="pending-card-row-top">
+                <div class="pending-card-badge-group">
+                    <span class="pending-pulse-dot pulse-amber"></span>
+                    <span class="pending-badge-label badge-amber">Vínculo Pendente</span>
+                </div>
+                <div class="pending-card-sala-badge" style="color: #c2410c; background: #ffedd5; border-color: #fed7aa;">
+                    <i data-lucide="mic-2" style="width: 12px; height: 12px;"></i>
+                    Passagem de Som
+                </div>
+            </div>
+
+            <!-- Linha 2: nome digitado + instrumento e obra -->
+            <div class="pending-card-body">
+                <div class="pending-card-musico-nome">${nome}</div>
+                <div class="pending-card-musico-sub">
+                    ${instrumento ? `<span class="pending-sub-chip">${instrumento}</span><span class="pending-sub-sep">•</span>` : ''}
+                    <span title="${repertorio}" style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width: 180px;">${repertorio || 'Sem obra informada'}</span>
+                </div>
+            </div>
+
+            <!-- Linha 3: passagens à esquerda + botão vincular à direita -->
+            <div class="pending-card-footer">
+                <span class="pending-card-datetime" title="1ª Passagem: ${p1Str} | 2ª Passagem: ${p2Str}">
+                    <i data-lucide="calendar" style="width: 13px; height: 13px; color: #ea580c; flex-shrink:0;"></i>
+                    1ª ${p1Str} · 2ª ${p2Str}
+                </span>
+                <span class="pending-card-copy-btn btn-vinculo">
+                    <i data-lucide="check" style="width: 13px; height: 13px;"></i>
+                    Vincular
+                </span>
+            </div>
+        </div>
+    `;
+}
+
+// ── 3. Card de Atestado Médico Pendente (IA) ──
+function renderPendingAtestadoCard(at) {
+    const nome = escapeHtmlPending(at.nome || "Músico não identificado");
+    const cid = escapeHtmlPending(at.cid || "---");
+    const dias = escapeHtmlPending(at.dias ? `${at.dias} dias` : "---");
+
+    const formatBR = (iso) => iso ? iso.split('-').reverse().join('/') : '---';
+    const periodoStr = at.dataInicio 
+        ? `${formatBR(at.dataInicio)}${at.dataFim ? ` a ${formatBR(at.dataFim)}` : ''}`
+        : 'Período pendente';
+
+    return `
+        <div class="pending-agendamento-card pending-card-atestado" data-type="atestado" data-id="${at.id}" title="Clique para revisar e homologar este atestado médico" role="button" tabindex="0">
+            <!-- Linha 1: pulse + badge novo atestado + chip atestado IA -->
+            <div class="pending-card-row-top">
+                <div class="pending-card-badge-group">
+                    <span class="pending-pulse-dot pulse-blue"></span>
+                    <span class="pending-badge-label badge-blue">Novo Atestado</span>
+                </div>
+                <div class="pending-card-sala-badge" style="color: #1d4ed8; background: #dbeafe; border-color: #bfdbfe;">
+                    <i data-lucide="file-badge" style="width: 12px; height: 12px;"></i>
+                    Atestado IA
+                </div>
+            </div>
+
+            <!-- Linha 2: nome do músico + CID e dias -->
+            <div class="pending-card-body">
+                <div class="pending-card-musico-nome">${nome}</div>
+                <div class="pending-card-musico-sub">
+                    <span class="pending-sub-chip">CID: ${cid}</span><span class="pending-sub-sep">•</span>
+                    <span>${dias}</span>
+                </div>
+            </div>
+
+            <!-- Linha 3: período à esquerda + botão revisar à direita -->
+            <div class="pending-card-footer">
+                <span class="pending-card-datetime" title="${periodoStr}">
+                    <i data-lucide="calendar" style="width: 13px; height: 13px; color: #2563eb; flex-shrink:0;"></i>
+                    ${periodoStr}
+                </span>
+                <span class="pending-card-copy-btn btn-revisar">
+                    <i data-lucide="eye" style="width: 13px; height: 13px;"></i>
+                    Revisar
+                </span>
+            </div>
+        </div>
+    `;
+}
+
+// ── Renderização Unificada da Área ──
+function renderUnifiedPendingArea() {
     const area = document.getElementById('pending-agendamentos-area');
     if (!area) return;
 
-    if (!area._hasWheelListener) {
-        area.addEventListener('wheel', (e) => {
-            if (e.deltaY !== 0 && area.scrollWidth > area.clientWidth) {
-                e.preventDefault();
-                area.scrollLeft += e.deltaY;
-            }
-        }, { passive: false });
-        area._hasWheelListener = true;
+    const total = pendingSalasItems.length + pendingPassagemItems.length + pendingAtestadosItems.length;
+
+    if (total === 0) {
+        area.innerHTML = '';
+        area.style.display = 'none';
+        return;
     }
 
-    if (unsubscribePendingAgendamentos) {
-        unsubscribePendingAgendamentos();
-        unsubscribePendingAgendamentos = null;
+    area.style.display = 'flex';
+
+    // Monta HTML unificado
+    const salasHtml = pendingSalasItems.map(ag => renderPendingAgendamentoCard(ag)).join('');
+    const passagemHtml = pendingPassagemItems.map(ps => renderPendingPassagemSomCard(ps)).join('');
+    const atestadosHtml = pendingAtestadosItems.map(at => renderPendingAtestadoCard(at)).join('');
+
+    area.innerHTML = salasHtml + passagemHtml + atestadosHtml;
+
+    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
     }
 
-    unsubscribePendingAgendamentos = AgendamentoService.listenAgendamentosPendentes((pendentes) => {
-        if (!pendentes || pendentes.length === 0) {
-            area.innerHTML = '';
-            area.style.display = 'none';
-            return;
-        }
+    // Adiciona listener de clique conforme o tipo de pendência
+    area.querySelectorAll('.pending-agendamento-card').forEach(card => {
+        card.addEventListener('click', async () => {
+            const type = card.dataset.type;
+            const id = card.dataset.id;
 
-        area.style.display = 'flex';
-        area.innerHTML = pendentes.map(ag => renderPendingAgendamentoCard(ag)).join('');
-
-        if (window.lucide && typeof window.lucide.createIcons === 'function') {
-            window.lucide.createIcons();
-        }
-
-        // Adiciona listener de clique em cada card
-        area.querySelectorAll('.pending-agendamento-card').forEach(card => {
-            card.addEventListener('click', async (e) => {
-                const id = card.dataset.id;
-                const ag = pendentes.find(item => item.id === id);
+            if (type === 'sala') {
+                const ag = pendingSalasItems.find(item => item.id === id);
                 if (!ag) return;
 
-                // 1. Gera o texto padrão de confirmação via AgendamentoService
                 const mensagem = AgendamentoService.generateSingleAppointmentMessage(ag);
-
-                // 2. Copia para o clipboard
                 try {
                     if (navigator.clipboard && navigator.clipboard.writeText) {
                         await navigator.clipboard.writeText(mensagem);
@@ -15883,26 +15998,202 @@ function initPendingAgendamentosArea() {
                     showNotification('Falha ao copiar texto automaticamente.', 'error');
                 }
 
-                // 3. Efeito visual imediato de feedback no card e animação de saída
                 card.classList.add('is-dismissing');
 
-                // 4. Marca como copiado no Firestore (persiste para que não reapareça)
                 try {
                     await AgendamentoService.markAgendamentoCopiado(id);
                 } catch (markErr) {
                     console.error('Erro ao marcar agendamento como copiado:', markErr);
                 }
 
-                // Remove do DOM após a animação de transição suave
                 setTimeout(() => {
                     card.remove();
                     if (area.children.length === 0) {
                         area.style.display = 'none';
                     }
                 }, 350);
-            });
+
+            } else if (type === 'passagem') {
+                const ps = pendingPassagemItems.find(item => item.id === id);
+                if (!ps) return;
+                openValidarVinculoModal(ps);
+
+            } else if (type === 'atestado') {
+                const at = pendingAtestadosItems.find(item => item.id === id);
+                if (!at) return;
+                if (typeof window.openAtestadoModal === 'function') {
+                    window.openAtestadoModal(at.id, at);
+                }
+            }
         });
     });
+}
+
+// ── Modal de Validação de Vínculo de Passagem de Som ──
+function initModalValidarVinculo() {
+    if (isModalVinculoInitialized) return;
+    isModalVinculoInitialized = true;
+
+    const modal = document.getElementById('modal-validar-vinculo-passagem');
+    const btnClose = document.getElementById('btn-close-validar-vinculo-modal');
+    const btnCancel = document.getElementById('btn-cancel-validar-vinculo-modal');
+    const btnConfirm = document.getElementById('btn-confirm-validar-vinculo-modal');
+    const selectMusico = document.getElementById('select-musico-vinculo-modal');
+
+    if (!modal) return;
+
+    const fechar = () => {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+        currentAgendamentoParaVincular = null;
+    };
+
+    if (btnClose) btnClose.addEventListener('click', fechar);
+    if (btnCancel) btnCancel.addEventListener('click', fechar);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) fechar();
+    });
+
+    if (btnConfirm) {
+        btnConfirm.addEventListener('click', async () => {
+            if (!currentAgendamentoParaVincular) return;
+            const chosenId = selectMusico ? selectMusico.value : '';
+            if (!chosenId) {
+                showNotification("Por favor, selecione um músico da base oficial da OER.", "warning");
+                return;
+            }
+
+            const chosenMusico = (cachedMusicosParaVinculo || []).find(m => m.id === chosenId);
+            const nomeOficial = chosenMusico ? (chosenMusico.nome || chosenMusico.nomeRegistro || chosenMusico.nomeArtistico) : null;
+
+            try {
+                btnConfirm.disabled = true;
+                btnConfirm.innerHTML = `<span class="loader-spinner" style="width: 15px; height: 15px; margin: 0; border-width: 2px;"></span> Vinculando...`;
+
+                await PassagemSomService.validarVinculoMusico(currentAgendamentoParaVincular.id, chosenId, nomeOficial);
+                showNotification(`Vínculo de "${currentAgendamentoParaVincular.nomeDigitado}" confirmado com sucesso!`, 'success');
+                fechar();
+            } catch (err) {
+                console.error("Erro ao validar vínculo de passagem de som:", err);
+                showNotification("Erro ao validar vínculo. Tente novamente.", "error");
+            } finally {
+                btnConfirm.disabled = false;
+                btnConfirm.innerHTML = `<i data-lucide="check" style="width: 16px; height: 16px;"></i> <span>Confirmar Vínculo</span>`;
+                if (window.lucide) lucide.createIcons();
+            }
+        });
+    }
+}
+
+async function openValidarVinculoModal(ag) {
+    initModalValidarVinculo();
+
+    const modal = document.getElementById('modal-validar-vinculo-passagem');
+    const elNome = document.getElementById('modal-vinculo-nome-digitado');
+    const elDetalhes = document.getElementById('modal-vinculo-detalhes');
+    const elPassagens = document.getElementById('modal-vinculo-passagens');
+    const selectMusico = document.getElementById('select-musico-vinculo-modal');
+    const hintSugestao = document.getElementById('modal-vinculo-sugestao-hint');
+
+    if (!modal) return;
+
+    currentAgendamentoParaVincular = ag;
+
+    // Preenche dados do músico digitados
+    if (elNome) elNome.textContent = ag.nomeDigitado || 'Sem nome';
+    if (elDetalhes) {
+        elDetalhes.innerHTML = `Digitado: <strong>${escapeHtmlPending(ag.instrumento || '')}</strong> • Obra: <em>${escapeHtmlPending(ag.repertorio || '')}</em>`;
+    }
+    if (elPassagens) {
+        const p1 = ag.primeiraPassagem || {};
+        const p2 = ag.segundaPassagem || {};
+        const p1Str = p1.data ? `${formatarDataBR(p1.data)} às ${p1.horario || ''}` : '-';
+        const p2Str = p2.data ? `${formatarDataBR(p2.data)} às ${p2.horario || ''}` : '-';
+        elPassagens.innerHTML = `1ª Passagem: <strong>${p1Str}</strong> | 2ª Passagem: <strong>${p2Str}</strong>`;
+    }
+
+    // Carrega músicos ativos da OER
+    if (!cachedMusicosParaVinculo || cachedMusicosParaVinculo.length === 0) {
+        try {
+            if (selectMusico) selectMusico.innerHTML = '<option value="">Carregando músicos da base...</option>';
+            cachedMusicosParaVinculo = await PassagemSomService.getMusicosAtivos();
+        } catch (e) {
+            console.warn("Erro ao buscar músicos ativos:", e);
+            cachedMusicosParaVinculo = [];
+        }
+    }
+
+    // Sugestão automática inteligente
+    const match = PassagemSomService.encontrarMusicoCorrespondente(ag.nomeDigitado, cachedMusicosParaVinculo || []);
+
+    if (selectMusico) {
+        let optionsHtml = '<option value="">-- Selecione o Músico Oficial --</option>';
+        (cachedMusicosParaVinculo || []).forEach(m => {
+            const isMatch = match.musico && match.musico.id === m.id;
+            optionsHtml += `<option value="${m.id}" ${isMatch ? 'selected' : ''}>${escapeHtmlPending(m.nome)} (${escapeHtmlPending(m.instrumento || 'Sem inst')})</option>`;
+        });
+        selectMusico.innerHTML = optionsHtml;
+    }
+
+    if (hintSugestao) {
+        if (match.musico) {
+            hintSugestao.style.display = 'block';
+            hintSugestao.textContent = `✓ Correspondência sugerida automaticamente: ${match.musico.nome}`;
+        } else {
+            hintSugestao.style.display = 'none';
+        }
+    }
+
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
+    }
+}
+
+// ── Inicialização Geral da Área de Pendências ──
+function initPendingAgendamentosArea() {
+    const area = document.getElementById('pending-agendamentos-area');
+    if (!area) return;
+
+    if (!area._hasWheelListener) {
+        area.addEventListener('wheel', (e) => {
+            if (e.deltaY !== 0 && area.scrollWidth > area.clientWidth) {
+                e.preventDefault();
+                area.scrollLeft += e.deltaY;
+            }
+        }, { passive: false });
+        area._hasWheelListener = true;
+    }
+
+    // Inicializa listeners do modal
+    initModalValidarVinculo();
+
+    // 1. Escuta agendamentos de salas pendentes
+    if (unsubscribePendingAgendamentos) {
+        unsubscribePendingAgendamentos();
+        unsubscribePendingAgendamentos = null;
+    }
+    unsubscribePendingAgendamentos = AgendamentoService.listenAgendamentosPendentes((pendentes) => {
+        pendingSalasItems = pendentes || [];
+        renderUnifiedPendingArea();
+    });
+
+    // 2. Escuta passagens de som com vínculo pendente de validação
+    if (unsubscribePendingPassagem) {
+        unsubscribePendingPassagem();
+        unsubscribePendingPassagem = null;
+    }
+    unsubscribePendingPassagem = PassagemSomService.listenAgendamentosPendentesValidacao((pendentes) => {
+        pendingPassagemItems = pendentes || [];
+        renderUnifiedPendingArea();
+    });
+
+    // 3. Registra gancho global para receber atestados pendentes de initAtestadosManagement
+    window.updatePendingAtestadosList = function(atestados) {
+        pendingAtestadosItems = atestados || [];
+        renderUnifiedPendingArea();
+    };
 }
 
 // ================= MÓDULO DE AÇÕES & RELATÓRIOS RÁPIDOS DE AGENDAMENTO =================

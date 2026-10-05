@@ -537,6 +537,67 @@ body {
     color: var(--oer-warning);
 }
 
+/* Colunas Ordenáveis e Indicador Discreto de Vínculo */
+.ps-table th.th-sortable {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.ps-table th.th-sortable:hover {
+    background: #f1f5f9;
+    color: var(--oer-primary);
+}
+
+.sort-icon-indicator {
+    display: inline-flex;
+    align-items: center;
+    color: #94a3b8;
+    font-size: 0.8rem;
+}
+
+.th-sortable.active-sort {
+    color: var(--oer-primary);
+}
+
+.th-sortable.active-sort .sort-icon-indicator {
+    color: var(--oer-primary);
+}
+
+.cell-nome-content {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+}
+
+.check-vinculo-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #16a34a;
+    flex-shrink: 0;
+    transition: transform 0.15s ease;
+    cursor: help;
+}
+
+.check-vinculo-icon:hover {
+    transform: scale(1.2);
+}
+
+.check-pendente-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #f59e0b;
+    flex-shrink: 0;
+    transition: transform 0.15s ease;
+    cursor: help;
+}
+
+.check-pendente-icon:hover {
+    transform: scale(1.2);
+}
+
 /* Visualizador de Mensagem WhatsApp */
 .whatsapp-preview-box {
     background: #efeae2;
@@ -1298,6 +1359,7 @@ body {
     }
 }
 
+
 /* Responsividade Mobile Completa (Smartphones e Telas Menores) */
 @media (max-width: 640px) {
     .ps-container {
@@ -1378,7 +1440,7 @@ body {
 
     /* Cards e Espaçamento Interno */
     .ps-card {
-        padding: 1.15rem 0.95rem;
+        padding: 1rem 0.85rem;
         margin-bottom: 1.25rem;
         border-radius: 10px;
     }
@@ -1386,11 +1448,25 @@ body {
     .ps-card-header {
         margin-bottom: 1rem;
         padding-bottom: 0.65rem;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
     }
 
     .ps-card-header h2,
     .ps-card-header h3 {
         font-size: 1.05rem;
+    }
+
+    /* Botões de ação no header do card ficam em largura total */
+    .ps-card-header > .no-print {
+        width: 100%;
+        flex-direction: column;
+    }
+
+    .ps-card-header > .no-print .btn {
+        width: 100%;
+        justify-content: center;
     }
 
     /* Grid do Formulário em Coluna Única */
@@ -1405,6 +1481,106 @@ body {
     select.form-input {
         font-size: 16px !important;
         padding: 0.75rem 0.85rem;
+    }
+
+    /* Filtros em coluna única no mobile */
+    .ps-filters-row {
+        flex-direction: column !important;
+        gap: 0.65rem !important;
+    }
+
+    .ps-filters-row > div {
+        width: 100% !important;
+        min-width: unset !important;
+        flex: 1 1 auto !important;
+    }
+
+    /* Abas de navegação: compactas e roláveis sem corte */
+    .ps-tabs {
+        gap: 0;
+        padding-bottom: 0;
+        margin-bottom: 1.25rem;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .ps-tab-btn {
+        padding: 0.6rem 0.75rem;
+        font-size: 0.78rem;
+        gap: 0.3rem;
+        flex-shrink: 0;
+        white-space: nowrap;
+    }
+
+    /* Esconde ícones das abas em mobile para ganhar espaço */
+    .ps-tab-btn svg,
+    .ps-tab-btn i[data-lucide] {
+        display: none;
+    }
+
+    /* Header Actions: empilhado verticalmente */
+    .ps-header-actions {
+        flex-direction: column;
+        width: 100%;
+        gap: 0.65rem;
+    }
+
+    .ps-header-actions > div {
+        width: 100%;
+    }
+
+    .ps-header-actions select.form-input {
+        flex: 1;
+        min-width: 0;
+    }
+
+    /* Tabela: scroll horizontal com toque suave */
+    .table-responsive {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        border-radius: 8px;
+    }
+
+    .ps-table {
+        min-width: 560px;
+    }
+
+    .ps-table th,
+    .ps-table td {
+        padding: 0.65rem 0.7rem;
+        font-size: 0.82rem;
+    }
+
+    /* Botões genéricos em mobile — largura total,
+       EXCETO botões de ação da tabela e btn-add-intervalo */
+    .btn:not(.btn-table-action):not(.btn-add-intervalo) {
+        width: 100%;
+        padding: 0.85rem 1rem;
+        font-size: 0.92rem;
+        justify-content: center;
+    }
+
+    /* Botões de ação dentro da tabela (editar/deletar): tamanho fixo */
+    .btn-table-action {
+        width: auto !important;
+        min-width: 42px;
+        padding: 0.5rem 0.65rem !important;
+        font-size: 0.85rem !important;
+        flex-shrink: 0;
+    }
+
+    /* Container de botões de ação da tabela */
+    .table-actions-group {
+        display: flex;
+        gap: 0.4rem;
+        flex-wrap: nowrap;
+        justify-content: flex-end;
+    }
+
+    /* Caixa de Resumo e Ação Final */
+    .resumo-card-grid {
+        grid-template-columns: 1fr !important;
+        gap: 0.75rem;
     }
 
     /* Carrossel de Datas com Toque Horizontal Suave */
@@ -1448,18 +1624,6 @@ body {
         font-size: 0.92rem;
     }
 
-    /* Caixa de Resumo e Ação Final */
-    .resumo-card-grid {
-        grid-template-columns: 1fr !important;
-        gap: 0.75rem;
-    }
-
-    .btn {
-        width: 100%;
-        padding: 0.85rem 1rem;
-        font-size: 0.92rem;
-    }
-
     /* Modais em Telas Pequenas */
     .modal-card {
         padding: 1.25rem 1rem;
@@ -1480,5 +1644,3 @@ body {
         width: 100%;
     }
 }
-
-

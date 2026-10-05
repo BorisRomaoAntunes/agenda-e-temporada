@@ -1,8 +1,20 @@
 {
-  "hash": "4ad6534",
-  "date": "01/10/2026 21:56",
-  "buildAt": "2026-10-02T01:02:49.918Z",
+  "hash": "ec8c35e+mod",
+  "date": "05/10/2026, 13:31:22",
+  "buildAt": "2026-10-05T16:31:22.127Z",
   "history": [
+    {
+      "hash": "ec8c35e+mod",
+      "date": "05/10/2026, 13:31:22",
+      "author": "Deploy Local",
+      "subject": "Atualização implantada (7 arquivos modificados)"
+    },
+    {
+      "hash": "ec8c35e",
+      "date": "01/10/2026 22:05",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pos-deploy v4ad6534"
+    },
     {
       "hash": "4ad6534",
       "date": "01/10/2026 21:56",
@@ -110,18 +122,6 @@
       "date": "29/09/2026 12:00",
       "author": "Boris Romão Antunes",
       "subject": "feat(passagem-som): adiciona botao copiar link na gaveta e atualiza versao de cache do SW"
-    },
-    {
-      "hash": "dbae39e",
-      "date": "29/09/2026 11:59",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pos-deploy v72409a9"
-    },
-    {
-      "hash": "4dda17c",
-      "date": "29/09/2026 11:53",
-      "author": "Boris Romão Antunes",
-      "subject": "fix(admin): corrige abertura da gaveta de edicao de integrante"
     }
   ]
 }

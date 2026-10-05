@@ -399,6 +399,32 @@ export const PassagemSomService = {
     },
 
     /**
+     * Escuta todos os agendamentos com vínculo pendente de validação em tempo real
+     */
+    listenAgendamentosPendentesValidacao(callback) {
+        const q = query(
+            collection(db, PassagemSomCollections.AGENDAMENTOS),
+            where("statusVinculo", "==", "pendente_validacao")
+        );
+
+        return onSnapshot(q, (snapshot) => {
+            const agendamentos = [];
+            snapshot.forEach((docSnap) => {
+                agendamentos.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            agendamentos.sort((a, b) => {
+                const timeA = a.criadoEm?.seconds || 0;
+                const timeB = b.criadoEm?.seconds || 0;
+                return timeB - timeA;
+            });
+            callback(agendamentos);
+        }, (error) => {
+            console.error("Erro ao escutar agendamentos pendentes de validação:", error);
+            callback([]);
+        });
+    },
+
+    /**
      * Realiza um novo agendamento com validação de concorrência e associação com base de músicos
      */
     async agendarPassagem({ cicloId, nome, instrumento, repertorio, p1, p2, musicosAtivos }) {

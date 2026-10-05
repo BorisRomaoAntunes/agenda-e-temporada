@@ -37,7 +37,7 @@
 
     <!-- Estilos Base + Admin -->
     <link rel="stylesheet" href="assets/css/common.css">
-    <link rel="stylesheet" href="assets/css/admin.css?v=17">
+    <link rel="stylesheet" href="assets/css/admin.css?v=18">
 
     <!-- Ícones Lucide -->
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -379,8 +379,8 @@
                     </div>
                 </div>
                 
-                <!-- NOVO: Grade de Atestados Médicos (Fase 3) -->
-                <div id="atestados-grid-container" class="atestados-grid-wrapper">
+                <!-- NOVO: Grade de Atestados Médicos (Fase 3 - Unificado no topo do Histórico) -->
+                <div id="atestados-grid-container" class="atestados-grid-wrapper" style="display: none !important;">
                     <div class="logs-header" style="margin-bottom: 1.5rem;">
                         <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
                             <div>
@@ -2710,7 +2710,7 @@ Intervalo
             }
         }, 5000);
     </script>
-    <script type="module" src="assets/js/admin/admin.js?v=33"></script>
+    <script type="module" src="assets/js/admin/admin.js?v=34"></script>
     <script>
         // Registro do Service Worker
         if ('serviceWorker' in navigator) {
@@ -3625,6 +3625,60 @@ Intervalo
                     <i data-lucide="copy" style="width: 16px; height: 16px;"></i>
                     <span>Copiar p/ WhatsApp</span>
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Validação de Vínculo - Passagem de Som -->
+    <div id="modal-validar-vinculo-passagem" class="modal-overlay" style="display: none; z-index: 3200;" role="dialog" aria-modal="true">
+        <div class="modal-custom-content" style="background: #ffffff; width: min(520px, 94vw); border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.25); overflow: hidden; display: flex; flex-direction: column;">
+            <div class="modal-custom-header" style="padding: 1.15rem 1.4rem; border-bottom: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; background: #fafafa;">
+                <h4 style="margin: 0; font-size: 1.05rem; font-weight: 700; color: #0f172a; display: flex; align-items: center; gap: 0.5rem;">
+                    <i data-lucide="link" style="color: #ea580c; width: 20px; height: 20px;"></i>
+                    <span>Validar Vínculo de Músico</span>
+                </h4>
+                <button type="button" class="btn-close-modal" id="btn-close-validar-vinculo-modal" style="background: none; border: none; cursor: pointer; color: #94a3b8; display: flex; align-items: center; justify-content: center; padding: 4px; border-radius: 6px;">
+                    <i data-lucide="x" style="width: 20px; height: 20px;"></i>
+                </button>
+            </div>
+            <div class="modal-custom-body" style="padding: 1.3rem 1.4rem; display: flex; flex-direction: column; gap: 1rem;">
+                <!-- Card com dados digitados pelo músico -->
+                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 1rem;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.35rem;">
+                        <span style="font-size: 0.72rem; font-weight: 700; text-transform: uppercase; color: #64748b;">Nome Digitado no Formulário</span>
+                        <span class="badge" style="background: #fef3c7; color: #b45309; font-size: 0.72rem; font-weight: 700; padding: 0.15rem 0.45rem; border-radius: 5px;">Aguardando Vínculo</span>
+                    </div>
+                    <div id="modal-vinculo-nome-digitado" style="font-size: 1.05rem; font-weight: 700; color: #0f172a;">-</div>
+                    <div id="modal-vinculo-detalhes" style="font-size: 0.82rem; color: #475569; margin-top: 0.25rem;">-</div>
+                    <div id="modal-vinculo-passagens" style="font-size: 0.78rem; color: #64748b; margin-top: 0.35rem; border-top: 1px dashed #cbd5e1; padding-top: 0.35rem;">-</div>
+                </div>
+
+                <!-- Seletor do Músico Oficial -->
+                <div style="display: flex; flex-direction: column; gap: 0.35rem;">
+                    <label for="select-musico-vinculo-modal" style="font-size: 0.82rem; font-weight: 600; color: #334155;">
+                        Associar ao Músico Oficial da OER:
+                    </label>
+                    <select id="select-musico-vinculo-modal" class="form-input" style="padding: 0.6rem 0.8rem; font-size: 0.9rem; border: 1.5px solid #cbd5e1; border-radius: 8px; width: 100%; box-sizing: border-box; background: #fff;">
+                        <option value="">-- Carregando músicos... --</option>
+                    </select>
+                    <span id="modal-vinculo-sugestao-hint" style="font-size: 0.76rem; color: #16a34a; font-weight: 600; display: none;">
+                        ✓ Correspondência sugerida automaticamente
+                    </span>
+                </div>
+            </div>
+            <div style="padding: 1rem 1.4rem; background: #f8fafc; border-top: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;">
+                <a href="passagem-som-admin.html" target="_blank" style="font-size: 0.8rem; color: #64748b; text-decoration: none; display: flex; align-items: center; gap: 0.3rem;">
+                    <i data-lucide="external-link" style="width: 14px; height: 14px;"></i> Abrir Painel Passagem de Som
+                </a>
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <button type="button" class="btn-outline" id="btn-cancel-validar-vinculo-modal" style="padding: 0.55rem 1.1rem; border-radius: 8px; font-weight: 600; cursor: pointer; border: 1px solid #cbd5e1; background: white; color: #475569; font-size: 0.88rem;">
+                        Cancelar
+                    </button>
+                    <button type="button" id="btn-confirm-validar-vinculo-modal" style="padding: 0.55rem 1.25rem; border-radius: 8px; font-weight: 600; cursor: pointer; background: linear-gradient(135deg, #ea580c, #c2410c); color: white; border: none; display: flex; align-items: center; gap: 0.45rem; font-size: 0.88rem; box-shadow: 0 4px 12px rgba(234, 88, 12, 0.25); transition: all 0.2s;">
+                        <i data-lucide="check" style="width: 16px; height: 16px;"></i>
+                        <span>Confirmar Vínculo</span>
+                    </button>
+                </div>
             </div>
         </div>
     </div>

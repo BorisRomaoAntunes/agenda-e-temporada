@@ -21,8 +21,10 @@ let todosCiclos = [];
 let cicloSelecionado = null;
 let agendamentosDoCiclo = [];
 let musicosAtivos = [];
-let filtroTipo = "todas"; // 'todas', '1', '2'
+let filtroInstrumento = "todos";
+let filtroStatus = "todos";
 let filtroTexto = "";
+let ordenacaoAtual = { coluna: "nome", direcao: "asc" };
 let dataSelecionadaWhatsApp = "";
 
 // Estado do Construtor de Reavaliação
@@ -58,7 +60,8 @@ const validationListEl = document.getElementById("validationList");
 // Tabela
 const tbodyAgendamentos = document.getElementById("tbodyAgendamentos");
 const inputBusca = document.getElementById("inputBusca");
-const selectFiltroTipo = document.getElementById("selectFiltroTipo");
+const selectFiltroInstrumento = document.getElementById("selectFiltroInstrumento");
+const selectFiltroStatus = document.getElementById("selectFiltroStatus");
 const btnExportarCSV = document.getElementById("btnExportarCSV");
 const btnImprimirTabela = document.getElementById("btnImprimirTabela");
 const countAgendamentosBadge = document.getElementById("countAgendamentosBadge");
@@ -208,6 +211,7 @@ function selecionarCiclo(cicloId) {
     unsubscribeAgendamentos = PassagemSomService.listenAgendamentos(cicloSelecionado.id, (agendamentos) => {
         agendamentosDoCiclo = agendamentos;
         renderizarValidacaoMusicos();
+        atualizarSelectInstrumentos();
         renderizarTabela();
         atualizarPreviewWhatsApp();
     });
@@ -305,61 +309,82 @@ function renderizarValidacaoMusicos() {
 }
 
 // =========================================================================
-// RENDERIZAÇÃO DA TABELA OFICIAL (MODELO DO PDF)
+// RENDERIZAÇÃO DA TABELA DE AGENDAMENTOS
 // =========================================================================
-function normalizarLinhasTabela() {
-    const linhas = [];
+function atualizarSelectInstrumentos() {
+    if (!selectFiltroInstrumento) return;
+    const valorAtual = selectFiltroInstrumento.value || "todos";
+    const instrumentos = Array.from(
+        new Set(
+            agendamentosDoCiclo
+                .map((ag) => ag.instrumento ? ag.instrumento.trim() : "")
+                .filter(Boolean)
+        )
+    ).sort((a, b) => a.localeCompare(b, "pt-BR", { sensitivity: "base" }));
 
-    agendamentosDoCiclo.forEach((ag) => {
-        if (ag.primeiraPassagem) {
-            linhas.push({
-                agendamentoId: ag.id,
-                tipo: "1ª Passagem de Som",
-                tipoNum: "1",
-                data: ag.primeiraPassagem.data,
-                horario: ag.primeiraPassagem.horario,
-                dataHoraISO: `${ag.primeiraPassagem.data}T${ag.primeiraPassagem.horario}`,
-                nome: ag.nomeDigitado,
-                nomeOficial: ag.musicoNomeOficial,
-                instrumento: ag.instrumento,
-                repertorio: ag.repertorio,
-                statusVinculo: ag.statusVinculo,
-                musicoId: ag.musicoId,
-                raw: ag
-            });
+    selectFiltroInstrumento.innerHTML = `<option value="todos">Todos os Instrumentos</option>`;
+    instrumentos.forEach((inst) => {
+        const opt = document.createElement("option");
+        opt.value = inst;
+        opt.textContent = inst;
+        if (inst.toLowerCase() === valorAtual.toLowerCase()) {
+            opt.selected = true;
         }
-        if (ag.segundaPassagem) {
-            linhas.push({
-                agendamentoId: ag.id,
-                tipo: "2ª Passagem de Som",
-                tipoNum: "2",
-                data: ag.segundaPassagem.data,
-                horario: ag.segundaPassagem.horario,
-                dataHoraISO: `${ag.segundaPassagem.data}T${ag.segundaPassagem.horario}`,
-                nome: ag.nomeDigitado,
-                nomeOficial: ag.musicoNomeOficial,
-                instrumento: ag.instrumento,
-                repertorio: ag.repertorio,
-                statusVinculo: ag.statusVinculo,
-                musicoId: ag.musicoId,
-                raw: ag
-            });
+        selectFiltroInstrumento.appendChild(opt);
+    });
+}
+
+function normalizarLinhasTabela() {
+    return agendamentosDoCiclo.map((ag) => {
+        const p1Data = ag.primeiraPassagem?.data || "";
+        const p1Hora = ag.primeiraPassagem?.horario || "";
+        const p2Data = ag.segundaPassagem?.data || "";
+        const p2Hora = ag.segundaPassagem?.horario || "";
+
+        return {
+            agendamentoId: ag.id,
+            nome: ag.nomeDigitado || "",
+            nomeOficial: ag.musicoNomeOficial || "",
+            instrumento: ag.instrumento || "",
+            repertorio: ag.repertorio || "",
+            p1Data,
+            p1Hora,
+            p1DataHoraISO: p1Data && p1Hora ? `${p1Data}T${p1Hora}` : (p1Data || ""),
+            p2Data,
+            p2Hora,
+            p2DataHoraISO: p2Data && p2Hora ? `${p2Data}T${p2Hora}` : (p2Data || ""),
+            statusVinculo: ag.statusVinculo || "pendente_validacao",
+            musicoId: ag.musicoId || null,
+            raw: ag
+        };
+    });
+}
+
+function atualizarIndicadoresOrdenacao() {
+    document.querySelectorAll(".th-sortable").forEach((th) => {
+        const col = th.getAttribute("data-sort");
+        const indicator = th.querySelector(".sort-icon-indicator");
+        if (col === ordenacaoAtual.coluna) {
+            th.classList.add("active-sort");
+            if (indicator) {
+                indicator.innerHTML = ordenacaoAtual.direcao === "asc"
+                    ? `<i data-lucide="arrow-up" style="width: 14px; height: 14px;"></i>`
+                    : `<i data-lucide="arrow-down" style="width: 14px; height: 14px;"></i>`;
+            }
+        } else {
+            th.classList.remove("active-sort");
+            if (indicator) {
+                indicator.innerHTML = `<i data-lucide="arrow-up-down" style="width: 13px; height: 13px; opacity: 0.35;"></i>`;
+            }
         }
     });
-
-    linhas.sort((a, b) => a.dataHoraISO.localeCompare(b.dataHoraISO));
-    return linhas;
+    if (window.lucide) lucide.createIcons();
 }
 
 function renderizarTabela() {
     let linhas = normalizarLinhasTabela();
 
-    if (filtroTipo === "1") {
-        linhas = linhas.filter((l) => l.tipoNum === "1");
-    } else if (filtroTipo === "2") {
-        linhas = linhas.filter((l) => l.tipoNum === "2");
-    }
-
+    // Filtro por Texto (busca geral)
     if (filtroTexto) {
         const q = normalizarTexto(filtroTexto);
         linhas = linhas.filter((l) => {
@@ -372,45 +397,93 @@ function renderizarTabela() {
         });
     }
 
-    countAgendamentosBadge.textContent = `${linhas.length} horários`;
+    // Filtro por Instrumento
+    if (filtroInstrumento && filtroInstrumento !== "todos") {
+        const instNorm = normalizarTexto(filtroInstrumento);
+        linhas = linhas.filter((l) => normalizarTexto(l.instrumento) === instNorm);
+    }
+
+    // Filtro por Status de Vínculo
+    if (filtroStatus && filtroStatus !== "todos") {
+        linhas = linhas.filter((l) => l.statusVinculo === filtroStatus);
+    }
+
+    // Ordenação interativa por coluna
+    linhas.sort((a, b) => {
+        let cmp = 0;
+        switch (ordenacaoAtual.coluna) {
+            case "nome":
+                cmp = a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" });
+                break;
+            case "instrumento":
+                cmp = a.instrumento.localeCompare(b.instrumento, "pt-BR", { sensitivity: "base" });
+                break;
+            case "p1":
+                cmp = (a.p1DataHoraISO || "").localeCompare(b.p1DataHoraISO || "");
+                break;
+            case "p2":
+                cmp = (a.p2DataHoraISO || "").localeCompare(b.p2DataHoraISO || "");
+                break;
+            case "obra":
+                cmp = a.repertorio.localeCompare(b.repertorio, "pt-BR", { sensitivity: "base" });
+                break;
+            default:
+                cmp = a.nome.localeCompare(b.nome, "pt-BR", { sensitivity: "base" });
+        }
+        return ordenacaoAtual.direcao === "desc" ? -cmp : cmp;
+    });
+
+    countAgendamentosBadge.textContent = `${linhas.length} agendamento${linhas.length === 1 ? '' : 's'}`;
     tbodyAgendamentos.innerHTML = "";
 
     if (linhas.length === 0) {
         tbodyAgendamentos.innerHTML = `
             <tr>
-                <td colspan="7" style="text-align: center; color: var(--oer-text-muted); padding: 2rem;">
+                <td colspan="6" style="text-align: center; color: var(--oer-text-muted); padding: 2rem;">
                     Nenhum agendamento encontrado com os filtros aplicados.
                 </td>
             </tr>
         `;
+        atualizarIndicadoresOrdenacao();
         return;
     }
 
     linhas.forEach((linha) => {
         const tr = document.createElement("tr");
 
-        const dataFormatada = `${formatarDataBR(linha.data)} ${linha.horario}`;
-        const isP2 = linha.tipoNum === "2";
-        const tipoBadge = `<span style="font-style: ${isP2 ? 'italic' : 'normal'}; font-weight: ${isP2 ? '500' : '600'}; color: ${isP2 ? '#475569' : 'var(--oer-text-main)'};">${linha.tipo}</span>`;
+        const isVinculado = linha.statusVinculo === "vinculado";
+        const vinculoIcon = isVinculado
+            ? `<span class="check-vinculo-icon" title="Vinculado oficialmente: ${linha.nomeOficial || linha.nome}"><i data-lucide="check" style="width: 15px; height: 15px; stroke-width: 2.8;"></i></span>`
+            : `<span class="check-pendente-icon" title="Vínculo pendente de validação (confira no card acima)"><i data-lucide="alert-circle" style="width: 15px; height: 15px;"></i></span>`;
 
-        const vinculoBadge = linha.statusVinculo === "vinculado" 
-            ? `<span class="badge badge-vinculado" title="Vinculado a: ${linha.nomeOficial || linha.nome}"><i data-lucide="check" style="width: 12px; height: 12px;"></i> Vinculado</span>`
-            : `<span class="badge badge-pendente" title="Clique no card acima para validar"><i data-lucide="alert-circle" style="width: 12px; height: 12px;"></i> Pendente</span>`;
+        const p1Formatada = linha.p1Data
+            ? `<span style="font-weight: 600;">${formatarDataBR(linha.p1Data)}</span> <span style="color: var(--oer-text-muted); font-size: 0.84rem; margin-left: 0.25rem;">${linha.p1Hora}</span>`
+            : `<span style="color: var(--oer-text-muted); font-style: italic;">Não agendada</span>`;
+
+        const p2Formatada = linha.p2Data
+            ? `<span style="font-weight: 600;">${formatarDataBR(linha.p2Data)}</span> <span style="color: var(--oer-text-muted); font-size: 0.84rem; margin-left: 0.25rem;">${linha.p2Hora}</span>`
+            : `<span style="color: var(--oer-text-muted); font-style: italic;">Não agendada</span>`;
 
         tr.innerHTML = `
-            <td style="font-weight: 700; white-space: nowrap;">${dataFormatada}</td>
-            <td style="white-space: nowrap;">${tipoBadge}</td>
-            <td style="font-weight: 600;">${linha.nome}</td>
+            <td>
+                <div class="cell-nome-content">
+                    ${vinculoIcon}
+                    <span style="font-weight: 600;">${linha.nome}</span>
+                </div>
+            </td>
             <td>${linha.instrumento}</td>
-            <td>${linha.repertorio}</td>
-            <td class="no-print" style="white-space: nowrap;">${vinculoBadge}</td>
+            <td style="white-space: nowrap;">${p1Formatada}</td>
+            <td style="white-space: nowrap;">${p2Formatada}</td>
+            <td>${linha.repertorio || '<span style="color: var(--oer-text-muted); font-style: italic;">-</span>'}</td>
             <td class="no-print" style="text-align: right; white-space: nowrap;">
-                <button type="button" class="btn btn-outline btn-sm btn-editar-ag" title="Editar Agendamento">
-                    <i data-lucide="pencil" style="width: 13px; height: 13px;"></i>
-                </button>
-                <button type="button" class="btn btn-danger btn-sm btn-excluir-ag" title="Excluir Agendamento">
-                    <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i>
-                </button>
+                <div class="table-actions-group">
+                    <button type="button" class="btn btn-outline btn-sm btn-table-action btn-editar-ag" title="Editar Agendamento">
+                        <i data-lucide="pencil" style="width: 13px; height: 13px;"></i>
+                    </button>
+                    <button type="button" class="btn btn-danger btn-sm btn-table-action btn-excluir-ag" title="Excluir Agendamento">
+                        <i data-lucide="trash-2" style="width: 13px; height: 13px;"></i>
+                    </button>
+                </div>
             </td>
         `;
 
@@ -432,7 +505,7 @@ function renderizarTabela() {
         tbodyAgendamentos.appendChild(tr);
     });
 
-    if (window.lucide) lucide.createIcons();
+    atualizarIndicadoresOrdenacao();
 }
 
 // Filtros da Tabela
@@ -441,9 +514,32 @@ inputBusca.addEventListener("input", (e) => {
     renderizarTabela();
 });
 
-selectFiltroTipo.addEventListener("change", (e) => {
-    filtroTipo = e.target.value;
-    renderizarTabela();
+if (selectFiltroInstrumento) {
+    selectFiltroInstrumento.addEventListener("change", (e) => {
+        filtroInstrumento = e.target.value;
+        renderizarTabela();
+    });
+}
+
+if (selectFiltroStatus) {
+    selectFiltroStatus.addEventListener("change", (e) => {
+        filtroStatus = e.target.value;
+        renderizarTabela();
+    });
+}
+
+// Ordenação ao clicar no cabeçalho das colunas
+document.querySelectorAll(".th-sortable").forEach((th) => {
+    th.addEventListener("click", () => {
+        const colunaClicada = th.getAttribute("data-sort");
+        if (ordenacaoAtual.coluna === colunaClicada) {
+            ordenacaoAtual.direcao = ordenacaoAtual.direcao === "asc" ? "desc" : "asc";
+        } else {
+            ordenacaoAtual.coluna = colunaClicada;
+            ordenacaoAtual.direcao = "asc";
+        }
+        renderizarTabela();
+    });
 });
 
 // =========================================================================
@@ -456,15 +552,17 @@ btnExportarCSV.addEventListener("click", () => {
         return;
     }
 
-    const cabecalho = ["Datas e Horários", "Passagem", "Nome", "Instrumento", "OBRA", "Status Vínculo"];
+    const cabecalho = ["Nome", "Instrumento", "1ª Passagem", "2ª Passagem", "OBRA", "Status Vínculo"];
     const linhasCSV = [cabecalho.join(";")];
 
     linhas.forEach((l) => {
+        const p1Str = l.p1Data ? `${formatarDataBR(l.p1Data)} ${l.p1Hora}` : "";
+        const p2Str = l.p2Data ? `${formatarDataBR(l.p2Data)} ${l.p2Hora}` : "";
         const item = [
-            `"${formatarDataBR(l.data)} ${l.horario}"`,
-            `"${l.tipo}"`,
             `"${l.nome.replace(/"/g, '""')}"`,
             `"${l.instrumento.replace(/"/g, '""')}"`,
+            `"${p1Str}"`,
+            `"${p2Str}"`,
             `"${l.repertorio.replace(/"/g, '""')}"`,
             `"${l.statusVinculo === 'vinculado' ? 'Vinculado' : 'Pendente'}"`
         ];
@@ -476,7 +574,7 @@ btnExportarCSV.addEventListener("click", () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    const nomeArquivo = `passagem_de_som_${cicloSelecionado?.id || 'relatorio'}.csv`;
+    const nomeArquivo = `agendamentos_passagem_de_som_${cicloSelecionado?.id || 'relatorio'}.csv`;
     link.setAttribute("download", nomeArquivo);
     document.body.appendChild(link);
     link.click();

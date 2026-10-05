@@ -99,8 +99,8 @@
             <div class="ps-card">
                 <div class="ps-card-header">
                     <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        <h2><i data-lucide="list-ordered" style="width: 20px; height: 20px; color: var(--oer-primary);"></i> Lista Cronológica de Agendamentos</h2>
-                        <span class="badge" id="countAgendamentosBadge" style="background: var(--oer-accent-light); color: var(--oer-primary);">0 horários</span>
+                        <h2><i data-lucide="calendar-check" style="width: 20px; height: 20px; color: var(--oer-primary);"></i> Agendamentos</h2>
+                        <span class="badge" id="countAgendamentosBadge" style="background: var(--oer-accent-light); color: var(--oer-primary);">0 agendamentos</span>
                     </div>
 
                     <div class="no-print" style="display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;">
@@ -114,15 +114,20 @@
                 </div>
 
                 <!-- Barra de Filtros -->
-                <div class="no-print" style="display: flex; gap: 0.75rem; margin-bottom: 1.25rem; flex-wrap: wrap;">
-                    <div style="flex: 1; min-width: 220px;">
+                <div class="no-print ps-filters-row" style="display: flex; gap: 0.75rem; margin-bottom: 1.25rem; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 200px;">
                         <input type="text" id="inputBusca" class="form-input" placeholder="Buscar por músico, instrumento ou obra..." style="width: 100%;">
                     </div>
-                    <div style="width: 200px;">
-                        <select id="selectFiltroTipo" class="form-input" style="width: 100%;">
-                            <option value="todas">Todas as Passagens</option>
-                            <option value="1">Apenas 1ª Passagem</option>
-                            <option value="2">Apenas 2ª Passagem</option>
+                    <div style="min-width: 180px; flex: 0 0 auto;">
+                        <select id="selectFiltroInstrumento" class="form-input" style="width: 100%;">
+                            <option value="todos">Todos os Instrumentos</option>
+                        </select>
+                    </div>
+                    <div style="min-width: 160px; flex: 0 0 auto;">
+                        <select id="selectFiltroStatus" class="form-input" style="width: 100%;">
+                            <option value="todos">Todos os Vínculos</option>
+                            <option value="vinculado">Vinculados (✓)</option>
+                            <option value="pendente_validacao">Pendentes (⚠)</option>
                         </select>
                     </div>
                 </div>
@@ -132,18 +137,27 @@
                     <table class="ps-table">
                         <thead>
                             <tr>
-                                <th>Datas e Horários</th>
-                                <th>Passagem</th>
-                                <th>Nome</th>
-                                <th>Instrumento</th>
-                                <th>OBRA</th>
-                                <th class="no-print">Vínculo</th>
-                                <th class="no-print" style="text-align: right;">Ações</th>
+                                <th class="th-sortable" data-sort="nome" style="cursor: pointer;" title="Clique para ordenar por Nome">
+                                    <span style="display: inline-flex; align-items: center; gap: 0.35rem;">Nome <span class="sort-icon-indicator" data-col="nome"></span></span>
+                                </th>
+                                <th class="th-sortable" data-sort="instrumento" style="cursor: pointer;" title="Clique para ordenar por Instrumento">
+                                    <span style="display: inline-flex; align-items: center; gap: 0.35rem;">Instrumento <span class="sort-icon-indicator" data-col="instrumento"></span></span>
+                                </th>
+                                <th class="th-sortable" data-sort="p1" style="cursor: pointer;" title="Clique para ordenar por 1ª Passagem">
+                                    <span style="display: inline-flex; align-items: center; gap: 0.35rem;">1ª Passagem <span class="sort-icon-indicator" data-col="p1"></span></span>
+                                </th>
+                                <th class="th-sortable" data-sort="p2" style="cursor: pointer;" title="Clique para ordenar por 2ª Passagem">
+                                    <span style="display: inline-flex; align-items: center; gap: 0.35rem;">2ª Passagem <span class="sort-icon-indicator" data-col="p2"></span></span>
+                                </th>
+                                <th class="th-sortable" data-sort="obra" style="cursor: pointer;" title="Clique para ordenar por Obra">
+                                    <span style="display: inline-flex; align-items: center; gap: 0.35rem;">Obra <span class="sort-icon-indicator" data-col="obra"></span></span>
+                                </th>
+                                <th class="no-print" style="text-align: right; width: 90px;">Ações</th>
                             </tr>
                         </thead>
                         <tbody id="tbodyAgendamentos">
                             <tr>
-                                <td colspan="7" style="text-align: center; color: var(--oer-text-muted); padding: 2rem;">
+                                <td colspan="6" style="text-align: center; color: var(--oer-text-muted); padding: 2rem;">
                                     Carregando agendamentos...
                                 </td>
                             </tr>
