@@ -1,13 +1,13 @@
 {
-  "hash": "ec8c35e+mod",
-  "date": "05/10/2026, 13:31:22",
-  "buildAt": "2026-10-05T16:31:22.127Z",
+  "hash": "bacf0b2",
+  "date": "05/10/2026 13:47",
+  "buildAt": "2026-10-05T16:52:39.880Z",
   "history": [
     {
-      "hash": "ec8c35e+mod",
-      "date": "05/10/2026, 13:31:22",
-      "author": "Deploy Local",
-      "subject": "Atualização implantada (7 arquivos modificados)"
+      "hash": "bacf0b2",
+      "date": "05/10/2026 13:47",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(admin): centraliza pendencias de passagem de som e atestados no topo do historico"
     },
     {
       "hash": "ec8c35e",
