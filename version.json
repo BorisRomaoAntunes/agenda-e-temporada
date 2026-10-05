@@ -1,8 +1,14 @@
 {
-  "hash": "bacf0b2",
-  "date": "05/10/2026 13:47",
-  "buildAt": "2026-10-05T16:52:39.880Z",
+  "hash": "ca71f3b",
+  "date": "05/10/2026 13:52",
+  "buildAt": "2026-10-05T17:07:05.584Z",
   "history": [
+    {
+      "hash": "ca71f3b",
+      "date": "05/10/2026 13:52",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: version.json deploy vbacf0b2"
+    },
     {
       "hash": "bacf0b2",
       "date": "05/10/2026 13:47",
@@ -116,12 +122,6 @@
       "date": "29/09/2026 12:05",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualiza version.json pos-deploy v34cbedb"
-    },
-    {
-      "hash": "34cbedb",
-      "date": "29/09/2026 12:00",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(passagem-som): adiciona botao copiar link na gaveta e atualiza versao de cache do SW"
     }
   ]
 }
