@@ -1,8 +1,20 @@
 {
-  "hash": "ca71f3b",
-  "date": "05/10/2026 13:52",
-  "buildAt": "2026-10-05T17:07:05.584Z",
+  "hash": "7bfcddd",
+  "date": "05/10/2026 16:00",
+  "buildAt": "2026-10-05T19:01:50.473Z",
   "history": [
+    {
+      "hash": "7bfcddd",
+      "date": "05/10/2026 16:00",
+      "author": "Boris Romão Antunes",
+      "subject": "fix(passagem-som): adiciona scroll vertical max-height e sticky header na tabela de agendamentos"
+    },
+    {
+      "hash": "a33decb",
+      "date": "05/10/2026 14:31",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pos-deploy vca71f3b"
+    },
     {
       "hash": "ca71f3b",
       "date": "05/10/2026 13:52",
@@ -110,18 +122,6 @@
       "date": "29/09/2026 12:07",
       "author": "Boris Romão Antunes",
       "subject": "feat(passagem-som): melhorias completas de UX, stepper, autocomplete, semaforo e cache v38"
-    },
-    {
-      "hash": "cca8ad8",
-      "date": "29/09/2026 12:07",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pos-deploy"
-    },
-    {
-      "hash": "db136b7",
-      "date": "29/09/2026 12:05",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pos-deploy v34cbedb"
     }
   ]
 }
