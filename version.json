@@ -1,8 +1,20 @@
 {
-  "hash": "61a5ba4",
-  "date": "08/10/2026 11:32",
-  "buildAt": "2026-10-08T14:33:47.150Z",
+  "hash": "46021bd",
+  "date": "08/10/2026 12:06",
+  "buildAt": "2026-10-08T15:07:04.059Z",
   "history": [
+    {
+      "hash": "46021bd",
+      "date": "08/10/2026 12:06",
+      "author": "Boris Romão Antunes",
+      "subject": "fix(passagem-som): padroniza terminologia para Passagem de Som e adiciona botao Nova Passagem de Som"
+    },
+    {
+      "hash": "b1b5377",
+      "date": "08/10/2026 11:41",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pos-deploy v61a5ba4"
+    },
     {
       "hash": "61a5ba4",
       "date": "08/10/2026 11:32",
@@ -110,18 +122,6 @@
       "date": "29/09/2026 12:35",
       "author": "Boris Romão Antunes",
       "subject": "Atualiza version.json do deploy de produção"
-    },
-    {
-      "hash": "34c5c6c",
-      "date": "29/09/2026 12:33",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: version.json pos-deploy v91ab1c4"
-    },
-    {
-      "hash": "91ab1c4",
-      "date": "29/09/2026 12:31",
-      "author": "Boris Romão Antunes",
-      "subject": "Melhorias de UX e usabilidade no fluxo de reserva de salas"
     }
   ]
 }
