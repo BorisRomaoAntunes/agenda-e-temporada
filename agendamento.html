@@ -264,12 +264,20 @@
                         </div>
                         <form id="publicBookingForm" class="booking-form">
                             <div class="form-group">
-                                <label class="form-label" for="inputNome">
+                                <label class="form-label" for="inputNomeBusca">
                                     <i data-lucide="user" style="width: 14px; height: 14px; color: var(--oer-primary);"></i> Músico / Monitor: *
                                 </label>
-                                <select id="inputNome" class="form-select" required>
-                                    <option value="" disabled selected>-- Selecione o Músico / Monitor --</option>
-                                </select>
+                                <div class="autocomplete-wrapper" id="musicoAutocompleteWrapper">
+                                    <div class="autocomplete-input-box">
+                                        <i data-lucide="search" class="autocomplete-search-icon"></i>
+                                        <input type="text" id="inputNomeBusca" class="form-input autocomplete-input" placeholder="Digite para buscar o músico ou monitor..." autocomplete="off" spellcheck="false" required>
+                                        <button type="button" class="btn-clear-autocomplete" id="btnClearMusico" title="Limpar músico selecionado">
+                                            <i data-lucide="x" style="width: 15px; height: 15px;"></i>
+                                        </button>
+                                    </div>
+                                    <input type="hidden" id="inputNome" required>
+                                    <div class="autocomplete-dropdown" id="musicoDropdownList"></div>
+                                </div>
                             </div>
 
                             <div class="form-group">
@@ -576,6 +584,10 @@
         const publicSalaDisponibilidadeInfo = document.getElementById("publicSalaDisponibilidadeInfo");
         const publicBookingForm = document.getElementById("publicBookingForm");
         const inputNome = document.getElementById("inputNome");
+        const inputNomeBusca = document.getElementById("inputNomeBusca");
+        const btnClearMusico = document.getElementById("btnClearMusico");
+        const musicoDropdownList = document.getElementById("musicoDropdownList");
+        const musicoAutocompleteWrapper = document.getElementById("musicoAutocompleteWrapper");
         const selectInstrumento = document.getElementById("selectInstrumento");
         const selectVinculo = document.getElementById("selectVinculo");
         const radioPartituraList = document.querySelectorAll('input[name="radioPartitura"]');
@@ -690,32 +702,165 @@
             carregarMusicosSelect();
         }
 
-        // Carregar Músicos e Monitores Ativos no Select do Admin
+        // Helper para normalizar texto para buscas (sem acentos, minúsculas)
+        function normalizarTexto(str) {
+            return (str || "")
+                .toString()
+                .toLowerCase()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .trim();
+        }
+
+        // Variáveis de controle do Autocomplete de Músicos
+        let currentFilteredMusicos = [];
+        let activeDropdownIndex = -1;
+
+        // Carregar Músicos e Monitores Ativos para o Autocomplete do Admin
         async function carregarMusicosSelect() {
-            if (!inputNome) return;
-            inputNome.innerHTML = '<option value="" disabled selected>Carregando músicos...</option>';
+            if (!inputNomeBusca) return;
+            inputNomeBusca.placeholder = "Carregando músicos...";
+            inputNomeBusca.disabled = true;
             try {
                 allMusicosAtivos = await AgendamentoService.getMusicosAtivos();
                 if (allMusicosAtivos.length === 0) {
-                    inputNome.innerHTML = '<option value="" disabled selected>Nenhum integrante ativo encontrado</option>';
+                    inputNomeBusca.placeholder = "Nenhum integrante ativo encontrado";
                     return;
                 }
-                let optionsHtml = '<option value="" disabled selected>-- Selecione o Músico / Monitor --</option>';
-                allMusicosAtivos.forEach(m => {
-                    optionsHtml += `<option value="${m.nome}">${m.nome}</option>`;
-                });
-                inputNome.innerHTML = optionsHtml;
+                inputNomeBusca.placeholder = "Digite para buscar o músico ou monitor...";
+                inputNomeBusca.disabled = false;
+                setupMusicoAutocomplete();
             } catch (err) {
                 console.error("Erro ao carregar músicos para agendamento:", err);
-                inputNome.innerHTML = '<option value="" disabled selected>Erro ao carregar integrantes</option>';
+                inputNomeBusca.placeholder = "Erro ao carregar integrantes";
             }
         }
 
-        // Listener de Seleção do Músico (Autopreenchimento e Bloqueio)
-        if (inputNome) {
-            inputNome.addEventListener("change", () => {
-                const selectedNome = inputNome.value;
-                if (!selectedNome) {
+        function setupMusicoAutocomplete() {
+            if (!inputNomeBusca || !musicoDropdownList) return;
+
+            function escapeHtml(text) {
+                const div = document.createElement("div");
+                div.textContent = text || "";
+                return div.innerHTML;
+            }
+
+            function highlightMatch(text, query) {
+                if (!query) return escapeHtml(text);
+                const normText = normalizarTexto(text);
+                const normQuery = normalizarTexto(query);
+                const idx = normText.indexOf(normQuery);
+                if (idx === -1) return escapeHtml(text);
+                const before = escapeHtml(text.slice(0, idx));
+                const match = escapeHtml(text.slice(idx, idx + query.length));
+                const after = escapeHtml(text.slice(idx + query.length));
+                return `${before}<span class="autocomplete-match">${match}</span>${after}`;
+            }
+
+            function renderDropdown(filteredList, query = "") {
+                currentFilteredMusicos = filteredList;
+                activeDropdownIndex = -1;
+
+                if (filteredList.length === 0) {
+                    musicoDropdownList.innerHTML = `
+                        <div class="autocomplete-empty">
+                            <i data-lucide="user-x" style="width: 18px; height: 18px; margin-bottom: 0.25rem; display: inline-block; opacity: 0.6;"></i>
+                            <p style="margin: 0;">Nenhum integrante encontrado${query ? ` para "<strong>${escapeHtml(query)}</strong>"` : ''}.</p>
+                        </div>`;
+                    musicoDropdownList.classList.add("show");
+                    if (window.lucide && window.lucide.createIcons) lucide.createIcons();
+                    return;
+                }
+
+                // Limita a exibição aos primeiros 35 itens para máximo desempenho
+                const itemsToRender = filteredList.slice(0, 35);
+                let html = "";
+                itemsToRender.forEach((m, idx) => {
+                    const isMonitor = (m.vinculo || "").toLowerCase().includes("monitor") || (m.vinculo || "").toLowerCase().includes("spalla");
+                    const vinculoClass = isMonitor ? "autocomplete-badge-monitor" : "autocomplete-badge-vinculo";
+                    html += `
+                        <div class="autocomplete-item" data-index="${idx}">
+                            <div class="autocomplete-item-info">
+                                <span class="autocomplete-item-name">${highlightMatch(m.nome, query)}</span>
+                            </div>
+                            <div class="autocomplete-item-badges">
+                                ${m.instrumento ? `<span class="autocomplete-badge autocomplete-badge-instrumento">${escapeHtml(m.instrumento)}</span>` : ''}
+                                ${m.vinculo ? `<span class="autocomplete-badge ${vinculoClass}">${escapeHtml(m.vinculo)}</span>` : ''}
+                            </div>
+                        </div>`;
+                });
+
+                if (filteredList.length > 35) {
+                    html += `<div class="autocomplete-empty" style="padding: 0.45rem; font-size: 0.76rem; border-top: 1px dashed var(--oer-border);">Exibindo 35 de ${filteredList.length} integrantes. Digite mais letras para refinar.</div>`;
+                }
+
+                musicoDropdownList.innerHTML = html;
+                musicoDropdownList.classList.add("show");
+            }
+
+            function filtrarMusicos(query) {
+                const termos = normalizarTexto(query).split(/\s+/).filter(Boolean);
+                if (termos.length === 0) return allMusicosAtivos;
+                return allMusicosAtivos.filter(m => {
+                    const alvo = normalizarTexto(`${m.nome} ${m.instrumento || ''} ${m.vinculo || ''}`);
+                    return termos.every(t => alvo.includes(t));
+                });
+            }
+
+            function fecharDropdown() {
+                musicoDropdownList.classList.remove("show");
+                activeDropdownIndex = -1;
+            }
+
+            function selecionarMusico(musico) {
+                if (!musico) return;
+                inputNome.value = musico.nome;
+                inputNomeBusca.value = musico.nome;
+                inputNomeBusca.setCustomValidity("");
+                if (btnClearMusico) btnClearMusico.style.display = "inline-flex";
+                fecharDropdown();
+
+                if (selectInstrumento) {
+                    selectInstrumento.value = musico.instrumento || "";
+                    selectInstrumento.disabled = true;
+                }
+                if (selectVinculo) {
+                    selectVinculo.value = musico.vinculo || "";
+                    selectVinculo.disabled = true;
+                }
+            }
+
+            function limparSelecaoMusico(manterFoco = true) {
+                inputNome.value = "";
+                inputNomeBusca.value = "";
+                inputNomeBusca.setCustomValidity("");
+                if (btnClearMusico) btnClearMusico.style.display = "none";
+                if (selectInstrumento) {
+                    selectInstrumento.value = "";
+                    selectInstrumento.disabled = false;
+                }
+                if (selectVinculo) {
+                    selectVinculo.value = "";
+                    selectVinculo.disabled = false;
+                }
+                fecharDropdown();
+                if (manterFoco) inputNomeBusca.focus();
+            }
+
+            window.limparSelecaoMusico = limparSelecaoMusico;
+
+            // Digitação
+            inputNomeBusca.addEventListener("input", () => {
+                const val = inputNomeBusca.value.trim();
+                if (val) {
+                    if (btnClearMusico) btnClearMusico.style.display = "inline-flex";
+                } else {
+                    if (btnClearMusico) btnClearMusico.style.display = "none";
+                }
+
+                // Se o usuário alterar o texto já selecionado, limpa a confirmação
+                if (inputNome.value && inputNome.value !== val) {
+                    inputNome.value = "";
                     if (selectInstrumento) {
                         selectInstrumento.value = "";
                         selectInstrumento.disabled = false;
@@ -724,27 +869,95 @@
                         selectVinculo.value = "";
                         selectVinculo.disabled = false;
                     }
+                }
+
+                const filtrados = filtrarMusicos(val);
+                renderDropdown(filtrados, val);
+            });
+
+            // Foco: abre a lista
+            inputNomeBusca.addEventListener("focus", () => {
+                const val = inputNomeBusca.value.trim();
+                const filtrados = filtrarMusicos(val);
+                renderDropdown(filtrados, val);
+            });
+
+            // Clique na sugestão
+            musicoDropdownList.addEventListener("click", (e) => {
+                const item = e.target.closest(".autocomplete-item");
+                if (!item) return;
+                const idx = parseInt(item.getAttribute("data-index"), 10);
+                if (!isNaN(idx) && currentFilteredMusicos[idx]) {
+                    selecionarMusico(currentFilteredMusicos[idx]);
+                }
+            });
+
+            // Botão Limpar
+            if (btnClearMusico) {
+                btnClearMusico.addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    limparSelecaoMusico(true);
+                });
+            }
+
+            // Teclas de navegação (Setas, Enter, Escape)
+            inputNomeBusca.addEventListener("keydown", (e) => {
+                if (!musicoDropdownList.classList.contains("show")) {
+                    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+                        const filtrados = filtrarMusicos(inputNomeBusca.value.trim());
+                        renderDropdown(filtrados, inputNomeBusca.value.trim());
+                        e.preventDefault();
+                    }
                     return;
                 }
 
-                const musico = allMusicosAtivos.find(m => m.nome === selectedNome);
-                if (musico) {
-                    if (selectInstrumento) {
-                        if (musico.instrumento) {
-                            selectInstrumento.value = musico.instrumento;
-                        } else {
-                            selectInstrumento.value = "";
-                        }
-                        selectInstrumento.disabled = true;
-                    }
+                const items = musicoDropdownList.querySelectorAll(".autocomplete-item");
+                if (!items || items.length === 0) return;
 
-                    if (selectVinculo) {
-                        if (musico.vinculo) {
-                            selectVinculo.value = musico.vinculo;
-                        } else {
-                            selectVinculo.value = "";
+                if (e.key === "ArrowDown") {
+                    e.preventDefault();
+                    activeDropdownIndex = (activeDropdownIndex + 1) % items.length;
+                    atualizarItemAtivo(items);
+                } else if (e.key === "ArrowUp") {
+                    e.preventDefault();
+                    activeDropdownIndex = (activeDropdownIndex - 1 + items.length) % items.length;
+                    atualizarItemAtivo(items);
+                } else if (e.key === "Enter") {
+                    if (activeDropdownIndex >= 0 && currentFilteredMusicos[activeDropdownIndex]) {
+                        e.preventDefault();
+                        selecionarMusico(currentFilteredMusicos[activeDropdownIndex]);
+                    } else if (currentFilteredMusicos.length === 1) {
+                        e.preventDefault();
+                        selecionarMusico(currentFilteredMusicos[0]);
+                    }
+                } else if (e.key === "Escape") {
+                    fecharDropdown();
+                }
+            });
+
+            function atualizarItemAtivo(items) {
+                items.forEach((it, i) => {
+                    if (i === activeDropdownIndex) {
+                        it.classList.add("active");
+                        it.scrollIntoView({ block: "nearest" });
+                    } else {
+                        it.classList.remove("active");
+                    }
+                });
+            }
+
+            // Fechar ao clicar fora
+            document.addEventListener("click", (e) => {
+                if (musicoAutocompleteWrapper && !musicoAutocompleteWrapper.contains(e.target)) {
+                    fecharDropdown();
+
+                    // Se digitou exatamente o nome completo de um integrante e clicou fora
+                    if (inputNomeBusca.value.trim() && !inputNome.value) {
+                        const termo = normalizarTexto(inputNomeBusca.value.trim());
+                        const exato = allMusicosAtivos.find(m => normalizarTexto(m.nome) === termo);
+                        if (exato) {
+                            selecionarMusico(exato);
                         }
-                        selectVinculo.disabled = true;
                     }
                 }
             });
@@ -1594,6 +1807,13 @@
                 return;
             }
 
+            const nomeVal = (document.getElementById("inputNome")?.value || "").trim();
+            if (!nomeVal) {
+                alert("Por favor, busque e selecione o Músico / Monitor na lista de sugestões.");
+                if (inputNomeBusca) inputNomeBusca.focus();
+                return;
+            }
+
             const sala = allSalas.find(s => s.id === selectedSalaId);
             const precisaPartitura = document.querySelector('input[name="radioPartitura"]:checked').value === "sim";
 
@@ -1603,7 +1823,7 @@
                 data: publicDataInput.value,
                 horaInicio: selectedSlot.horaInicio,
                 horaFim: selectedSlot.horaFim,
-                nomeSolicitante: document.getElementById("inputNome").value,
+                nomeSolicitante: nomeVal,
                 instrumento: document.getElementById("selectInstrumento").value,
                 vinculo: document.getElementById("selectVinculo").value,
                 necessidades: document.getElementById("inputNecessidades").value,
@@ -1619,6 +1839,9 @@
                 await AgendamentoService.createAgendamento(payload);
                 copiarMensagemIndividual(payload, "Agendamento confirmado e mensagem copiada para o WhatsApp!");
                 publicBookingForm.reset();
+                if (window.limparSelecaoMusico) {
+                    window.limparSelecaoMusico(false);
+                }
                 if (selectInstrumento) selectInstrumento.disabled = false;
                 if (selectVinculo) selectVinculo.disabled = false;
                 groupQualPartitura.style.display = "none";

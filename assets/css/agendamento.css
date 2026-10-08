@@ -1637,3 +1637,189 @@ body {
     border-color: #fda4af;
 }
 
+/* ==========================================================================
+   Autocomplete de Músicos & Monitores
+   ========================================================================== */
+.autocomplete-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.autocomplete-input-box {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.autocomplete-search-icon {
+    position: absolute;
+    left: 0.85rem;
+    width: 16px;
+    height: 16px;
+    color: var(--oer-text-muted);
+    pointer-events: none;
+    transition: color 0.2s;
+    z-index: 2;
+}
+
+.autocomplete-wrapper:focus-within .autocomplete-search-icon {
+    color: var(--oer-primary);
+}
+
+.autocomplete-input {
+    padding-left: 2.35rem !important;
+    padding-right: 2.35rem !important;
+    width: 100%;
+    cursor: text;
+}
+
+.btn-clear-autocomplete {
+    position: absolute;
+    right: 0.6rem;
+    background: transparent;
+    border: none;
+    color: var(--oer-text-muted);
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    transition: background-color 0.15s, color 0.15s;
+    padding: 0;
+    z-index: 2;
+}
+
+.btn-clear-autocomplete:hover {
+    background-color: #fee2e2;
+    color: var(--oer-danger);
+}
+
+.autocomplete-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    border: 1px solid var(--oer-border);
+    border-radius: 8px;
+    box-shadow: var(--oer-shadow-lg);
+    max-height: 260px;
+    overflow-y: auto;
+    z-index: 1050;
+    display: none;
+}
+
+.autocomplete-dropdown.show {
+    display: block;
+    animation: fadeInDownAutoc 0.16s ease-out;
+}
+
+@keyframes fadeInDownAutoc {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.autocomplete-item {
+    padding: 0.65rem 0.85rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.88rem;
+    color: var(--oer-text-main);
+    transition: background-color 0.15s ease;
+}
+
+.autocomplete-item:last-child {
+    border-bottom: none;
+}
+
+.autocomplete-item:hover,
+.autocomplete-item.active {
+    background-color: var(--oer-accent-light);
+    color: var(--oer-primary);
+}
+
+.autocomplete-item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow: hidden;
+}
+
+.autocomplete-item-name {
+    font-weight: 600;
+    color: inherit;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.autocomplete-item-badges {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-shrink: 0;
+}
+
+.autocomplete-badge {
+    font-size: 0.72rem;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: #f1f5f9;
+    color: #475569;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.autocomplete-badge-instrumento {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    color: #334155;
+}
+
+.autocomplete-badge-vinculo {
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-weight: 600;
+}
+
+.autocomplete-badge-monitor {
+    background: #fef3c7;
+    color: #b45309;
+    font-weight: 600;
+}
+
+.autocomplete-item:hover .autocomplete-badge,
+.autocomplete-item.active .autocomplete-badge {
+    background: #ffffff;
+    border-color: var(--oer-accent-border);
+    color: var(--oer-primary);
+}
+
+.autocomplete-empty {
+    padding: 1.25rem 1rem;
+    text-align: center;
+    color: var(--oer-text-muted);
+    font-size: 0.85rem;
+}
+
+.autocomplete-match {
+    background-color: #fee2e2;
+    color: var(--oer-primary);
+    font-weight: 700;
+    border-radius: 2px;
+}
+
+
