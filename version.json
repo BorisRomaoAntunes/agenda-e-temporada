@@ -1,8 +1,20 @@
 {
-  "hash": "7bfcddd",
-  "date": "05/10/2026 16:00",
-  "buildAt": "2026-10-05T19:01:50.473Z",
+  "hash": "bf5bd0a",
+  "date": "08/10/2026 11:10",
+  "buildAt": "2026-10-08T14:11:42.852Z",
   "history": [
+    {
+      "hash": "bf5bd0a",
+      "date": "08/10/2026 11:10",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(agendamento): adiciona busca com sugestao inteligente (autocomplete) para musicos e monitores"
+    },
+    {
+      "hash": "093434b",
+      "date": "05/10/2026 16:03",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pos-deploy v7bfcddd"
+    },
     {
       "hash": "7bfcddd",
       "date": "05/10/2026 16:00",
@@ -110,18 +122,6 @@
       "date": "29/09/2026 12:25",
       "author": "Boris Romão Antunes",
       "subject": "fix(admin): move edit-musico-drawer para escopo global fora da section-musicos"
-    },
-    {
-      "hash": "ef763a2",
-      "date": "29/09/2026 12:15",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: version.json pos-deploy v6fb684c"
-    },
-    {
-      "hash": "6fb684c",
-      "date": "29/09/2026 12:07",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(passagem-som): melhorias completas de UX, stepper, autocomplete, semaforo e cache v38"
     }
   ]
 }
