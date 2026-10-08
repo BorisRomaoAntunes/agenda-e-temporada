@@ -233,7 +233,7 @@ export const PassagemSomService = {
     },
 
     /**
-     * Obtém o ciclo ativo atual em tempo real
+     * Obtém o ciclo ativo atual em tempo real (fallback para o primeiro ativo)
      */
     listenCicloAtivo(callback) {
         const q = query(
@@ -255,6 +255,90 @@ export const PassagemSomService = {
     },
 
     /**
+     * Escuta todos os ciclos que estão ativos no momento
+     */
+    listenCiclosAtivos(callback) {
+        const q = query(
+            collection(db, PassagemSomCollections.CICLOS),
+            where("ativo", "==", true)
+        );
+
+        return onSnapshot(q, (snapshot) => {
+            const ciclos = [];
+            snapshot.forEach((docSnap) => {
+                ciclos.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            ciclos.sort((a, b) => (b.atualizadoEm?.seconds || 0) - (a.atualizadoEm?.seconds || 0));
+            callback(ciclos);
+        }, (error) => {
+            console.error("Erro ao listar ciclos ativos:", error);
+            callback([]);
+        });
+    },
+
+    /**
+     * Busca todos os ciclos ativos no Firestore (uma única vez)
+     */
+    async getCiclosAtivos() {
+        try {
+            const q = query(
+                collection(db, PassagemSomCollections.CICLOS),
+                where("ativo", "==", true)
+            );
+            const snapshot = await getDocs(q);
+            const ciclos = [];
+            snapshot.forEach((docSnap) => {
+                ciclos.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            ciclos.sort((a, b) => (b.atualizadoEm?.seconds || 0) - (a.atualizadoEm?.seconds || 0));
+            return ciclos;
+        } catch (e) {
+            console.error("Erro ao buscar ciclos ativos:", e);
+            return [];
+        }
+    },
+
+    /**
+     * Escuta um ciclo específico por ID em tempo real
+     */
+    listenCicloById(cicloId, callback) {
+        if (!cicloId) {
+            callback(null);
+            return () => {};
+        }
+
+        const docRef = doc(db, PassagemSomCollections.CICLOS, cicloId);
+        return onSnapshot(docRef, (docSnap) => {
+            if (docSnap.exists()) {
+                callback({ id: docSnap.id, ...docSnap.data() });
+            } else {
+                callback(null);
+            }
+        }, (error) => {
+            console.error("Erro ao escutar ciclo por ID:", error);
+            callback(null);
+        });
+    },
+
+    /**
+     * Obtém os dados de um ciclo por ID
+     */
+    async getCicloById(cicloId) {
+        if (!cicloId) return null;
+        try {
+            const docRef = doc(db, PassagemSomCollections.CICLOS, cicloId);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                return { id: docSnap.id, ...docSnap.data() };
+            }
+            return null;
+        } catch (e) {
+            console.error("Erro ao buscar ciclo por ID:", e);
+            return null;
+        }
+    },
+
+    /**
      * Escuta todos os ciclos cadastrados
      */
     listenTodosCiclos(callback) {
@@ -273,7 +357,7 @@ export const PassagemSomService = {
     },
 
     /**
-     * Cria ou atualiza um ciclo no Firestore
+     * Cria ou atualiza um ciclo no Firestore (permite múltiplos ativos simultâneos)
      */
     async salvarCiclo(cicloId, cicloData) {
         const docRef = doc(db, PassagemSomCollections.CICLOS, cicloId);
@@ -282,22 +366,17 @@ export const PassagemSomService = {
             atualizadoEm: serverTimestamp()
         };
 
-        if (cicloData.ativo) {
-            // Se ativou este ciclo, desativa os outros para manter 1 ativo por padrão
-            try {
-                const allSnap = await getDocs(collection(db, PassagemSomCollections.CICLOS));
-                for (const d of allSnap.docs) {
-                    if (d.id !== cicloId && d.data().ativo) {
-                        await updateDoc(doc(db, PassagemSomCollections.CICLOS, d.id), { ativo: false });
-                    }
-                }
-            } catch (e) {
-                console.warn("Erro ao desativar outros ciclos:", e);
-            }
-        }
-
         await setDoc(docRef, dataToSave, { merge: true });
         return cicloId;
+    },
+
+    /**
+     * Exclui um ciclo do Firestore
+     */
+    async excluirCiclo(cicloId) {
+        if (!cicloId) return;
+        const docRef = doc(db, PassagemSomCollections.CICLOS, cicloId);
+        await deleteDoc(docRef);
     },
 
     /**
@@ -370,6 +449,23 @@ export const PassagemSomService = {
         } catch (e) {
             console.warn("Aviso ao inicializar ciclo padrão:", e);
         }
+    },
+
+    /**
+     * Escuta todos os agendamentos cadastrados (usado para métricas e contagens nos cards)
+     */
+    listenTodosAgendamentos(callback) {
+        const q = query(collection(db, PassagemSomCollections.AGENDAMENTOS));
+        return onSnapshot(q, (snapshot) => {
+            const agendamentos = [];
+            snapshot.forEach((docSnap) => {
+                agendamentos.push({ id: docSnap.id, ...docSnap.data() });
+            });
+            callback(agendamentos);
+        }, (error) => {
+            console.error("Erro ao escutar todos os agendamentos:", error);
+            callback([]);
+        });
     },
 
     /**

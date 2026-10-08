@@ -98,6 +98,100 @@ function mostrarToast(mensagem, tipo = "info") {
     }, 4500);
 }
 
+const conteudoSemCicloEl = document.getElementById("conteudoSemCiclo");
+const conteudoSeletorCiclosEl = document.getElementById("conteudoSeletorCiclos");
+const seletorCiclosGridEl = document.getElementById("seletorCiclosGrid");
+const conteudoFormEl = document.getElementById("conteudoForm");
+
+let unsubscribeAgendamentos = null;
+
+function carregarCicloNoFormulario(ciclo) {
+    cicloAtivo = ciclo;
+    if (loaderEl) loaderEl.classList.add("hidden");
+
+    if (conteudoSemCicloEl) conteudoSemCicloEl.style.display = "none";
+    if (conteudoSeletorCiclosEl) conteudoSeletorCiclosEl.style.display = "none";
+    if (conteudoFormEl) conteudoFormEl.style.display = "block";
+    if (stepperWrapperEl) stepperWrapperEl.style.display = "block";
+
+    if (cicloTituloEl) cicloTituloEl.textContent = ciclo.titulo || ciclo.nome || "Passagem de Som OER";
+    if (cicloDescricaoEl) {
+        if (ciclo.avisoDeclaracao) {
+            cicloDescricaoEl.textContent = `Aviso importante: ${ciclo.avisoDeclaracao}`;
+        } else {
+            cicloDescricaoEl.textContent = "Selecione seus horários para a 1ª e 2ª passagens de som.";
+        }
+    }
+
+    if (unsubscribeAgendamentos) unsubscribeAgendamentos();
+    unsubscribeAgendamentos = PassagemSomService.listenAgendamentos(ciclo.id, (agendamentos) => {
+        agendamentosAtuais = agendamentos;
+        renderizarPeriodo1();
+        renderizarPeriodo2();
+        atualizarResumo();
+        atualizarStepper();
+    });
+}
+
+function renderizarSeletorCiclos(ciclosAtivos) {
+    if (loaderEl) loaderEl.classList.add("hidden");
+    if (conteudoSemCicloEl) conteudoSemCicloEl.style.display = "none";
+    if (conteudoFormEl) conteudoFormEl.style.display = "none";
+    if (stepperWrapperEl) stepperWrapperEl.style.display = "none";
+    if (conteudoSeletorCiclosEl) conteudoSeletorCiclosEl.style.display = "block";
+
+    if (!seletorCiclosGridEl) return;
+    seletorCiclosGridEl.innerHTML = "";
+
+    ciclosAtivos.forEach((ciclo) => {
+        const card = document.createElement("div");
+        card.className = "seletor-ciclo-card";
+
+        const diasP1 = ciclo.periodo1?.dias || [];
+        const diasP2 = ciclo.periodo2?.dias || [];
+
+        let p1Texto = "1ª Passagem: Consultar datas";
+        if (diasP1.length > 0) {
+            const p1Ini = formatarDataBR(diasP1[0].data);
+            const p1Fim = formatarDataBR(diasP1[diasP1.length - 1].data);
+            p1Texto = diasP1.length === 1 ? `1ª Passagem: ${p1Ini}` : `1ª Passagem: ${p1Ini} a ${p1Fim}`;
+        }
+
+        let p2Texto = "2ª Passagem: Consultar datas";
+        if (diasP2.length > 0) {
+            const p2Ini = formatarDataBR(diasP2[0].data);
+            const p2Fim = formatarDataBR(diasP2[diasP2.length - 1].data);
+            p2Texto = diasP2.length === 1 ? `2ª Passagem: ${p2Ini}` : `2ª Passagem: ${p2Ini} a ${p2Fim}`;
+        }
+
+        card.innerHTML = `
+            <div>
+                <h3>${ciclo.nome || "Passagem de Som"}</h3>
+                <p>${ciclo.titulo || "Agendamento oficial de horários"}</p>
+                <div style="text-align: left; font-size: 0.85rem; color: #475569; margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.4rem;">
+                    <div><i data-lucide="clock" style="width: 14px; height: 14px; vertical-align: -2px; color: var(--oer-primary);"></i> ${p1Texto}</div>
+                    <div><i data-lucide="clock-4" style="width: 14px; height: 14px; vertical-align: -2px; color: var(--oer-primary);"></i> ${p2Texto}</div>
+                    ${ciclo.local ? `<div><i data-lucide="map-pin" style="width: 14px; height: 14px; vertical-align: -2px; color: var(--oer-primary);"></i> Local: ${ciclo.local}</div>` : ""}
+                </div>
+            </div>
+            <button type="button" class="btn btn-primary btn-sm" style="width: 100%; border-radius: 8px;">
+                <i data-lucide="calendar-plus" style="width: 15px; height: 15px;"></i> Agendar Nesta Passagem
+            </button>
+        `;
+
+        card.addEventListener("click", () => {
+            const currentUrl = new URL(window.location.href);
+            currentUrl.searchParams.set("id", ciclo.id);
+            window.history.pushState({}, "", currentUrl.href);
+            carregarCicloNoFormulario(ciclo);
+        });
+
+        seletorCiclosGridEl.appendChild(card);
+    });
+
+    if (window.lucide) lucide.createIcons();
+}
+
 // =========================================================================
 // INICIALIZAÇÃO
 // =========================================================================
@@ -113,36 +207,54 @@ document.addEventListener("DOMContentLoaded", async () => {
         configurarStepperNavegacao();
         configurarModais();
 
-        // Escuta ciclo ativo
-        PassagemSomService.listenCicloAtivo((ciclo) => {
-            cicloAtivo = ciclo;
-            if (loaderEl) loaderEl.classList.add("hidden");
+        const urlParams = new URLSearchParams(window.location.search);
+        const cicloIdParam = urlParams.get("id") || urlParams.get("ciclo");
 
-            if (!ciclo) {
-                document.getElementById("conteudoSemCiclo").style.display = "block";
-                document.getElementById("conteudoForm").style.display = "none";
-                if (stepperWrapperEl) stepperWrapperEl.style.display = "none";
-                return;
-            }
+        if (cicloIdParam) {
+            // Caso 1: ID fornecido no link específico
+            PassagemSomService.listenCicloById(cicloIdParam, (ciclo) => {
+                if (loaderEl) loaderEl.classList.add("hidden");
+                if (!ciclo) {
+                    if (conteudoSemCicloEl) {
+                        conteudoSemCicloEl.style.display = "block";
+                        const h2 = conteudoSemCicloEl.querySelector("h2");
+                        const p = conteudoSemCicloEl.querySelector("p");
+                        if (h2) h2.textContent = "Passagem de som não encontrada.";
+                        if (p) p.textContent = "O link acessado é inválido ou a passagem de som solicitada foi removida. Verifique o link com a administração da OER.";
+                    }
+                    if (conteudoFormEl) conteudoFormEl.style.display = "none";
+                    if (conteudoSeletorCiclosEl) conteudoSeletorCiclosEl.style.display = "none";
+                    if (stepperWrapperEl) stepperWrapperEl.style.display = "none";
+                    return;
+                }
 
-            document.getElementById("conteudoSemCiclo").style.display = "none";
-            document.getElementById("conteudoForm").style.display = "block";
-            if (stepperWrapperEl) stepperWrapperEl.style.display = "block";
-
-            cicloTituloEl.textContent = ciclo.titulo || ciclo.nome || "Passagem de Som OER";
-            if (ciclo.avisoDeclaracao) {
-                cicloDescricaoEl.textContent = `Aviso importante: ${ciclo.avisoDeclaracao}`;
-            }
-
-            // Escuta agendamentos em tempo real do ciclo ativo
-            PassagemSomService.listenAgendamentos(ciclo.id, (agendamentos) => {
-                agendamentosAtuais = agendamentos;
-                renderizarPeriodo1();
-                renderizarPeriodo2();
-                atualizarResumo();
-                atualizarStepper();
+                carregarCicloNoFormulario(ciclo);
             });
-        });
+        } else {
+            // Caso 2: Acesso sem parâmetro na URL
+            PassagemSomService.listenCiclosAtivos((ciclosAtivos) => {
+                if (loaderEl) loaderEl.classList.add("hidden");
+                if (!ciclosAtivos || ciclosAtivos.length === 0) {
+                    if (conteudoSemCicloEl) {
+                        conteudoSemCicloEl.style.display = "block";
+                        const h2 = conteudoSemCicloEl.querySelector("h2");
+                        const p = conteudoSemCicloEl.querySelector("p");
+                        if (h2) h2.textContent = "Nenhum ciclo de passagem de som ativo no momento.";
+                        if (p) p.textContent = "Por favor, aguarde a liberação dos novos horários pela coordenação ou entre em contato com a administração da OER.";
+                    }
+                    if (conteudoFormEl) conteudoFormEl.style.display = "none";
+                    if (conteudoSeletorCiclosEl) conteudoSeletorCiclosEl.style.display = "none";
+                    if (stepperWrapperEl) stepperWrapperEl.style.display = "none";
+                    return;
+                }
+
+                if (ciclosAtivos.length === 1) {
+                    carregarCicloNoFormulario(ciclosAtivos[0]);
+                } else {
+                    renderizarSeletorCiclos(ciclosAtivos);
+                }
+            });
+        }
 
     } catch (e) {
         console.error("Erro na inicialização pública:", e);

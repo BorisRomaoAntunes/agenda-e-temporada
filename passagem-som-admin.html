@@ -83,7 +83,10 @@
 
         <!-- Abas de Navegação -->
         <nav class="ps-tabs no-print">
-            <button type="button" class="ps-tab-btn active" data-tab="tab-tabela">
+            <button type="button" class="ps-tab-btn active" data-tab="tab-gestao">
+                <i data-lucide="layers" style="width: 17px; height: 17px;"></i> Gestão de Passagens
+            </button>
+            <button type="button" class="ps-tab-btn" data-tab="tab-tabela">
                 <i data-lucide="table" style="width: 17px; height: 17px;"></i> Tabela de Agendamentos
             </button>
             <button type="button" class="ps-tab-btn" data-tab="tab-whatsapp">
@@ -94,8 +97,39 @@
             </button>
         </nav>
 
+        <!-- ABA: GESTÃO DE PASSAGENS DE SOM -->
+        <div id="tab-gestao" class="tab-pane">
+            <div class="ps-card">
+                <div class="ps-card-header" style="flex-wrap: wrap; gap: 1rem;">
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <h2><i data-lucide="layers" style="width: 20px; height: 20px; color: var(--oer-primary);"></i> Gestão das Passagens de Som</h2>
+                            <span class="badge" id="countCiclosBadge" style="background: var(--oer-accent-light); color: var(--oer-primary);">0 cadastradas</span>
+                        </div>
+                        <p style="font-size: 0.85rem; color: var(--oer-text-muted); margin-top: 0.25rem;">
+                            Visualize todas as passagens de som e reavaliações, copie os links exclusivos para os músicos ou crie novas passagens.
+                        </p>
+                    </div>
+
+                    <div class="no-print">
+                        <button type="button" class="btn btn-primary" id="btnCriarNovaPassagemAba">
+                            <i data-lucide="plus-circle" style="width: 16px; height: 16px;"></i> Criar Nova Passagem de Som
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Grid de Cards de Passagens de Som -->
+                <div id="gridGestaoCiclos" class="gestao-ciclos-grid">
+                    <div style="text-align: center; color: var(--oer-text-muted); padding: 3rem 1rem; width: 100%;">
+                        <div class="loader-spinner" style="margin: 0 auto 1rem auto; width: 28px; height: 28px; border-width: 3px;"></div>
+                        Carregando passagens de som...
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- ABA 1: TABELA GERAL & RELATÓRIOS -->
-        <div id="tab-tabela" class="tab-pane">
+        <div id="tab-tabela" class="tab-pane" style="display: none;">
             <div class="ps-card">
                 <div class="ps-card-header">
                     <div style="display: flex; align-items: center; gap: 0.75rem;">

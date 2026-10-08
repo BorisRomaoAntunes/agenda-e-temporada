@@ -16316,24 +16316,100 @@ async function handleCopyLinkMusicos() {
     }
 }
 
-async function handleCopyLinkPassagemSom() {
-    const urlPassagem = new URL("passagem-som.html", window.location.href).href;
+async function openQuickPassagemLinksModal() {
+    const modal = document.getElementById('modal-quick-passagem-som-links');
+    const container = document.getElementById('quick-passagem-links-container');
+    if (!modal || !container) return;
+
+    modal.style.display = 'flex';
+    container.innerHTML = `
+        <div style="text-align: center; color: #64748b; padding: 1.5rem 0;">
+            <div class="loader-spinner" style="width: 24px; height: 24px; border-width: 3px; margin: 0 auto 0.75rem auto;"></div>
+            <span>Carregando passagens de som ativas...</span>
+        </div>
+    `;
+
     try {
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            await navigator.clipboard.writeText(urlPassagem);
-        } else {
-            const tempTextarea = document.createElement('textarea');
-            tempTextarea.value = urlPassagem;
-            document.body.appendChild(tempTextarea);
-            tempTextarea.select();
-            document.execCommand('copy');
-            document.body.removeChild(tempTextarea);
+        const ciclosAtivos = await PassagemSomService.getCiclosAtivos();
+        if (!ciclosAtivos || ciclosAtivos.length === 0) {
+            container.innerHTML = `
+                <div style="text-align: center; padding: 1.5rem 0.5rem; color: #64748b;">
+                    <i data-lucide="calendar-x" style="width: 32px; height: 32px; color: #94a3b8; margin: 0 auto 0.5rem auto; display: block;"></i>
+                    <p style="font-weight: 600; color: #334155; margin-bottom: 0.25rem;">Nenhuma passagem de som ativa no momento.</p>
+                    <p style="font-size: 0.82rem; margin-bottom: 1rem;">Abra o painel de Passagem de Som para criar ou ativar uma nova passagem.</p>
+                    <a href="passagem-som-admin.html" target="_blank" class="btn btn-primary btn-sm" style="display: inline-flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.85rem; font-size: 0.82rem; text-decoration: none; border-radius: 8px;">
+                        <i data-lucide="external-link" style="width: 14px; height: 14px;"></i> Abrir Painel de Gestão
+                    </a>
+                </div>
+            `;
+            if (window.lucide) lucide.createIcons();
+            return;
         }
-        showNotification("Link de Agendamento da Passagem de Som copiado com sucesso! Pronto para enviar aos músicos.", "success");
-    } catch (err) {
-        console.error("Erro ao copiar link de passagem de som:", err);
-        window.prompt("Copie o link abaixo para enviar aos músicos:", urlPassagem);
+
+        container.innerHTML = '';
+        ciclosAtivos.forEach((ciclo) => {
+            const urlPublica = `${window.location.origin}${window.location.pathname.replace("admin.html", "passagem-som.html")}?id=${encodeURIComponent(ciclo.id)}`;
+            const item = document.createElement('div');
+            item.style.cssText = 'background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 0.85rem 1rem; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;';
+
+            const diasP1 = ciclo.periodo1?.dias || [];
+            const p1Resumo = diasP1.length > 0 ? formatarDataBR(diasP1[0].data) : '';
+
+            item.innerHTML = `
+                <div style="min-width: 0; flex: 1;">
+                    <div style="font-weight: 700; font-size: 0.92rem; color: #0f172a; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        ${ciclo.nome || 'Passagem de Som'}
+                    </div>
+                    <div style="font-size: 0.78rem; color: #64748b; margin-top: 2px;">
+                        ${ciclo.titulo || ''} ${p1Resumo ? `• 1ª Passagem: ${p1Resumo}` : ''}
+                    </div>
+                </div>
+                <button type="button" class="btn-copiar-link-item" data-url="${urlPublica}" data-nome="${ciclo.nome}" style="padding: 0.45rem 0.75rem; font-size: 0.78rem; font-weight: 600; border-radius: 8px; cursor: pointer; background: var(--primary-color, #8b0000); color: white; border: none; display: flex; align-items: center; gap: 0.35rem; flex-shrink: 0; box-shadow: 0 2px 4px rgba(139,0,0,0.15);">
+                    <i data-lucide="copy" style="width: 13px; height: 13px;"></i>
+                    <span>Copiar Link</span>
+                </button>
+            `;
+
+            const btnCopiar = item.querySelector('.btn-copiar-link-item');
+            btnCopiar.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const url = btnCopiar.getAttribute('data-url');
+                const nome = btnCopiar.getAttribute('data-nome');
+                try {
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        await navigator.clipboard.writeText(url);
+                    } else {
+                        const ta = document.createElement('textarea');
+                        ta.value = url;
+                        document.body.appendChild(ta);
+                        ta.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(ta);
+                    }
+                    showNotification(`Link da "${nome}" copiado com sucesso!`, 'success');
+                    closeQuickPassagemLinksModal();
+                } catch (err) {
+                    window.prompt('Copie o link abaixo:', url);
+                }
+            });
+
+            container.appendChild(item);
+        });
+
+        if (window.lucide) lucide.createIcons();
+    } catch (e) {
+        console.error('Erro ao carregar passagens no modal rápido:', e);
+        container.innerHTML = `
+            <div style="color: #dc2626; font-size: 0.85rem; text-align: center; padding: 1rem;">
+                Erro ao carregar passagens. Tente abrir o painel completo.
+            </div>
+        `;
     }
+}
+
+function closeQuickPassagemLinksModal() {
+    const modal = document.getElementById('modal-quick-passagem-som-links');
+    if (modal) modal.style.display = 'none';
 }
 
 function initQuickActionsAgendamentoModule() {
@@ -16386,7 +16462,7 @@ function initQuickActionsAgendamentoModule() {
         if (btnLinkPassagemSom) {
             btnLinkPassagemSom.addEventListener('click', (e) => {
                 e.preventDefault();
-                handleCopyLinkPassagemSom();
+                openQuickPassagemLinksModal();
             });
         }
 
@@ -16406,9 +16482,24 @@ function initQuickActionsAgendamentoModule() {
             });
         }
 
+        // Listeners do Modal Rápido de Links de Passagem de Som
+        const modalPassagem = document.getElementById('modal-quick-passagem-som-links');
+        const btnClosePassagem = document.getElementById('btn-close-quick-passagem-modal');
+        const btnFecharPassagem = document.getElementById('btn-fechar-quick-passagem-modal');
+
+        if (btnClosePassagem) btnClosePassagem.addEventListener('click', closeQuickPassagemLinksModal);
+        if (btnFecharPassagem) btnFecharPassagem.addEventListener('click', closeQuickPassagemLinksModal);
+
+        if (modalPassagem) {
+            modalPassagem.addEventListener('click', (e) => {
+                if (e.target === modalPassagem) closeQuickPassagemLinksModal();
+            });
+        }
+
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && modal && modal.style.display === 'flex') {
-                closeQuickReportModal();
+            if (e.key === 'Escape') {
+                if (modal && modal.style.display === 'flex') closeQuickReportModal();
+                if (modalPassagem && modalPassagem.style.display === 'flex') closeQuickPassagemLinksModal();
             }
         });
 

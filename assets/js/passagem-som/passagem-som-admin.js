@@ -18,6 +18,7 @@ import {
 // Estado da Aplicação
 let usuarioAtual = null;
 let todosCiclos = [];
+let todosAgendamentos = [];
 let cicloSelecionado = null;
 let agendamentosDoCiclo = [];
 let musicosAtivos = [];
@@ -51,6 +52,11 @@ const loaderEl = document.getElementById("loader");
 const toastEl = document.getElementById("toastMsg");
 const selectCicloEl = document.getElementById("selectCiclo");
 const btnHeaderCopyLink = document.getElementById("btnHeaderCopyLink");
+
+// Gestão de Passagens DOM
+const gridGestaoCiclos = document.getElementById("gridGestaoCiclos");
+const countCiclosBadge = document.getElementById("countCiclosBadge");
+const btnCriarNovaPassagemAba = document.getElementById("btnCriarNovaPassagemAba");
 
 // Validação Card
 const validationCardEl = document.getElementById("validationCard");
@@ -156,12 +162,19 @@ async function inicializarAdmin() {
         PassagemSomService.listenTodosCiclos((ciclos) => {
             todosCiclos = ciclos;
             atualizarSelectCiclos();
+            renderizarGestaoCiclos();
 
             if (!cicloSelecionado && ciclos.length > 0) {
                 const ativo = ciclos.find((c) => c.ativo) || ciclos[0];
                 selecionarCiclo(ativo.id);
             }
             if (loaderEl) loaderEl.classList.add("hidden");
+        });
+
+        // Escuta todos os agendamentos para métricas dos cards em tempo real
+        PassagemSomService.listenTodosAgendamentos((agendamentos) => {
+            todosAgendamentos = agendamentos;
+            renderizarGestaoCiclos();
         });
 
     } catch (e) {
@@ -217,14 +230,21 @@ function selecionarCiclo(cicloId) {
     });
 }
 
-// Copiar Link Público
+// Copiar Link Público da Passagem Atualmente Selecionada
 btnHeaderCopyLink.addEventListener("click", () => {
-    const url = window.location.href.replace("passagem-som-admin.html", "passagem-som.html");
-    navigator.clipboard.writeText(url).then(() => {
-        mostrarToast("Link público copiado com sucesso!", "success");
-    }).catch(() => {
+    let url = window.location.href.replace("passagem-som-admin.html", "passagem-som.html");
+    if (cicloSelecionado && cicloSelecionado.id) {
+        url = `${window.location.origin}${window.location.pathname.replace("passagem-som-admin.html", "passagem-som.html")}?id=${encodeURIComponent(cicloSelecionado.id)}`;
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(() => {
+            mostrarToast("Link público da passagem selecionada copiado com sucesso!", "success");
+        }).catch(() => {
+            prompt("Copie o link:", url);
+        });
+    } else {
         prompt("Copie o link:", url);
-    });
+    }
 });
 
 // =========================================================================
@@ -935,7 +955,12 @@ function carregarDadosReavaliacao(c) {
 }
 
 btnSalvarCiclo.addEventListener("click", async () => {
-    if (!cicloSelecionado) return;
+    const nomeTrim = cicloNomeInput.value.trim();
+    if (!nomeTrim) {
+        mostrarToast("Por favor, preencha o Nome da Reavaliação/Passagem de Som.", "warning");
+        if (cicloNomeInput) cicloNomeInput.focus();
+        return;
+    }
 
     if (!p1Config.dias || p1Config.dias.length === 0) {
         mostrarToast("Gere ao menos 1 dia para a 1ª Passagem de Som.", "warning");
@@ -946,11 +971,18 @@ btnSalvarCiclo.addEventListener("click", async () => {
         return;
     }
 
-    const updates = {
-        nome: cicloNomeInput.value.trim() || cicloSelecionado.nome,
-        titulo: cicloTituloInput.value.trim() || `Passagem de Som - ${cicloNomeInput.value.trim()}`,
+    let idCiclo = cicloSelecionado ? cicloSelecionado.id : null;
+    if (!idCiclo) {
+        const idBase = normalizarTexto(nomeTrim).replace(/[^a-z0-9]/g, "_");
+        idCiclo = `${idBase}_${Date.now()}`;
+    }
+
+    const cicloData = {
+        id: idCiclo,
+        nome: nomeTrim,
+        titulo: cicloTituloInput.value.trim() || `Passagem de Som - ${nomeTrim}`,
         avisoDeclaracao: cicloAvisoInput.value.trim(),
-        local: cicloLocalInput.value.trim(),
+        local: cicloLocalInput.value.trim() || "sala de Ensaio OSM/OER",
         ativo: cicloAtivoCheckbox.checked,
         periodo1: {
             titulo: "1ª Passagem de Som",
@@ -965,11 +997,13 @@ btnSalvarCiclo.addEventListener("click", async () => {
     try {
         btnSalvarCiclo.disabled = true;
         btnSalvarCiclo.innerHTML = `<span class="loader-spinner" style="width: 16px; height: 16px; margin: 0; border-width: 2px;"></span> Salvando...`;
-        await PassagemSomService.salvarCiclo(cicloSelecionado.id, updates);
-        mostrarToast("Configurações da Reavaliação salvas com sucesso!", "success");
+        await PassagemSomService.salvarCiclo(idCiclo, cicloData);
+        mostrarToast(`Passagem "${nomeTrim}" salva com sucesso!`, "success");
+        selecionarCiclo(idCiclo);
+        trocarAba("tab-gestao");
     } catch (e) {
-        console.error("Erro ao salvar reavaliação:", e);
-        mostrarToast(e.message || "Erro ao salvar reavaliação.", "error");
+        console.error("Erro ao salvar passagem de som:", e);
+        mostrarToast(e.message || "Erro ao salvar passagem de som.", "error");
     } finally {
         btnSalvarCiclo.disabled = false;
         btnSalvarCiclo.innerHTML = `<i data-lucide="save" style="width: 18px; height: 18px;"></i> Salvar Configurações da Reavaliação`;
@@ -977,38 +1011,232 @@ btnSalvarCiclo.addEventListener("click", async () => {
     }
 });
 
-btnNovoCiclo.addEventListener("click", async () => {
-    const nomeNovo = prompt("Digite o nome da Nova Reavaliação (ex: Reavaliação 04 - 2026):");
-    if (!nomeNovo || !nomeNovo.trim()) return;
+function irParaNovoCiclo() {
+    cicloSelecionado = null;
+    if (cicloNomeInput) cicloNomeInput.value = "";
+    if (cicloTituloInput) cicloTituloInput.value = "";
+    if (cicloLocalInput) cicloLocalInput.value = "sala de Ensaio OSM/OER";
+    if (cicloAtivoCheckbox) cicloAtivoCheckbox.checked = true;
+    if (cicloAvisoInput) cicloAvisoInput.value = "DECLARAÇÃO de ESTUDO deverá ser enviada para o Inspetor da OER até sua SEGUNDA PASSAGEM DE SOM - Caso precise do documento, solicite ao Inspetor da OER";
+    
+    // Reseta configurações de dias e horários
+    p1Config.dias = [];
+    p2Config.dias = [];
+    if (p1DiasPreview) p1DiasPreview.innerHTML = "";
+    if (p2DiasPreview) p2DiasPreview.innerHTML = "";
 
-    const idNovo = normalizarTexto(nomeNovo.trim()).replace(/\s+/g, "_");
+    // Configura datas iniciais padrão para a semana seguinte
+    const hoje = new Date();
+    const amanha = new Date(hoje);
+    amanha.setDate(hoje.getDate() + 1);
+    const emUmaSemana = new Date(hoje);
+    emUmaSemana.setDate(hoje.getDate() + 7);
 
-    const novaReavaliacao = {
-        id: idNovo,
-        nome: nomeNovo.trim(),
-        titulo: `Passagem de Som - ${nomeNovo.trim()}`,
-        ativo: true,
-        local: "sala de Ensaio OSM/OER",
-        avisoDeclaracao: "DECLARAÇÃO de ESTUDO deverá ser enviada para o Inspetor da OER até sua SEGUNDA PASSAGEM DE SOM - Caso precise do documento, solicite ao Inspetor da OER",
-        periodo1: {
-            titulo: "1ª Passagem de Som",
-            dias: []
-        },
-        periodo2: {
-            titulo: "2ª Passagem de Som",
-            dias: []
-        }
-    };
+    const fmtData = (d) => d.toISOString().split("T")[0];
+    if (p1DataInicioEl) p1DataInicioEl.value = fmtData(amanha);
+    if (p1DataFimEl) p1DataFimEl.value = fmtData(emUmaSemana);
+    if (p2DataInicioEl) p2DataInicioEl.value = fmtData(amanha);
+    if (p2DataFimEl) p2DataFimEl.value = fmtData(emUmaSemana);
 
-    try {
-        await PassagemSomService.salvarCiclo(idNovo, novaReavaliacao);
-        mostrarToast(`"${nomeNovo}" criada com sucesso!`, "success");
-        selecionarCiclo(idNovo);
-    } catch (e) {
-        console.error("Erro ao criar reavaliação:", e);
-        mostrarToast(e.message || "Erro ao criar nova reavaliação.", "error");
+    renderizarIntervalosUI(p1IntervalosContainer, p1Config);
+    renderizarIntervalosUI(p2IntervalosContainer, p2Config);
+
+    trocarAba("tab-ciclos");
+    if (cicloNomeInput) cicloNomeInput.focus();
+}
+
+if (btnNovoCiclo) {
+    btnNovoCiclo.addEventListener("click", irParaNovoCiclo);
+}
+
+if (btnCriarNovaPassagemAba) {
+    btnCriarNovaPassagemAba.addEventListener("click", irParaNovoCiclo);
+}
+
+// =========================================================================
+// ABA GESTÃO DE PASSAGENS DE SOM (CARDS & LINKS DIRETOS)
+// =========================================================================
+function renderizarGestaoCiclos() {
+    if (!gridGestaoCiclos) return;
+
+    if (countCiclosBadge) {
+        countCiclosBadge.textContent = `${todosCiclos.length} cadastrada(s)`;
     }
-});
+
+    if (todosCiclos.length === 0) {
+        gridGestaoCiclos.innerHTML = `
+            <div style="text-align: center; color: var(--oer-text-muted); padding: 3rem 1rem; width: 100%;">
+                <i data-lucide="calendar-x-2" style="width: 44px; height: 44px; margin: 0 auto 1rem auto; display: block; color: #94a3b8;"></i>
+                <p style="font-weight: 600; font-size: 1.05rem; color: #334155; margin-bottom: 0.5rem;">Nenhuma passagem de som encontrada</p>
+                <p style="font-size: 0.88rem; margin-bottom: 1.25rem;">Crie uma nova passagem de som para disponibilizar aos músicos.</p>
+                <button type="button" class="btn btn-primary btn-sm" id="btnEmptyCriarCiclo">
+                    <i data-lucide="plus" style="width: 15px; height: 15px;"></i> Criar Primeira Passagem
+                </button>
+            </div>
+        `;
+        const btnEmpty = document.getElementById("btnEmptyCriarCiclo");
+        if (btnEmpty) btnEmpty.addEventListener("click", irParaNovoCiclo);
+        if (window.lucide) lucide.createIcons();
+        return;
+    }
+
+    gridGestaoCiclos.innerHTML = "";
+
+    todosCiclos.forEach((ciclo) => {
+        const agendadosDesteCiclo = todosAgendamentos.filter((a) => a.cicloId === ciclo.id);
+        const totalAgendados = agendadosDesteCiclo.length;
+
+        // Datas de P1 e P2 para resumo
+        const diasP1 = ciclo.periodo1?.dias || [];
+        const diasP2 = ciclo.periodo2?.dias || [];
+        
+        let p1Resumo = "Não configurado";
+        if (diasP1.length > 0) {
+            const primeiraData = formatarDataBR(diasP1[0].data);
+            const ultimaData = formatarDataBR(diasP1[diasP1.length - 1].data);
+            p1Resumo = diasP1.length === 1 ? primeiraData : `${primeiraData} a ${ultimaData} (${diasP1.length} dias)`;
+        }
+
+        let p2Resumo = "Não configurado";
+        if (diasP2.length > 0) {
+            const primeiraData = formatarDataBR(diasP2[0].data);
+            const ultimaData = formatarDataBR(diasP2[diasP2.length - 1].data);
+            p2Resumo = diasP2.length === 1 ? primeiraData : `${primeiraData} a ${ultimaData} (${diasP2.length} dias)`;
+        }
+
+        const isAtivo = !!ciclo.ativo;
+        const urlPublica = `${window.location.origin}${window.location.pathname.replace("passagem-som-admin.html", "passagem-som.html")}?id=${encodeURIComponent(ciclo.id)}`;
+
+        const card = document.createElement("div");
+        card.className = `ciclo-gestao-card ${isAtivo ? "is-ativo" : "is-inativo"}`;
+
+        card.innerHTML = `
+            <div>
+                <div class="ciclo-card-top">
+                    <div>
+                        <h3 class="ciclo-card-title">${ciclo.nome || "Passagem de Som"}</h3>
+                        <p style="font-size: 0.82rem; color: var(--oer-text-muted); margin-top: 2px;">
+                            ${ciclo.titulo || "Página de agendamento"}
+                        </p>
+                    </div>
+                    <span class="badge-status-ciclo ${isAtivo ? "ativa" : "inativa"}">
+                        ${isAtivo ? '<i data-lucide="check-circle-2" style="width: 13px; height: 13px;"></i> Ativa' : '<i data-lucide="pause-circle" style="width: 13px; height: 13px;"></i> Inativa'}
+                    </span>
+                </div>
+
+                <div class="ciclo-card-info-list">
+                    <div class="ciclo-info-item" title="Período da 1ª passagem">
+                        <i data-lucide="clock"></i>
+                        <span><strong>1ª Passagem:</strong> ${p1Resumo}</span>
+                    </div>
+                    <div class="ciclo-info-item" title="Período da 2ª passagem">
+                        <i data-lucide="clock-4"></i>
+                        <span><strong>2ª Passagem:</strong> ${p2Resumo}</span>
+                    </div>
+                    <div class="ciclo-info-item" title="Total de músicos com horário agendado">
+                        <i data-lucide="users"></i>
+                        <span><strong>Agendamentos:</strong> ${totalAgendados} músico(s)</span>
+                    </div>
+                    ${ciclo.local ? `
+                    <div class="ciclo-info-item" title="Local da passagem">
+                        <i data-lucide="map-pin"></i>
+                        <span><strong>Local:</strong> ${ciclo.local}</span>
+                    </div>
+                    ` : ""}
+                </div>
+
+                <div class="ciclo-link-action-box" title="Link específico desta passagem de som">
+                    <span class="ciclo-link-display">${urlPublica}</span>
+                    <button type="button" class="btn btn-primary btn-sm btn-copiar-link-card" data-url="${urlPublica}" data-nome="${ciclo.nome}" style="white-space: nowrap; padding: 0.35rem 0.65rem; font-size: 0.78rem;">
+                        <i data-lucide="copy" style="width: 13px; height: 13px;"></i> Copiar Link
+                    </button>
+                </div>
+            </div>
+
+            <div class="ciclo-card-actions">
+                <button type="button" class="btn btn-outline btn-sm btn-ver-tabela" data-id="${ciclo.id}" title="Ver tabela de inscritos desta passagem">
+                    <i data-lucide="table" style="width: 14px; height: 14px;"></i> Ver Agendamentos
+                </button>
+                <button type="button" class="btn btn-outline btn-sm btn-editar-ciclo" data-id="${ciclo.id}" title="Editar datas, horários e status">
+                    <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i> Editar
+                </button>
+                <button type="button" class="btn btn-outline btn-sm btn-excluir-ciclo" data-id="${ciclo.id}" data-nome="${ciclo.nome}" style="color: var(--oer-danger); border-color: #fecdd3; margin-left: auto;" title="Excluir passagem de som">
+                    <i data-lucide="trash-2" style="width: 14px; height: 14px;"></i>
+                </button>
+            </div>
+        `;
+
+        // Event Listeners dos botões do card
+        const btnCopiar = card.querySelector(".btn-copiar-link-card");
+        btnCopiar.addEventListener("click", () => {
+            const urlToCopy = btnCopiar.getAttribute("data-url");
+            const nomeCiclo = btnCopiar.getAttribute("data-nome");
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(urlToCopy).then(() => {
+                    mostrarToast(`Link de "${nomeCiclo}" copiado com sucesso!`, "success");
+                }).catch(() => {
+                    prompt("Copie o link:", urlToCopy);
+                });
+            } else {
+                prompt("Copie o link:", urlToCopy);
+            }
+        });
+
+        const btnVerTabela = card.querySelector(".btn-ver-tabela");
+        btnVerTabela.addEventListener("click", () => {
+            const cid = btnVerTabela.getAttribute("data-id");
+            selecionarCiclo(cid);
+            trocarAba("tab-tabela");
+        });
+
+        const btnEditar = card.querySelector(".btn-editar-ciclo");
+        btnEditar.addEventListener("click", () => {
+            const cid = btnEditar.getAttribute("data-id");
+            selecionarCiclo(cid);
+            trocarAba("tab-ciclos");
+        });
+
+        const btnExcluir = card.querySelector(".btn-excluir-ciclo");
+        btnExcluir.addEventListener("click", async () => {
+            const cid = btnExcluir.getAttribute("data-id");
+            const cnome = btnExcluir.getAttribute("data-nome");
+            const confirmou = window.confirm(`Atenção: Tem certeza de que deseja excluir a passagem de som "${cnome}"?\n\nEsta operação removerá as configurações desta passagem.`);
+            if (confirmou) {
+                try {
+                    await PassagemSomService.excluirCiclo(cid);
+                    mostrarToast(`Passagem "${cnome}" excluída com sucesso.`, "info");
+                    if (cicloSelecionado && cicloSelecionado.id === cid) {
+                        cicloSelecionado = null;
+                    }
+                } catch (e) {
+                    console.error("Erro ao excluir ciclo:", e);
+                    mostrarToast("Erro ao excluir passagem de som.", "error");
+                }
+            }
+        });
+
+        gridGestaoCiclos.appendChild(card);
+    });
+
+    if (window.lucide) {
+        lucide.createIcons();
+    }
+}
+
+// Troca de Abas
+function trocarAba(targetTab) {
+    document.querySelectorAll(".ps-tab-btn").forEach((b) => {
+        if (b.getAttribute("data-tab") === targetTab) {
+            b.classList.add("active");
+        } else {
+            b.classList.remove("active");
+        }
+    });
+
+    document.querySelectorAll(".tab-pane").forEach((p) => {
+        p.style.display = p.id === targetTab ? "block" : "none";
+    });
+}
 
 // =========================================================================
 // MODAL DE EDIÇÃO DE AGENDAMENTO
@@ -1069,12 +1297,7 @@ formEditarAgendamento.addEventListener("submit", async (e) => {
 // Navegação entre Abas
 document.querySelectorAll(".ps-tab-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
-        document.querySelectorAll(".ps-tab-btn").forEach((b) => b.classList.remove("active"));
-        btn.classList.add("active");
-
         const targetTab = btn.getAttribute("data-tab");
-        document.querySelectorAll(".tab-pane").forEach((p) => p.style.display = "none");
-        const pane = document.getElementById(targetTab);
-        if (pane) pane.style.display = "block";
+        trocarAba(targetTab);
     });
 });

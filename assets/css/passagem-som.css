@@ -1676,3 +1676,185 @@ body {
         width: 100%;
     }
 }
+
+/* ==========================================================================
+   ESTILOS: ABA GESTÃO DE PASSAGENS DE SOM & SELETOR PÚBLICO
+   ========================================================================== */
+.gestao-ciclos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+    gap: 1.25rem;
+    margin-top: 1.25rem;
+}
+
+.ciclo-gestao-card {
+    background: #ffffff;
+    border: 1px solid var(--oer-border);
+    border-radius: 14px;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    transition: all 0.2s ease-in-out;
+    position: relative;
+    border-left: 5px solid #94a3b8;
+}
+
+.ciclo-gestao-card:hover {
+    box-shadow: 0 8px 16px rgba(0,0,0,0.08);
+    transform: translateY(-2px);
+}
+
+.ciclo-gestao-card.is-ativo {
+    border-left-color: var(--oer-success);
+}
+
+.ciclo-gestao-card.is-inativo {
+    border-left-color: #cbd5e1;
+    opacity: 0.92;
+}
+
+.ciclo-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.ciclo-card-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--oer-text-main);
+    line-height: 1.35;
+    margin: 0;
+}
+
+.badge-status-ciclo {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.25rem 0.65rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-shrink: 0;
+}
+
+.badge-status-ciclo.ativa {
+    background: #dcfce7;
+    color: #15803d;
+    border: 1px solid #bbf7d0;
+}
+
+.badge-status-ciclo.inativa {
+    background: #f1f5f9;
+    color: #64748b;
+    border: 1px solid #e2e8f0;
+}
+
+.ciclo-card-info-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    font-size: 0.84rem;
+    color: var(--oer-text-muted);
+}
+
+.ciclo-info-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.ciclo-info-item i {
+    width: 15px;
+    height: 15px;
+    color: var(--oer-primary);
+    flex-shrink: 0;
+}
+
+.ciclo-link-action-box {
+    background: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    border-radius: 10px;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.ciclo-link-display {
+    font-size: 0.78rem;
+    color: #475569;
+    font-family: monospace;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+}
+
+.ciclo-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    border-top: 1px solid #f1f5f9;
+    padding-top: 0.85rem;
+}
+
+.ciclo-card-actions .btn {
+    font-size: 0.82rem;
+    padding: 0.45rem 0.75rem;
+}
+
+/* Seletor Público de Ciclos (quando há múltiplos ativos) */
+.seletor-ciclos-wrapper {
+    max-width: 720px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+.seletor-ciclos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.25rem;
+    margin-top: 1.5rem;
+}
+
+.seletor-ciclo-card {
+    background: #ffffff;
+    border: 2px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+}
+
+.seletor-ciclo-card:hover {
+    border-color: var(--oer-primary);
+    transform: translateY(-3px);
+    box-shadow: 0 10px 20px -3px rgba(139, 0, 0, 0.12);
+}
+
+.seletor-ciclo-card h3 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--oer-text-main);
+    margin-bottom: 0.5rem;
+}
+
+.seletor-ciclo-card p {
+    font-size: 0.86rem;
+    color: var(--oer-text-muted);
+    margin-bottom: 1rem;
+}
+

@@ -91,6 +91,21 @@
             </p>
         </div>
 
+        <!-- Seletor amigável caso haja múltiplas passagens ativas e nenhum ID específico no link -->
+        <div id="conteudoSeletorCiclos" class="seletor-ciclos-wrapper" style="display: none;">
+            <div class="ps-card" style="text-align: center; padding: 2.25rem 1.5rem;">
+                <i data-lucide="calendar-check" style="width: 48px; height: 48px; color: var(--oer-primary); margin: 0 auto 0.75rem auto; display: block;"></i>
+                <h2 style="font-size: 1.35rem; color: var(--oer-text-main); margin-bottom: 0.5rem;">Selecione a sua Passagem de Som</h2>
+                <p style="color: var(--oer-text-muted); font-size: 0.9rem; max-width: 520px; margin: 0 auto 1.5rem auto;">
+                    Há mais de uma passagem de som com agendamentos abertos no momento. Por favor, escolha abaixo para qual evento você deseja agendar seus horários:
+                </p>
+
+                <div id="seletorCiclosGrid" class="seletor-ciclos-grid">
+                    <!-- Cards inseridos dinamicamente via JS -->
+                </div>
+            </div>
+        </div>
+
         <!-- Formulário de Agendamento -->
         <div id="conteudoForm">
             <!-- Aviso de dados recuperados do LocalStorage -->
