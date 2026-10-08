@@ -57,7 +57,7 @@
 
             <div class="ps-header-actions">
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
-                    <label for="selectCiclo" style="font-size: 0.82rem; font-weight: 600; color: var(--oer-text-muted);">Reavaliação:</label>
+                    <label for="selectCiclo" style="font-size: 0.82rem; font-weight: 600; color: var(--oer-text-muted);">Passagem de Som:</label>
                     <select id="selectCiclo" class="form-input" style="padding: 0.45rem 0.75rem; font-size: 0.88rem; font-weight: 600; min-width: 220px;"></select>
                 </div>
                 <button type="button" class="btn btn-primary btn-sm" id="btnHeaderCopyLink" title="Copiar link da página pública para enviar aos músicos">
@@ -93,7 +93,7 @@
                 <i data-lucide="message-square" style="width: 17px; height: 17px;"></i> Mensagem para WhatsApp
             </button>
             <button type="button" class="ps-tab-btn" data-tab="tab-ciclos">
-                <i data-lucide="calendar-range" style="width: 17px; height: 17px;"></i> Configuração de Nova Reavaliação
+                <i data-lucide="calendar-range" style="width: 17px; height: 17px;"></i> Configurar Passagem de Som
             </button>
         </nav>
 
@@ -107,7 +107,7 @@
                             <span class="badge" id="countCiclosBadge" style="background: var(--oer-accent-light); color: var(--oer-primary);">0 cadastradas</span>
                         </div>
                         <p style="font-size: 0.85rem; color: var(--oer-text-muted); margin-top: 0.25rem;">
-                            Visualize todas as passagens de som e reavaliações, copie os links exclusivos para os músicos ou crie novas passagens.
+                            Visualize todas as passagens de som cadastradas, copie os links exclusivos para os músicos ou crie novas passagens.
                         </p>
                     </div>
 
@@ -234,25 +234,25 @@
             </div>
         </div>
 
-        <!-- ABA 3: CONFIGURAÇÃO DE NOVA REAVALIAÇÃO (CONSTRUTOR VISUAL DE DISPONIBILIDADE) -->
+        <!-- ABA 3: CONFIGURAR PASSAGEM DE SOM (CONSTRUTOR VISUAL DE DISPONIBILIDADE) -->
         <div id="tab-ciclos" class="tab-pane" style="display: none;">
             <div class="ps-card">
                 <div class="ps-card-header">
-                    <h2><i data-lucide="calendar-check-2" style="width: 20px; height: 20px; color: var(--oer-primary);"></i> Configuração de Nova Reavaliação</h2>
+                    <h2><i data-lucide="calendar-check-2" style="width: 20px; height: 20px; color: var(--oer-primary);"></i> Configurar Passagem de Som</h2>
                     <button type="button" class="btn btn-outline btn-sm" id="btnNovoCiclo">
-                        <i data-lucide="plus" style="width: 15px; height: 15px;"></i> Nova Reavaliação
+                        <i data-lucide="plus" style="width: 15px; height: 15px;"></i> + Nova Passagem de Som
                     </button>
                 </div>
 
-                <!-- Dados Gerais da Reavaliação -->
+                <!-- Dados Gerais da Passagem de Som -->
                 <div class="form-grid">
                     <div class="form-group">
-                        <label class="form-label">Nome da Reavaliação:</label>
-                        <input type="text" id="cicloNomeInput" class="form-input" placeholder="Ex: Reavaliação 03 - 2026">
+                        <label class="form-label">Nome da Passagem de Som:</label>
+                        <input type="text" id="cicloNomeInput" class="form-input" placeholder="Ex: Passagem de Som - Temporada 2026">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Título da Página Pública:</label>
-                        <input type="text" id="cicloTituloInput" class="form-input" placeholder="Ex: Passagem de Som - Reavaliação 03 - 2026">
+                        <input type="text" id="cicloTituloInput" class="form-input" placeholder="Ex: Passagem de Som - Programa 03">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Local dos Ensaios (para o WhatsApp):</label>
@@ -261,7 +261,7 @@
                     <div class="form-group" style="justify-content: flex-end;">
                         <label class="form-label" style="cursor: pointer; display: flex; align-items: center; gap: 0.5rem; margin-top: 1.5rem;">
                             <input type="checkbox" id="cicloAtivoCheckbox" style="width: 18px; height: 18px; accent-color: var(--oer-primary);">
-                            <span>Reavaliação Ativa (disponível no formulário público)</span>
+                            <span>Passagem de Som Ativa (disponível no formulário público)</span>
                         </label>
                     </div>
                     <div class="form-group" style="grid-column: 1 / -1;">
@@ -422,7 +422,7 @@
 
                 <!-- Botão de Salvar -->
                 <button type="button" class="btn btn-primary" id="btnSalvarCiclo" style="padding: 0.85rem 2rem; font-size: 1rem; border-radius: 10px;">
-                    <i data-lucide="save" style="width: 18px; height: 18px;"></i> Salvar Configurações da Reavaliação
+                    <i data-lucide="save" style="width: 18px; height: 18px;"></i> Salvar Configurações da Passagem de Som
                 </button>
             </div>
         </div>

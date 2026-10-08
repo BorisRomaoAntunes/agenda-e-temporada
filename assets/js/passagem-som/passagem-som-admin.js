@@ -217,7 +217,7 @@ function selecionarCiclo(cicloId) {
         printDataAtualizacao.textContent = `Atualização ${dd}/${mm}/${yyyy}`;
     }
 
-    carregarDadosReavaliacao(cicloSelecionado);
+    carregarDadosPassagemSom(cicloSelecionado);
 
     // Escuta agendamentos do ciclo selecionado
     if (unsubscribeAgendamentos) unsubscribeAgendamentos();
@@ -926,9 +926,9 @@ btnP2GerarGrade.addEventListener("click", () => {
 });
 
 // =========================================================================
-// CARREGAR E SALVAR REAVALIAÇÃO NO FIRESTORE
+// CARREGAR E SALVAR PASSAGEM DE SOM NO FIRESTORE
 // =========================================================================
-function carregarDadosReavaliacao(c) {
+function carregarDadosPassagemSom(c) {
     cicloNomeInput.value = c.nome || "";
     cicloTituloInput.value = c.titulo || "";
     cicloAvisoInput.value = c.avisoDeclaracao || "DECLARAÇÃO de ESTUDO deverá ser enviada para o Inspetor da OER até sua SEGUNDA PASSAGEM DE SOM - Caso precise do documento, solicite ao Inspetor da OER";
@@ -957,7 +957,7 @@ function carregarDadosReavaliacao(c) {
 btnSalvarCiclo.addEventListener("click", async () => {
     const nomeTrim = cicloNomeInput.value.trim();
     if (!nomeTrim) {
-        mostrarToast("Por favor, preencha o Nome da Reavaliação/Passagem de Som.", "warning");
+        mostrarToast("Por favor, preencha o Nome da Passagem de Som.", "warning");
         if (cicloNomeInput) cicloNomeInput.focus();
         return;
     }
@@ -1006,7 +1006,7 @@ btnSalvarCiclo.addEventListener("click", async () => {
         mostrarToast(e.message || "Erro ao salvar passagem de som.", "error");
     } finally {
         btnSalvarCiclo.disabled = false;
-        btnSalvarCiclo.innerHTML = `<i data-lucide="save" style="width: 18px; height: 18px;"></i> Salvar Configurações da Reavaliação`;
+        btnSalvarCiclo.innerHTML = `<i data-lucide="save" style="width: 18px; height: 18px;"></i> Salvar Configurações da Passagem de Som`;
         if (window.lucide) lucide.createIcons();
     }
 });

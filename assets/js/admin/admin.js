@@ -16657,7 +16657,7 @@ function initQuickActionsDropdown() {
                 badgeEl.style.background = "#dcfce7";
                 badgeEl.style.color = "#16a34a";
 
-                cicloEl.textContent = ag.cicloId || "Reavaliação OER";
+                cicloEl.textContent = ag.cicloId || "Passagem de Som OER";
                 p1El.textContent = ag.primeiraPassagem ? `${formatDataBR(ag.primeiraPassagem.data)} às ${ag.primeiraPassagem.horario}` : "-";
                 p2El.textContent = ag.segundaPassagem ? `${formatDataBR(ag.segundaPassagem.data)} às ${ag.segundaPassagem.horario}` : "-";
                 obraEl.textContent = ag.repertorio || "-";
