@@ -1,8 +1,20 @@
 {
-  "hash": "bf5bd0a",
-  "date": "08/10/2026 11:10",
-  "buildAt": "2026-10-08T14:11:42.852Z",
+  "hash": "61a5ba4",
+  "date": "08/10/2026 11:32",
+  "buildAt": "2026-10-08T14:33:47.150Z",
   "history": [
+    {
+      "hash": "61a5ba4",
+      "date": "08/10/2026 11:32",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(passagem-som): adiciona aba de gestao de passagens e links unicos de agendamento"
+    },
+    {
+      "hash": "2ef3faa",
+      "date": "08/10/2026 11:12",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pos-deploy vbf5bd0a"
+    },
     {
       "hash": "bf5bd0a",
       "date": "08/10/2026 11:10",
@@ -110,18 +122,6 @@
       "date": "29/09/2026 12:31",
       "author": "Boris Romão Antunes",
       "subject": "Melhorias de UX e usabilidade no fluxo de reserva de salas"
-    },
-    {
-      "hash": "908e52e",
-      "date": "29/09/2026 12:26",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pos-deploy v97effc9"
-    },
-    {
-      "hash": "97effc9",
-      "date": "29/09/2026 12:25",
-      "author": "Boris Romão Antunes",
-      "subject": "fix(admin): move edit-musico-drawer para escopo global fora da section-musicos"
     }
   ]
 }
