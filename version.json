@@ -1,8 +1,20 @@
 {
-  "hash": "a088f8e",
-  "date": "11/10/2026 14:17",
-  "buildAt": "2026-10-11T17:17:39.255Z",
+  "hash": "eddc149",
+  "date": "11/10/2026 14:20",
+  "buildAt": "2026-10-11T17:20:19.260Z",
   "history": [
+    {
+      "hash": "eddc149",
+      "date": "11/10/2026 14:20",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(presenca): mudar tema escuro para preto verdadeiro (true black)"
+    },
+    {
+      "hash": "7703632",
+      "date": "11/10/2026 14:17",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json apos commit a088f8e"
+    },
     {
       "hash": "a088f8e",
       "date": "11/10/2026 14:17",
@@ -110,18 +122,6 @@
       "date": "05/10/2026 14:31",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualiza version.json pos-deploy vca71f3b"
-    },
-    {
-      "hash": "ca71f3b",
-      "date": "05/10/2026 13:52",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: version.json deploy vbacf0b2"
-    },
-    {
-      "hash": "bacf0b2",
-      "date": "05/10/2026 13:47",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(admin): centraliza pendencias de passagem de som e atestados no topo do historico"
     }
   ]
 }
