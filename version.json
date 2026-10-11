@@ -1,8 +1,20 @@
 {
-  "hash": "b047eae",
-  "date": "11/10/2026 13:44",
-  "buildAt": "2026-10-11T16:46:12.927Z",
+  "hash": "a088f8e",
+  "date": "11/10/2026 14:17",
+  "buildAt": "2026-10-11T17:17:39.255Z",
   "history": [
+    {
+      "hash": "a088f8e",
+      "date": "11/10/2026 14:17",
+      "author": "Boris Romão Antunes",
+      "subject": "fix(presenca): blindar auto-save contra condicao de corrida e atualizar cache"
+    },
+    {
+      "hash": "01dc6be",
+      "date": "11/10/2026 13:46",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json apos deploy"
+    },
     {
       "hash": "b047eae",
       "date": "11/10/2026 13:44",
@@ -110,18 +122,6 @@
       "date": "05/10/2026 13:47",
       "author": "Boris Romão Antunes",
       "subject": "feat(admin): centraliza pendencias de passagem de som e atestados no topo do historico"
-    },
-    {
-      "hash": "ec8c35e",
-      "date": "01/10/2026 22:05",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pos-deploy v4ad6534"
-    },
-    {
-      "hash": "4ad6534",
-      "date": "01/10/2026 21:56",
-      "author": "Boris Romão Antunes",
-      "subject": "fix(reserva): faz calendario ir para data atual e adiciona atalho Hoje"
     }
   ]
 }
