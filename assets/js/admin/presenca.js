@@ -2600,12 +2600,23 @@ async function saveOfficialData() {
 }
 
 // Exibir Notificação Toast
+let toastTimeout = null;
 function showToast(msg) {
+    if (!toast) return;
     toast.innerText = msg;
     toast.classList.add("show");
-    setTimeout(() => {
+    if (toastTimeout) clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => {
         toast.classList.remove("show");
-    }, 2500);
+    }, 3000);
+}
+
+// Fechar toast ao clicar diretamente nele
+if (toast) {
+    toast.addEventListener("click", () => {
+        toast.classList.remove("show");
+        if (toastTimeout) clearTimeout(toastTimeout);
+    });
 }
 
 // Construir Rodinha de Atraso

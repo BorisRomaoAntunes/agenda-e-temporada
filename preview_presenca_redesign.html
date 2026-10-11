@@ -616,23 +616,37 @@
         /* Toast notification */
         .toast {
             position: fixed;
-            bottom: 20px;
+            bottom: calc(76px + env(safe-area-inset-bottom));
             left: 50%;
-            transform: translateX(-50%) translateY(100px);
-            background: #0f172a;
+            transform: translateX(-50%) translateY(16px);
+            width: calc(100% - 24px);
+            max-width: 480px;
+            background: rgba(15, 23, 42, 0.95);
             color: #ffffff;
-            padding: 0.75rem 1.25rem;
-            border-radius: 30px;
-            font-size: 0.85rem;
+            padding: 0.85rem 1.25rem;
+            border-radius: 14px;
+            font-size: 0.88rem;
             font-weight: 600;
-            box-shadow: var(--shadow-lg);
+            text-align: center;
+            box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.3), 0 4px 10px -2px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             z-index: 2000;
-            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.3s;
+            cursor: pointer;
+            user-select: none;
+            box-sizing: border-box;
             display: flex;
             align-items: center;
+            justify-content: center;
             gap: 0.5rem;
         }
         .toast.show {
+            opacity: 1;
+            visibility: visible;
             transform: translateX(-50%) translateY(0);
         }
     </style>
@@ -986,11 +1000,22 @@
         }
 
         // Toast de Feedback
+        let previewToastTimeout = null;
         function showToast(msg) {
             const toast = document.getElementById("toast");
+            if (!toast) return;
             document.getElementById("toastText").innerText = msg;
             toast.classList.add("show");
-            setTimeout(() => toast.classList.remove("show"), 2200);
+            if (previewToastTimeout) clearTimeout(previewToastTimeout);
+            previewToastTimeout = setTimeout(() => toast.classList.remove("show"), 3000);
+        }
+
+        const previewToastEl = document.getElementById("toast");
+        if (previewToastEl) {
+            previewToastEl.addEventListener("click", () => {
+                previewToastEl.classList.remove("show");
+                if (previewToastTimeout) clearTimeout(previewToastTimeout);
+            });
         }
 
         // Filtro de Pílulas
