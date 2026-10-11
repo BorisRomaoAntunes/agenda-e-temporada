@@ -4539,6 +4539,7 @@ input:checked + .slider:before {
     left: 0;
     width: 100%;
     height: 100%;
+    height: 100dvh;
     background: rgba(15, 23, 42, 0.45);
     backdrop-filter: blur(4px);
     z-index: 2000;
@@ -5356,15 +5357,14 @@ input:checked + .slider:before {
         bottom: 0;
         max-width: 100%;
         width: 100%;
-        transform: translateY(8px);
-        transform-origin: bottom center;
+        transform: none;
         border-radius: 20px 20px 0 0;
-        padding: 0.75rem 0.75rem 1.5rem;
+        padding: 0.75rem 0.75rem calc(1.5rem + env(safe-area-inset-bottom, 0px));
         box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.12);
     }
 
     .quick-actions-dropdown.is-open {
-        transform: translateY(0);
+        transform: none;
     }
 
     .qa-item-icon {
