@@ -250,9 +250,9 @@
                 <i data-lucide="sticky-note" style="width: 18px; height: 18px;"></i>
                 <span>Anotações</span>
             </button>
-            <button class="save-btn" id="btnSaveOfficial">
-                <i data-lucide="cloud-lightning" style="width: 18px; height: 18px;"></i>
-                <span>Salvar</span>
+            <button class="save-btn finish-btn" id="btnSaveOfficial" title="Conferir pendências e oficializar a chamada">
+                <i data-lucide="check" style="width: 18px; height: 18px;"></i>
+                <span id="btnSaveOfficialText">Finalizar</span>
             </button>
         </div>
         
@@ -278,7 +278,7 @@
                 <!-- Seleção de Tipo via Radio Buttons -->
                 <div class="form-group" style="margin-bottom: 1.2rem;">
                     <label class="form-label" style="margin-bottom: 0.6rem;">Tipo de Chamada:</label>
-                    <div style="display: flex; gap: 1.2rem;">
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
                         <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.9rem; font-weight: 600;">
                             <input type="radio" name="tipoChamadaRadio" id="radioTipoNaipe" value="ensaio_naipe" checked>
                             🎻 Ensaio de Naipe
@@ -286,6 +286,10 @@
                         <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.9rem; font-weight: 600;">
                             <input type="radio" name="tipoChamadaRadio" id="radioTipoTutti" value="ensaio_tutti">
                             🎵 Ensaio Tutti
+                        </label>
+                        <label style="display: flex; align-items: center; gap: 0.4rem; cursor: pointer; font-size: 0.9rem; font-weight: 600;">
+                            <input type="radio" name="tipoChamadaRadio" id="radioTipoConcerto" value="concerto">
+                            🌟 Concerto
                         </label>
                     </div>
                 </div>

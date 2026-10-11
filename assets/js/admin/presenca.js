@@ -1306,6 +1306,26 @@ function setActiveCall(callId) {
     };
 
     checkDispensasEAtestados();
+
+    // Atualizar estado visual do botão de Finalizar Chamada
+    updateFinishButtonState(call.oficial === true);
+}
+
+// Atualizar rótulo e estilo do botão de Finalizar Chamada
+function updateFinishButtonState(isOficial) {
+    const btn = document.getElementById("btnSaveOfficial");
+    const label = document.getElementById("btnSaveOfficialText");
+    if (!btn || !label) return;
+
+    if (isOficial) {
+        btn.classList.add("concluida");
+        label.textContent = "Finalizada ✓";
+        btn.title = "Chamada já oficializada. Toque para atualizar o encerramento.";
+    } else {
+        btn.classList.remove("concluida");
+        label.textContent = "Finalizar";
+        btn.title = "Conferir pendências e oficializar a chamada";
+    }
 }
 
 // Aplicar ajustes de UI de filtros de acordo com o tipo de chamada
@@ -2011,7 +2031,9 @@ function closeDrawer() {
     }
 }
 
-// Salvar Rascunho Local
+let autoSaveDebounceTimer = null;
+
+// Salvar Rascunho Local + Auto-save Contínuo no IndexedDB / Firestore
 function saveDraft() {
     if (!selectedDate) return;
     const activeCall = dailyEventsCalls.find(c => c.id === activeCallId);
@@ -2027,7 +2049,44 @@ function saveDraft() {
         notes: notesText,
         timestamp: new Date().toISOString()
     };
-    localStorage.setItem(draftKey, JSON.stringify(state));
+    try {
+        localStorage.setItem(draftKey, JSON.stringify(state));
+    } catch (e) {}
+
+    // Dispara auto-save contínuo inteligente com debounce de 1 segundo
+    triggerContinuousAutoSave();
+}
+
+// Auto-save em segundo plano: persiste silenciosamente no IndexedDB e sobe na nuvem
+function triggerContinuousAutoSave() {
+    if (!selectedDate || !activeCallId) return;
+    const activeCall = dailyEventsCalls.find(c => c.id === activeCallId);
+    if (!activeCall) return;
+
+    clearTimeout(autoSaveDebounceTimer);
+    updateSyncStatus("pending", "Salvando...");
+
+    autoSaveDebounceTimer = setTimeout(async () => {
+        try {
+            const docRef = doc(db, "presencas", activeCall.id);
+            await setDoc(docRef, {
+                data: selectedDate,
+                tipo: activeCall.tipo || "ensaio_tutti",
+                naipe: activeCall.naipe || null,
+                horarioInicio: activeCall.horarioInicio || "",
+                horarioFim: activeCall.horarioFim || "",
+                anotacoes: notesText,
+                registros: attendanceData,
+                ultimaAtualizacao: new Date().toISOString(),
+                usuarioResponsavel: currentUserEmail || "sistema"
+            }, { merge: true });
+
+            updateSyncStatus(navigator.onLine ? "synced" : "offline", navigator.onLine ? "Sincronizado" : "Salvo no celular");
+        } catch (err) {
+            console.warn("Aviso no auto-save (salvo no cache/localStorage):", err);
+            updateSyncStatus("offline", "Salvo no celular");
+        }
+    }, 1000);
 }
 
 // Drawer de Anotações
@@ -2109,21 +2168,37 @@ function initNaipeModal() {
     // Lógica dos radio buttons: alternar visibilidade das seções e texto do botão
     const radioNaipe = document.getElementById("radioTipoNaipe");
     const radioTutti = document.getElementById("radioTipoTutti");
+    const radioConcerto = document.getElementById("radioTipoConcerto");
     const secaoNaipe = document.getElementById("secaoNaipe");
     const secaoObs = document.getElementById("secaoObsNaipe");
 
     const atualizarFormularioTipo = () => {
+        const isConcerto = radioConcerto && radioConcerto.checked;
         const isTutti = radioTutti && radioTutti.checked;
-        if (secaoNaipe) secaoNaipe.style.display = isTutti ? "none" : "block";
-        if (secaoObs) secaoObs.style.display = isTutti ? "none" : "block";
+        const isNaipe = !isConcerto && !isTutti;
+
+        if (secaoNaipe) secaoNaipe.style.display = isNaipe ? "block" : "none";
+        if (secaoObs) secaoObs.style.display = isNaipe ? "block" : "none";
+
         if (btnConfirm) {
-            btnConfirm.textContent = isTutti ? "Criar Ensaio Tutti" : "Criar Chamada de Naipe";
+            if (isConcerto) {
+                btnConfirm.textContent = "Criar Concerto";
+            } else if (isTutti) {
+                btnConfirm.textContent = "Criar Ensaio Tutti";
+            } else {
+                btnConfirm.textContent = "Criar Chamada de Naipe";
+            }
         }
+
         // Ajustar horários padrão conforme o tipo (apenas se o usuário não editou manualmente)
         const inputInicio = document.getElementById("inputNaipeHoraInicio");
         const inputFim = document.getElementById("inputNaipeHoraFim");
-        if (inputInicio && !inputInicio._userEdited) inputInicio.value = isTutti ? "17:00" : "14:00";
-        if (inputFim && !inputFim._userEdited) inputFim.value = isTutti ? "20:00" : "16:00";
+        if (inputInicio && !inputInicio._userEdited) {
+            inputInicio.value = isConcerto ? "19:00" : (isTutti ? "17:00" : "14:00");
+        }
+        if (inputFim && !inputFim._userEdited) {
+            inputFim.value = isConcerto ? "22:00" : (isTutti ? "20:00" : "16:00");
+        }
     };
 
     // Marcar quando o usuário editar manualmente os horários
@@ -2134,6 +2209,7 @@ function initNaipeModal() {
 
     if (radioNaipe) radioNaipe.addEventListener("change", atualizarFormularioTipo);
     if (radioTutti) radioTutti.addEventListener("change", atualizarFormularioTipo);
+    if (radioConcerto) radioConcerto.addEventListener("change", atualizarFormularioTipo);
 
     if (btnOpen) {
         btnOpen.addEventListener("click", () => {
@@ -2156,11 +2232,53 @@ function initNaipeModal() {
 
     if (btnConfirm) {
         btnConfirm.addEventListener("click", async () => {
+            const isConcerto = radioConcerto && radioConcerto.checked;
             const isTutti = radioTutti && radioTutti.checked;
-            const horaInicio = document.getElementById("inputNaipeHoraInicio")?.value || (isTutti ? "17:00" : "14:00");
-            const horaFim = document.getElementById("inputNaipeHoraFim")?.value || (isTutti ? "20:00" : "16:00");
+            const defaultInicio = isConcerto ? "19:00" : (isTutti ? "17:00" : "14:00");
+            const defaultFim = isConcerto ? "22:00" : (isTutti ? "20:00" : "16:00");
+            const horaInicio = document.getElementById("inputNaipeHoraInicio")?.value || defaultInicio;
+            const horaFim = document.getElementById("inputNaipeHoraFim")?.value || defaultFim;
 
-            if (isTutti) {
+            if (isConcerto) {
+                // --- Criar Concerto ---
+                const newCallId = `${selectedDate}_concerto_${Date.now()}`;
+                const newCall = {
+                    id: newCallId,
+                    tipo: "concerto",
+                    label: "Concerto",
+                    naipe: null,
+                    horarioInicio: horaInicio,
+                    horarioFim: horaFim,
+                    registros: {},
+                    oficial: true
+                };
+
+                dailyEventsCalls.push(newCall);
+                saveDraft();
+                closeModal();
+
+                try {
+                    const docRef = doc(db, "presencas", newCallId);
+                    await setDoc(docRef, {
+                        data: selectedDate,
+                        tipo: "concerto",
+                        naipe: null,
+                        horarioInicio: horaInicio,
+                        horarioFim: horaFim,
+                        oficial: true,
+                        registros: {},
+                        ultimaAtualizacao: new Date().toISOString(),
+                        usuarioResponsavel: currentUserEmail || "Admin"
+                    });
+                } catch (fsErr) {
+                    console.warn("Aviso ao sincronizar Concerto no Firestore:", fsErr);
+                }
+
+                renderEventsTabs();
+                setActiveCall(newCallId);
+                showToast("Concerto criado com sucesso!");
+
+            } else if (isTutti) {
                 // --- Criar Ensaio Tutti ---
                 const newCallId = `${selectedDate}_tutti_${Date.now()}`;
                 const newCall = {
@@ -2318,29 +2436,34 @@ async function saveOfficialData() {
     
     if (pendentesCount > 0) {
         const msgNaipe = activeCall.tipo === "ensaio_naipe" ? `nesta chamada de naipe` : `nesta chamada`;
-        const confirmSave = confirm(`Atenção: Há músicos com status Pendente ${msgNaipe} (${preenchidosCount} de ${totalMusicos} preenchidos).\n\nDeseja salvar mesmo assim?`);
-        if (!confirmSave) return;
+        const confirmFinish = confirm(`Atenção: Há ${pendentesCount} músico(s) com status Pendente ${msgNaipe} (${preenchidosCount} de ${totalMusicos} preenchidos).\n\nDeseja finalizar a chamada mesmo assim?`);
+        if (!confirmFinish) return;
     }
+
+    // Cancela qualquer auto-save pendente pois a finalização já salvará atomicamente
+    clearTimeout(autoSaveDebounceTimer);
 
     // 1. Atualização Instantânea no App (Zero travamento / Sem bloqueio com loader)
     activeCall.registros = { ...attendanceData };
     activeCall.anotacoes = notesText;
     activeCall.oficial = true;
+    activeCall.finalizadoEm = new Date().toISOString();
+    activeCall.finalizadoPor = currentUserEmail || "sistema";
     saveDraft(); // Salva backup imediato no localStorage
 
     const isOnline = navigator.onLine;
     if (isOnline) {
-        updateSyncStatus("pending", "Salvando...");
-        showToast("Salvando presenças...");
+        updateSyncStatus("pending", "Finalizando...");
+        showToast("Finalizando chamada...");
     } else {
         updateSyncStatus("offline", "Salvo no celular");
-        showToast("Salvo no aparelho! Sincronizará quando houver sinal.");
+        showToast("Chamada finalizada no aparelho! Sincronizará com sinal.");
     }
 
     try {
         const batch = writeBatch(db);
 
-        // 2. Gravar dados da presença no Firestore (vai direto para IndexedDB e sobe em background)
+        // 2. Gravar dados da presença com oficial: true no Firestore
         const docRef = doc(db, "presencas", activeCall.id);
         batch.set(docRef, {
             data: selectedDate,
@@ -2350,6 +2473,8 @@ async function saveOfficialData() {
             horarioFim: activeCall.horarioFim || "",
             anotacoes: notesText,
             oficial: true,
+            finalizadoEm: new Date().toISOString(),
+            finalizadoPor: currentUserEmail || "sistema",
             registros: attendanceData,
             ultimaAtualizacao: new Date().toISOString(),
             usuarioResponsavel: currentUserEmail
@@ -2407,7 +2532,8 @@ async function saveOfficialData() {
 
         existedInFirestore = true;
         updateSyncStatus(navigator.onLine ? "synced" : "offline", navigator.onLine ? "Sincronizado" : "Salvo no celular");
-        showToast(navigator.onLine ? "Lista sincronizada na nuvem!" : "Salvo no aparelho!");
+        updateFinishButtonState(true);
+        showToast(navigator.onLine ? "🎉 Chamada oficializada com sucesso!" : "🎉 Chamada finalizada no aparelho!");
 
         // Limpar rascunho temporário do localStorage pois já foi persistido no Firestore
         const draftKey = `presenca_oer_draft_${selectedDate}`;
