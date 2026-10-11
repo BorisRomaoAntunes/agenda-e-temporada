@@ -1,8 +1,14 @@
 {
-  "hash": "5ddc44d",
-  "date": "11/10/2026 15:19",
-  "buildAt": "2026-10-11T18:22:43.434Z",
+  "hash": "25e2a97",
+  "date": "11/10/2026 15:25",
+  "buildAt": "2026-10-11T18:26:25.901Z",
   "history": [
+    {
+      "hash": "25e2a97",
+      "date": "11/10/2026 15:25",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json apos commit 5ddc44d"
+    },
     {
       "hash": "5ddc44d",
       "date": "11/10/2026 15:19",
@@ -116,12 +122,6 @@
       "date": "08/10/2026 12:06",
       "author": "Boris Romão Antunes",
       "subject": "fix(passagem-som): padroniza terminologia para Passagem de Som e adiciona botao Nova Passagem de Som"
-    },
-    {
-      "hash": "b1b5377",
-      "date": "08/10/2026 11:41",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pos-deploy v61a5ba4"
     }
   ]
 }
