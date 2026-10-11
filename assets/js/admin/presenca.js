@@ -1195,6 +1195,19 @@ function deleteNaipeCall(callId) {
 
 // Definir Chamada Ativa
 function setActiveCall(callId) {
+    // 1. Preservar o estado da chamada anterior antes de trocar o contexto
+    if (activeCallId && activeCallId !== callId) {
+        const prevCall = dailyEventsCalls.find(c => c.id === activeCallId);
+        if (prevCall) {
+            prevCall.registros = { ...attendanceData };
+            prevCall.anotacoes = notesText;
+        }
+        if (autoSaveDebounceTimer) {
+            clearTimeout(autoSaveDebounceTimer);
+            autoSaveDebounceTimer = null;
+        }
+    }
+
     activeCallId = callId;
     const call = dailyEventsCalls.find(c => c.id === callId) || dailyEventsCalls[0];
     if (!call) return;
@@ -2063,20 +2076,37 @@ function triggerContinuousAutoSave() {
     const activeCall = dailyEventsCalls.find(c => c.id === activeCallId);
     if (!activeCall) return;
 
+    // Snapshot isolado dos dados para evitar condições de corrida entre trocas de abas concorrentes
+    const targetCallId = activeCall.id;
+    const targetCallTipo = activeCall.tipo || "ensaio_tutti";
+    const targetCallNaipe = activeCall.naipe || null;
+    const targetCallInicio = activeCall.horarioInicio || "";
+    const targetCallFim = activeCall.horarioFim || "";
+    const targetOficial = activeCall.oficial !== undefined ? activeCall.oficial : false;
+    const snapshotRegistros = JSON.parse(JSON.stringify(attendanceData || {}));
+    const snapshotNotes = notesText;
+
+    // Proteção: não sobrescrever no Firestore se todos os registros forem "none" e a chamada já for oficial ou possuir histórico
+    const hasAnyRealStatus = Object.values(snapshotRegistros).some(r => r && r.status && r.status !== "none");
+    if (!hasAnyRealStatus && targetOficial) {
+        console.warn(`[Auto-Save] Bloqueada sobreposição da chamada oficial ${targetCallId} com status vazio.`);
+        return;
+    }
+
     clearTimeout(autoSaveDebounceTimer);
     updateSyncStatus("pending", "Salvando...");
 
     autoSaveDebounceTimer = setTimeout(async () => {
         try {
-            const docRef = doc(db, "presencas", activeCall.id);
+            const docRef = doc(db, "presencas", targetCallId);
             await setDoc(docRef, {
                 data: selectedDate,
-                tipo: activeCall.tipo || "ensaio_tutti",
-                naipe: activeCall.naipe || null,
-                horarioInicio: activeCall.horarioInicio || "",
-                horarioFim: activeCall.horarioFim || "",
-                anotacoes: notesText,
-                registros: attendanceData,
+                tipo: targetCallTipo,
+                naipe: targetCallNaipe,
+                horarioInicio: targetCallInicio,
+                horarioFim: targetCallFim,
+                anotacoes: snapshotNotes,
+                registros: snapshotRegistros,
                 ultimaAtualizacao: new Date().toISOString(),
                 usuarioResponsavel: currentUserEmail || "sistema"
             }, { merge: true });
@@ -2232,6 +2262,19 @@ function initNaipeModal() {
 
     if (btnConfirm) {
         btnConfirm.addEventListener("click", async () => {
+            // Preservar o estado da chamada ativa atual antes de criar uma nova
+            if (activeCallId) {
+                const currentActive = dailyEventsCalls.find(c => c.id === activeCallId);
+                if (currentActive) {
+                    currentActive.registros = { ...attendanceData };
+                    currentActive.anotacoes = notesText;
+                }
+            }
+            if (autoSaveDebounceTimer) {
+                clearTimeout(autoSaveDebounceTimer);
+                autoSaveDebounceTimer = null;
+            }
+
             const isConcerto = radioConcerto && radioConcerto.checked;
             const isTutti = radioTutti && radioTutti.checked;
             const defaultInicio = isConcerto ? "19:00" : (isTutti ? "17:00" : "14:00");
@@ -2254,7 +2297,6 @@ function initNaipeModal() {
                 };
 
                 dailyEventsCalls.push(newCall);
-                saveDraft();
                 closeModal();
 
                 try {
@@ -2276,6 +2318,7 @@ function initNaipeModal() {
 
                 renderEventsTabs();
                 setActiveCall(newCallId);
+                saveDraft();
                 showToast("Concerto criado com sucesso!");
 
             } else if (isTutti) {
@@ -2293,7 +2336,6 @@ function initNaipeModal() {
                 };
 
                 dailyEventsCalls.push(newCall);
-                saveDraft();
                 closeModal();
 
                 try {
@@ -2315,6 +2357,7 @@ function initNaipeModal() {
 
                 renderEventsTabs();
                 setActiveCall(newCallId);
+                saveDraft();
                 showToast("Ensaio Tutti criado com sucesso!");
 
             } else {
@@ -2341,7 +2384,6 @@ function initNaipeModal() {
                 };
 
                 dailyEventsCalls.push(newCall);
-                saveDraft();
                 closeModal();
 
                 try {
@@ -2364,6 +2406,7 @@ function initNaipeModal() {
 
                 renderEventsTabs();
                 setActiveCall(newCallId);
+                saveDraft();
                 showToast(`Chamada criada para o Naipe: ${labelNaipe}`);
             }
         });
