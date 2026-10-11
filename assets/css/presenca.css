@@ -1902,11 +1902,11 @@ body {
    ======================================================== */
 @media (prefers-color-scheme: dark) {
     :root {
-        --bg-primary: #0b1120;
-        --bg-card: #1e293b;
-        --text-primary: #f8fafc;
-        --text-secondary: #94a3b8;
-        --border-color: #334155;
+        --bg-primary: #000000;
+        --bg-card: #121214;
+        --text-primary: #f4f4f5;
+        --text-secondary: #a1a1aa;
+        --border-color: #27272a;
         
         --color-presence: #34d399;
         --color-presence-bg: #064e3b;
@@ -1916,8 +1916,8 @@ body {
         --color-medical-bg: #172554;
         --color-delay: #fbbf24;
         --color-delay-bg: #451a03;
-        --color-not-scheduled: #94a3b8;
-        --color-not-scheduled-bg: #1e293b;
+        --color-not-scheduled: #a1a1aa;
+        --color-not-scheduled-bg: #18181b;
         --color-justified: #c084fc;
         --color-justified-bg: #3b0764;
     }
@@ -1929,7 +1929,7 @@ body {
 
     /* Cabeçalho */
     .header {
-        background: #0f172a;
+        background: #09090b;
         border-bottom-color: var(--border-color);
     }
     .header-title h1,
@@ -1939,7 +1939,7 @@ body {
 
     /* Data Picker */
     .date-picker-container {
-        background: #1e293b;
+        background: #18181b;
         color: var(--text-primary);
         border: 1px solid var(--border-color);
     }
@@ -1951,31 +1951,31 @@ body {
 
     /* Pílulas de resumo (Contadores) */
     .summary-bar {
-        background: #0f172a;
+        background: #09090b;
     }
     .summary-pill {
-        background: #1e293b;
+        background: #18181b;
         color: var(--text-primary);
         border: 1px solid var(--border-color);
     }
     .summary-pill.presence { background: #064e3b; color: #6ee7b7; border-color: #047857; }
     .summary-pill.delay { background: #451a03; color: #fcd34d; border-color: #78350f; }
     .summary-pill.absence { background: #450a0a; color: #fca5a5; border-color: #7f1d1d; }
-    .summary-pill.pending { background: #1e293b; color: var(--text-secondary); border-color: var(--border-color); }
+    .summary-pill.pending { background: #18181b; color: var(--text-secondary); border-color: var(--border-color); }
 
     .summary-chip.presence { background: #064e3b; color: #6ee7b7; }
     .summary-chip.delay { background: #451a03; color: #fcd34d; }
     .summary-chip.absence { background: #450a0a; color: #fca5a5; }
-    .summary-chip.pending { background: #1e293b; color: var(--text-secondary); }
+    .summary-chip.pending { background: #18181b; color: var(--text-secondary); }
 
     /* Botão Nova Chamada e Abas */
     .btn-add-naipe {
-        background: #1e293b;
+        background: #18181b;
         color: #60a5fa;
-        border-color: #3b82f6;
+        border-color: #3f3f46;
     }
     .event-tab-item {
-        background: #1e293b;
+        background: #18181b;
         color: var(--text-primary);
         border-color: var(--border-color);
     }
@@ -1991,21 +1991,21 @@ body {
 
     /* Filtros */
     .filter-pill {
-        background: #1e293b;
+        background: #18181b;
         color: var(--text-secondary);
         border-color: var(--border-color);
     }
     .filter-pill.active {
-        background: #334155;
+        background: #27272a;
         color: var(--text-primary);
-        border-color: #64748b;
+        border-color: #3f3f46;
     }
 
     /* Instruções */
     .instructions {
-        background: #172554;
-        border-color: #1e3a8a;
-        color: #93c5fd;
+        background: #141416;
+        border-color: #3f3f46;
+        color: #d4d4d8;
     }
 
     /* Cartão do Músico */
@@ -2014,7 +2014,7 @@ body {
         border-color: var(--border-color);
     }
     .musician-card:hover {
-        background: #273549;
+        background: #1c1c1f;
     }
     .musician-name {
         color: var(--text-primary);
@@ -2025,7 +2025,7 @@ body {
 
     /* Pílula de status do músico na lista */
     .status-pill.pendente {
-        background: #1e293b;
+        background: #18181b;
         color: var(--text-secondary);
         border-color: var(--border-color);
     }
@@ -2050,14 +2050,14 @@ body {
         border-color: #1e40af;
     }
     .status-pill.dispensa {
-        background: #1e293b;
-        color: #cbd5e1;
-        border-color: #475569;
+        background: #18181b;
+        color: #d4d4d8;
+        border-color: #3f3f46;
     }
     .status-pill.nao-escalado {
-        background: #1e293b;
-        color: #64748b;
-        border-color: #334155;
+        background: #18181b;
+        color: #71717a;
+        border-color: #27272a;
     }
     .status-pill.justificado {
         background: #3b0764;
@@ -2067,12 +2067,12 @@ body {
 
     /* Gavetas / Drawers */
     .drawer {
-        background: #0f172a;
+        background: #09090b;
         border-top-color: var(--border-color);
         color: var(--text-primary);
     }
     .drawer-handle {
-        background: #475569;
+        background: #3f3f46;
     }
     .drawer-title {
         color: var(--text-primary);
@@ -2081,21 +2081,21 @@ body {
         color: var(--text-secondary);
     }
     .btn-close-drawer {
-        background: #1e293b;
+        background: #18181b;
         color: var(--text-primary);
     }
 
     /* Régua de Atraso Estilo iOS */
     .quick-delay-container {
-        background: #1e293b;
+        background: #18181b;
         border-color: var(--border-color);
     }
     .delay-ruler {
-        background: #0f172a;
+        background: #000000;
         border-color: #78350f;
     }
     .delay-ruler-tick {
-        color: #64748b;
+        color: #71717a;
     }
     .delay-ruler-tick.highlight {
         color: #fbbf24;
@@ -2103,30 +2103,30 @@ body {
 
     /* Botões de Opção da Gaveta */
     .opt-btn-compact {
-        background: #1e293b;
+        background: #18181b;
         color: var(--text-primary);
         border-color: var(--border-color);
     }
     .opt-btn-compact:hover {
-        background: #334155;
+        background: #27272a;
     }
 
     /* Barra Inferior */
     .bottom-bar {
-        background: #0f172a;
+        background: #09090b;
         border-top-color: var(--border-color);
     }
     .btn-search-bottom,
     .notes-btn {
-        background: #1e293b;
+        background: #18181b;
         color: var(--text-primary);
         border-color: var(--border-color);
     }
     .bottom-search-wrapper {
-        background: #0f172a;
+        background: #09090b;
     }
     .bottom-search-input {
-        background: #1e293b;
+        background: #18181b;
         color: var(--text-primary);
         border-color: var(--border-color);
     }
@@ -2137,7 +2137,7 @@ body {
 
     /* Modais */
     .modal-box {
-        background: #0f172a;
+        background: #121214;
         color: var(--text-primary);
         border: 1px solid var(--border-color);
     }
@@ -2145,17 +2145,17 @@ body {
         border-bottom-color: var(--border-color);
     }
     .modal-footer {
-        background: #0b1120;
+        background: #09090b;
         border-top-color: var(--border-color);
     }
     .btn-close-modal {
-        background: #1e293b;
+        background: #18181b;
         color: var(--text-primary);
     }
     .form-input,
     .notes-textarea,
     .justification-textarea {
-        background: #1e293b;
+        background: #18181b;
         color: var(--text-primary);
         border-color: var(--border-color);
     }
@@ -2165,16 +2165,16 @@ body {
         border-color: #3b82f6;
     }
     .dropdown-trigger {
-        background: #1e293b;
+        background: #18181b;
         color: var(--text-primary);
         border-color: var(--border-color);
     }
     .select-dropdown-menu {
-        background: #1e293b;
+        background: #18181b;
         border-color: var(--border-color);
     }
     .dropdown-optgroup-title {
-        background: #0f172a;
+        background: #09090b;
         color: var(--text-secondary);
         border-color: var(--border-color);
     }
@@ -2182,31 +2182,31 @@ body {
         color: var(--text-primary);
     }
     .dropdown-option:hover {
-        background: #334155;
+        background: #27272a;
     }
     .selected-tag {
-        background: #334155;
+        background: #27272a;
         color: var(--text-primary);
     }
 
     /* Loader */
     .loader-overlay {
-        background: rgba(11, 17, 32, 0.92);
+        background: rgba(0, 0, 0, 0.94);
     }
     .loader-overlay p {
-        color: #94a3b8 !important;
+        color: #a1a1aa !important;
     }
     .loader-spinner {
-        border-color: #334155;
-        border-top-color: #60a5fa;
+        border-color: #27272a;
+        border-top-color: #ffffff;
     }
 
     /* Toast */
     .toast {
-        background: #1e293b;
-        color: #f8fafc;
+        background: #18181b;
+        color: #f4f4f5;
         border: 1px solid var(--border-color);
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.7);
     }
 
     /* Badges de Sincronização em Dark Mode */
