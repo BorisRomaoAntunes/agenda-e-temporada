@@ -1,8 +1,14 @@
 {
-  "hash": "3b1661b",
-  "date": "11/10/2026 14:37",
-  "buildAt": "2026-10-11T17:38:00.352Z",
+  "hash": "f917e0b",
+  "date": "11/10/2026 14:38",
+  "buildAt": "2026-10-11T17:38:46.248Z",
   "history": [
+    {
+      "hash": "f917e0b",
+      "date": "11/10/2026 14:38",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json apos commit 3b1661b"
+    },
     {
       "hash": "3b1661b",
       "date": "11/10/2026 14:37",
@@ -116,12 +122,6 @@
       "date": "08/10/2026 11:12",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualiza version.json pos-deploy vbf5bd0a"
-    },
-    {
-      "hash": "bf5bd0a",
-      "date": "08/10/2026 11:10",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(agendamento): adiciona busca com sugestao inteligente (autocomplete) para musicos e monitores"
     }
   ]
 }
