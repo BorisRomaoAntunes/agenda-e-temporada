@@ -24,7 +24,13 @@ export const app = initializeApp(firebaseConfig);
 
 // ====== CONEXÃO COM EMULADORES (TESTE LOCAL) ======
 import { getAuth, connectAuthEmulator } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js";
-import { getFirestore, connectFirestoreEmulator } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+import { 
+    initializeFirestore, 
+    persistentLocalCache, 
+    persistentMultipleTabManager, 
+    getFirestore, 
+    connectFirestoreEmulator 
+} from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 import { getFunctions, connectFunctionsEmulator } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-functions.js";
 import { getStorage, connectStorageEmulator } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-storage.js";
 
@@ -32,7 +38,20 @@ import { getStorage, connectStorageEmulator } from "https://www.gstatic.com/fire
 const USE_EMULATORS = localStorage.getItem('USE_EMULATORS') === 'true'; 
 
 const auth = getAuth(app);
-const db = getFirestore(app);
+
+// Inicializa Firestore com persistência IndexedDB para funcionar 100% offline em teatros
+let db;
+try {
+    db = initializeFirestore(app, {
+        localCache: persistentLocalCache({
+            tabManager: persistentMultipleTabManager()
+        })
+    });
+} catch (err) {
+    console.warn("Aviso ao inicializar cache persistente do Firestore, usando fallback padrão:", err);
+    db = getFirestore(app);
+}
+
 const functions = getFunctions(app, "us-central1");
 const storage = getStorage(app);
 

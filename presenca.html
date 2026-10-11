@@ -3,30 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
-    <!-- Meta Tags Anti-Cache para iOS PWA -->
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
+    <meta name="color-scheme" content="light dark">
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+    <meta name="theme-color" content="#0b1120" media="(prefers-color-scheme: dark)">
     <title>Presença OER</title>
     
-    <!-- Favicon e PWA tags (reutilizando da OER) -->
+    <!-- Favicon, Manifest e PWA tags -->
+    <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" sizes="180x180" href="assets/img/favicon_admin_final-180.png">
     <link rel="apple-touch-icon" sizes="180x180" href="assets/img/favicon_admin_final-180.png">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Presença OER">
     
-    <!-- Google Fonts: Inter -->
+    <!-- Google Fonts: Inter com display swap -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Ícones Lucide -->
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Preload dos módulos essenciais do Firebase -->
+    <link rel="modulepreload" href="assets/js/firebase-config.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth.js">
+    <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js">
+
+    <!-- Ícones Locais Ultraleves (Zero dependência externa, 100% offline) -->
+    <script src="assets/js/icons.js"></script>
 
     <!-- CSS: Base + Custom Presença -->
     <link rel="stylesheet" href="assets/css/common.css">
-    <link rel="stylesheet" href="assets/css/presenca.css?v=20261005_01">
+    <link rel="stylesheet" href="assets/css/presenca.css?v=20261011_01">
 </head>
 <body>
 
@@ -42,7 +48,7 @@
     <!-- Header Section -->
     <header class="header">
 
-        <!-- Linha 1: Título | Contadores (desktop) | Seletor de Data -->
+        <!-- Linha 1: Título | Badge de Sincronização | Contadores (desktop) | Seletor de Data -->
         <div class="header-top">
             <div class="header-title-container">
                 <button class="btn-back-admin" id="btnBackAdmin" title="Voltar ao Painel Admin">
@@ -50,6 +56,11 @@
                 </button>
                 <div class="header-title">
                     <h1>Presença OER</h1>
+                </div>
+                <!-- Badge de Sincronização Offline / Online -->
+                <div class="sync-badge synced" id="syncStatusBadge" title="Status de sincronização">
+                    <span class="sync-dot"></span>
+                    <span class="sync-text" id="syncStatusText">Sincronizado</span>
                 </div>
             </div>
 
@@ -397,10 +408,27 @@
         </div>
     </div>
 
-    <!-- Firebase SDK & Custom Logics -->
-    <script type="module" src="assets/js/admin/presenca.js?v=20261005_01"></script>
+    <!-- Firebase SDK & Lógica de Presença Offline-First -->
+    <script type="module" src="assets/js/admin/presenca.js?v=20261011_01"></script>
 
-    <!-- Sistema de Rastreamento de Engajamento/Analytics -->
-    <script type="module" src="assets/js/public/analytics.js"></script>
+    <!-- Registro Nativo do Service Worker PWA para Funcionamento Offline -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').catch(err => {
+                    console.warn('[SW] Falha ao registrar Service Worker:', err);
+                });
+            });
+        }
+    </script>
+
+    <!-- Sistema de Rastreamento de Engajamento/Analytics (carregamento sob demanda) -->
+    <script type="module">
+        if ('requestIdleCallback' in window) {
+            requestIdleCallback(() => import('./assets/js/public/analytics.js'));
+        } else {
+            setTimeout(() => import('./assets/js/public/analytics.js'), 2500);
+        }
+    </script>
 </body>
 </html>

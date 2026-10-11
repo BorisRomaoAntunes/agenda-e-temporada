@@ -5,13 +5,14 @@ import {
 import { 
     doc, 
     setDoc, 
-    getDoc,
-    updateDoc,
-    collection,
-    addDoc,
-    getDocs,
-    query,
-    where
+    getDoc, 
+    updateDoc, 
+    collection, 
+    addDoc, 
+    getDocs, 
+    query, 
+    where,
+    writeBatch
 } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
 // Referências DOM
@@ -94,33 +95,108 @@ let activeFilter = null; // Filtro ativo: 'nao-escalado' | 'faltas-atrasos' | nu
 // Valores de atraso para o seletor scroll (minutos)
 const delayValues = [0, 5, 10, 15, 20, 25, 30, 40, 50, 60, 75, 90, 120, 150, 180];
 
-// Controle de Timeout de Segurança da Autenticação
-let authCheckHandled = false;
-const authFallbackTimer = setTimeout(() => {
-    if (!authCheckHandled) {
-        authCheckHandled = true;
-        if (loader) loader.classList.add("hidden");
-        if (!auth.currentUser) {
-            window.location.replace("admin.html");
-        }
-    }
-}, 4000);
+// ==========================================
+// CONTROLE DE STATUS DE SINCRONIZAÇÃO
+// ==========================================
+function updateSyncStatus(state, customText) {
+    const badge = document.getElementById("syncStatusBadge");
+    const textEl = document.getElementById("syncStatusText");
+    if (!badge || !textEl) return;
 
-// Inicialização: Monitor de Autenticação
-onAuthStateChanged(auth, (user) => {
-    if (authCheckHandled) return;
+    badge.classList.remove("synced", "pending", "offline");
+
+    if (state === "synced") {
+        badge.classList.add("synced");
+        textEl.textContent = customText || "Sincronizado";
+        badge.title = "Dados salvos e confirmados na nuvem";
+    } else if (state === "pending") {
+        badge.classList.add("pending");
+        textEl.textContent = customText || "Salvo no celular";
+        badge.title = "Salvo no aparelho; sincronizando com a nuvem...";
+    } else if (state === "offline") {
+        badge.classList.add("offline");
+        textEl.textContent = customText || "Modo offline";
+        badge.title = "Aparelho offline. Os dados estão salvos localmente.";
+    }
+}
+
+// Ouvintes globais de conectividade da rede
+window.addEventListener("online", () => {
+    console.log("🌐 Conexão de rede restabelecida.");
+    updateSyncStatus("pending", "Reconectando...");
+    if ('requestIdleCallback' in window) {
+        requestIdleCallback(autoPreloadFutureDays);
+    } else {
+        setTimeout(autoPreloadFutureDays, 1500);
+    }
+});
+
+window.addEventListener("offline", () => {
+    console.log("📴 Dispositivo offline.");
+    updateSyncStatus("offline", "Modo offline");
+});
+
+// ==========================================
+// INICIALIZAÇÃO: AUTENTICAÇÃO TOLERANTE A FALHAS OFFLINE
+// ==========================================
+let authCheckHandled = false;
+
+// 1. Tenta recuperar sessão existente imediatamente do cache local do Firebase Auth
+if (auth.currentUser) {
     authCheckHandled = true;
-    clearTimeout(authFallbackTimer);
+    currentUserEmail = auth.currentUser.email || localStorage.getItem('oer_last_authenticated_user') || "sistema";
+    if (loader) loader.classList.add("hidden");
+    initApp();
+}
+
+// 2. Monitor padrão com suporte a modo offline em teatros
+onAuthStateChanged(auth, (user) => {
+    if (authCheckHandled) {
+        if (user) {
+            currentUserEmail = user.email || currentUserEmail;
+            localStorage.setItem('oer_last_authenticated_user', currentUserEmail);
+        }
+        return;
+    }
+    authCheckHandled = true;
 
     if (user) {
         currentUserEmail = user.email || "sistema";
+        localStorage.setItem('oer_last_authenticated_user', currentUserEmail);
         if (loader) loader.classList.add("hidden");
         initApp();
     } else {
-        // Se não autenticado, redireciona para tela de login administrativa
+        // Se estiver offline e o usuário já fez login anteriormente neste dispositivo:
+        const lastUser = localStorage.getItem('oer_last_authenticated_user');
+        if (!navigator.onLine && lastUser) {
+            console.log("🌐 Dispositivo offline no teatro. Mantendo sessão local de:", lastUser);
+            currentUserEmail = lastUser;
+            if (loader) loader.classList.add("hidden");
+            initApp();
+            return;
+        }
+
+        // Se online e sem usuário autenticado, redireciona para login administrativo
         window.location.replace("admin.html");
     }
 });
+
+// Fallback de segurança contra travamentos de rede
+setTimeout(() => {
+    if (!authCheckHandled) {
+        const lastUser = localStorage.getItem('oer_last_authenticated_user');
+        if (lastUser || auth.currentUser) {
+            authCheckHandled = true;
+            currentUserEmail = auth.currentUser?.email || lastUser || "sistema";
+            if (loader) loader.classList.add("hidden");
+            initApp();
+        } else if (navigator.onLine) {
+            authCheckHandled = true;
+            if (loader) loader.classList.add("hidden");
+            window.location.replace("admin.html");
+        }
+    }
+}, 3000);
 
 // Inicialização da Página
 async function initApp() {
@@ -270,9 +346,19 @@ async function initApp() {
     // Sincronização da barra inferior com teclado e viewport (correção iOS Safari)
     setupBottomBarViewportSync();
 
-    // Inicializar ícones Lucide
+    // Atualizar status inicial de sincronização
+    updateSyncStatus(navigator.onLine ? "synced" : "offline");
+
+    // Inicializar ícones (usando icons.js local ultraleve)
     if (window.lucide) {
         window.lucide.createIcons();
+    }
+
+    // Disparar pré-carregamento inteligente dos próximos 7 dias para uso offline no teatro
+    if ('requestIdleCallback' in window) {
+        requestIdleCallback(autoPreloadFutureDays);
+    } else {
+        setTimeout(autoPreloadFutureDays, 2000);
     }
 }
 
@@ -449,7 +535,60 @@ function parseDateToYYYYMMDD(val) {
     return null;
 }
 
-// Carregar Lista Completa de Músicos do Firestore
+// ==========================================
+// PRÉ-CARREGAMENTO INTELIGENTE OFFLINE (7 DIAS)
+// Baixa silenciosamente em background para que,
+// ao chegar no teatro sem sinal, tudo já esteja pronto no celular
+// ==========================================
+let preloadRunning = false;
+async function autoPreloadFutureDays() {
+    if (!navigator.onLine || preloadRunning) return;
+    preloadRunning = true;
+
+    try {
+        console.log("📥 [Offline] Sincronizando dados dos próximos 7 dias em segundo plano...");
+        const base = new Date();
+        const dates = [];
+        for (let i = 0; i <= 7; i++) {
+            const d = new Date(base);
+            d.setDate(base.getDate() + i);
+            const yyyy = d.getFullYear();
+            const mm = String(d.getMonth() + 1).padStart(2, '0');
+            const dd = String(d.getDate()).padStart(2, '0');
+            dates.push(`${yyyy}-${mm}-${dd}`);
+        }
+
+        const dataInicio = dates[0];
+        const dataFim = dates[dates.length - 1];
+
+        // 1. Pré-carregar eventos de calendário da semana
+        const eventosRef = collection(db, "eventos");
+        const qEvt = query(eventosRef, where("date", ">=", dataInicio), where("date", "<=", dataFim));
+        const snapEvt = await getDocs(qEvt);
+
+        // 2. Pré-carregar presenças já salvas dessa semana
+        const presencasRef = collection(db, "presencas");
+        const qPres = query(presencasRef, where("data", ">=", dataInicio), where("data", "<=", dataFim));
+        const snapPres = await getDocs(qPres);
+
+        // 3. Pré-carregar dispensas e atestados vigentes
+        const dispensasRef = collection(db, "dispensas");
+        const qDisp = query(dispensasRef, where("dataFim", ">=", dataInicio));
+        await getDocs(qDisp);
+
+        const atestadosRef = collection(db, "medicalCertificates_approved");
+        const qAtestados = query(atestadosRef, where("dataFim", ">=", dataInicio));
+        await getDocs(qAtestados);
+
+        console.log(`✅ [Offline] Cache atualizado: ${snapEvt.size} eventos e ${snapPres.size} chamadas persistidas.`);
+    } catch (err) {
+        console.warn("Aviso durante pré-carregamento offline:", err);
+    } finally {
+        preloadRunning = false;
+    }
+}
+
+// Carregar Lista Completa de Músicos do Firestore (com persistência offline e fallback)
 async function loadMusicians() {
     try {
         const snapshot = await getDocs(collection(db, "musicos"));
@@ -508,9 +647,24 @@ async function loadMusicians() {
                 dataSaida: dataSaidaStr || null
             });
         });
+
+        if (allMusiciansRaw.length > 0) {
+            try {
+                localStorage.setItem('oer_cached_musicians', JSON.stringify(allMusiciansRaw));
+            } catch (err) {}
+        }
     } catch (e) {
-        console.error("Erro ao carregar músicos:", e);
-        showToast("Erro ao carregar músicos do banco.");
+        console.warn("Aviso ao carregar músicos do Firestore, tentando cache local:", e);
+        const localCached = localStorage.getItem('oer_cached_musicians');
+        if (localCached) {
+            try {
+                allMusiciansRaw = JSON.parse(localCached);
+                console.log(`📦 [Offline] ${allMusiciansRaw.length} músicos recuperados do cache local de emergência.`);
+            } catch (parseErr) {}
+        }
+        if (!allMusiciansRaw || allMusiciansRaw.length === 0) {
+            showToast("Erro ao carregar músicos. Verifique a conexão.");
+        }
     }
 }
 
@@ -2126,7 +2280,7 @@ function updateNaipeTags() {
     if (window.lucide) window.lucide.createIcons();
 }
 
-// Salvar Oficialmente no Firestore e Gerar Log
+// Salvar Oficialmente no Firestore e Gerar Log (Modo Não-Bloqueante Offline-First)
 async function saveOfficialData() {
     const activeCall = dailyEventsCalls.find(c => c.id === activeCallId) || dailyEventsCalls[0];
     if (!activeCall) return;
@@ -2168,13 +2322,27 @@ async function saveOfficialData() {
         if (!confirmSave) return;
     }
 
-    loader.querySelector("p").innerText = "Sincronizando com o Firebase...";
-    loader.classList.remove("hidden");
+    // 1. Atualização Instantânea no App (Zero travamento / Sem bloqueio com loader)
+    activeCall.registros = { ...attendanceData };
+    activeCall.anotacoes = notesText;
+    activeCall.oficial = true;
+    saveDraft(); // Salva backup imediato no localStorage
+
+    const isOnline = navigator.onLine;
+    if (isOnline) {
+        updateSyncStatus("pending", "Salvando...");
+        showToast("Salvando presenças...");
+    } else {
+        updateSyncStatus("offline", "Salvo no celular");
+        showToast("Salvo no aparelho! Sincronizará quando houver sinal.");
+    }
 
     try {
-        // 1. Gravar dados da presença da chamada ativa
+        const batch = writeBatch(db);
+
+        // 2. Gravar dados da presença no Firestore (vai direto para IndexedDB e sobe em background)
         const docRef = doc(db, "presencas", activeCall.id);
-        await setDoc(docRef, {
+        batch.set(docRef, {
             data: selectedDate,
             tipo: activeCall.tipo || "ensaio_tutti",
             naipe: activeCall.naipe || null,
@@ -2187,11 +2355,7 @@ async function saveOfficialData() {
             usuarioResponsavel: currentUserEmail
         });
 
-        activeCall.registros = { ...attendanceData };
-        activeCall.anotacoes = notesText;
-        activeCall.oficial = true;
-
-        // 2. Contabilizar totais para detalhes do Log
+        // 3. Contabilizar totais para o Log Administrativo
         let presencas = 0, faltas = 0, atestados = 0, dispensas = 0, atrasos = 0, naoEscalados = 0, justificados = 0, faltasPassagem = 0;
         const listaRegistros = Object.values(attendanceData);
         listaRegistros.forEach(r => {
@@ -2205,7 +2369,6 @@ async function saveOfficialData() {
             else if (r.status === 'justificado') justificados++;
         });
 
-        // 3. Definir tipo e mensagem do log com base na auditoria
         const formattedDate = formatDateDisplay(selectedDate);
         const logType = existedInFirestore ? "presenca-corrigida" : "presenca-salva";
         const descNaipe = activeCall.tipo === "ensaio_naipe" 
@@ -2216,8 +2379,8 @@ async function saveOfficialData() {
             ? `Alteração retroativa realizada na lista de presença${descNaipe} do dia ${formattedDate} por ${currentUserEmail}`
             : `Lista de presença${descNaipe} do dia ${formattedDate} registrada por ${currentUserEmail}`;
 
-        // 4. Gravar log na coleção adminLogs
-        await addDoc(collection(db, "adminLogs"), {
+        const logDocRef = doc(collection(db, "adminLogs"));
+        batch.set(logDocRef, {
             type: logType,
             message: logMessage,
             createdAt: new Date().toISOString(),
@@ -2239,17 +2402,20 @@ async function saveOfficialData() {
             })()
         });
 
-        // 5. Limpar rascunho local
-        const draftKey = `presenca_oer_draft_${selectedDate}`;
-        localStorage.removeItem(draftKey);
+        // 4. Executa commit atômico no cache local e fila de rede
+        await batch.commit();
 
         existedInFirestore = true;
-        loader.classList.add("hidden");
-        showToast("Lista salva com sucesso!");
+        updateSyncStatus(navigator.onLine ? "synced" : "offline", navigator.onLine ? "Sincronizado" : "Salvo no celular");
+        showToast(navigator.onLine ? "Lista sincronizada na nuvem!" : "Salvo no aparelho!");
+
+        // Limpar rascunho temporário do localStorage pois já foi persistido no Firestore
+        const draftKey = `presenca_oer_draft_${selectedDate}`;
+        localStorage.removeItem(draftKey);
     } catch (e) {
-        console.error("Erro ao salvar dados oficialmente:", e);
-        loader.classList.add("hidden");
-        showToast("Erro de conexão. Rascunho salvo localmente.");
+        console.warn("Aviso ao persistir no Firebase (salvo no cache/localStorage):", e);
+        updateSyncStatus("offline", "Salvo no celular");
+        showToast("Salvo localmente no aparelho!");
     }
 }
 

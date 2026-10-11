@@ -91,18 +91,23 @@ self.addEventListener('notificationclick', function(event) {
 // ==========================================
 // CONFIGURAÇÃO DO PWA & CACHE OFFLINE
 // ==========================================
-const CACHE_NAME = 'oer-agenda-v42';
+const CACHE_NAME = 'oer-agenda-v44';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
+    '/presenca.html',
     '/assets/css/public.css',
+    '/assets/css/common.css',
+    '/assets/css/presenca.css',
     '/assets/js/public/version-tracker.js',
     '/assets/js/public/notifications.js',
     '/assets/js/public/dynamic-links.js',
+    '/assets/js/firebase-config.js',
+    '/assets/js/admin/presenca.js',
+    '/assets/js/icons.js',
     '/manifest.json',
-    'https://cdn.jsdelivr.net/npm/lucide@latest/dist/umd/lucide.min.js'
-    // NOTA: firebase-config.js, admin.html e scripts admin NÃO são cacheados para evitar
-    // servir versões antigas que bloqueiam a autenticação do Firebase
+    '/assets/img/favicon_admin_final-180.png',
+    '/assets/img/favicon-final-192.png'
 ];
 
 // ==========================================
@@ -124,23 +129,23 @@ const FIREBASE_BYPASS_PATTERNS = [
 
 // ==========================================
 // URLs de scripts dinâmicos que NUNCA devem ser cacheadas
+// (admin geral e passagens de som mantidas dinâmicas)
 // ==========================================
 const NO_CACHE_PATTERNS = [
-    '/assets/js/firebase-config.js',
-    '/assets/js/admin/',
+    '/assets/js/admin/admin.js',
     '/assets/js/passagem-som/',
     '/admin.html',
-    '/presenca.html',
     '/passagem-som-admin.html',
-    '/passagem-som.html',
-    'gstatic.com/firebasejs'
+    '/passagem-som.html'
 ];
 
 // Instalação: Cacheia os ativos estáticos
 self.addEventListener('install', (event) => {
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
-            return cache.addAll(ASSETS_TO_CACHE);
+            return cache.addAll(ASSETS_TO_CACHE).catch(err => {
+                console.warn('[SW] Aviso ao pré-cachear ativos:', err);
+            });
         })
     );
     self.skipWaiting();
@@ -178,9 +183,68 @@ self.addEventListener('fetch', (event) => {
         return; // Deixa passar direto para a rede
     }
 
-    // 3. NUNCA cachear scripts dinâmicos críticos (firebase-config, scripts admin, presenca.html)
+    // 3. NUNCA cachear páginas administrativas restritas
     if (NO_CACHE_PATTERNS.some(pattern => url.includes(pattern))) {
         event.respondWith(fetch(event.request));
+        return;
+    }
+
+    // 4. Cache-First para bibliotecas externas imutáveis (Firebase SDK)
+    if (url.includes('gstatic.com/firebasejs/')) {
+        event.respondWith(
+            caches.open(CACHE_NAME).then(async (cache) => {
+                const cached = await cache.match(event.request);
+                if (cached) return cached;
+                try {
+                    const response = await fetch(event.request);
+                    if (response && response.status === 200) {
+                        cache.put(event.request, response.clone());
+                    }
+                    return response;
+                } catch (e) {
+                    return cached;
+                }
+            })
+        );
+        return;
+    }
+
+    // 5. App Shell de Presença: Network-First com Timeout (1.5s) e Fallback Imediato para Cache
+    const isPresencaShell = url.includes('/presenca.html') || 
+                            url.includes('/assets/css/presenca.css') ||
+                            url.includes('/assets/js/admin/presenca.js') ||
+                            url.includes('/assets/js/icons.js') ||
+                            url.includes('/assets/js/firebase-config.js');
+
+    if (isPresencaShell) {
+        event.respondWith(
+            caches.open(CACHE_NAME).then(async (cache) => {
+                const cachedPromise = cache.match(event.request);
+
+                // Tenta a rede com timeout rápido para conexões lentas (teatros)
+                const fetchPromise = new Promise((resolve, reject) => {
+                    const timer = setTimeout(() => reject(new Error('Network timeout')), 1500);
+                    fetch(event.request).then(response => {
+                        clearTimeout(timer);
+                        if (response && response.status === 200) {
+                            cache.put(event.request, response.clone());
+                        }
+                        resolve(response);
+                    }).catch(err => {
+                        clearTimeout(timer);
+                        reject(err);
+                    });
+                });
+
+                try {
+                    return await fetchPromise;
+                } catch (netErr) {
+                    const cached = await cachedPromise;
+                    if (cached) return cached;
+                    return fetch(event.request);
+                }
+            })
+        );
         return;
     }
 
