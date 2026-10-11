@@ -1,8 +1,20 @@
 {
-  "hash": "9663176",
-  "date": "11/10/2026 15:47",
-  "buildAt": "2026-10-11T18:48:56.705Z",
+  "hash": "4f0291d",
+  "date": "11/10/2026 16:23",
+  "buildAt": "2026-10-11T19:24:15.639Z",
   "history": [
+    {
+      "hash": "4f0291d",
+      "date": "11/10/2026 16:23",
+      "author": "Boris Romão Antunes",
+      "subject": "fix(presenca): aprimorar contraste e padrao estetico de nao escalado no modo escuro"
+    },
+    {
+      "hash": "3f36ef6",
+      "date": "11/10/2026 15:50",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json apos deploy da estabilidade mobile"
+    },
     {
       "hash": "9663176",
       "date": "11/10/2026 15:47",
@@ -110,18 +122,6 @@
       "date": "11/10/2026 13:42",
       "author": "Boris Romão Antunes",
       "subject": "feat(presenca): adicionar auto-save continuo e transformar botao em Finalizar Chamada"
-    },
-    {
-      "hash": "9c3c27d",
-      "date": "11/10/2026 13:06",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json apos commit 7a58011"
-    },
-    {
-      "hash": "7a58011",
-      "date": "11/10/2026 13:06",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(presenca): otimizar para uso offline em teatros e adicionar dark mode"
     }
   ]
 }
