@@ -1,8 +1,26 @@
 {
-  "hash": "25e2a97",
-  "date": "11/10/2026 15:25",
-  "buildAt": "2026-10-11T18:26:25.901Z",
+  "hash": "aa26d66+mod",
+  "date": "11/10/2026, 15:47:16",
+  "buildAt": "2026-10-11T18:47:16.469Z",
   "history": [
+    {
+      "hash": "aa26d66+mod",
+      "date": "11/10/2026, 15:47:16",
+      "author": "Deploy Local",
+      "subject": "Atualização implantada (3 arquivos modificados)"
+    },
+    {
+      "hash": "aa26d66",
+      "date": "11/10/2026 15:44",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(presenca): reposicionar toast para parte inferior em formato banner flutuante"
+    },
+    {
+      "hash": "0acaa72",
+      "date": "11/10/2026 15:28",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json apos deploy"
+    },
     {
       "hash": "25e2a97",
       "date": "11/10/2026 15:25",
@@ -104,24 +122,6 @@
       "date": "11/10/2026 12:49",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualizar version.json apos deploy"
-    },
-    {
-      "hash": "a806861",
-      "date": "11/10/2026 12:41",
-      "author": "Boris Romão Antunes",
-      "subject": "feat: aprimorar regra e ciclo de vida da dica do letreiro e adicionar botao de teste no admin"
-    },
-    {
-      "hash": "693b1bb",
-      "date": "08/10/2026 12:09",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pos-deploy v46021bd"
-    },
-    {
-      "hash": "46021bd",
-      "date": "08/10/2026 12:06",
-      "author": "Boris Romão Antunes",
-      "subject": "fix(passagem-som): padroniza terminologia para Passagem de Som e adiciona botao Nova Passagem de Som"
     }
   ]
 }
