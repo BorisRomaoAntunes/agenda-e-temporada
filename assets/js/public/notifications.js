@@ -703,11 +703,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const tickerCoachmark = document.getElementById('tickerHintCoachmark');
     const btnDismissTickerHint = document.getElementById('btnDismissTickerHint');
     let hintTimeout = null;
+    let scrollDismissHandler = null;
+    let hasShownInCurrentSession = false;
 
     function dismissTickerHint(permanent = true) {
         if (hintTimeout) {
             clearTimeout(hintTimeout);
             hintTimeout = null;
+        }
+        if (scrollDismissHandler) {
+            window.removeEventListener('scroll', scrollDismissHandler);
+            scrollDismissHandler = null;
         }
         if (!tickerCoachmark) return;
         
@@ -731,10 +737,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function checkAndShowTickerHint() {
         if (!tickerCoachmark || !newsTicker) return;
+        if (hasShownInCurrentSession) return;
         
         try {
             const dismissed = localStorage.getItem('oer_ticker_hint_dismissed');
             if (dismissed === 'true') return;
+
+            const views = parseInt(localStorage.getItem('oer_ticker_hint_views') || '0', 10);
+            if (views >= 3) return;
         } catch (e) {
             return;
         }
@@ -744,20 +754,38 @@ document.addEventListener('DOMContentLoaded', () => {
             const isTickerVisible = window.getComputedStyle(newsTicker).display !== 'none';
             const isHistoryOpen = historyPanel && historyPanel.classList.contains('open');
             
-            if (isTickerVisible && !isHistoryOpen) {
+            if (isTickerVisible && !isHistoryOpen && !hasShownInCurrentSession) {
+                hasShownInCurrentSession = true;
+
+                // Incrementa a contagem de visualizações desta sessão
+                try {
+                    const currentViews = parseInt(localStorage.getItem('oer_ticker_hint_views') || '0', 10);
+                    localStorage.setItem('oer_ticker_hint_views', (currentViews + 1).toString());
+                } catch (e) {
+                    // Ignore storage errors
+                }
+
                 tickerCoachmark.style.display = 'block';
                 tickerCoachmark.setAttribute('aria-hidden', 'false');
+
+                // Fechamento suave se o usuário rolar a página para baixo (> 60px)
+                scrollDismissHandler = () => {
+                    if (window.scrollY > 60) {
+                        dismissTickerHint(false); // Fecha suavemente apenas na sessão atual
+                    }
+                };
+                window.addEventListener('scroll', scrollDismissHandler, { passive: true });
                 
-                // Auto-dismiss após 7.5 segundos
+                // Auto-dismiss após 10 segundos
                 hintTimeout = setTimeout(() => {
-                    dismissTickerHint(true);
-                }, 7500);
+                    dismissTickerHint(false); // Fecha suavemente apenas na sessão atual
+                }, 10000);
             }
         }, 800);
     }
 
     if (tickerCoachmark) {
-        // Clicar no botão X fecha a dica sem abrir o histórico
+        // Clicar no botão X fecha a dica permanentemente
         if (btnDismissTickerHint) {
             btnDismissTickerHint.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -765,7 +793,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
-        // Clicar no corpo da dica abre o histórico (simula clique no letreiro)
+        // Clicar no corpo da dica abre o histórico e fecha permanentemente
         tickerCoachmark.addEventListener('click', (e) => {
             if (btnDismissTickerHint && (e.target === btnDismissTickerHint || btnDismissTickerHint.contains(e.target))) return;
             dismissTickerHint(true);
@@ -774,9 +802,19 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Registra globalmente para integração com onSnapshot
+        // Registra globalmente para integração com onSnapshot e depuração/testes no console
         window.checkAndShowTickerHint = checkAndShowTickerHint;
         window.dismissTickerHint = dismissTickerHint;
+        window.resetTickerHintTest = () => {
+            try {
+                localStorage.removeItem('oer_ticker_hint_dismissed');
+                localStorage.removeItem('oer_ticker_hint_views');
+                console.log('[TickerHint] Dica do letreiro resetada com sucesso! Recarregando...');
+                location.reload();
+            } catch (e) {
+                console.error('[TickerHint] Erro ao resetar dica:', e);
+            }
+        };
 
         // Inicia checagem de exibição da dica
         checkAndShowTickerHint();

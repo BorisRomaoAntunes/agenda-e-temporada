@@ -1991,6 +1991,21 @@ function initToggleListener() {
         });
     }
 
+    // Botão para Redefinir Dica da Mãozinha (Testes)
+    const btnResetTickerHint = document.getElementById('btn-reset-ticker-hint');
+    if (btnResetTickerHint && !btnResetTickerHint._listenerAdded) {
+        btnResetTickerHint._listenerAdded = true;
+        btnResetTickerHint.addEventListener('click', () => {
+            try {
+                localStorage.removeItem('oer_ticker_hint_dismissed');
+                localStorage.removeItem('oer_ticker_hint_views');
+                showNotification('Dica da mãozinha redefinida com sucesso! Ao abrir o site público, ela será exibida novamente.', 'success');
+            } catch (err) {
+                showNotification('Erro ao redefinir dica: ' + err.message, 'error');
+            }
+        });
+    }
+
     // Evento para o Toggle de Atestados
     if (toggleAtestadosBtn && !toggleAtestadosBtn._listenerAdded) {
         toggleAtestadosBtn._listenerAdded = true;
