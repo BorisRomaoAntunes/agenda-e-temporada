@@ -1,8 +1,20 @@
 {
-  "hash": "8e9db48",
-  "date": "11/10/2026 14:20",
-  "buildAt": "2026-10-11T17:20:43.799Z",
+  "hash": "3b1661b",
+  "date": "11/10/2026 14:37",
+  "buildAt": "2026-10-11T17:38:00.352Z",
   "history": [
+    {
+      "hash": "3b1661b",
+      "date": "11/10/2026 14:37",
+      "author": "Boris Romão Antunes",
+      "subject": "fix(presenca): corrigir salto da barra inferior no iOS, altura dinamica do header e aplicar tema Dark Premium Obsidian"
+    },
+    {
+      "hash": "01d87e5",
+      "date": "11/10/2026 14:21",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json apos deploy"
+    },
     {
       "hash": "8e9db48",
       "date": "11/10/2026 14:20",
@@ -110,18 +122,6 @@
       "date": "08/10/2026 11:10",
       "author": "Boris Romão Antunes",
       "subject": "feat(agendamento): adiciona busca com sugestao inteligente (autocomplete) para musicos e monitores"
-    },
-    {
-      "hash": "093434b",
-      "date": "05/10/2026 16:03",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pos-deploy v7bfcddd"
-    },
-    {
-      "hash": "7bfcddd",
-      "date": "05/10/2026 16:00",
-      "author": "Boris Romão Antunes",
-      "subject": "fix(passagem-som): adiciona scroll vertical max-height e sticky header na tabela de agendamentos"
     }
   ]
 }
