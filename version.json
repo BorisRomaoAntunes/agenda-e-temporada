@@ -1,8 +1,14 @@
 {
-  "hash": "eddc149",
+  "hash": "8e9db48",
   "date": "11/10/2026 14:20",
-  "buildAt": "2026-10-11T17:20:19.260Z",
+  "buildAt": "2026-10-11T17:20:43.799Z",
   "history": [
+    {
+      "hash": "8e9db48",
+      "date": "11/10/2026 14:20",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json apos commit eddc149"
+    },
     {
       "hash": "eddc149",
       "date": "11/10/2026 14:20",
@@ -116,12 +122,6 @@
       "date": "05/10/2026 16:00",
       "author": "Boris Romão Antunes",
       "subject": "fix(passagem-som): adiciona scroll vertical max-height e sticky header na tabela de agendamentos"
-    },
-    {
-      "hash": "a33decb",
-      "date": "05/10/2026 14:31",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualiza version.json pos-deploy vca71f3b"
     }
   ]
 }
