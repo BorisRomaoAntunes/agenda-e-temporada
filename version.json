@@ -1,13 +1,19 @@
 {
-  "hash": "aa26d66+mod",
-  "date": "11/10/2026, 15:47:16",
-  "buildAt": "2026-10-11T18:47:16.469Z",
+  "hash": "9663176",
+  "date": "11/10/2026 15:47",
+  "buildAt": "2026-10-11T18:48:56.705Z",
   "history": [
     {
-      "hash": "aa26d66+mod",
-      "date": "11/10/2026, 15:47:16",
-      "author": "Deploy Local",
-      "subject": "Atualização implantada (3 arquivos modificados)"
+      "hash": "9663176",
+      "date": "11/10/2026 15:47",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json pós-deploy"
+    },
+    {
+      "hash": "5459ec7",
+      "date": "11/10/2026 15:47",
+      "author": "Boris Romão Antunes",
+      "subject": "fix(admin): aplicar estabilidade mobile, safe-areas e 100dvh em admin e passagem-som"
     },
     {
       "hash": "aa26d66",
@@ -116,12 +122,6 @@
       "date": "11/10/2026 13:06",
       "author": "Boris Romão Antunes",
       "subject": "feat(presenca): otimizar para uso offline em teatros e adicionar dark mode"
-    },
-    {
-      "hash": "bd89c47",
-      "date": "11/10/2026 12:49",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json apos deploy"
     }
   ]
 }
