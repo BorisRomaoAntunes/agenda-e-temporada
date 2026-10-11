@@ -210,9 +210,14 @@ async function initApp() {
         const headerEl = document.querySelector('.header');
         if (headerEl) {
             const updateHeaderHeight = () => {
-                document.documentElement.style.setProperty('--header-height', `${headerEl.offsetHeight - 1}px`);
+                const h = Math.ceil(headerEl.getBoundingClientRect().height);
+                document.documentElement.style.setProperty('--header-height', `${h - 1}px`);
             };
             updateHeaderHeight();
+            if (window.ResizeObserver) {
+                const ro = new ResizeObserver(updateHeaderHeight);
+                ro.observe(headerEl);
+            }
             window.addEventListener('resize', updateHeaderHeight);
         }
 
@@ -373,6 +378,14 @@ function setupBottomBarViewportSync() {
 
     if (window.visualViewport) {
         const handleViewportChange = () => {
+            // Só ajusta se houver um campo de texto ativo (teclado aberto)
+            const activeEl = document.activeElement;
+            const isInputActive = activeEl && (activeEl.tagName === "INPUT" || activeEl.tagName === "TEXTAREA");
+            if (!isInputActive) {
+                resetBottomBar();
+                return;
+            }
+
             const vv = window.visualViewport;
             const keyboardHeight = window.innerHeight - vv.height;
             if (keyboardHeight > 100) {
@@ -384,22 +397,20 @@ function setupBottomBarViewportSync() {
         };
 
         window.visualViewport.addEventListener("resize", handleViewportChange);
-        window.visualViewport.addEventListener("scroll", handleViewportChange);
     }
 
-    // Ao perder o foco de qualquer campo de texto, força recomposição no rodapé
+    // Ao perder o foco de qualquer campo de texto, força recomposição imediata no rodapé
     window.addEventListener("focusout", (e) => {
         if (e.target && (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")) {
             setTimeout(() => {
                 resetBottomBar();
-                window.scrollTo(window.scrollX, window.scrollY);
-            }, 80);
+            }, 60);
         }
     });
 
     // Ao girar a tela ou redimensionar janela
     window.addEventListener("orientationchange", () => {
-        setTimeout(resetBottomBar, 200);
+        setTimeout(resetBottomBar, 150);
     });
 }
 

@@ -2014,7 +2014,7 @@ body {
         border-color: var(--border-color);
     }
     .musician-card:hover {
-        background: #1c1c1f;
+        background: #1c1c20;
     }
     .musician-name {
         color: var(--text-primary);
@@ -2023,46 +2023,91 @@ body {
         color: var(--text-secondary);
     }
 
-    /* Pílula de status do músico na lista */
-    .status-pill.pendente {
+    /* Badges de Status e Cartões em Dark Mode */
+    .status-none {
         background: #18181b;
-        color: var(--text-secondary);
-        border-color: var(--border-color);
+        color: #a1a1aa;
+        border: 1px solid #27272a;
     }
-    .status-pill.presenca {
-        background: #064e3b;
-        color: #6ee7b7;
-        border-color: #047857;
+
+    .musician-card.presenca {
+        background-color: rgba(6, 78, 59, 0.45);
+        border-color: rgba(5, 150, 105, 0.6);
     }
-    .status-pill.falta {
-        background: #450a0a;
-        color: #fca5a5;
-        border-color: #7f1d1d;
+    .musician-card.presenca .status-badge {
+        background-color: #059669;
+        color: #ffffff;
     }
-    .status-pill.atraso {
-        background: #451a03;
-        color: #fcd34d;
-        border-color: #78350f;
+
+    .musician-card.falta {
+        background-color: rgba(69, 10, 10, 0.45);
+        border-color: rgba(220, 38, 38, 0.6);
     }
-    .status-pill.atestado {
-        background: #172554;
-        color: #93c5fd;
-        border-color: #1e40af;
+    .musician-card.falta .status-badge {
+        background-color: #dc2626;
+        color: #ffffff;
     }
-    .status-pill.dispensa {
-        background: #18181b;
-        color: #d4d4d8;
-        border-color: #3f3f46;
+
+    .musician-card.atraso,
+    .musician-card.atraso-passagem-som {
+        background-color: rgba(69, 26, 3, 0.45);
+        border-color: rgba(217, 119, 6, 0.6);
     }
-    .status-pill.nao-escalado {
-        background: #18181b;
-        color: #71717a;
+    .musician-card.atraso .status-badge,
+    .musician-card.atraso-passagem-som .status-badge {
+        background-color: #d97706;
+        color: #ffffff;
+    }
+
+    .musician-card.atestado {
+        background-color: rgba(23, 37, 84, 0.45);
+        border-color: rgba(37, 99, 235, 0.6);
+    }
+    .musician-card.atestado .status-badge {
+        background-color: #2563eb;
+        color: #ffffff;
+    }
+
+    .musician-card.dispensa {
+        background-color: rgba(59, 7, 100, 0.45);
+        border-color: rgba(147, 51, 234, 0.6);
+    }
+    .musician-card.dispensa .status-badge {
+        background-color: #7e22ce;
+        color: #ffffff;
+    }
+
+    .musician-card.nao-escalado {
+        background-color: #141416;
         border-color: #27272a;
     }
-    .status-pill.justificado {
-        background: #3b0764;
-        color: #d8b4fe;
-        border-color: #6b21a8;
+    .musician-card.nao-escalado .status-badge {
+        background-color: #27272a;
+        color: #71717a;
+        border: 1px solid #3f3f46;
+    }
+
+    .musician-card.justificado {
+        background-color: rgba(59, 7, 100, 0.45);
+        border-color: rgba(147, 51, 234, 0.6);
+    }
+    .musician-card.justificado .status-badge {
+        background-color: #9333ea;
+        color: #ffffff;
+    }
+
+    /* Cabeçalhos de Naipe Sticky em Dark Mode */
+    .naipe-header {
+        background-color: var(--bg-primary);
+        box-shadow: 0 4px 6px -4px rgba(0, 0, 0, 0.6);
+    }
+    .naipe-count {
+        background: #18181b;
+        color: #a1a1aa;
+    }
+    .naipe-count.complete {
+        background: #064e3b;
+        color: #6ee7b7;
     }
 
     /* Gavetas / Drawers */
@@ -2234,11 +2279,13 @@ body {
    CORREÇÕES DE LAYOUT MOBILE — evita overflow horizontal
    (a página era "empurrada" para a esquerda no celular)
    ======================================================== */
-html,
+html {
+    max-width: 100%;
+}
+
 body {
     max-width: 100%;
-    overflow-x: hidden; /* fallback para navegadores sem suporte a clip */
-    overflow-x: clip;   /* clip não quebra position: sticky */
+    overflow-x: clip; /* clip não força overflow-y: auto e preserva position: sticky e fixed nativos */
 }
 
 .header,
