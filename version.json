@@ -1,8 +1,20 @@
 {
-  "hash": "7a58011",
-  "date": "11/10/2026 13:06",
-  "buildAt": "2026-10-11T16:06:24.858Z",
+  "hash": "77078ec",
+  "date": "11/10/2026 13:42",
+  "buildAt": "2026-10-11T16:42:37.938Z",
   "history": [
+    {
+      "hash": "77078ec",
+      "date": "11/10/2026 13:42",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(presenca): adicionar auto-save continuo e transformar botao em Finalizar Chamada"
+    },
+    {
+      "hash": "9c3c27d",
+      "date": "11/10/2026 13:06",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json apos commit 7a58011"
+    },
     {
       "hash": "7a58011",
       "date": "11/10/2026 13:06",
@@ -110,18 +122,6 @@
       "date": "30/09/2026 14:06",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualiza version.json pos-deploy v7b79356"
-    },
-    {
-      "hash": "7b79356",
-      "date": "30/09/2026 14:03",
-      "author": "Boris Romão Antunes",
-      "subject": "fix(agendamento): remove rodape de solicitacao do relatorio de agendamento atual"
-    },
-    {
-      "hash": "d9855cd",
-      "date": "30/09/2026 12:31",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: version.json deploy v5a56060"
     }
   ]
 }
