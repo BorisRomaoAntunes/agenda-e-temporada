@@ -1,8 +1,20 @@
 {
-  "hash": "46021bd",
-  "date": "08/10/2026 12:06",
-  "buildAt": "2026-10-08T15:07:04.059Z",
+  "hash": "a806861",
+  "date": "11/10/2026 12:41",
+  "buildAt": "2026-10-11T15:48:38.426Z",
   "history": [
+    {
+      "hash": "a806861",
+      "date": "11/10/2026 12:41",
+      "author": "Boris Romão Antunes",
+      "subject": "feat: aprimorar regra e ciclo de vida da dica do letreiro e adicionar botao de teste no admin"
+    },
+    {
+      "hash": "693b1bb",
+      "date": "08/10/2026 12:09",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualiza version.json pos-deploy v46021bd"
+    },
     {
       "hash": "46021bd",
       "date": "08/10/2026 12:06",
@@ -110,18 +122,6 @@
       "date": "30/09/2026 12:28",
       "author": "Boris Romão Antunes",
       "subject": "feat(agendamento): adiciona rodape whatsapp para escolha de sala/horario e copia automatica na confirmacao"
-    },
-    {
-      "hash": "3aba246",
-      "date": "29/09/2026 12:53",
-      "author": "Boris Romão Antunes",
-      "subject": "feat: privacidade de dados (remover autocomplete), select de instrumentos e responsividade mobile"
-    },
-    {
-      "hash": "479d83d",
-      "date": "29/09/2026 12:35",
-      "author": "Boris Romão Antunes",
-      "subject": "Atualiza version.json do deploy de produção"
     }
   ]
 }
