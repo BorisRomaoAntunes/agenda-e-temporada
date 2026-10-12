@@ -1,13 +1,19 @@
 {
-  "hash": "ee903d4+mod",
-  "date": "12/10/2026, 16:39:13",
-  "buildAt": "2026-10-12T19:39:13.558Z",
+  "hash": "24d0b6b",
+  "date": "12/10/2026 16:40",
+  "buildAt": "2026-10-12T19:40:54.642Z",
   "history": [
     {
-      "hash": "ee903d4+mod",
-      "date": "12/10/2026, 16:39:13",
-      "author": "Deploy Local",
-      "subject": "Atualização implantada (1 arquivos modificados)"
+      "hash": "24d0b6b",
+      "date": "12/10/2026 16:40",
+      "author": "Boris Romão Antunes",
+      "subject": "fix(relatorios): resumo executivo do cabecalho com contagem exata do mes"
+    },
+    {
+      "hash": "9d05744",
+      "date": "12/10/2026 16:39",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json apos commit ee903d4"
     },
     {
       "hash": "ee903d4",
@@ -116,12 +122,6 @@
       "date": "11/10/2026 15:19",
       "author": "Boris Romão Antunes",
       "subject": "fix(presenca): corrigir barra inferior descolando no scroll do PWA iOS e atualizar cache"
-    },
-    {
-      "hash": "52f84fe",
-      "date": "11/10/2026 14:41",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json apos deploy"
     }
   ]
 }
