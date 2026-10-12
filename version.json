@@ -1,13 +1,19 @@
 {
-  "hash": "5f78bff+mod",
-  "date": "12/10/2026, 16:30:25",
-  "buildAt": "2026-10-12T19:30:25.405Z",
+  "hash": "a7ee308",
+  "date": "12/10/2026 16:32",
+  "buildAt": "2026-10-12T19:32:33.542Z",
   "history": [
     {
-      "hash": "5f78bff+mod",
-      "date": "12/10/2026, 16:30:25",
-      "author": "Deploy Local",
-      "subject": "Atualização implantada (1 arquivos modificados)"
+      "hash": "a7ee308",
+      "date": "12/10/2026 16:32",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: bump version.json apos deploy"
+    },
+    {
+      "hash": "c8f7024",
+      "date": "12/10/2026 16:32",
+      "author": "Boris Romão Antunes",
+      "subject": "fix(agendamento): reposicionar botao x no canto superior direito estilo ios"
     },
     {
       "hash": "5f78bff",
@@ -116,12 +122,6 @@
       "date": "11/10/2026 14:21",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualizar version.json apos deploy"
-    },
-    {
-      "hash": "8e9db48",
-      "date": "11/10/2026 14:20",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json apos commit eddc149"
     }
   ]
 }
