@@ -1,8 +1,26 @@
 {
-  "hash": "4f0291d",
-  "date": "11/10/2026 16:23",
-  "buildAt": "2026-10-11T19:24:15.639Z",
+  "hash": "d533b14+mod",
+  "date": "12/10/2026, 16:09:25",
+  "buildAt": "2026-10-12T19:09:25.219Z",
   "history": [
+    {
+      "hash": "d533b14+mod",
+      "date": "12/10/2026, 16:09:25",
+      "author": "Deploy Local",
+      "subject": "Atualização implantada (3 arquivos modificados)"
+    },
+    {
+      "hash": "d533b14",
+      "date": "12/10/2026 16:06",
+      "author": "Boris Romão Antunes",
+      "subject": "feat: otimizacao de datas e identificacao de multiplos concertos no relatorio de presenca"
+    },
+    {
+      "hash": "33cbc72",
+      "date": "11/10/2026 16:24",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json apos melhoria no modo escuro"
+    },
     {
       "hash": "4f0291d",
       "date": "11/10/2026 16:23",
@@ -104,24 +122,6 @@
       "date": "11/10/2026 13:46",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualizar version.json apos deploy"
-    },
-    {
-      "hash": "b047eae",
-      "date": "11/10/2026 13:44",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json apos commit 77078ec"
-    },
-    {
-      "hash": "010771b",
-      "date": "11/10/2026 13:42",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json apos commit 77078ec"
-    },
-    {
-      "hash": "77078ec",
-      "date": "11/10/2026 13:42",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(presenca): adicionar auto-save continuo e transformar botao em Finalizar Chamada"
     }
   ]
 }
