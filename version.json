@@ -1,13 +1,19 @@
 {
-  "hash": "d533b14+mod",
-  "date": "12/10/2026, 16:09:25",
-  "buildAt": "2026-10-12T19:09:25.219Z",
+  "hash": "87ed4d2",
+  "date": "12/10/2026 16:12",
+  "buildAt": "2026-10-12T19:12:07.247Z",
   "history": [
     {
-      "hash": "d533b14+mod",
-      "date": "12/10/2026, 16:09:25",
-      "author": "Deploy Local",
-      "subject": "Atualização implantada (3 arquivos modificados)"
+      "hash": "87ed4d2",
+      "date": "12/10/2026 16:12",
+      "author": "Boris Romão Antunes",
+      "subject": "feat(agendamento): bloquear e desbloquear horarios especificos por sala com status reservado"
+    },
+    {
+      "hash": "3bf549e",
+      "date": "12/10/2026 16:09",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: bump version.json apos deploy"
     },
     {
       "hash": "d533b14",
@@ -116,12 +122,6 @@
       "date": "11/10/2026 14:17",
       "author": "Boris Romão Antunes",
       "subject": "fix(presenca): blindar auto-save contra condicao de corrida e atualizar cache"
-    },
-    {
-      "hash": "01dc6be",
-      "date": "11/10/2026 13:46",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json apos deploy"
     }
   ]
 }
