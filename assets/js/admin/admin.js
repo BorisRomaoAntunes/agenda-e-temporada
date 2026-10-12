@@ -12797,7 +12797,11 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                     if (a.date !== b.date) return a.date.localeCompare(b.date);
                     return a.hora.localeCompare(b.hora);
                 });
-                textareaConcertos.value = concertos.map(c => `${c.data} | ${c.hora} | ${c.nome} | ${c.local}`).join('\n');
+                textareaConcertos.value = concertos.map(c => {
+                    const horaStr = c.hora && c.hora !== '--:--' ? ` (${c.hora})` : '';
+                    const localStr = c.local && c.local !== '-' ? ` - ${c.local}` : '';
+                    return `${c.data}${horaStr} - ${c.nome}${localStr}`;
+                }).join('\n');
             } else {
                 textareaConcertos.value = "Nenhum concerto programado para este mês.";
             }
@@ -13346,43 +13350,6 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                 } else {
                     justificativasHtml = '<li>Nenhuma justificativa de ausência registrada para este período.</li>';
                 }
-
-                // Construir linhas da mini-tabela de concertos do centro do cabeçalho
-                const concertosLinhas = (concertosTexto || '').trim().split('\n').filter(l => l.trim() !== '');
-                let linhasConcertosMiniTableHtml = '';
-                if (concertosLinhas.length > 0 && !concertosTexto.includes('Nenhum concerto programado')) {
-                    concertosLinhas.forEach(linha => {
-                        const partes = linha.split('|').map(p => p.trim());
-                        if (partes.length >= 3) {
-                            const colData = partes[0] || '';
-                            const colHora = partes[1] || '';
-                            const colNome = partes[2] || '';
-                            const colLocal = partes[3] || '-';
-                            linhasConcertosMiniTableHtml += `
-                                <tr>
-                                    <td style="font-weight: bold; white-space: nowrap;">${colData}</td>
-                                    <td style="white-space: nowrap;">${colHora}</td>
-                                    <td style="text-align: left; font-weight: 500;">${colNome}</td>
-                                    <td style="text-align: left;">${colLocal}</td>
-                                </tr>
-                            `;
-                        } else {
-                            const partsHifen = linha.split('-').map(p => p.trim());
-                            const colData = partsHifen[0] || '';
-                            const colNome = partsHifen.slice(1).join(' - ') || linha;
-                            linhasConcertosMiniTableHtml += `
-                                <tr>
-                                    <td style="font-weight: bold; white-space: nowrap;">${colData}</td>
-                                    <td>-</td>
-                                    <td style="text-align: left; font-weight: 500;">${colNome}</td>
-                                    <td style="text-align: left;">-</td>
-                                </tr>
-                            `;
-                        }
-                    });
-                } else {
-                    linhasConcertosMiniTableHtml = `<tr><td colspan="4" style="text-align: center; color: #64748b; font-style: italic; padding: 4px;">Nenhum concerto programado para este mês.</td></tr>`;
-                }
                 
                 const docHtml = `
 <!DOCTYPE html>
@@ -13423,27 +13390,29 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
         
         .header-container {
             display: grid;
-            grid-template-columns: 200px 1fr 220px;
+            grid-template-columns: 215px 1fr 190px;
             border: 1px solid #000;
             margin-bottom: 6px;
         }
         
         .header-left {
-            padding: 6px;
+            padding: 6px 8px;
             border-right: 1px solid #000;
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
+            overflow: hidden;
         }
         
         .logo-oer {
-            height: 42px;
+            height: 38px;
             width: auto;
+            flex-shrink: 0;
         }
         
-        .title-sub h1 { font-size: 10.5pt; margin: 0; font-weight: 800; letter-spacing: 0.5px; }
-        .title-sub p { font-size: 5.8pt; margin: 0; color: #444; font-weight: 600; }
-        .header-center { padding: 4px 6px; border-right: 1px solid #000; overflow: hidden; }
+        .title-sub h1 { font-size: 9.5pt; margin: 0; font-weight: 800; letter-spacing: 0.5px; white-space: nowrap; line-height: 1.2; }
+        .title-sub p { font-size: 5.5pt; margin: 0; color: #333; font-weight: 600; white-space: nowrap; line-height: 1.2; }
+        .header-center { padding: 5px 8px; border-right: 1px solid #000; overflow: hidden; }
         .header-right { padding: 6px; display: flex; flex-direction: column; justify-content: space-between; }
         .month-box { font-weight: 800; text-align: center; font-size: 9.5pt; color: #000; margin-bottom: 3px; }
         
@@ -13453,29 +13422,14 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
             color: #8b0000;
             text-transform: uppercase;
             letter-spacing: 0.5px;
-            margin-bottom: 2px;
+            margin-bottom: 3px;
         }
 
-        .concertos-mini-table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 6pt;
-            margin: 0;
-        }
-        .concertos-mini-table th {
-            background: #f1f5f9;
-            color: #1e293b;
-            padding: 1px 3px;
-            font-weight: 700;
-            border: 1px solid #cbd5e1;
-            font-size: 5.5pt;
-            text-align: center;
-        }
-        .concertos-mini-table td {
-            padding: 1px 3px;
-            border: 1px solid #e2e8f0;
-            font-size: 6pt;
-            text-align: center;
+        .concertos-texto-simples {
+            font-size: 6.2pt;
+            line-height: 1.35;
+            white-space: pre-line;
+            color: #111;
         }
 
         .summary-cards-container {
@@ -13539,20 +13493,8 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                 </div>
             </div>
             <div class="header-center">
-                <div class="header-section-title">Concertos / Apresentações do Mês</div>
-                <table class="concertos-mini-table">
-                    <thead>
-                        <tr>
-                            <th style="width: 44px;">Data</th>
-                            <th style="width: 42px;">Horário</th>
-                            <th style="text-align: left;">Concerto / Programa</th>
-                            <th style="width: 110px; text-align: left;">Local</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${linhasConcertosMiniTableHtml}
-                    </tbody>
-                </table>
+                <div class="header-section-title">Concertos / Apresentações:</div>
+                <div class="concertos-texto-simples">${concertosTexto}</div>
             </div>
             <div class="header-right">
                 <div class="month-box">${tituloRelatorio}</div>
