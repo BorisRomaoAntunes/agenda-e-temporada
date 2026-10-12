@@ -13211,10 +13211,6 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                 const diasDeConcerto = new Set();
                 const diasDeFolga = new Set();
                 const eventosPorDataPdf = {};
-                let totalEnsaiosMes = 0;
-                let totalConcertosMes = 0;
-                const concertosUnicosSet = new Set();
-                const ensaiosUnicosSet = new Set();
                 
                 eventosSnapshot.forEach(docSnap => {
                     const evt = docSnap.data();
@@ -13233,38 +13229,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                     
                     if (tipoLower === 'concerto' || txtCompletoLower.includes('concerto')) {
                         diasDeConcerto.add(evt.date);
-                        const cKey = `${evt.date}_${evt.horarioInicio || ''}_${concertoNome.trim().toLowerCase()}`;
-                        if (!concertosUnicosSet.has(cKey)) {
-                            concertosUnicosSet.add(cKey);
-                            totalConcertosMes++;
-                        }
-                    } else if (tipoLower.includes('ensaio') || txtCompletoLower.includes('ensaio')) {
-                        const eKey = `${evt.date}_${evt.horarioInicio || ''}_${tipoLower}`;
-                        if (!ensaiosUnicosSet.has(eKey)) {
-                            ensaiosUnicosSet.add(eKey);
-                            totalEnsaiosMes++;
-                        }
                     }
-                });
-
-                // Fallback de contagem via presencas caso não haja evento na agenda
-                Object.entries(presencasPorData).forEach(([dKey, docs]) => {
-                    docs.forEach(pDoc => {
-                        if (pDoc.tipo === 'concerto') {
-                            diasDeConcerto.add(dKey);
-                            const cKey = `${dKey}_${pDoc.horarioInicio || ''}`;
-                            if (!concertosUnicosSet.has(cKey)) {
-                                concertosUnicosSet.add(cKey);
-                                totalConcertosMes++;
-                            }
-                        } else if (pDoc.tipo && pDoc.tipo.includes('ensaio')) {
-                            const eKey = `${dKey}_${pDoc.horarioInicio || ''}`;
-                            if (!ensaiosUnicosSet.has(eKey)) {
-                                ensaiosUnicosSet.add(eKey);
-                                totalEnsaiosMes++;
-                            }
-                        }
-                    });
                 });
 
                 // OTIMIZAÇÃO DE ESPAÇO: Filtrar apenas dias que tiveram presença registrada OU evento na agenda
@@ -13289,6 +13254,17 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                         });
                     }
                 }
+
+                // RESUMO EXECUTIVO EXATO DO MÊS EM QUESTÃO:
+                // 1. Bolsistas ativos no mês (desconsidera desligados antes ou no início do mês)
+                const totalBolsistasMes = ativos.filter(m => !(m.dataSaida && m.dataSaida <= startOfMonthQuery)).length;
+
+                // 2. Ensaios do mês (contagem das datas ativas de ensaio no mês)
+                const totalEnsaiosMes = diasAtivos.filter(d => !d.isConcerto && !d.isFolga).length;
+
+                // 3. Concertos do mês (contagem das apresentações reais do mês listadas no cabeçalho)
+                const linhasConcertosMes = (concertosTexto || '').trim().split('\n').filter(l => l.trim().length > 0 && !l.includes('Nenhum concerto programado'));
+                const totalConcertosMes = linhasConcertosMes.length;
 
                 let diasHeadersHtml = '';
                 diasAtivos.forEach(dInfo => {
@@ -13500,7 +13476,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                 <div class="month-box">${tituloRelatorio}</div>
                 <div class="summary-cards-container">
                     <div class="summary-card">
-                        <span class="summary-val">${ativos.length}</span>
+                        <span class="summary-val">${totalBolsistasMes}</span>
                         <span class="summary-lbl">Bolsistas</span>
                     </div>
                     <div class="summary-card">
