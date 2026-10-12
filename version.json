@@ -1,8 +1,14 @@
 {
-  "hash": "24d0b6b",
+  "hash": "d3c6ed0",
   "date": "12/10/2026 16:40",
-  "buildAt": "2026-10-12T19:40:54.642Z",
+  "buildAt": "2026-10-12T19:42:38.894Z",
   "history": [
+    {
+      "hash": "d3c6ed0",
+      "date": "12/10/2026 16:40",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json apos commit 24d0b6b"
+    },
     {
       "hash": "24d0b6b",
       "date": "12/10/2026 16:40",
@@ -116,12 +122,6 @@
       "date": "11/10/2026 15:25",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualizar version.json apos commit 5ddc44d"
-    },
-    {
-      "hash": "5ddc44d",
-      "date": "11/10/2026 15:19",
-      "author": "Boris Romão Antunes",
-      "subject": "fix(presenca): corrigir barra inferior descolando no scroll do PWA iOS e atualizar cache"
     }
   ]
 }
