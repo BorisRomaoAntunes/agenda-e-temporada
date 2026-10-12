@@ -12755,26 +12755,49 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
             const querySnapshot = await getDocs(eventosQuery);
             const concertos = [];
             const anotacoes = [];
+            const concertosVistos = new Set();
+            const anotacoesVistas = new Set();
             
             querySnapshot.forEach(docSnap => {
                 const evt = docSnap.data();
                 const diaEvt = evt.date.split('-')[2];
+                const mesEvt = evt.date.split('-')[1];
                 const tipoLower = (evt.tipo || '').toLowerCase();
                 const concertoNome = evt.concertoNome || '';
                 const descricaoEnsaio = evt.descricaoEnsaio || '';
                 const txtCompletoLower = `${concertoNome} ${descricaoEnsaio}`.toLowerCase();
+                const hora = evt.horarioInicio || '';
+                const local = evt.local || '';
                 
                 if (tipoLower === 'concerto' || txtCompletoLower.includes('concerto')) {
-                    const nomeDoConcerto = evt.concertoNome || evt.descricaoEnsaio || 'Concerto';
-                    concertos.push(`${diaEvt}/${mes} - ${nomeDoConcerto}`);
+                    const nomeDoConcerto = (evt.concertoNome || evt.descricaoEnsaio || 'Concerto').trim();
+                    const chaveUnica = `${evt.date}_${hora}_${nomeDoConcerto.toLowerCase()}_${local.toLowerCase()}`;
+                    if (!concertosVistos.has(chaveUnica)) {
+                        concertosVistos.add(chaveUnica);
+                        concertos.push({
+                            data: `${diaEvt}/${mesEvt}`,
+                            date: evt.date,
+                            hora: hora || '--:--',
+                            nome: nomeDoConcerto,
+                            local: local || '-'
+                        });
+                    }
                 } else {
-                    const desc = evt.descricaoEnsaio || (evt.tipo === 'folga' ? 'Folga' : 'Ensaio');
-                    anotacoes.push(`${diaEvt}/${mes} - ${desc}`);
+                    const desc = (evt.descricaoEnsaio || (evt.tipo === 'folga' ? 'Folga' : 'Ensaio')).trim();
+                    const chaveAnotacao = `${evt.date}_${desc.toLowerCase()}`;
+                    if (!anotacoesVistas.has(chaveAnotacao)) {
+                        anotacoesVistas.add(chaveAnotacao);
+                        anotacoes.push(`${diaEvt}/${mesEvt} - ${desc}`);
+                    }
                 }
             });
             
             if (concertos.length > 0) {
-                textareaConcertos.value = concertos.join('\n');
+                concertos.sort((a, b) => {
+                    if (a.date !== b.date) return a.date.localeCompare(b.date);
+                    return a.hora.localeCompare(b.hora);
+                });
+                textareaConcertos.value = concertos.map(c => `${c.data} | ${c.hora} | ${c.nome} | ${c.local}`).join('\n');
             } else {
                 textareaConcertos.value = "Nenhum concerto programado para este mês.";
             }
@@ -12919,6 +12942,10 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
             return hA.localeCompare(hB);
         });
 
+        // Verificar se há mais de um concerto no mesmo dia
+        const concertosCount = docsOrdenados.filter(d => d.tipo === 'concerto').length;
+        const temMultiplosConcertos = concertosCount > 1;
+
         let incP = 0;
         let incF = 0;
         let hasFalta = false;
@@ -12940,15 +12967,24 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                 allPresenca = false;
             } else {
                 const sym = getSymbol(reg);
-                const prefix = getTipoPrefix(doc.tipo);
+                let prefix = getTipoPrefix(doc.tipo);
+                let prefixPdf = prefix;
+                let prefixExcel = prefix;
+
+                if (doc.tipo === 'concerto' && temMultiplosConcertos) {
+                    const horaStr = doc.horarioInicio ? ` ${doc.horarioInicio}` : '';
+                    prefixPdf = `C${horaStr}`;
+                    prefixExcel = `C${horaStr}`;
+                }
+
                 if (sym.status === 'atraso' || sym.status === 'atraso_passagem_som') {
                     hasAtraso = true;
                     allPresenca = false;
-                    partesPdf.push(`<span class="inline-atraso">${prefix}:${sym.symbol}</span>`);
+                    partesPdf.push(`<span class="inline-atraso">${prefixPdf}:${sym.symbol}</span>`);
                 } else {
-                    partesPdf.push(`${prefix}:${sym.symbol}`);
+                    partesPdf.push(`${prefixPdf}:${sym.symbol}`);
                 }
-                partesExcel.push(`${prefix}:${sym.excelSym}`);
+                partesExcel.push(`${prefixExcel}:${sym.excelSym}`);
                 incP += sym.incP;
                 incF += sym.incF;
                 if (sym.status === 'falta') hasFalta = true;
@@ -12956,7 +12992,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
             }
         });
 
-        let cellText = partesPdf.join(' ');
+        let cellText = partesPdf.join('<br>');
         let excelText = partesExcel.join('/');
         let cellClass = 'status-composto';
         if (hasFalta) {
@@ -13169,33 +13205,96 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                 const tituloRelatorio = `${mesNomeExtenso.toUpperCase()} / ${ano}`;
                 
                 const diasDeConcerto = new Set();
+                const diasDeFolga = new Set();
+                const eventosPorDataPdf = {};
+                let totalEnsaiosMes = 0;
+                let totalConcertosMes = 0;
+                const concertosUnicosSet = new Set();
+                const ensaiosUnicosSet = new Set();
                 
                 eventosSnapshot.forEach(docSnap => {
                     const evt = docSnap.data();
+                    if (!evt.date) return;
                     const tipoLower = (evt.tipo || '').toLowerCase();
                     const concertoNome = evt.concertoNome || '';
                     const descricaoEnsaio = evt.descricaoEnsaio || '';
                     const txtCompletoLower = `${concertoNome} ${descricaoEnsaio}`.toLowerCase();
                     
+                    if (!eventosPorDataPdf[evt.date]) eventosPorDataPdf[evt.date] = [];
+                    eventosPorDataPdf[evt.date].push(evt);
+
+                    if (tipoLower === 'folga' || txtCompletoLower.includes('folga')) {
+                        diasDeFolga.add(evt.date);
+                    }
+                    
                     if (tipoLower === 'concerto' || txtCompletoLower.includes('concerto')) {
-                        const diaEvt = parseInt(evt.date.split('-')[2]);
-                        diasDeConcerto.add(diaEvt);
+                        diasDeConcerto.add(evt.date);
+                        const cKey = `${evt.date}_${evt.horarioInicio || ''}_${concertoNome.trim().toLowerCase()}`;
+                        if (!concertosUnicosSet.has(cKey)) {
+                            concertosUnicosSet.add(cKey);
+                            totalConcertosMes++;
+                        }
+                    } else if (tipoLower.includes('ensaio') || txtCompletoLower.includes('ensaio')) {
+                        const eKey = `${evt.date}_${evt.horarioInicio || ''}_${tipoLower}`;
+                        if (!ensaiosUnicosSet.has(eKey)) {
+                            ensaiosUnicosSet.add(eKey);
+                            totalEnsaiosMes++;
+                        }
                     }
                 });
 
-                let diasHeadersHtml = '';
+                // Fallback de contagem via presencas caso não haja evento na agenda
+                Object.entries(presencasPorData).forEach(([dKey, docs]) => {
+                    docs.forEach(pDoc => {
+                        if (pDoc.tipo === 'concerto') {
+                            diasDeConcerto.add(dKey);
+                            const cKey = `${dKey}_${pDoc.horarioInicio || ''}`;
+                            if (!concertosUnicosSet.has(cKey)) {
+                                concertosUnicosSet.add(cKey);
+                                totalConcertosMes++;
+                            }
+                        } else if (pDoc.tipo && pDoc.tipo.includes('ensaio')) {
+                            const eKey = `${dKey}_${pDoc.horarioInicio || ''}`;
+                            if (!ensaiosUnicosSet.has(eKey)) {
+                                ensaiosUnicosSet.add(eKey);
+                                totalEnsaiosMes++;
+                            }
+                        }
+                    });
+                });
+
+                // OTIMIZAÇÃO DE ESPAÇO: Filtrar apenas dias que tiveram presença registrada OU evento na agenda
+                const diasAtivos = [];
                 for (let dia = 1; dia <= totalDias; dia++) {
                     const dataStr = `${ano}-${mesStr}-${String(dia).padStart(2, '0')}`;
-                    const presDoc = presencasPorData[dataStr];
-                    const hasConcertoPres = presDoc && (
-                        presDoc.tipo === 'concerto' || 
-                        (Array.isArray(presDoc) && presDoc.some(p => p.tipo === 'concerto'))
-                    );
-                    const isConcerto = diasDeConcerto.has(dia) || hasConcertoPres;
-                    const headerClass = isConcerto ? 'col-day day-concerto' : 'col-day';
-                    const diaFormatado = String(dia).padStart(2, '0');
-                    diasHeadersHtml += `<th class="${headerClass}">${diaFormatado}/${mesStr}</th>`;
+                    const temPresenca = presencasPorData[dataStr] && presencasPorData[dataStr].length > 0;
+                    const evts = eventosPorDataPdf[dataStr] || [];
+                    const temEvento = evts.length > 0;
+
+                    if (temPresenca || temEvento) {
+                        const hasConcertoPres = temPresenca && presencasPorData[dataStr].some(p => p.tipo === 'concerto');
+                        const isConcerto = diasDeConcerto.has(dataStr) || hasConcertoPres;
+                        const isFolga = diasDeFolga.has(dataStr) && !temPresenca;
+
+                        diasAtivos.push({
+                            dia,
+                            diaFormatado: String(dia).padStart(2, '0'),
+                            dataStr,
+                            isConcerto,
+                            isFolga
+                        });
+                    }
                 }
+
+                let diasHeadersHtml = '';
+                diasAtivos.forEach(dInfo => {
+                    const headerClass = dInfo.isConcerto ? 'col-day day-concerto' : 'col-day';
+                    let label = `${dInfo.diaFormatado}/${mesStr}`;
+                    if (dInfo.isFolga) {
+                        label += `<br><span style="font-size: 5pt; font-weight: normal; color: #64748b;">(Folga)</span>`;
+                    }
+                    diasHeadersHtml += `<th class="${headerClass}">${label}</th>`;
+                });
                 diasHeadersHtml += `<th class="col-total-header">P</th>`;
                 diasHeadersHtml += `<th class="col-total-header">F</th>`;
                 
@@ -13205,7 +13304,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                 naipesComMusicos.forEach(naipe => {
                     tbodyHtml += `
                         <tr class="row-naipe-header">
-                            <td colspan="${totalDias + 3}">${naipe.toUpperCase()}</td>
+                            <td colspan="${diasAtivos.length + 3}">${naipe.toUpperCase()}</td>
                         </tr>
                     `;
                     
@@ -13215,16 +13314,19 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                         let totalP = 0;
                         let totalF = 0;
                         
-                        for (let dia = 1; dia <= totalDias; dia++) {
-                            const dataStr = `${ano}-${mesStr}-${String(dia).padStart(2, '0')}`;
+                        diasAtivos.forEach(dInfo => {
+                            const dataStr = dInfo.dataStr;
                             const docsDoDia = presencasPorData[dataStr] || [];
-                            
-                            const statusRes = getMusicianStatusForDate(musico, docsDoDia, dispensasMap, atestadosMap, dataStr);
-                            totalP += statusRes.incP;
-                            totalF += statusRes.incF;
-                            
-                            cellsHtml += `<td class="cell-status ${statusRes.cellClass}">${statusRes.cellText}</td>`;
-                        }
+
+                            if (dInfo.isFolga && docsDoDia.length === 0) {
+                                cellsHtml += `<td class="cell-status status-nao-escalado">-</td>`;
+                            } else {
+                                const statusRes = getMusicianStatusForDate(musico, docsDoDia, dispensasMap, atestadosMap, dataStr);
+                                totalP += statusRes.incP;
+                                totalF += statusRes.incF;
+                                cellsHtml += `<td class="cell-status ${statusRes.cellClass}">${statusRes.cellText}</td>`;
+                            }
+                        });
                         
                         cellsHtml += `<td class="cell-status cell-total-p">${totalP}</td>`;
                         cellsHtml += `<td class="cell-status cell-total-f">${totalF}</td>`;
@@ -13243,6 +13345,43 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                     justificativasHtml = justificativas.map(j => `<li>${j.texto}</li>`).join('');
                 } else {
                     justificativasHtml = '<li>Nenhuma justificativa de ausência registrada para este período.</li>';
+                }
+
+                // Construir linhas da mini-tabela de concertos do centro do cabeçalho
+                const concertosLinhas = (concertosTexto || '').trim().split('\n').filter(l => l.trim() !== '');
+                let linhasConcertosMiniTableHtml = '';
+                if (concertosLinhas.length > 0 && !concertosTexto.includes('Nenhum concerto programado')) {
+                    concertosLinhas.forEach(linha => {
+                        const partes = linha.split('|').map(p => p.trim());
+                        if (partes.length >= 3) {
+                            const colData = partes[0] || '';
+                            const colHora = partes[1] || '';
+                            const colNome = partes[2] || '';
+                            const colLocal = partes[3] || '-';
+                            linhasConcertosMiniTableHtml += `
+                                <tr>
+                                    <td style="font-weight: bold; white-space: nowrap;">${colData}</td>
+                                    <td style="white-space: nowrap;">${colHora}</td>
+                                    <td style="text-align: left; font-weight: 500;">${colNome}</td>
+                                    <td style="text-align: left;">${colLocal}</td>
+                                </tr>
+                            `;
+                        } else {
+                            const partsHifen = linha.split('-').map(p => p.trim());
+                            const colData = partsHifen[0] || '';
+                            const colNome = partsHifen.slice(1).join(' - ') || linha;
+                            linhasConcertosMiniTableHtml += `
+                                <tr>
+                                    <td style="font-weight: bold; white-space: nowrap;">${colData}</td>
+                                    <td>-</td>
+                                    <td style="text-align: left; font-weight: 500;">${colNome}</td>
+                                    <td style="text-align: left;">-</td>
+                                </tr>
+                            `;
+                        }
+                    });
+                } else {
+                    linhasConcertosMiniTableHtml = `<tr><td colspan="4" style="text-align: center; color: #64748b; font-style: italic; padding: 4px;">Nenhum concerto programado para este mês.</td></tr>`;
                 }
                 
                 const docHtml = `
@@ -13284,7 +13423,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
         
         .header-container {
             display: grid;
-            grid-template-columns: 200px 1fr 240px;
+            grid-template-columns: 200px 1fr 220px;
             border: 1px solid #000;
             margin-bottom: 6px;
         }
@@ -13294,19 +13433,79 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
             border-right: 1px solid #000;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 8px;
         }
         
         .logo-oer {
-            height: 48px;
+            height: 42px;
             width: auto;
         }
         
-        .title-sub h1 { font-size: 11pt; margin: 0; }
-        .title-sub p { font-size: 6pt; margin: 0; }
-        .header-center { padding: 6px; border-right: 1px solid #000; }
-        .header-right { padding: 6px; }
-        .month-box { font-weight: bold; text-align: center; font-size: 10pt; }
+        .title-sub h1 { font-size: 10.5pt; margin: 0; font-weight: 800; letter-spacing: 0.5px; }
+        .title-sub p { font-size: 5.8pt; margin: 0; color: #444; font-weight: 600; }
+        .header-center { padding: 4px 6px; border-right: 1px solid #000; overflow: hidden; }
+        .header-right { padding: 6px; display: flex; flex-direction: column; justify-content: space-between; }
+        .month-box { font-weight: 800; text-align: center; font-size: 9.5pt; color: #000; margin-bottom: 3px; }
+        
+        .header-section-title {
+            font-size: 6.5pt;
+            font-weight: 800;
+            color: #8b0000;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+
+        .concertos-mini-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 6pt;
+            margin: 0;
+        }
+        .concertos-mini-table th {
+            background: #f1f5f9;
+            color: #1e293b;
+            padding: 1px 3px;
+            font-weight: 700;
+            border: 1px solid #cbd5e1;
+            font-size: 5.5pt;
+            text-align: center;
+        }
+        .concertos-mini-table td {
+            padding: 1px 3px;
+            border: 1px solid #e2e8f0;
+            font-size: 6pt;
+            text-align: center;
+        }
+
+        .summary-cards-container {
+            display: flex;
+            gap: 4px;
+            margin-top: 3px;
+        }
+        .summary-card {
+            flex: 1;
+            border: 1px solid #cbd5e1;
+            border-radius: 3px;
+            padding: 3px 1px;
+            text-align: center;
+            background: #f8fafc;
+        }
+        .summary-val {
+            display: block;
+            font-size: 8.5pt;
+            font-weight: 800;
+            color: #8b0000;
+            line-height: 1;
+        }
+        .summary-lbl {
+            display: block;
+            font-size: 5pt;
+            color: #64748b;
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-top: 2px;
+        }
         
         th, td { border: 1px solid #000; text-align: center; padding: 2px; }
         .col-musico-name { text-align: left; padding-left: 5px; font-weight: bold; }
@@ -13324,22 +13523,57 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
         .status-sem-registro { background-color: #fffde7 !important; }
         .inline-atraso { background-color: #fef08a !important; color: #854d0e !important; font-weight: bold; padding: 1px 3px; border-radius: 2px; }
         
-        .footer-wrapper { margin-top: 10px; border: 1px solid #000; padding: 10px; }
-        .legend-items { display: flex; gap: 10px; flex-wrap: wrap; font-size: 7pt; }
-        .legend-badge { width: 14px; height: 14px; display: inline-block; border: 1px solid #000; text-align: center; margin-right: 5px; }
+        .footer-wrapper { margin-top: 8px; border: 1px solid #000; padding: 8px; font-size: 6.5pt; }
+        .legend-items { display: flex; gap: 8px; flex-wrap: wrap; font-size: 6.5pt; }
+        .legend-badge { width: 14px; height: 14px; display: inline-block; border: 1px solid #000; text-align: center; margin-right: 4px; vertical-align: middle; }
     </style>
 </head>
 <body>
     <div class="report-wrapper">
         <div class="header-container">
             <div class="header-left">
-                <div class="title-sub"><h1>LISTA DE PRESENÇA</h1><p>ORQUESTRA EXPERIMENTAL DE REPERTÓRIO</p></div>
+                <img src="assets/img/logo_oer.png" alt="OER" class="logo-oer" onerror="this.style.display='none'">
+                <div class="title-sub">
+                    <h1>LISTA DE PRESENÇA</h1>
+                    <p>ORQUESTRA EXPERIMENTAL DE REPERTÓRIO</p>
+                </div>
             </div>
-            <div class="header-center"><strong>Concertos:</strong><br>${concertosTexto}</div>
-            <div class="header-right"><div class="month-box">${tituloRelatorio}</div><strong>Anotações:</strong><br>${anotacoesTexto}</div>
+            <div class="header-center">
+                <div class="header-section-title">Concertos / Apresentações do Mês</div>
+                <table class="concertos-mini-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 44px;">Data</th>
+                            <th style="width: 42px;">Horário</th>
+                            <th style="text-align: left;">Concerto / Programa</th>
+                            <th style="width: 110px; text-align: left;">Local</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${linhasConcertosMiniTableHtml}
+                    </tbody>
+                </table>
+            </div>
+            <div class="header-right">
+                <div class="month-box">${tituloRelatorio}</div>
+                <div class="summary-cards-container">
+                    <div class="summary-card">
+                        <span class="summary-val">${ativos.length}</span>
+                        <span class="summary-lbl">Bolsistas</span>
+                    </div>
+                    <div class="summary-card">
+                        <span class="summary-val">${totalEnsaiosMes}</span>
+                        <span class="summary-lbl">Ensaios</span>
+                    </div>
+                    <div class="summary-card">
+                        <span class="summary-val">${totalConcertosMes}</span>
+                        <span class="summary-lbl">Concertos</span>
+                    </div>
+                </div>
+            </div>
         </div>
         <table>
-            <thead><tr><th style="width:150px">Nome</th>${diasHeadersHtml}</tr></thead>
+            <thead><tr><th style="width:140px">Nome</th>${diasHeadersHtml}</tr></thead>
             <tbody>${tbodyHtml}</tbody>
         </table>
         <div class="footer-wrapper">
@@ -13352,14 +13586,22 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                 <div class="legend-item"><span class="legend-badge status-justificado">J</span>Justificado</div>
                 <div class="legend-item"><span class="legend-badge status-atraso" style="width:auto;padding:0 3px;">15m</span>Atraso (minutos)</div>
                 <div class="legend-item"><span class="legend-badge status-cancelado">CL</span>Cancelado</div>
-                <div class="legend-item"><span class="legend-badge status-nao-escalado">-</span>Não Escalado</div>
-                <div class="legend-item" style="margin-left:10px;border-left:1px solid #ccc;padding-left:10px;"><strong>Prefixos (dias com múltiplos eventos):</strong></div>
-                <div class="legend-item"><span class="legend-badge" style="background:#e8f0e8;">N:</span>Ensaio de Naipe</div>
+                <div class="legend-item"><span class="legend-badge status-nao-escalado">-</span>Não Escalado / Folga</div>
+                <div class="legend-item" style="margin-left:10px;border-left:1px solid #ccc;padding-left:10px;"><strong>Prefixos (múltiplos eventos):</strong></div>
+                <div class="legend-item"><span class="legend-badge" style="background:#e8f0e8;">N:</span>Ensaio Naipe</div>
                 <div class="legend-item"><span class="legend-badge" style="background:#e8e8f0;">T:</span>Ensaio Tutti</div>
-                <div class="legend-item"><span class="legend-badge" style="background:#f0e8e8;">C:</span>Concerto</div>
-                <div class="legend-item"><span class="legend-badge" style="background:#ffedd5;">PS:</span>Passagem de Som</div>
+                <div class="legend-item"><span class="legend-badge" style="background:#f0e8e8;">C:</span>Concerto Único</div>
+                <div class="legend-item"><span class="legend-badge" style="background:#fef3c7;width:auto;padding:0 3px;">C HH:MM:</span>Concerto (Horário)</div>
             </div>
-            <div class="footer-justificativas"><strong>Justificativas:</strong><ul>${justificativasHtml}</ul></div>
+            ${anotacoesTexto ? `
+            <div class="footer-anotacoes" style="margin-top: 6px; border-top: 1px dashed #ccc; padding-top: 4px;">
+                <strong>Anotações / Avisos Operacionais:</strong>
+                <div style="white-space: pre-line; margin-top: 2px; color: #333;">${anotacoesTexto}</div>
+            </div>` : ''}
+            <div class="footer-justificativas" style="margin-top: 6px; border-top: 1px solid #000; padding-top: 4px;">
+                <strong>Justificativas de Ausência:</strong>
+                <ul>${justificativasHtml}</ul>
+            </div>
         </div>
     </div>
 </body>
@@ -13540,13 +13782,27 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                 const eventosSnapshot = await getDocs(eventosQuery);
                 const eventosPorData = {};
 
+                const diasDeFolga = new Set();
+                const diasDeConcerto = new Set();
+
                 eventosSnapshot.forEach(docSnap => {
                     const evt = docSnap.data();
                     if (evt.date) {
+                        const tipoLower = (evt.tipo || '').toLowerCase();
+                        const concertoNome = evt.concertoNome || '';
+                        const descricaoEnsaio = evt.descricaoEnsaio || '';
+                        const txtCompletoLower = `${concertoNome} ${descricaoEnsaio}`.toLowerCase();
+                        if (tipoLower === 'folga' || txtCompletoLower.includes('folga')) {
+                            diasDeFolga.add(evt.date);
+                        }
+                        if (tipoLower === 'concerto' || txtCompletoLower.includes('concerto')) {
+                            diasDeConcerto.add(evt.date);
+                        }
                         if (!eventosPorData[evt.date]) eventosPorData[evt.date] = [];
                         const tipoStr = evt.tipo ? `[${evt.tipo.toUpperCase()}] ` : '';
                         const nomeEvt = evt.concertoNome || evt.descricaoEnsaio || (evt.tipo === 'folga' ? 'Folga' : 'Ensaio');
-                        eventosPorData[evt.date].push(`${tipoStr}${nomeEvt}`);
+                        const horaEvt = evt.horarioInicio ? ` (${evt.horarioInicio})` : '';
+                        eventosPorData[evt.date].push(`${tipoStr}${nomeEvt}${horaEvt}`);
                     }
                 });
 
@@ -13653,26 +13909,59 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                     return 'T'; // ensaio_tutti ou qualquer outro
                 };
 
-                // flatCols: lista plana de todas as sub-colunas do mês
-                // { dataStr, diaFormatado, subCol: null | {tipo, prefix, doc} }
-                const flatCols = [];
+                // OTIMIZAÇÃO DE ESPAÇO: Filtrar apenas dias que tiveram presença registrada OU evento na agenda
+                const diasAtivos = [];
                 for (let dia = 1; dia <= totalDias; dia++) {
                     const dataStr = `${ano}-${mesStr}-${String(dia).padStart(2, '0')}`;
-                    const diaFormatado = `${String(dia).padStart(2, '0')}/${mesStr}`;
+                    const temPresenca = presencasPorData[dataStr] && presencasPorData[dataStr].length > 0;
+                    const temEvento = eventosPorData[dataStr] && eventosPorData[dataStr].length > 0;
+
+                    if (temPresenca || temEvento) {
+                        const hasConcertoPres = temPresenca && presencasPorData[dataStr].some(p => p.tipo === 'concerto');
+                        const isConcerto = diasDeConcerto.has(dataStr) || hasConcertoPres;
+                        const isFolga = diasDeFolga.has(dataStr) && !temPresenca;
+
+                        diasAtivos.push({
+                            dia,
+                            diaFormatado: `${String(dia).padStart(2, '0')}/${mesStr}`,
+                            dataStr,
+                            isConcerto,
+                            isFolga
+                        });
+                    }
+                }
+
+                // flatCols: lista plana de todas as sub-colunas ativas do mês
+                // { dataStr, diaFormatado, isFolga, subCol: null | {tipo, prefix, doc} }
+                const flatCols = [];
+                diasAtivos.forEach(dInfo => {
+                    const { dataStr, diaFormatado, isFolga } = dInfo;
                     const docsDoDia = presencasPorData[dataStr] || [];
-                    if (docsDoDia.length === 0) {
-                        flatCols.push({ dataStr, diaFormatado, subCol: null });
+                    if (isFolga && docsDoDia.length === 0) {
+                        flatCols.push({ dataStr, diaFormatado: `${diaFormatado} (Folga)`, isFolga: true, subCol: null });
+                    } else if (docsDoDia.length === 0) {
+                        flatCols.push({ dataStr, diaFormatado, isFolga: false, subCol: null });
                     } else {
                         const sorted = [...docsDoDia].sort((a, b) =>
                             (a.horarioInicio || '00:00').localeCompare(b.horarioInicio || '00:00')
                         );
-                        sorted.forEach(doc => flatCols.push({
-                            dataStr,
-                            diaFormatado,
-                            subCol: { tipo: doc.tipo, prefix: getTipoPrefixExcel(doc.tipo), doc }
-                        }));
+                        const concertosDoDia = sorted.filter(d => d.tipo === 'concerto');
+                        const temMultiplosConcertos = concertosDoDia.length > 1;
+
+                        sorted.forEach(doc => {
+                            let prefix = getTipoPrefixExcel(doc.tipo);
+                            if (doc.tipo === 'concerto' && temMultiplosConcertos) {
+                                prefix = doc.horarioInicio ? `C ${doc.horarioInicio}` : 'C';
+                            }
+                            flatCols.push({
+                                dataStr,
+                                diaFormatado,
+                                isFolga: false,
+                                subCol: { tipo: doc.tipo, prefix, doc }
+                            });
+                        });
                     }
-                }
+                });
                 const totalDataCols = flatCols.length;
 
                 // Helper: converte índice de coluna (0-based) em letra(s) do Excel
@@ -13780,7 +14069,7 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
 
                         flatCols.forEach((col, colIdx) => {
                             if (!col.subCol) {
-                                rowMusico.push(''); // dia sem evento
+                                rowMusico.push(col.isFolga ? '-' : ''); // dia de folga ou dia sem chamada
                             } else {
                                 const sym = getSingleDocExcelSym(musico, col.subCol.doc, col.dataStr);
                                 const cellRef = `${getColLetter(colIdx + 1)}${currentExcelRowIndex}`;
@@ -13870,20 +14159,20 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
 
                 // Datas: mescla horizontal (multi-evento) ou vertical (sem evento)
                 let colOffset = 1;
-                for (let dia = 1; dia <= totalDias; dia++) {
-                    const dataStr = `${ano}-${mesStr}-${String(dia).padStart(2, '0')}`;
+                diasAtivos.forEach(dInfo => {
+                    const dataStr = dInfo.dataStr;
                     const colsForDay = flatCols.filter(c => c.dataStr === dataStr);
                     const dayCount = colsForDay.length;
                     if (dayCount > 1) {
                         // Múltiplos eventos: mescla horizontal a data na linha 1
                         merges.push({ s: { r: headerRow1StartIndex, c: colOffset }, e: { r: headerRow1StartIndex, c: colOffset + dayCount - 1 } });
                     } else if (colsForDay[0] && colsForDay[0].subCol === null) {
-                        // Sem evento: mescla vertical (data ocupa linha 1 e linha 2)
+                        // Sem evento ou folga: mescla vertical (data ocupa linha 1 e linha 2)
                         merges.push({ s: { r: headerRow1StartIndex, c: colOffset }, e: { r: headerRow2StartIndex, c: colOffset } });
                     }
                     // Dia com evento único: sem mescla (data em linha 1, sigla em linha 2)
                     colOffset += dayCount;
-                }
+                });
                 worksheet['!merges'] = merges;
 
                 // ── COMENTÁRIOS NAS CÉLULAS ──────────────────────────────────────────
@@ -13920,14 +14209,16 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                     ["D", "Dispensa Concedida", "Não soma como Falta (Isento)"],
                     ["J", "Ausência Justificada", "Não soma como Falta (Isento)"],
                     ["CL", "Contrato Cancelado / Desligado", "Músico inativo a partir desta data"],
-                    ["-", "Não Escalado", "Músico não escalado para o ensaio/concerto"],
+                    ["-", "Não Escalado / Folga", "Músico não escalado ou dia de folga"],
                     [],
                     ["PREFIXOS - DIAS COM MÚLTIPLOS EVENTOS (ordenados por horário)"],
                     ["Prefixo", "Tipo de Evento", "Exemplo"],
                     ["N:", "Ensaio de Naipe", "N:P = Presente no Ensaio de Naipe"],
                     ["T:", "Ensaio Tutti", "T:F = Falta no Ensaio Tutti"],
-                    ["C:", "Concerto", "C:P = Presente no Concerto"],
-                    ["PS:", "Passagem de Som", "PS:F = Falta na Passagem de Som"]
+                    ["C:", "Concerto Único", "C:P = Presente no Concerto"],
+                    ["C HH:MM", "Concerto com Horário", "C 11:00 = Presente no Concerto das 11:00"],
+                    ["PS:", "Passagem de Som", "PS:F = Falta na Passagem de Som"],
+                    ["(Folga)", "Folga no Cronograma", "Dia sinalizado como folga na agenda"]
                 ];
                 const legendaSheet = XLSX.utils.aoa_to_sheet(legendaRows);
                 legendaSheet['!cols'] = [{ wch: 12 }, { wch: 35 }, { wch: 40 }];
