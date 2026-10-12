@@ -13232,16 +13232,14 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                     }
                 });
 
-                // OTIMIZAÇÃO DE ESPAÇO: Filtrar apenas dias que tiveram presença registrada OU evento na agenda
+                // OTIMIZAÇÃO DE ESPAÇO: Filtrar estritamente dias que tiveram lista de presença registrada
                 const diasAtivos = [];
                 for (let dia = 1; dia <= totalDias; dia++) {
                     const dataStr = `${ano}-${mesStr}-${String(dia).padStart(2, '0')}`;
                     const temPresenca = presencasPorData[dataStr] && presencasPorData[dataStr].length > 0;
-                    const evts = eventosPorDataPdf[dataStr] || [];
-                    const temEvento = evts.length > 0;
 
-                    if (temPresenca || temEvento) {
-                        const hasConcertoPres = temPresenca && presencasPorData[dataStr].some(p => p.tipo === 'concerto');
+                    if (temPresenca) {
+                        const hasConcertoPres = presencasPorData[dataStr].some(p => p.tipo === 'concerto');
                         const isConcerto = diasDeConcerto.has(dataStr) || hasConcertoPres;
                         const isFolga = diasDeFolga.has(dataStr) && !temPresenca;
 
@@ -13366,17 +13364,17 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
         
         .header-container {
             display: grid;
-            grid-template-columns: 215px 1fr 190px;
+            grid-template-columns: 320px 1fr 190px;
             border: 1px solid #000;
             margin-bottom: 6px;
         }
         
         .header-left {
-            padding: 6px 8px;
+            padding: 6px 10px;
             border-right: 1px solid #000;
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
             overflow: hidden;
         }
         
@@ -13386,8 +13384,32 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
             flex-shrink: 0;
         }
         
-        .title-sub h1 { font-size: 9.5pt; margin: 0; font-weight: 800; letter-spacing: 0.5px; white-space: nowrap; line-height: 1.2; }
-        .title-sub p { font-size: 5.5pt; margin: 0; color: #333; font-weight: 600; white-space: nowrap; line-height: 1.2; }
+        .title-sub {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            min-width: 0;
+        }
+
+        .title-sub h1 {
+            font-size: 10pt;
+            margin: 0;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            white-space: nowrap;
+            line-height: 1.15;
+            color: #000;
+        }
+
+        .title-sub p {
+            font-size: 5.5pt;
+            margin: 2px 0 0 0;
+            color: #475569;
+            font-weight: 600;
+            white-space: nowrap;
+            line-height: 1.15;
+            letter-spacing: 0.3px;
+        }
         .header-center { padding: 5px 8px; border-right: 1px solid #000; overflow: hidden; }
         .header-right { padding: 6px; display: flex; flex-direction: column; justify-content: space-between; }
         .month-box { font-weight: 800; text-align: center; font-size: 9.5pt; color: #000; margin-bottom: 3px; }
@@ -13827,15 +13849,14 @@ ${d.strGeneroBolsistas}${d.strGeralGeneroNota}`;
                     return 'T'; // ensaio_tutti ou qualquer outro
                 };
 
-                // OTIMIZAÇÃO DE ESPAÇO: Filtrar apenas dias que tiveram presença registrada OU evento na agenda
+                // OTIMIZAÇÃO DE ESPAÇO: Filtrar estritamente dias que tiveram lista de presença registrada
                 const diasAtivos = [];
                 for (let dia = 1; dia <= totalDias; dia++) {
                     const dataStr = `${ano}-${mesStr}-${String(dia).padStart(2, '0')}`;
                     const temPresenca = presencasPorData[dataStr] && presencasPorData[dataStr].length > 0;
-                    const temEvento = eventosPorData[dataStr] && eventosPorData[dataStr].length > 0;
 
-                    if (temPresenca || temEvento) {
-                        const hasConcertoPres = temPresenca && presencasPorData[dataStr].some(p => p.tipo === 'concerto');
+                    if (temPresenca) {
+                        const hasConcertoPres = presencasPorData[dataStr].some(p => p.tipo === 'concerto');
                         const isConcerto = diasDeConcerto.has(dataStr) || hasConcertoPres;
                         const isFolga = diasDeFolga.has(dataStr) && !temPresenca;
 
