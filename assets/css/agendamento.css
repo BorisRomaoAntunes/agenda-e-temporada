@@ -660,12 +660,12 @@ body {
 /* Slots de Horários */
 .slots-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
-    gap: 0.75rem 0.6rem;
-    max-height: 260px;
+    grid-template-columns: repeat(auto-fill, minmax(135px, 1fr));
+    gap: 0.75rem 0.65rem;
+    max-height: 270px;
     overflow-y: auto;
-    overflow-x: visible;
-    padding: 0.6rem 0.55rem 0.5rem 0.55rem;
+    overflow-x: hidden;
+    padding: 0.65rem 0.55rem 0.55rem 0.55rem;
 }
 
 .slot-pill {
@@ -680,12 +680,12 @@ body {
     text-align: center;
     cursor: pointer;
     transition: all 0.18s ease;
-    white-space: nowrap;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.35rem;
     letter-spacing: -0.01em;
+    box-sizing: border-box;
 }
 
 .slot-pill:hover:not(.disabled):not(.reserved):not(.blocked) {
@@ -734,12 +734,18 @@ body {
     box-shadow: none !important;
     transform: none !important;
     text-decoration: none !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 0.25rem !important;
+    padding: 0.55rem 0.35rem !important;
 }
 
 .slot-badge-reserved {
     font-size: 0.65rem;
     font-weight: 700;
-    padding: 0.15rem 0.35rem;
+    padding: 0.15rem 0.45rem;
     border-radius: 4px;
     background: #fee2e2;
     color: #dc2626;
@@ -748,7 +754,8 @@ body {
     display: inline-flex;
     align-items: center;
     gap: 0.2rem;
-    line-height: 1;
+    line-height: 1.1;
+    margin-top: 1px;
 }
 
 /* Botão de Ação Rápida de Bloqueio (X) Estilo iOS */
