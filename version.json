@@ -1,8 +1,20 @@
 {
-  "hash": "d3c6ed0",
-  "date": "12/10/2026 16:40",
-  "buildAt": "2026-10-12T19:42:38.894Z",
+  "hash": "ada1941",
+  "date": "12/10/2026 16:54",
+  "buildAt": "2026-10-12T19:55:13.927Z",
   "history": [
+    {
+      "hash": "ada1941",
+      "date": "12/10/2026 16:54",
+      "author": "Boris Romão Antunes",
+      "subject": "fix(relatorios): exibir apenas datas com presenca e ajustar espacamento do cabecalho"
+    },
+    {
+      "hash": "b56150b",
+      "date": "12/10/2026 16:43",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json apos deploy"
+    },
     {
       "hash": "d3c6ed0",
       "date": "12/10/2026 16:40",
@@ -110,18 +122,6 @@
       "date": "11/10/2026 15:44",
       "author": "Boris Romão Antunes",
       "subject": "feat(presenca): reposicionar toast para parte inferior em formato banner flutuante"
-    },
-    {
-      "hash": "0acaa72",
-      "date": "11/10/2026 15:28",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json apos deploy"
-    },
-    {
-      "hash": "25e2a97",
-      "date": "11/10/2026 15:25",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json apos commit 5ddc44d"
     }
   ]
 }
