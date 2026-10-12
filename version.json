@@ -1,8 +1,14 @@
 {
-  "hash": "ada1941",
-  "date": "12/10/2026 16:54",
-  "buildAt": "2026-10-12T19:55:13.927Z",
+  "hash": "9f4885b",
+  "date": "12/10/2026 16:55",
+  "buildAt": "2026-10-12T19:56:06.834Z",
   "history": [
+    {
+      "hash": "9f4885b",
+      "date": "12/10/2026 16:55",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json apos commit ada1941"
+    },
     {
       "hash": "ada1941",
       "date": "12/10/2026 16:54",
@@ -116,12 +122,6 @@
       "date": "11/10/2026 15:47",
       "author": "Boris Romão Antunes",
       "subject": "fix(admin): aplicar estabilidade mobile, safe-areas e 100dvh em admin e passagem-som"
-    },
-    {
-      "hash": "aa26d66",
-      "date": "11/10/2026 15:44",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(presenca): reposicionar toast para parte inferior em formato banner flutuante"
     }
   ]
 }
