@@ -1,8 +1,26 @@
 {
-  "hash": "a7ee308",
-  "date": "12/10/2026 16:32",
-  "buildAt": "2026-10-12T19:32:33.542Z",
+  "hash": "ee903d4+mod",
+  "date": "12/10/2026, 16:39:13",
+  "buildAt": "2026-10-12T19:39:13.558Z",
   "history": [
+    {
+      "hash": "ee903d4+mod",
+      "date": "12/10/2026, 16:39:13",
+      "author": "Deploy Local",
+      "subject": "Atualização implantada (1 arquivos modificados)"
+    },
+    {
+      "hash": "ee903d4",
+      "date": "12/10/2026 16:38",
+      "author": "Boris Romão Antunes",
+      "subject": "fix(agendamento): ajustar layout dos cards de horarios e badge reservado sem sobreposicao"
+    },
+    {
+      "hash": "99205b8",
+      "date": "12/10/2026 16:32",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json apos commit c8f7024"
+    },
     {
       "hash": "a7ee308",
       "date": "12/10/2026 16:32",
@@ -102,24 +120,6 @@
     {
       "hash": "52f84fe",
       "date": "11/10/2026 14:41",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json apos deploy"
-    },
-    {
-      "hash": "f917e0b",
-      "date": "11/10/2026 14:38",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json apos commit 3b1661b"
-    },
-    {
-      "hash": "3b1661b",
-      "date": "11/10/2026 14:37",
-      "author": "Boris Romão Antunes",
-      "subject": "fix(presenca): corrigir salto da barra inferior no iOS, altura dinamica do header e aplicar tema Dark Premium Obsidian"
-    },
-    {
-      "hash": "01d87e5",
-      "date": "11/10/2026 14:21",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualizar version.json apos deploy"
     }
