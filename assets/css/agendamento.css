@@ -661,14 +661,16 @@ body {
 .slots-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(118px, 1fr));
-    gap: 0.6rem;
-    max-height: 250px;
+    gap: 0.75rem 0.6rem;
+    max-height: 260px;
     overflow-y: auto;
-    padding: 0.25rem;
+    overflow-x: visible;
+    padding: 0.6rem 0.55rem 0.5rem 0.55rem;
 }
 
 .slot-pill {
     position: relative;
+    width: 100%;
     padding: 0.65rem 0.45rem;
     border: 1.5px solid var(--oer-border);
     border-radius: 8px;
@@ -717,6 +719,11 @@ body {
     width: 100%;
 }
 
+.slot-pill-wrapper .slot-pill {
+    width: 100%;
+    flex: 1 1 100%;
+}
+
 .slot-pill.reserved,
 .slot-pill.blocked {
     background: #f8fafc !important;
@@ -744,47 +751,47 @@ body {
     line-height: 1;
 }
 
-/* Botão de Ação Rápida de Bloqueio (X) para o Admin */
+/* Botão de Ação Rápida de Bloqueio (X) Estilo iOS */
 .btn-slot-block-toggle {
     position: absolute;
-    top: -5px;
-    right: -5px;
-    width: 19px;
-    height: 19px;
+    top: -7px;
+    right: -7px;
+    width: 22px;
+    height: 22px;
     border-radius: 50%;
-    border: 1.5px solid #cbd5e1;
-    background: #ffffff;
-    color: #64748b;
+    border: 2px solid #ffffff;
+    background: #64748b;
+    color: #ffffff;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     font-size: 11px;
-    font-weight: 800;
+    font-weight: 900;
     cursor: pointer;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-    transition: all 0.15s ease;
-    z-index: 5;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+    transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 10;
     padding: 0;
     line-height: 1;
 }
 
 .btn-slot-block-toggle:hover {
-    background: #ef4444;
-    border-color: #ef4444;
-    color: #ffffff;
+    background: #dc2626;
     transform: scale(1.15);
+    box-shadow: 0 3px 7px rgba(220, 38, 38, 0.35);
 }
 
 .btn-slot-block-toggle.is-blocked {
-    background: #fee2e2;
-    border-color: #fca5a5;
-    color: #dc2626;
+    background: #dc2626;
+    color: #ffffff;
+    border: 2px solid #ffffff;
+    box-shadow: 0 2px 5px rgba(220, 38, 38, 0.3);
 }
 
 .btn-slot-block-toggle.is-blocked:hover {
     background: #16a34a;
-    border-color: #16a34a;
-    color: #ffffff;
+    box-shadow: 0 3px 7px rgba(22, 163, 74, 0.35);
+    transform: scale(1.15);
 }
 
 /* Evento reservado na Grade Semanal */
