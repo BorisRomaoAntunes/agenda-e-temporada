@@ -70,6 +70,7 @@ export const AgendamentoService = {
                 fim: "18:00"
             },
             datasBloqueadas: salaData.datasBloqueadas || [],
+            horariosBloqueados: salaData.horariosBloqueados || {},
             dataInicioPeriodo: salaData.dataInicioPeriodo || null,
             dataFimPeriodo: salaData.dataFimPeriodo || null,
             cor: salaData.cor || "#ea580c",
@@ -116,6 +117,67 @@ export const AgendamentoService = {
             window.dispatchEvent(new CustomEvent("local_salas_updated"));
             return idFinal;
         }
+    },
+
+    /**
+     * Alterna o bloqueio de um horário específico em um dia específico para uma sala
+     */
+    async toggleBloqueioHorario(salaId, dataStr, horaInicio, salaObj = null) {
+        let sala = salaObj;
+        if (!sala) {
+            try {
+                const sDoc = await getDoc(doc(db, SALAS_COLLECTION, salaId));
+                if (sDoc.exists()) sala = { id: sDoc.id, ...sDoc.data() };
+            } catch(e) {}
+            if (!sala) {
+                try {
+                    const localSalas = JSON.parse(localStorage.getItem("LOCAL_SALAS_AGENDAMENTO") || "[]");
+                    sala = localSalas.find(s => s.id === salaId);
+                } catch(e) {}
+            }
+        }
+
+        const bloqueios = { ...(sala?.horariosBloqueados || {}) };
+        const listaDoDia = Array.isArray(bloqueios[dataStr]) ? [...bloqueios[dataStr]] : [];
+        let foiBloqueado = false;
+
+        const idx = listaDoDia.indexOf(horaInicio);
+        if (idx !== -1) {
+            // Se já está bloqueado, remove (desbloqueia)
+            listaDoDia.splice(idx, 1);
+            if (listaDoDia.length === 0) {
+                delete bloqueios[dataStr];
+            } else {
+                bloqueios[dataStr] = listaDoDia.sort();
+            }
+            foiBloqueado = false;
+        } else {
+            // Bloqueia o horário
+            listaDoDia.push(horaInicio);
+            bloqueios[dataStr] = listaDoDia.sort();
+            foiBloqueado = true;
+        }
+
+        try {
+            await updateDoc(doc(db, SALAS_COLLECTION, salaId), {
+                horariosBloqueados: bloqueios,
+                updatedAt: serverTimestamp()
+            });
+        } catch (err) {
+            console.warn("Erro ao atualizar bloqueio no Firestore (usando fallback local):", err.message);
+        }
+
+        try {
+            let salas = JSON.parse(localStorage.getItem("LOCAL_SALAS_AGENDAMENTO") || "[]");
+            const sIndex = salas.findIndex(s => s.id === salaId);
+            if (sIndex !== -1) {
+                salas[sIndex].horariosBloqueados = bloqueios;
+                localStorage.setItem("LOCAL_SALAS_AGENDAMENTO", JSON.stringify(salas));
+                window.dispatchEvent(new CustomEvent("local_salas_updated"));
+            }
+        } catch(e) {}
+
+        return { bloqueado: foiBloqueado, horarios: bloqueios[dataStr] || [] };
     },
 
     /**
@@ -215,6 +277,22 @@ export const AgendamentoService = {
             const conflitoSnap = await getDocs(conflitoQuery);
             if (!conflitoSnap.empty) {
                 throw new Error("Este horário acabou de ser reservado por outra pessoa. Por favor, selecione outro horário.");
+            }
+
+            // Validar se o horário está bloqueado pela administração
+            try {
+                const sSnap = await getDoc(doc(db, SALAS_COLLECTION, dados.salaId));
+                if (sSnap.exists()) {
+                    const salaInfo = sSnap.data();
+                    const bloqueados = salaInfo.horariosBloqueados?.[dados.data] || [];
+                    if (bloqueados.includes(dados.horaInicio)) {
+                        throw new Error("Este horário está reservado pela administração. Por favor, selecione outro horário.");
+                    }
+                }
+            } catch (salaErr) {
+                if (salaErr.message && salaErr.message.includes("reservado pela administração")) {
+                    throw salaErr;
+                }
             }
 
             const docRef = await addDoc(collection(db, AGENDAMENTOS_COLLECTION), {
@@ -438,6 +516,7 @@ export const AgendamentoService = {
 
         const isDataPassada = dataStr < hojeStr;
         const isHoje = dataStr === hojeStr;
+        const horariosBloqueadosData = (sala.horariosBloqueados && sala.horariosBloqueados[dataStr]) || [];
 
         for (let current = startTotalMin; current + duration <= endTotalMin; current += duration) {
             const h1 = String(Math.floor(current / 60)).padStart(2, "0");
@@ -453,17 +532,21 @@ export const AgendamentoService = {
                 return ag.horaInicio === inicioStr;
             });
 
+            // Checar se o horário está bloqueado pelo administrador
+            const isBloqueado = horariosBloqueadosData.includes(inicioStr);
+
             // Considera passado se a data for retroativa ou se for hoje e o horário de início já passou
             const isPassado = isDataPassada || (isHoje && current <= nowTotalMin);
 
-            const disponivel = !isOcupado && (!options.filterPast || !isPassado);
+            const disponivel = !isOcupado && !isBloqueado && (!options.filterPast || !isPassado);
 
             slots.push({
                 horaInicio: inicioStr,
                 horaFim: fimStr,
                 disponivel: disponivel,
                 passado: isPassado,
-                ocupado: isOcupado
+                ocupado: isOcupado,
+                bloqueado: isBloqueado
             });
         }
 
@@ -475,7 +558,7 @@ export const AgendamentoService = {
      * Formato:
      * 📍  *SALA 504*
      * • _14:00 às 15:00_: Guilherme Alves Ribeiro
-     * • _15:00 às 16:00_: Julio Cerezo (ouvir bolsista)
+     * • _15:00 às 16:00_: Reservado (Administração)
      */
     generateFormattedMessage(dataStr, agendamentos, salas) {
         if (!dataStr) return "Nenhuma data selecionada.";
@@ -484,17 +567,66 @@ export const AgendamentoService = {
             (ag) => ag.data === dataStr && ag.status === "confirmado"
         );
 
-        if (agendamentosDaData.length === 0) {
-            return `Nenhum agendamento registrado para a data selecionada.`;
-        }
-
-        // Agrupar por Sala
+        // Agrupar por Sala (considerando agendamentos e horários bloqueados de salas ativas)
         const porSala = {};
+
         agendamentosDaData.forEach((ag) => {
             const nomeSala = (ag.salaNome || "SALA").replace(/ensiio/gi, "Ensaio").toUpperCase();
             if (!porSala[nomeSala]) porSala[nomeSala] = [];
-            porSala[nomeSala].push(ag);
+            
+            // Instrumento e Vínculo
+            const infoExtra = [];
+            if (ag.instrumento) infoExtra.push(ag.instrumento);
+            if (ag.vinculo) infoExtra.push(ag.vinculo);
+            const extraStr = infoExtra.length > 0 ? ` (${infoExtra.join(" - ")})` : "";
+
+            // Observações / Necessidades / Partitura em parênteses
+            const detalhes = [];
+            if (ag.necessidades && ag.necessidades.trim() !== "") {
+                detalhes.push(ag.necessidades.trim());
+            }
+            if (ag.precisaPartitura && ag.qualPartitura) {
+                detalhes.push(`Partitura: ${ag.qualPartitura.trim()}`);
+            }
+            const detalhesStr = detalhes.length > 0 ? `  [${detalhes.join(" • ")}]` : "";
+
+            porSala[nomeSala].push({
+                horaInicio: ag.horaInicio,
+                horaFim: ag.horaFim,
+                texto: `${ag.nomeSolicitante}${extraStr}${detalhesStr}`
+            });
         });
+
+        // Adicionar bloqueios da administração de cada sala ativa
+        (salas || []).forEach((sala) => {
+            const bloqueados = sala.horariosBloqueados?.[dataStr] || [];
+            if (bloqueados.length > 0) {
+                const nomeSala = (sala.nome || "SALA").replace(/ensiio/gi, "Ensaio").toUpperCase();
+                if (!porSala[nomeSala]) porSala[nomeSala] = [];
+                const dur = Number(sala.slotDuration) || 60;
+
+                bloqueados.forEach((horaIni) => {
+                    const jaExiste = porSala[nomeSala].some(item => item.horaInicio === horaIni);
+                    if (!jaExiste) {
+                        const [h, m] = horaIni.split(":").map(Number);
+                        const fimTotalMin = h * 60 + m + dur;
+                        const hFim = String(Math.floor(fimTotalMin / 60)).padStart(2, "0");
+                        const mFim = String(fimTotalMin % 60).padStart(2, "0");
+                        const horaFim = `${hFim}:${mFim}`;
+
+                        porSala[nomeSala].push({
+                            horaInicio: horaIni,
+                            horaFim: horaFim,
+                            texto: `Reservado (Administração)`
+                        });
+                    }
+                });
+            }
+        });
+
+        if (Object.keys(porSala).length === 0) {
+            return `Nenhum agendamento registrado para a data selecionada.`;
+        }
 
         const blocos = [];
 
@@ -502,31 +634,8 @@ export const AgendamentoService = {
             let blocoSala = `📍  *${nomeSala}*\n`;
             porSala[nomeSala].sort((a, b) => a.horaInicio.localeCompare(b.horaInicio));
 
-            porSala[nomeSala].forEach((ag) => {
-                let linha = `• _${ag.horaInicio} às ${ag.horaFim}_: ${ag.nomeSolicitante}`;
-                
-                // Instrumento e Vínculo
-                const infoExtra = [];
-                if (ag.instrumento) infoExtra.push(ag.instrumento);
-                if (ag.vinculo) infoExtra.push(ag.vinculo);
-                if (infoExtra.length > 0) {
-                    linha += ` (${infoExtra.join(" - ")})`;
-                }
-
-                // Observações / Necessidades / Partitura em parênteses
-                const detalhes = [];
-                if (ag.necessidades && ag.necessidades.trim() !== "") {
-                    detalhes.push(ag.necessidades.trim());
-                }
-                if (ag.precisaPartitura && ag.qualPartitura) {
-                    detalhes.push(`Partitura: ${ag.qualPartitura.trim()}`);
-                }
-                
-                if (detalhes.length > 0) {
-                    linha += `  [${detalhes.join(" • ")}]`;
-                }
-                
-                blocoSala += `${linha}\n`;
+            porSala[nomeSala].forEach((item) => {
+                blocoSala += `• _${item.horaInicio} às ${item.horaFim}_: ${item.texto}\n`;
             });
 
             blocos.push(blocoSala.trim());

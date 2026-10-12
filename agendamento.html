@@ -1083,7 +1083,28 @@
             const dataFiltro = adminDataFiltro.value;
             const agendamentosFiltrados = allAgendamentos.filter(ag => ag.data === dataFiltro && ag.status === "confirmado");
 
-            if (agendamentosFiltrados.length === 0) {
+            // Coletar também horários bloqueados pela administração nesta data
+            const bloqueiosDaData = [];
+            allSalas.forEach(sala => {
+                const bloqueados = sala.horariosBloqueados?.[dataFiltro] || [];
+                const dur = Number(sala.slotDuration) || 60;
+                bloqueados.forEach(horaIni => {
+                    const [h, m] = horaIni.split(':').map(Number);
+                    const fimMin = h * 60 + m + dur;
+                    const hFim = String(Math.floor(fimMin / 60)).padStart(2, '0');
+                    const mFim = String(fimMin % 60).padStart(2, '0');
+                    bloqueiosDaData.push({
+                        id: `block_${sala.id}_${dataFiltro}_${horaIni}`,
+                        salaId: sala.id,
+                        salaNome: sala.nome,
+                        horaInicio: horaIni,
+                        horaFim: `${hFim}:${mFim}`,
+                        isBloqueio: true
+                    });
+                });
+            });
+
+            if (agendamentosFiltrados.length === 0 && bloqueiosDaData.length === 0) {
                 adminAgendamentosTbody.innerHTML = `
                     <tr>
                         <td colspan="6" style="text-align: center; color: var(--oer-text-muted); padding: 1.5rem;">
@@ -1094,39 +1115,79 @@
                 return;
             }
 
-            adminAgendamentosTbody.innerHTML = agendamentosFiltrados.map(ag => {
-                const salaObj = allSalas.find(s => s.id === ag.salaId);
+            // Unir agendamentos reais e bloqueios administrativos ordenados por hora
+            const listaGeral = [
+                ...agendamentosFiltrados.map(ag => ({ ...ag, isBloqueio: false })),
+                ...bloqueiosDaData
+            ].sort((a, b) => (a.horaInicio || "").localeCompare(b.horaInicio || ""));
+
+            adminAgendamentosTbody.innerHTML = listaGeral.map(item => {
+                const salaObj = allSalas.find(s => s.id === item.salaId);
                 const corSala = salaObj?.cor || "#ea580c";
+
+                if (item.isBloqueio) {
+                    return `
+                    <tr class="agendamento-row agendamento-bloqueado-row" style="background: #fafafa;" title="Horário bloqueado pela administração">
+                        <td class="cell-horario" style="font-weight: 700; color: #dc2626;">
+                            ${item.horaInicio} - ${item.horaFim}
+                        </td>
+                        <td class="cell-sala">
+                            <span class="badge-sala-tag" style="background: ${corSala}15; color: ${corSala}; border: 1px solid ${corSala}40;">
+                                <span class="badge-sala-dot" style="background: ${corSala};"></span>
+                                ${item.salaNome || "Sala"}
+                            </span>
+                        </td>
+                        <td class="cell-solicitante">
+                            <span class="slot-badge-reserved" style="font-size: 0.72rem; padding: 0.2rem 0.5rem;">
+                                <i data-lucide="lock" style="width: 11px; height: 11px;"></i> Reservado (Admin)
+                            </span>
+                            <div style="font-size: 0.76rem; color: #64748b; margin-top: 0.2rem;">Bloqueio manual</div>
+                        </td>
+                        <td class="cell-necessidades" data-label="Necessidades">
+                            <span style="color: #64748b; font-size: 0.82rem; font-style: italic;">Horário reservado / bloqueado</span>
+                        </td>
+                        <td class="cell-partitura" data-label="Partitura">
+                            <span style="color:#94a3b8; font-size: 0.85rem;">-</span>
+                        </td>
+                        <td class="cell-acoes" style="text-align: right;">
+                            <button class="btn btn-outline btn-sm btn-unlock-table-slot" data-sala="${item.salaId}" data-hora="${item.horaInicio}" title="Desbloquear este horário" style="border-color: #fca5a5; color: #dc2626;">
+                                <i data-lucide="unlock" style="width: 14px; height: 14px;"></i> Desbloquear
+                            </button>
+                        </td>
+                    </tr>
+                    `;
+                }
+
                 return `
-                <tr class="agendamento-row" data-id="${ag.id}" title="Clique para copiar mensagem de confirmação para o WhatsApp">
+                <tr class="agendamento-row" data-id="${item.id}" title="Clique para copiar mensagem de confirmação para o WhatsApp">
                     <td class="cell-horario" style="font-weight: 700; color: var(--oer-accent);">
-                        ${ag.horaInicio} - ${ag.horaFim}
+                        ${item.horaInicio} - ${item.horaFim}
                     </td>
                     <td class="cell-sala">
                         <span class="badge-sala-tag" style="background: ${corSala}15; color: ${corSala}; border: 1px solid ${corSala}40;">
                             <span class="badge-sala-dot" style="background: ${corSala};"></span>
-                            ${ag.salaNome || "Sala"}
+                            ${item.salaNome || "Sala"}
                         </span>
                     </td>
                     <td class="cell-solicitante">
-                        <div style="font-weight: 600; color: var(--oer-text-main);">${ag.nomeSolicitante}</div>
-                        ${ag.instrumento ? `<div style="font-size: 0.78rem; color: #475569; display: flex; align-items: center; gap: 0.25rem; margin-top: 0.15rem;"><i data-lucide="music-2" style="width: 12px; height: 12px; color: var(--oer-primary);"></i> ${ag.instrumento}</div>` : ''}
-                        <span class="badge-vinculo ${ag.vinculo === 'Bolsista' ? 'bolsista' : 'monitor'}" style="margin-top: 0.25rem;">${ag.vinculo}</span>
+                        <div style="font-weight: 600; color: var(--oer-text-main);">${item.nomeSolicitante}</div>
+                        ${item.instrumento ? `<div style="font-size: 0.78rem; color: #475569; display: flex; align-items: center; gap: 0.25rem; margin-top: 0.15rem;"><i data-lucide="music-2" style="width: 12px; height: 12px; color: var(--oer-primary);"></i> ${item.instrumento}</div>` : ''}
+                        <span class="badge-vinculo ${item.vinculo === 'Bolsista' ? 'bolsista' : 'monitor'}" style="margin-top: 0.25rem;">${item.vinculo}</span>
                     </td>
                     <td class="cell-necessidades" data-label="Necessidades">
-                        <span class="mobile-td-label">Obs: </span>${ag.necessidades || "<span style='color:#94a3b8;'>Nenhuma</span>"}
+                        <span class="mobile-td-label">Obs: </span>${item.necessidades || "<span style='color:#94a3b8;'>Nenhuma</span>"}
                     </td>
                     <td class="cell-partitura" data-label="Partitura">
-                        <span class="mobile-td-label">Partitura: </span>${ag.precisaPartitura 
-                            ? `<span class="badge-partitura"><i data-lucide="file-music" style="width: 13px; height: 13px; color: var(--oer-accent);"></i> ${ag.qualPartitura || "Sim"}</span>` 
+                        <span class="mobile-td-label">Partitura: </span>${item.precisaPartitura 
+                            ? `<span class="badge-partitura"><i data-lucide="file-music" style="width: 13px; height: 13px; color: var(--oer-accent);"></i> ${item.qualPartitura || "Sim"}</span>` 
                             : "<span style='color:#94a3b8; font-size: 0.85rem;'>Não</span>"}
                     </td>
                     <td class="cell-acoes" style="text-align: right;">
                         <div style="display: inline-flex; gap: 0.35rem; align-items: center; justify-content: flex-end;">
-                            <button class="btn btn-outline btn-sm btn-copy-single" data-id="${ag.id}" title="Copiar mensagem individual para WhatsApp">
+                            <button class="btn btn-outline btn-sm btn-copy-single" data-id="${item.id}" title="Copiar mensagem individual para WhatsApp">
                                 <i data-lucide="copy" style="width: 14px; height: 14px;"></i>
                             </button>
-                            <button class="btn btn-danger btn-sm btn-cancel-agendamento" data-id="${ag.id}" title="Cancelar agendamento e liberar horário">
+                            <button class="btn btn-danger btn-sm btn-cancel-agendamento" data-id="${item.id}" title="Cancelar agendamento e liberar horário">
                                 <i data-lucide="x" style="width: 14px; height: 14px;"></i> Liberar
                             </button>
                         </div>
@@ -1138,7 +1199,7 @@
             lucide.createIcons();
 
             // Evento de clique na linha para copiar a mensagem individual
-            adminAgendamentosTbody.querySelectorAll(".agendamento-row").forEach(row => {
+            adminAgendamentosTbody.querySelectorAll(".agendamento-row:not(.agendamento-bloqueado-row)").forEach(row => {
                 row.addEventListener("click", (e) => {
                     if (e.target.closest(".btn-cancel-agendamento")) return;
                     const id = row.getAttribute("data-id");
@@ -1167,6 +1228,26 @@
                         const adminUser = (auth.currentUser && auth.currentUser.email) ? auth.currentUser.email : "Administrador";
                         await AgendamentoService.cancelAgendamento(id, adminUser, ag);
                         showToast("Horário liberado imediatamente.");
+                    }
+                });
+            });
+
+            // Evento do botão de desbloquear slot da tabela
+            document.querySelectorAll(".btn-unlock-table-slot").forEach(btn => {
+                btn.addEventListener("click", async (e) => {
+                    e.stopPropagation();
+                    const salaId = btn.getAttribute("data-sala");
+                    const hora = btn.getAttribute("data-hora");
+                    const sala = allSalas.find(s => s.id === salaId);
+                    try {
+                        await AgendamentoService.toggleBloqueioHorario(salaId, dataFiltro, hora, sala);
+                        showToast(`Horário ${hora} desbloqueado com sucesso!`);
+                        renderAdminAgendamentos();
+                        renderWeeklyGrid();
+                        renderPublicSlots();
+                    } catch (err) {
+                        console.error("Erro ao desbloquear horário:", err);
+                        showToast("Erro ao desbloquear horário.", "error");
                     }
                 });
             });
@@ -1291,12 +1372,41 @@
                 }
 
                 // Agendamentos deste dia ordenados por hora
-                const agsDoDia = allAgendamentos
+                const agsConfirmados = allAgendamentos
                     .filter(ag => ag.data === d.ymd && ag.status === "confirmado")
+                    .map(ag => ({ ...ag, isBloqueio: false }));
+
+                // Adicionar bloqueios das salas neste dia
+                const bloqueiosSemana = [];
+                allSalas.forEach(s => {
+                    const blk = s.horariosBloqueados?.[d.ymd] || [];
+                    const dur = Number(s.slotDuration) || 60;
+                    blk.forEach(horaIni => {
+                        const jaTem = agsConfirmados.some(a => a.salaId === s.id && a.horaInicio === horaIni);
+                        if (!jaTem) {
+                            const [h, m] = horaIni.split(':').map(Number);
+                            const fimMin = h * 60 + m + dur;
+                            const hFim = String(Math.floor(fimMin / 60)).padStart(2, '0');
+                            const mFim = String(fimMin % 60).padStart(2, '0');
+                            bloqueiosSemana.push({
+                                id: `block_${s.id}_${d.ymd}_${horaIni}`,
+                                salaId: s.id,
+                                salaNome: s.nome,
+                                data: d.ymd,
+                                horaInicio: horaIni,
+                                horaFim: `${hFim}:${mFim}`,
+                                nomeSolicitante: "Reservado (Administração)",
+                                isBloqueio: true
+                            });
+                        }
+                    });
+                });
+
+                const eventosDoDia = [...agsConfirmados, ...bloqueiosSemana]
                     .sort((a, b) => (a.horaInicio || "").localeCompare(b.horaInicio || ""));
 
                 // Algoritmo para posicionar agendamentos simultâneos lado a lado (estilo Google/Outlook Calendar)
-                const layoutItems = agsDoDia.map(ag => {
+                const layoutItems = eventosDoDia.map(ag => {
                     const [hIni, mIni] = (ag.horaInicio || "08:00").split(':').map(Number);
                     const [hFim, mFim] = (ag.horaFim || "09:00").split(':').map(Number);
                     const startMin = hIni * 60 + mIni;
@@ -1354,18 +1464,30 @@
                     const salaObj = allSalas.find(s => s.id === ag.salaId);
                     const corSala = salaObj?.cor || "#ea580c";
 
-                    const obsText = ag.necessidades ? ` (${ag.necessidades})` : '';
-                    const instText = ag.instrumento ? ` [${ag.instrumento}]` : '';
+                    if (ag.isBloqueio) {
+                        bodyHTML += `
+                            <div class="booking-event-card event-reserved" 
+                                 style="top: ${topPx}px; height: ${heightPx}px; left: ${leftCalc}; width: ${widthCalc};"
+                                 title="${ag.salaNome} | ${ag.horaInicio} - ${ag.horaFim}\nHorário bloqueado pela administração"
+                                 data-ag-id="${ag.id}" data-is-bloqueio="true" data-sala-id="${ag.salaId}" data-ymd="${d.ymd}" data-hora="${ag.horaInicio}">
+                                <div class="booking-event-title" style="color: #475569;">${ag.salaNome}</div>
+                                <div class="booking-event-subtitle" style="color: #64748b;">🔒 Reservado (Admin)</div>
+                            </div>
+                        `;
+                    } else {
+                        const obsText = ag.necessidades ? ` (${ag.necessidades})` : '';
+                        const instText = ag.instrumento ? ` [${ag.instrumento}]` : '';
 
-                    bodyHTML += `
-                        <div class="booking-event-card" 
-                             style="top: ${topPx}px; height: ${heightPx}px; left: ${leftCalc}; width: ${widthCalc}; background: ${corSala}1f; border-left: 3px solid ${corSala}; color: #1e293b;"
-                             title="${ag.salaNome} | ${ag.horaInicio} - ${ag.horaFim}\nSolicitante: ${ag.nomeSolicitante}${ag.instrumento ? ` (${ag.instrumento})` : ''}\nClique para copiar mensagem de confirmação para o WhatsApp"
-                             data-ag-id="${ag.id}">
-                            <div class="booking-event-title" style="color: ${corSala};">${ag.salaNome}</div>
-                            <div class="booking-event-subtitle">${ag.nomeSolicitante}${instText}${obsText}</div>
-                        </div>
-                    `;
+                        bodyHTML += `
+                            <div class="booking-event-card" 
+                                 style="top: ${topPx}px; height: ${heightPx}px; left: ${leftCalc}; width: ${widthCalc}; background: ${corSala}1f; border-left: 3px solid ${corSala}; color: #1e293b;"
+                                 title="${ag.salaNome} | ${ag.horaInicio} - ${ag.horaFim}\nSolicitante: ${ag.nomeSolicitante}${ag.instrumento ? ` (${ag.instrumento})` : ''}\nClique para copiar mensagem de confirmação para o WhatsApp"
+                                 data-ag-id="${ag.id}">
+                                <div class="booking-event-title" style="color: ${corSala};">${ag.salaNome}</div>
+                                <div class="booking-event-subtitle">${ag.nomeSolicitante}${instText}${obsText}</div>
+                            </div>
+                        `;
+                    }
                 });
 
                 bodyHTML += `</div>`;
@@ -1373,9 +1495,29 @@
 
             weeklyGridBody.innerHTML = bodyHTML;
 
-            // Evento de clique no card da grade para copiar mensagem de confirmação para WhatsApp
+            // Evento de clique no card da grade
             weeklyGridBody.querySelectorAll(".booking-event-card").forEach(card => {
-                card.addEventListener("click", () => {
+                card.addEventListener("click", async () => {
+                    const isBloqueio = card.getAttribute("data-is-bloqueio") === "true";
+                    if (isBloqueio) {
+                        const salaId = card.getAttribute("data-sala-id");
+                        const ymd = card.getAttribute("data-ymd");
+                        const hora = card.getAttribute("data-hora");
+                        const sala = allSalas.find(s => s.id === salaId);
+                        if (confirm(`Deseja desbloquear o horário ${hora} do dia ${ymd.split('-').reverse().join('/')} na ${sala?.nome || 'sala'}?`)) {
+                            try {
+                                await AgendamentoService.toggleBloqueioHorario(salaId, ymd, hora, sala);
+                                showToast(`Horário ${hora} desbloqueado.`);
+                                renderWeeklyGrid();
+                                renderAdminAgendamentos();
+                                renderPublicSlots();
+                            } catch(e) {
+                                showToast("Erro ao desbloquear.", "error");
+                            }
+                        }
+                        return;
+                    }
+
                     const id = card.getAttribute("data-ag-id");
                     const ag = allAgendamentos.find(a => a.id === id);
                     if (ag) {
@@ -1739,10 +1881,10 @@
             }
 
             const todosSlots = AgendamentoService.calculateAvailableSlots(sala, dataEscolhida, allAgendamentos);
-            // Oculta completamente horários já agendados
-            const slotsLivres = todosSlots.filter(s => s.disponivel);
+            // Filtra slots que não estão ocupados por agendamentos confirmados
+            const slotsExibiveis = todosSlots.filter(s => !s.ocupado);
 
-            if (slotsLivres.length === 0) {
+            if (slotsExibiveis.length === 0) {
                 publicSlotsContainer.innerHTML = `
                     <div style="grid-column: 1/-1; text-align: center; padding: 2rem 0;">
                         <i data-lucide="check-circle-2" style="width: 24px; height: 24px; color: var(--oer-success); margin-bottom: 0.5rem;"></i>
@@ -1755,25 +1897,67 @@
                 return;
             }
 
-            publicSlotsContainer.innerHTML = slotsLivres.map(slot => {
+            publicSlotsContainer.innerHTML = slotsExibiveis.map(slot => {
                 const isSelected = selectedSlot && selectedSlot.horaInicio === slot.horaInicio;
-                const slotClass = isSelected ? 'slot-pill selected' : 'slot-pill';
+                const isBlocked = Boolean(slot.bloqueado);
+
+                let pillClass = 'slot-pill';
+                if (isBlocked) {
+                    pillClass += ' reserved blocked';
+                } else if (isSelected) {
+                    pillClass += ' selected';
+                }
+
+                const toggleClass = isBlocked ? 'btn-slot-block-toggle is-blocked' : 'btn-slot-block-toggle';
+                const toggleTitle = isBlocked ? `Desbloquear horário ${slot.horaInicio}` : `Bloquear horário ${slot.horaInicio}`;
 
                 return `
-                    <button type="button" class="${slotClass}" data-inicio="${slot.horaInicio}" data-fim="${slot.horaFim}" title="Clique para selecionar ${slot.horaInicio}">
-                        ${slot.horaInicio}
-                    </button>
+                    <div class="slot-pill-wrapper">
+                        <button type="button" class="${pillClass}" data-inicio="${slot.horaInicio}" data-fim="${slot.horaFim}" ${isBlocked ? 'disabled' : ''} title="${isBlocked ? 'Horário bloqueado/reservado pela administração' : `Clique para selecionar ${slot.horaInicio}`}">
+                            <span>${slot.horaInicio}</span>
+                            ${isBlocked ? `<span class="slot-badge-reserved">Reservado</span>` : ''}
+                        </button>
+                        <button type="button" class="${toggleClass}" data-inicio="${slot.horaInicio}" title="${toggleTitle}">
+                            ✕
+                        </button>
+                    </div>
                 `;
             }).join("");
 
-            document.querySelectorAll(".slot-pill").forEach(btn => {
+            // Seleção de slot para agendamento
+            publicSlotsContainer.querySelectorAll(".slot-pill:not(.reserved):not(.blocked)").forEach(btn => {
                 btn.addEventListener("click", () => {
-                    document.querySelectorAll(".slot-pill").forEach(b => b.classList.remove("selected"));
+                    publicSlotsContainer.querySelectorAll(".slot-pill").forEach(b => b.classList.remove("selected"));
                     btn.classList.add("selected");
                     selectedSlot = {
                         horaInicio: btn.getAttribute("data-inicio"),
                         horaFim: btn.getAttribute("data-fim")
                     };
+                });
+            });
+
+            // Ação rápida de bloqueio / desbloqueio pelo botão "✕"
+            publicSlotsContainer.querySelectorAll(".btn-slot-block-toggle").forEach(btnToggle => {
+                btnToggle.addEventListener("click", async (e) => {
+                    e.stopPropagation();
+                    const hora = btnToggle.getAttribute("data-inicio");
+                    try {
+                        const res = await AgendamentoService.toggleBloqueioHorario(sala.id, dataEscolhida, hora, sala);
+                        if (res.bloqueado) {
+                            showToast(`Horário ${hora} bloqueado para ${dataEscolhida.split('-').reverse().join('/')}`);
+                            if (selectedSlot?.horaInicio === hora) {
+                                selectedSlot = null;
+                            }
+                        } else {
+                            showToast(`Horário ${hora} liberado com sucesso!`);
+                        }
+                        renderPublicSlots();
+                        renderAdminAgendamentos();
+                        renderWeeklyGrid();
+                    } catch (err) {
+                        console.error("Erro ao alterar bloqueio de horário:", err);
+                        showToast("Erro ao alterar bloqueio de horário.", "error");
+                    }
                 });
             });
         }

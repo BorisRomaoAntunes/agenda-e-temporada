@@ -668,6 +668,7 @@ body {
 }
 
 .slot-pill {
+    position: relative;
     padding: 0.65rem 0.45rem;
     border: 1.5px solid var(--oer-border);
     border-radius: 8px;
@@ -681,10 +682,11 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    gap: 0.35rem;
     letter-spacing: -0.01em;
 }
 
-.slot-pill:hover:not(.disabled) {
+.slot-pill:hover:not(.disabled):not(.reserved):not(.blocked) {
     border-color: var(--oer-primary);
     color: var(--oer-primary);
     background: var(--oer-accent-light);
@@ -705,6 +707,91 @@ body {
     cursor: not-allowed;
     text-decoration: line-through;
     border-color: #e2e8f0;
+}
+
+/* Horário Bloqueado / Reservado */
+.slot-pill-wrapper {
+    position: relative;
+    display: flex;
+    align-items: stretch;
+    width: 100%;
+}
+
+.slot-pill.reserved,
+.slot-pill.blocked {
+    background: #f8fafc !important;
+    border-color: #cbd5e1 !important;
+    color: #64748b !important;
+    cursor: not-allowed !important;
+    border-style: dashed !important;
+    box-shadow: none !important;
+    transform: none !important;
+    text-decoration: none !important;
+}
+
+.slot-badge-reserved {
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 0.15rem 0.35rem;
+    border-radius: 4px;
+    background: #fee2e2;
+    color: #dc2626;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    line-height: 1;
+}
+
+/* Botão de Ação Rápida de Bloqueio (X) para o Admin */
+.btn-slot-block-toggle {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    width: 19px;
+    height: 19px;
+    border-radius: 50%;
+    border: 1.5px solid #cbd5e1;
+    background: #ffffff;
+    color: #64748b;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    transition: all 0.15s ease;
+    z-index: 5;
+    padding: 0;
+    line-height: 1;
+}
+
+.btn-slot-block-toggle:hover {
+    background: #ef4444;
+    border-color: #ef4444;
+    color: #ffffff;
+    transform: scale(1.15);
+}
+
+.btn-slot-block-toggle.is-blocked {
+    background: #fee2e2;
+    border-color: #fca5a5;
+    color: #dc2626;
+}
+
+.btn-slot-block-toggle.is-blocked:hover {
+    background: #16a34a;
+    border-color: #16a34a;
+    color: #ffffff;
+}
+
+/* Evento reservado na Grade Semanal */
+.booking-event-card.event-reserved {
+    background: rgba(148, 163, 184, 0.15) !important;
+    border-left: 3px dashed #64748b !important;
+    color: #475569 !important;
 }
 
 /* Card de Resumo Inline do Agendamento */

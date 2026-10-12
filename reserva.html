@@ -717,9 +717,10 @@
             }
 
             const todosSlots = AgendamentoService.calculateAvailableSlots(sala, dataEscolhida, allAgendamentos, { filterPast: true });
-            const slotsLivres = todosSlots.filter(s => s.disponivel);
+            // Exibe slots livres e slots bloqueados (com etiqueta de Reservado)
+            const slotsVisiveis = todosSlots.filter(s => s.disponivel || s.bloqueado);
 
-            if (slotsLivres.length === 0) {
+            if (slotsVisiveis.length === 0) {
                 const agora = new Date();
                 const anoAtual = agora.getFullYear();
                 const mesAtual = String(agora.getMonth() + 1).padStart(2, '0');
@@ -746,10 +747,20 @@
                 return;
             }
 
-            publicSlotsContainer.innerHTML = slotsLivres.map(slot => {
+            publicSlotsContainer.innerHTML = slotsVisiveis.map(slot => {
                 const isSelected = selectedSlot && selectedSlot.horaInicio === slot.horaInicio;
-                const slotClass = isSelected ? 'slot-pill selected' : 'slot-pill';
+                const isBlocked = Boolean(slot.bloqueado);
 
+                if (isBlocked) {
+                    return `
+                        <button type="button" class="slot-pill reserved" disabled title="Horário reservado pela administração">
+                            <span>${slot.horaInicio} – ${slot.horaFim}</span>
+                            <span class="slot-badge-reserved">Reservado</span>
+                        </button>
+                    `;
+                }
+
+                const slotClass = isSelected ? 'slot-pill selected' : 'slot-pill';
                 return `
                     <button type="button" class="${slotClass}" data-inicio="${slot.horaInicio}" data-fim="${slot.horaFim}" title="Selecionar horário: ${slot.horaInicio} às ${slot.horaFim}">
                         ${slot.horaInicio} – ${slot.horaFim}
@@ -757,7 +768,7 @@
                 `;
             }).join("");
 
-            document.querySelectorAll(".slot-pill").forEach(btn => {
+            document.querySelectorAll(".slot-pill:not(.reserved):not(.disabled)").forEach(btn => {
                 btn.addEventListener("click", () => {
                     document.querySelectorAll(".slot-pill").forEach(b => b.classList.remove("selected"));
                     btn.classList.add("selected");
