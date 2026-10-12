@@ -1,8 +1,26 @@
 {
-  "hash": "87ed4d2",
-  "date": "12/10/2026 16:12",
-  "buildAt": "2026-10-12T19:12:07.247Z",
+  "hash": "5f78bff+mod",
+  "date": "12/10/2026, 16:30:25",
+  "buildAt": "2026-10-12T19:30:25.405Z",
   "history": [
+    {
+      "hash": "5f78bff+mod",
+      "date": "12/10/2026, 16:30:25",
+      "author": "Deploy Local",
+      "subject": "Atualização implantada (1 arquivos modificados)"
+    },
+    {
+      "hash": "5f78bff",
+      "date": "12/10/2026 16:29",
+      "author": "Boris Romão Antunes",
+      "subject": "refactor: simplificar cabecalho do relatorio de presenca em texto limpo"
+    },
+    {
+      "hash": "2aa0b13",
+      "date": "12/10/2026 16:14",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json apos commit 87ed4d2"
+    },
     {
       "hash": "87ed4d2",
       "date": "12/10/2026 16:12",
@@ -104,24 +122,6 @@
       "date": "11/10/2026 14:20",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualizar version.json apos commit eddc149"
-    },
-    {
-      "hash": "eddc149",
-      "date": "11/10/2026 14:20",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(presenca): mudar tema escuro para preto verdadeiro (true black)"
-    },
-    {
-      "hash": "7703632",
-      "date": "11/10/2026 14:17",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json apos commit a088f8e"
-    },
-    {
-      "hash": "a088f8e",
-      "date": "11/10/2026 14:17",
-      "author": "Boris Romão Antunes",
-      "subject": "fix(presenca): blindar auto-save contra condicao de corrida e atualizar cache"
     }
   ]
 }
