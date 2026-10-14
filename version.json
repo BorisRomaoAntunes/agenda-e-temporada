@@ -1,8 +1,20 @@
 {
-  "hash": "9f4885b",
-  "date": "12/10/2026 16:55",
-  "buildAt": "2026-10-12T19:56:06.834Z",
+  "hash": "af9e578",
+  "date": "13/10/2026 22:29",
+  "buildAt": "2026-10-14T01:30:22.759Z",
   "history": [
+    {
+      "hash": "af9e578",
+      "date": "13/10/2026 22:29",
+      "author": "Boris Romão Antunes",
+      "subject": "fix(passagem-som): ocultar datas sem horarios e tratar passagens inativas/excluidas"
+    },
+    {
+      "hash": "596985a",
+      "date": "12/10/2026 16:56",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json apos deploy"
+    },
     {
       "hash": "9f4885b",
       "date": "12/10/2026 16:55",
@@ -110,18 +122,6 @@
       "date": "11/10/2026 15:50",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualizar version.json apos deploy da estabilidade mobile"
-    },
-    {
-      "hash": "9663176",
-      "date": "11/10/2026 15:47",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json pós-deploy"
-    },
-    {
-      "hash": "5459ec7",
-      "date": "11/10/2026 15:47",
-      "author": "Boris Romão Antunes",
-      "subject": "fix(admin): aplicar estabilidade mobile, safe-areas e 100dvh em admin e passagem-som"
     }
   ]
 }
