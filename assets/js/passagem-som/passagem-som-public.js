@@ -89,6 +89,18 @@ const sucessoConteudoEl = document.getElementById("sucessoConteudo");
 
 const STORAGE_KEY = "oer_passagem_musico";
 
+function formatarTituloCiclo(rawTitulo) {
+    if (!rawTitulo || typeof rawTitulo !== "string") return "Passagem de Som OER";
+    let t = rawTitulo.trim();
+    // 1. Conecta números separados por hífen (ex: "04 - 2026" vira "04\u00A0-\u00A02026")
+    t = t.replace(/(\d+)\s*-\s*(\d+)/g, "$1\u00A0-\u00A0$2");
+    // 2. Conecta hífen e ano ou bloco final (ex: " - 2026" ou " - (Grupo 02)")
+    t = t.replace(/\s+-\s+(\d{4}|\([^\)]+\)|[A-Za-z0-9]+)$/g, "\u00A0-\u00A0$1");
+    // 3. Garante que qualquer ocorrência de " - Ano" nunca quebre isolada
+    t = t.replace(/\s+-\s+(\d{4})/g, "\u00A0-\u00A0$1");
+    return t;
+}
+
 function mostrarToast(mensagem, tipo = "info") {
     if (!toastEl) return;
     toastEl.textContent = mensagem;
@@ -146,7 +158,7 @@ function carregarCicloNoFormulario(ciclo) {
     if (conteudoFormEl) conteudoFormEl.style.display = "block";
     if (stepperWrapperEl) stepperWrapperEl.style.display = "block";
 
-    if (cicloTituloEl) cicloTituloEl.textContent = ciclo.titulo || ciclo.nome || "Passagem de Som OER";
+    if (cicloTituloEl) cicloTituloEl.textContent = formatarTituloCiclo(ciclo.titulo || ciclo.nome || "Passagem de Som OER");
     if (cicloDescricaoEl) {
         if (ciclo.avisoDeclaracao) {
             cicloDescricaoEl.textContent = `Aviso importante: ${ciclo.avisoDeclaracao}`;
@@ -198,8 +210,8 @@ function renderizarSeletorCiclos(ciclosAtivos) {
 
         card.innerHTML = `
             <div>
-                <h3>${ciclo.nome || "Passagem de Som"}</h3>
-                <p>${ciclo.titulo || "Agendamento oficial de horários"}</p>
+                <h3>${formatarTituloCiclo(ciclo.nome || "Passagem de Som")}</h3>
+                <p>${formatarTituloCiclo(ciclo.titulo || "Agendamento oficial de horários")}</p>
                 <div style="text-align: left; font-size: 0.85rem; color: #475569; margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.4rem;">
                     <div><i data-lucide="clock" style="width: 14px; height: 14px; vertical-align: -2px; color: var(--oer-primary);"></i> ${p1Texto}</div>
                     <div><i data-lucide="clock-4" style="width: 14px; height: 14px; vertical-align: -2px; color: var(--oer-primary);"></i> ${p2Texto}</div>
