@@ -1,8 +1,26 @@
 {
-  "hash": "af9e578",
-  "date": "13/10/2026 22:29",
-  "buildAt": "2026-10-14T01:30:22.759Z",
+  "hash": "27af8ac",
+  "date": "14/10/2026 09:50",
+  "buildAt": "2026-10-14T12:50:34.324Z",
   "history": [
+    {
+      "hash": "27af8ac",
+      "date": "14/10/2026 09:50",
+      "author": "Boris Romão Antunes",
+      "subject": "fix(passagem-som): layout compacto e tipografia fluida com quebra equilibrada do titulo no mobile"
+    },
+    {
+      "hash": "bc47e99",
+      "date": "14/10/2026 08:28",
+      "author": "Boris Romão Antunes",
+      "subject": "docs: atualizar README com modulos completos do ecossistema OER"
+    },
+    {
+      "hash": "7b30928",
+      "date": "13/10/2026 22:30",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json pós deploy [skip ci]"
+    },
     {
       "hash": "af9e578",
       "date": "13/10/2026 22:29",
@@ -104,24 +122,6 @@
       "date": "12/10/2026 16:06",
       "author": "Boris Romão Antunes",
       "subject": "feat: otimizacao de datas e identificacao de multiplos concertos no relatorio de presenca"
-    },
-    {
-      "hash": "33cbc72",
-      "date": "11/10/2026 16:24",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json apos melhoria no modo escuro"
-    },
-    {
-      "hash": "4f0291d",
-      "date": "11/10/2026 16:23",
-      "author": "Boris Romão Antunes",
-      "subject": "fix(presenca): aprimorar contraste e padrao estetico de nao escalado no modo escuro"
-    },
-    {
-      "hash": "3f36ef6",
-      "date": "11/10/2026 15:50",
-      "author": "Boris Romão Antunes",
-      "subject": "chore: atualizar version.json apos deploy da estabilidade mobile"
     }
   ]
 }
