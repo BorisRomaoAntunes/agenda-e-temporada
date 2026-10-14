@@ -105,7 +105,39 @@ const conteudoFormEl = document.getElementById("conteudoForm");
 
 let unsubscribeAgendamentos = null;
 
+function exibirAvisoEstado({ titulo, mensagem, icone = "calendar-off", corIcone = "var(--oer-warning)" }) {
+    if (loaderEl) loaderEl.classList.add("hidden");
+    if (conteudoFormEl) conteudoFormEl.style.display = "none";
+    if (conteudoSeletorCiclosEl) conteudoSeletorCiclosEl.style.display = "none";
+    if (stepperWrapperEl) stepperWrapperEl.style.display = "none";
+
+    if (conteudoSemCicloEl) {
+        conteudoSemCicloEl.style.display = "block";
+        conteudoSemCicloEl.innerHTML = `
+            <div style="display: flex; justify-content: center; margin-bottom: 1.25rem;">
+                <i data-lucide="${icone}" style="width: 48px; height: 48px; color: ${corIcone};"></i>
+            </div>
+            <h2 style="margin-bottom: 0.6rem; color: var(--oer-text-main); font-size: 1.35rem;">${titulo}</h2>
+            <p style="color: var(--oer-text-muted); font-size: 0.95rem; line-height: 1.5; max-width: 520px; margin: 0 auto;">
+                ${mensagem}
+            </p>
+        `;
+        if (window.lucide) lucide.createIcons();
+    }
+}
+
 function carregarCicloNoFormulario(ciclo) {
+    if (!ciclo || ciclo.ativo === false) {
+        const nomeCiclo = ciclo?.nome || ciclo?.titulo || "de som";
+        exibirAvisoEstado({
+            titulo: "Agendamento Inativo",
+            mensagem: `Os agendamentos para a passagem <strong>${nomeCiclo}</strong> estão temporariamente desativados pelo Inspetor da OER.`,
+            icone: "pause-circle",
+            corIcone: "var(--oer-warning)"
+        });
+        return;
+    }
+
     cicloAtivo = ciclo;
     if (loaderEl) loaderEl.classList.add("hidden");
 
@@ -147,8 +179,8 @@ function renderizarSeletorCiclos(ciclosAtivos) {
         const card = document.createElement("div");
         card.className = "seletor-ciclo-card";
 
-        const diasP1 = ciclo.periodo1?.dias || [];
-        const diasP2 = ciclo.periodo2?.dias || [];
+        const diasP1 = (ciclo.periodo1?.dias || []).filter((d) => Array.isArray(d.horarios) && d.horarios.length > 0);
+        const diasP2 = (ciclo.periodo2?.dias || []).filter((d) => Array.isArray(d.horarios) && d.horarios.length > 0);
 
         let p1Texto = "1ª Passagem: Consultar datas";
         if (diasP1.length > 0) {
@@ -215,16 +247,23 @@ document.addEventListener("DOMContentLoaded", async () => {
             PassagemSomService.listenCicloById(cicloIdParam, (ciclo) => {
                 if (loaderEl) loaderEl.classList.add("hidden");
                 if (!ciclo) {
-                    if (conteudoSemCicloEl) {
-                        conteudoSemCicloEl.style.display = "block";
-                        const h2 = conteudoSemCicloEl.querySelector("h2");
-                        const p = conteudoSemCicloEl.querySelector("p");
-                        if (h2) h2.textContent = "Passagem de som não encontrada.";
-                        if (p) p.textContent = "O link acessado é inválido ou a passagem de som solicitada foi removida. Verifique o link com a administração da OER.";
-                    }
-                    if (conteudoFormEl) conteudoFormEl.style.display = "none";
-                    if (conteudoSeletorCiclosEl) conteudoSeletorCiclosEl.style.display = "none";
-                    if (stepperWrapperEl) stepperWrapperEl.style.display = "none";
+                    exibirAvisoEstado({
+                        titulo: "Passagem de Som Inativa",
+                        mensagem: "Esta passagem de som não está mais ativa. Em caso de dúvidas, procure o Inspetor da OER.",
+                        icone: "calendar-off",
+                        corIcone: "#94a3b8"
+                    });
+                    return;
+                }
+
+                if (ciclo.ativo === false) {
+                    const nomeCiclo = ciclo.nome || ciclo.titulo || "de som";
+                    exibirAvisoEstado({
+                        titulo: "Agendamento Inativo",
+                        mensagem: `Os agendamentos para a passagem <strong>${nomeCiclo}</strong> estão temporariamente desativados pelo Inspetor da OER.`,
+                        icone: "pause-circle",
+                        corIcone: "var(--oer-warning)"
+                    });
                     return;
                 }
 
@@ -235,16 +274,12 @@ document.addEventListener("DOMContentLoaded", async () => {
             PassagemSomService.listenCiclosAtivos((ciclosAtivos) => {
                 if (loaderEl) loaderEl.classList.add("hidden");
                 if (!ciclosAtivos || ciclosAtivos.length === 0) {
-                    if (conteudoSemCicloEl) {
-                        conteudoSemCicloEl.style.display = "block";
-                        const h2 = conteudoSemCicloEl.querySelector("h2");
-                        const p = conteudoSemCicloEl.querySelector("p");
-                        if (h2) h2.textContent = "Nenhum ciclo de passagem de som ativo no momento.";
-                        if (p) p.textContent = "Por favor, aguarde a liberação dos novos horários pela coordenação ou entre em contato com a administração da OER.";
-                    }
-                    if (conteudoFormEl) conteudoFormEl.style.display = "none";
-                    if (conteudoSeletorCiclosEl) conteudoSeletorCiclosEl.style.display = "none";
-                    if (stepperWrapperEl) stepperWrapperEl.style.display = "none";
+                    exibirAvisoEstado({
+                        titulo: "Nenhum agendamento ativo no momento",
+                        mensagem: "Por favor, aguarde a liberação dos novos horários pelo Inspetor da OER ou entre em contato com a administração da OER.",
+                        icone: "calendar-off",
+                        corIcone: "var(--oer-warning)"
+                    });
                     return;
                 }
 
@@ -479,10 +514,21 @@ function renderizarPeriodo1() {
 
     const diasContainer = document.getElementById("p1DiasContainer");
     const slotsContainer = document.getElementById("p1SlotsContainer");
-    const dias = cicloAtivo.periodo1.dias;
+    const todosDias = cicloAtivo.periodo1.dias || [];
+    // Filtrar apenas dias que possuem pelo menos 1 horário cadastrado
+    const dias = todosDias.filter((d) => Array.isArray(d.horarios) && d.horarios.length > 0);
 
-    if (!selecaoP1.data && dias.length > 0) {
+    if (dias.length === 0) {
+        diasContainer.innerHTML = "";
+        slotsContainer.innerHTML = `<p style="grid-column: 1/-1; color: var(--oer-text-muted); font-size: 0.85rem; padding: 1rem 0;">Nenhum horário disponível para a 1ª passagem no momento.</p>`;
+        selecaoP1.data = null;
+        selecaoP1.horario = null;
+        return;
+    }
+
+    if (!selecaoP1.data || !dias.some((d) => d.data === selecaoP1.data)) {
         selecaoP1.data = dias[0].data;
+        selecaoP1.horario = null;
     }
 
     // Renderiza botões das datas (pílulas com semáforo)
@@ -604,10 +650,21 @@ function renderizarPeriodo2() {
 
     const diasContainer = document.getElementById("p2DiasContainer");
     const slotsContainer = document.getElementById("p2SlotsContainer");
-    const dias = cicloAtivo.periodo2.dias;
+    const todosDias = cicloAtivo.periodo2.dias || [];
+    // Filtrar apenas dias que possuem pelo menos 1 horário cadastrado
+    const dias = todosDias.filter((d) => Array.isArray(d.horarios) && d.horarios.length > 0);
 
-    if (!selecaoP2.data && dias.length > 0) {
+    if (dias.length === 0) {
+        diasContainer.innerHTML = "";
+        slotsContainer.innerHTML = `<p style="grid-column: 1/-1; color: var(--oer-text-muted); font-size: 0.85rem; padding: 1rem 0;">Nenhum horário disponível para a 2ª passagem no momento.</p>`;
+        selecaoP2.data = null;
+        selecaoP2.horario = null;
+        return;
+    }
+
+    if (!selecaoP2.data || !dias.some((d) => d.data === selecaoP2.data)) {
         selecaoP2.data = dias[0].data;
+        selecaoP2.horario = null;
     }
 
     // Pílulas das datas
