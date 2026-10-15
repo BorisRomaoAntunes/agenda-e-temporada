@@ -1,8 +1,14 @@
 {
-  "hash": "f80f6d9",
+  "hash": "39a92c2",
   "date": "15/10/2026 09:53",
-  "buildAt": "2026-10-15T12:53:28.735Z",
+  "buildAt": "2026-10-15T12:58:07.185Z",
   "history": [
+    {
+      "hash": "39a92c2",
+      "date": "15/10/2026 09:53",
+      "author": "Boris Romão Antunes",
+      "subject": "chore: atualizar version.json pós deploy [skip ci]"
+    },
     {
       "hash": "f80f6d9",
       "date": "15/10/2026 09:53",
@@ -116,12 +122,6 @@
       "date": "12/10/2026 16:14",
       "author": "Boris Romão Antunes",
       "subject": "chore: atualizar version.json apos commit 87ed4d2"
-    },
-    {
-      "hash": "87ed4d2",
-      "date": "12/10/2026 16:12",
-      "author": "Boris Romão Antunes",
-      "subject": "feat(agendamento): bloquear e desbloquear horarios especificos por sala com status reservado"
     }
   ]
 }
