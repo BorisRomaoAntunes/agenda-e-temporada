@@ -454,7 +454,7 @@ function configurarStepperNavegacao() {
 function rolarParaSecao(secaoId) {
     const el = document.getElementById(secaoId);
     if (!el) return;
-    const offset = 75; // compensar stepper sticky
+    const offset = 82; // compensar stepper sticky flutuante (top 12px + altura do card)
     const bodyRect = document.body.getBoundingClientRect().top;
     const elementRect = el.getBoundingClientRect().top;
     const elementPosition = elementRect - bodyRect;
